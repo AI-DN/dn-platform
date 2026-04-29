@@ -327,11 +327,19 @@ async function generateStories(reqId) {
     const txt = d.content[0].text.replace(/```json|```/g,'').trim();
     const stories = JSON.parse(txt);
     storyCache[reqId] = stories;
-    // Save to Supabase
-    await fetch(surl('requests?id=eq.' + reqId), {
-      method: 'PATCH', headers: { ...hdrs(), 'Prefer': 'return=minimal' },
+    // Save to Supabase — verify it succeeded
+    const patchResp = await fetch(surl('requests?id=eq.' + reqId), {
+      method: 'PATCH', headers: { ...hdrs(), 'Prefer': 'return=representation' },
       body: JSON.stringify({ status: 'active', stories: JSON.stringify(stories) })
     });
+    if (!patchResp.ok) {
+      const errTxt = await patchResp.text();
+      throw new Error('Database save failed (status ' + patchResp.status + '): ' + errTxt + '. You likely need to add an UPDATE policy in Supabase. Run: create policy "Allow update" on requests for update using (true) with check (true);');
+    }
+    const updated = await patchResp.json();
+    if (!updated || !updated.length || updated[0].status !== 'active') {
+      throw new Error('Database update did not persist. Check RLS policies in Supabase.');
+    }
     const idx = allReqs.findIndex(function(r) { return r.id === reqId; });
     if (idx !== -1) { allReqs[idx].status = 'active'; allReqs[idx].stories = JSON.stringify(stories); }
     renderTabs(); renderEpic(reqId);
@@ -518,12 +526,16 @@ async function executeStory() {
       }
     }
 
-    // Persist to Supabase
-    await fetch(surl('requests?id=eq.' + reqId), {
+    // Persist to Supabase — verify success
+    const persistResp = await fetch(surl('requests?id=eq.' + reqId), {
       method: 'PATCH',
-      headers: { ...hdrs(), 'Prefer': 'return=minimal' },
+      headers: { ...hdrs(), 'Prefer': 'return=representation' },
       body: JSON.stringify({ stories: JSON.stringify(cacheStories) })
     });
+    if (!persistResp.ok) {
+      const errTxt = await persistResp.text();
+      throw new Error('Could not save artifact to database: ' + errTxt + '. Check Supabase UPDATE policy.');
+    }
 
     // Update local cache
     if (req) req.stories = JSON.stringify(cacheStories);
@@ -576,10 +588,14 @@ async function moveCard() {
       found++;
     }
   }
-  await fetch(surl('requests?id=eq.' + reqId), {
-    method: 'PATCH', headers: { ...hdrs(), 'Prefer': 'return=minimal' },
+  const moveResp = await fetch(surl('requests?id=eq.' + reqId), {
+    method: 'PATCH', headers: { ...hdrs(), 'Prefer': 'return=representation' },
     body: JSON.stringify({ stories: JSON.stringify(stories) })
   });
+  if (!moveResp.ok) {
+    alert('Move failed — check Supabase UPDATE policy. Card will revert on refresh.');
+    return;
+  }
   closeModal();
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) { req.stories = JSON.stringify(stories); renderBoard(req); }
