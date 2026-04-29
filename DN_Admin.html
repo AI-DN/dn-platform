@@ -100,19 +100,15 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .btn-download:hover { color: var(--text); }
 .tag.exec-claude { background: rgba(31,216,164,0.12); color: var(--green); border-color: rgba(31,216,164,0.3); }
 .btn-preview { background: rgba(77,142,240,0.12); border: 1px solid rgba(77,142,240,0.35); border-radius: 8px; padding: 8px 16px; color: var(--blue); font-size: 12px; cursor: pointer; transition: all 0.2s; }
-.btn-preview:hover:not(:disabled) { background: rgba(77,142,240,0.22); }
+.btn-preview:hover { background: rgba(77,142,240,0.22); }
 .btn-qa-pass { background: rgba(31,216,164,0.12); border: 1px solid rgba(31,216,164,0.35); border-radius: 8px; padding: 8px 16px; color: var(--green); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; }
-.btn-qa-pass:hover { background: rgba(31,216,164,0.22); }
 .btn-qa-fail { background: rgba(240,80,96,0.1); border: 1px solid rgba(240,80,96,0.3); border-radius: 8px; padding: 8px 16px; color: var(--red); font-size: 12px; cursor: pointer; }
-.btn-qa-fail:hover { background: rgba(240,80,96,0.18); }
 .sprint-bar { background: var(--navy3); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; margin: 12px 24px 0; display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
 .sprint-bar-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text3); }
-.sprint-pill { font-size: 12px; padding: 5px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; transition: all 0.15s; }
-.sprint-pill:hover { color: var(--text); border-color: var(--text3); }
+.sprint-pill { font-size: 12px; padding: 5px 12px; border-radius: 8px; background: var(--panel); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; }
 .sprint-pill.s-active { background: rgba(139,127,245,0.12); border-color: rgba(139,127,245,0.4); color: var(--purple); }
-.btn-run-sprint { background: linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%); border: none; border-radius: 8px; padding: 7px 16px; color: var(--navy); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s; margin-left: auto; }
-.btn-run-sprint:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.92; }
-.btn-run-sprint:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+.btn-run-sprint { background: linear-gradient(135deg, var(--purple), var(--cyan)); border: none; border-radius: 8px; padding: 7px 16px; color: var(--navy); font-weight: 700; font-size: 12px; cursor: pointer; margin-left: auto; }
+.btn-run-sprint:disabled { opacity: 0.5; cursor: not-allowed; }
 .sprint-progress { font-size: 11px; color: var(--text3); }
 .sprint-progress strong { color: var(--cyan); }
 .qa-result { font-size: 11px; padding: 2px 7px; border-radius: 10px; margin-left: 4px; }
@@ -120,15 +116,13 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .qa-failed-tag { background: rgba(240,80,96,0.12); color: var(--red); border: 1px solid rgba(240,80,96,0.3); }
 .preview-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.85); display: none; align-items: center; justify-content: center; z-index: 1000; padding: 24px; }
 .preview-modal.open { display: flex; }
-.preview-frame-wrap { background: #fff; border-radius: 12px; width: 100%; max-width: 1100px; height: 88vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 0 60px rgba(0,0,0,0.5); }
+.preview-frame-wrap { background: #fff; border-radius: 12px; width: 100%; max-width: 1100px; height: 88vh; display: flex; flex-direction: column; overflow: hidden; }
 .preview-bar { background: var(--navy2); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; gap: 12px; }
-.preview-title { font-size: 13px; font-weight: 500; color: var(--text); }
-.preview-fname { font-size: 11px; color: var(--text3); margin-left: 6px; }
+.preview-title { font-size: 13px; color: var(--text); }
+.preview-fname { font-size: 11px; color: var(--text3); }
 .preview-close { margin-left: auto; background: none; border: 1px solid var(--border2); border-radius: 6px; padding: 5px 12px; color: var(--text2); font-size: 12px; cursor: pointer; }
-.preview-close:hover { color: var(--text); }
 .preview-iframe { flex: 1; border: 0; background: #fff; }
 .qa-notes-input { width: 100%; background: var(--panel2); border: 1px solid var(--border2); border-radius: 8px; padding: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; resize: vertical; min-height: 60px; outline: none; margin-top: 8px; }
-.qa-notes-input:focus { border-color: rgba(240,80,96,0.4); }
 .card .has-artifact { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; color: var(--green); margin-left: 4px; }
 .empty-board { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--text3); font-size: 14px; }
 .spinner { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--purple); animation: spin 0.8s linear infinite; }
@@ -394,7 +388,6 @@ function renderBoard(req) {
   }
   const wrap = document.getElementById('board-wrap');
   wrap.innerHTML = '';
-
   const sprintsInUse = Array.from(new Set(stories.map(function(s) { return s.sprint || 'unsorted'; }))).sort();
   if (sprintsInUse.length > 0) {
     const sBar = document.createElement('div');
@@ -409,13 +402,12 @@ function renderBoard(req) {
       return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint) && (s.executor || '').toLowerCase() === 'claude';
     }).length;
     if (sprintReady > 0) {
-      sBarHtml += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready to execute</span>';
+      sBarHtml += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready</span>';
       sBarHtml += '<button class="btn-run-sprint" id="run-sprint-btn" onclick="runSprintExecution()">Execute ' + (targetSprint || 'all ready') + '</button>';
     }
     sBar.innerHTML = sBarHtml;
     wrap.appendChild(sBar);
   }
-
   const displayStories = currentSprintFilter === 'all' ? stories : stories.filter(function(s) {
     return (s.sprint || 'unsorted') === currentSprintFilter;
   });
@@ -464,7 +456,7 @@ function openModal(story, reqId, colId, idx) {
   const mb = document.getElementById('m-move-btn');
   if (nxt) { mb.textContent = 'Move to ' + (COLS.find(function(c){return c.id===nxt;})||{}).label + ' →'; mb.style.display = 'inline-block'; }
   else mb.style.display = 'none';
-  // Execute button: show only for ready/in_progress cards with Claude as executor
+  // Execute button
   const eb = document.getElementById('m-execute-btn');
   const canExec = (colId === 'ready' || colId === 'in_progress') && (story.executor || '').toLowerCase() === 'claude';
   if (canExec) {
@@ -485,7 +477,7 @@ function openModal(story, reqId, colId, idx) {
   // Preview button
   const pb = document.getElementById('m-preview-btn');
   pb.style.display = (story.artifact && isArtifactRenderable(story.artifact)) ? 'inline-block' : 'none';
-  // QA buttons on Ready for QA column with artifact
+  // QA buttons
   const qaPassBtn = document.getElementById('m-qa-pass-btn');
   const qaFailBtn = document.getElementById('m-qa-fail-btn');
   const qaSec = document.getElementById('m-qa-section');
@@ -669,7 +661,6 @@ async function executeStory() {
   }
 }
 
-
 function setSprintFilter(s) {
   currentSprintFilter = s;
   const req = allReqs.find(function(r) { return r.id === activeId; });
@@ -681,23 +672,23 @@ function previewArtifact() {
   const art = activeCard.story.artifact;
   const lang = (art.language || '').toLowerCase();
   const fname = (art.filename || '').toLowerCase();
-  let content = art.content || '';
-
+  const content = art.content || '';
   let previewHtml;
+  const bodyOpen = '<bo' + 'dy>';
+  const bodyClose = '</bo' + 'dy>';
   if (lang === 'html' || fname.endsWith('.html')) {
     previewHtml = content;
   } else if (lang === 'svg' || fname.endsWith('.svg')) {
-    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f7;font-family:system-ui}</style></head><b' + 'ody>' + content + '</b' + 'ody></html>';
+    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f7}</style></head>' + bodyOpen + content + bodyClose + '</html>';
   } else if (lang === 'markdown' || fname.endsWith('.md')) {
     const escaped = content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.6;color:#1d1d1f}pre{background:#f5f5f7;padding:16px;border-radius:8px;overflow-x:auto}</style></head><b' + 'ody><pre>' + escaped + '</pre></b' + 'ody></html>';
+    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.6}pre{background:#f5f5f7;padding:16px;border-radius:8px;overflow-x:auto}</style></head>' + bodyOpen + '<pre>' + escaped + '</pre>' + bodyClose + '</html>';
   } else if (lang === 'jsx' || fname.endsWith('.jsx')) {
     previewHtml = buildJsxPreview(content);
   } else {
-    alert('This artifact type is not previewable. Use Download to inspect.');
+    alert('This artifact type is not previewable. Use Download.');
     return;
   }
-
   document.getElementById('preview-title-text').textContent = activeCard.story.title || 'Preview';
   document.getElementById('preview-filename').textContent = art.filename || '';
   document.getElementById('preview-iframe').srcdoc = previewHtml;
@@ -705,30 +696,36 @@ function previewArtifact() {
 }
 
 function buildJsxPreview(jsx) {
+  const SC = '<scr' + 'ipt';
+  const SCE = '</scr' + 'ipt>';
+  const BO = '<bo' + 'dy>';
+  const BC = '</bo' + 'dy>';
   const parts = [];
   parts.push('<!doctype html><html><head><meta charset="utf-8">');
-  parts.push('<scr' + 'ipt src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></scr' + 'ipt>');
-  parts.push('<scr' + 'ipt src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></scr' + 'ipt>');
-  parts.push('<scr' + 'ipt src="https://unpkg.com/@babel/standalone/babel.min.js"></scr' + 'ipt>');
-  parts.push('<scr' + 'ipt src="https://cdn.tailwindcss.com"></scr' + 'ipt>');
+  parts.push(SC + ' src="https://unpkg.com/react@18/umd/react.development.js" crossorigin>' + SCE);
+  parts.push(SC + ' src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin>' + SCE);
+  parts.push(SC + ' src="https://unpkg.com/@babel/standalone/babel.min.js">' + SCE);
+  parts.push(SC + ' src="https://cdn.tailwindcss.com">' + SCE);
   parts.push('<style>body{margin:0;font-family:system-ui;background:#fff}</style></head>');
-  parts.push('<b' + 'ody><div id="root"></div>');
-  parts.push('<scr' + 'ipt type="text/babel" data-presets="env,react">');
+  parts.push(BO + '<div id="root"></div>');
+  parts.push(SC + ' type="text/babel" data-presets="env,react">');
   parts.push('try {');
   parts.push(jsx);
   parts.push('  const codeStr = ' + JSON.stringify(jsx) + ';');
-  parts.push('  const match = codeStr.match(/(?:export\\s+default\\s+(?:function\\s+)?|const\\s+|function\\s+)([A-Z][A-Za-z0-9_]*)/);');
+  parts.push('  const re = /(?:export\\s+default\\s+(?:function\\s+)?|const\\s+|function\\s+)([A-Z][A-Za-z0-9_]*)/;');
+  parts.push('  const m = codeStr.match(re);');
   parts.push('  let Component = null;');
-  parts.push('  if (match) { try { Component = eval(match[1]); } catch(e) {} }');
+  parts.push('  if (m) { try { Component = eval(m[1]); } catch(e) {} }');
   parts.push('  if (Component) {');
   parts.push('    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Component));');
   parts.push('  } else {');
-  parts.push('    document.getElementById("root").innerHTML = "<div style=\\"padding:40px;color:#666\\">JSX loaded but no React component detected.</div>";');
+  parts.push('    document.getElementById("root").innerHTML = "No React component detected";');
   parts.push('  }');
   parts.push('} catch(e) {');
-  parts.push('  document.getElementById("root").innerHTML = "<div style=\\"padding:40px;color:#c00\\"><strong>Preview error:</strong><br><pre>" + e.message + "</pre></div>";');
+  parts.push('  document.getElementById("root").innerHTML = "Error: " + e.message;');
   parts.push('}');
-  parts.push('</scr' + 'ipt></b' + 'ody></html>');
+  parts.push(SCE);
+  parts.push(BC + '</html>');
   return parts.join('\n');
 }
 
@@ -739,23 +736,23 @@ function closePreview() {
 
 async function qaPass() {
   if (!activeCard) return;
-  const { reqId, colId, idx, story } = activeCard;
+  const reqId = activeCard.reqId, colId = activeCard.colId, idx = activeCard.idx, story = activeCard.story;
   const notes = document.getElementById('m-qa-notes').value.trim();
-  const cacheStories = storyCache[reqId];
+  const cs = storyCache[reqId];
   let found = 0;
-  for (let i = 0; i < cacheStories.length; i++) {
-    if (cacheStories[i].title === story.title && cacheStories[i].column === colId) {
+  for (let i = 0; i < cs.length; i++) {
+    if (cs[i].title === story.title && cs[i].column === colId) {
       if (found === idx) {
-        cacheStories[i].column = 'qa_passed';
-        cacheStories[i].qa_status = 'passed';
-        cacheStories[i].qa_notes = notes;
-        cacheStories[i].qa_timestamp = new Date().toISOString();
+        cs[i].column = 'qa_passed';
+        cs[i].qa_status = 'passed';
+        cs[i].qa_notes = notes;
+        cs[i].qa_timestamp = new Date().toISOString();
         break;
       }
       found++;
     }
   }
-  await saveStoriesToDb(reqId, cacheStories);
+  await saveStoriesToDb(reqId, cs);
   closeModal();
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) renderBoard(req);
@@ -763,33 +760,34 @@ async function qaPass() {
 
 async function qaFail() {
   if (!activeCard) return;
-  const { reqId, colId, idx, story } = activeCard;
+  const reqId = activeCard.reqId, colId = activeCard.colId, idx = activeCard.idx, story = activeCard.story;
   const notes = document.getElementById('m-qa-notes').value.trim();
   if (!notes) { alert('Please add notes explaining what failed.'); return; }
-  const cacheStories = storyCache[reqId];
+  const cs = storyCache[reqId];
   let found = 0;
-  for (let i = 0; i < cacheStories.length; i++) {
-    if (cacheStories[i].title === story.title && cacheStories[i].column === colId) {
+  for (let i = 0; i < cs.length; i++) {
+    if (cs[i].title === story.title && cs[i].column === colId) {
       if (found === idx) {
-        cacheStories[i].column = 'in_progress';
-        cacheStories[i].qa_status = 'failed';
-        cacheStories[i].qa_notes = notes;
-        cacheStories[i].qa_timestamp = new Date().toISOString();
+        cs[i].column = 'in_progress';
+        cs[i].qa_status = 'failed';
+        cs[i].qa_notes = notes;
+        cs[i].qa_timestamp = new Date().toISOString();
         break;
       }
       found++;
     }
   }
-  await saveStoriesToDb(reqId, cacheStories);
+  await saveStoriesToDb(reqId, cs);
   closeModal();
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) renderBoard(req);
-  alert('Card moved back to In Progress with your notes. Click Execute again to rebuild it.');
+  alert('Card moved back to In Progress with your notes.');
 }
 
 async function saveStoriesToDb(reqId, stories) {
   const r = await fetch(surl('requests?id=eq.' + reqId), {
-    method: 'PATCH', headers: { ...hdrs(), 'Prefer': 'return=representation' },
+    method: 'PATCH',
+    headers: Object.assign({}, hdrs(), { 'Prefer': 'return=representation' }),
     body: JSON.stringify({ stories: JSON.stringify(stories) })
   });
   if (!r.ok) {
@@ -808,51 +806,37 @@ async function runSprintExecution() {
   const stories = storyCache[req.id] || [];
   const targetSprint = currentSprintFilter === 'all' ? null : currentSprintFilter;
   const queue = stories.filter(function(s) {
-    return s.column === 'ready'
-      && (targetSprint === null || s.sprint === targetSprint)
-      && (s.executor || '').toLowerCase() === 'claude';
+    return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint) && (s.executor || '').toLowerCase() === 'claude';
   });
   if (!queue.length) { alert('No Claude cards ready in this sprint.'); return; }
-  if (!confirm('Execute ' + queue.length + ' card' + (queue.length === 1 ? '' : 's') + ' sequentially?')) return;
-
+  if (!confirm('Execute ' + queue.length + ' card(s) sequentially?')) return;
   const btn = document.getElementById('run-sprint-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Running...'; }
   const ck = localStorage.getItem('dn_claude');
   if (!ck) { alert('Please save your Anthropic API key.'); return; }
-
-  let successCount = 0, failCount = 0;
+  let ok = 0, fail = 0;
   for (let i = 0; i < queue.length; i++) {
     const s = queue[i];
-    if (btn) btn.textContent = 'Running ' + (i+1) + ' of ' + queue.length + '...';
+    if (btn) btn.textContent = 'Running ' + (i+1) + '/' + queue.length + '...';
     try {
-      const priorArtifacts = stories.filter(function(x) { return x.artifact; }).map(function(x) {
+      const priorArts = stories.filter(function(x) { return x.artifact; }).map(function(x) {
         return '## ' + x.title + ' (' + (x.artifact.filename || '') + ')\n' + (x.artifact.notes || '');
       }).join('\n\n');
-      const otherStories = stories.filter(function(x) { return x !== s; }).map(function(x) {
+      const others = stories.filter(function(x) { return x !== s; }).map(function(x) {
         return '- ' + x.title + ' (' + x.column + ')';
       }).join('\n');
       const userPrompt =
-        '# Epic context\n' +
-        'Title: ' + req.title + '\n' +
-        'Goal: ' + (req.goal || '') + '\n' +
-        'Users: ' + (req.users || '') + '\n' +
-        'Scope: ' + (req.scope || '') + '\n' +
-        'MVP: ' + (req.mvp || '') + '\n' +
-        'Constraints: ' + (req.constraints || 'None') + '\n\n' +
-        '# Previously built artifacts in this epic\n' + (priorArtifacts || 'None yet') + '\n\n' +
-        '# Other stories (do NOT build)\n' + otherStories + '\n\n' +
-        '# THIS story to execute\n' +
-        'Title: ' + s.title + '\n' +
-        'What it does: ' + (s.what || '') + '\n' +
-        'How to test: ' + (s.test || '') + '\n\n' +
-        'Generate the artifact now. Build something consistent with the previously generated artifacts. Return only valid JSON: {filename, language, content, notes}.';
-
+        '# Epic\nTitle: ' + req.title + '\nGoal: ' + (req.goal || '') + '\nMVP: ' + (req.mvp || '') + '\n\n' +
+        '# Previously built\n' + (priorArts || 'None') + '\n\n' +
+        '# Other stories (do NOT build)\n' + others + '\n\n' +
+        '# THIS story\nTitle: ' + s.title + '\nWhat: ' + (s.what || '') + '\nTest: ' + (s.test || '') + '\n\n' +
+        'Generate the artifact. Return ONLY JSON: {filename, language, content, notes}.';
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-api-key': ck, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514', max_tokens: 8000,
-          system: 'You are an expert software engineer. Generate one focused artifact. Respond with ONLY a JSON object: {filename, language, content, notes}. No markdown wrapping.',
+          system: 'Generate one focused artifact. Respond ONLY with JSON: {filename, language, content, notes}. No markdown wrapping.',
           messages: [{ role: 'user', content: userPrompt }]
         })
       });
@@ -862,11 +846,10 @@ async function runSprintExecution() {
       let artifact;
       try { artifact = JSON.parse(txt); }
       catch(e) {
-        const m = txt.match(/\{[\s\S]*\}/);
-        if (m) artifact = JSON.parse(m[0]); else throw new Error('Bad JSON');
+        const mm = txt.match(/\{[\s\S]*\}/);
+        if (mm) artifact = JSON.parse(mm[0]); else throw new Error('Bad JSON');
       }
       artifact.generated_at = new Date().toISOString();
-
       for (let j = 0; j < stories.length; j++) {
         if (stories[j] === s) {
           stories[j].artifact = artifact;
@@ -874,17 +857,16 @@ async function runSprintExecution() {
           break;
         }
       }
-      successCount++;
+      ok++;
     } catch(e) {
-      failCount++;
-      console.warn('Sprint exec failed for "' + s.title + '":', e.message);
+      fail++;
+      console.warn('Failed:', s.title, e.message);
     }
   }
-
   await saveStoriesToDb(req.id, stories);
   if (btn) { btn.disabled = false; btn.textContent = 'Done'; }
   renderBoard(req);
-  alert('Sprint execution complete. Built: ' + successCount + (failCount ? ', Failed: ' + failCount : ''));
+  alert('Done. Built: ' + ok + (fail ? ', Failed: ' + fail : ''));
 }
 
 async function moveCard() {
@@ -930,7 +912,5 @@ function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
     <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
   </div>
 </div>
-
-
 </body>
 </html>
