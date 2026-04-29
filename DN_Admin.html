@@ -101,7 +101,6 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .tag.exec-claude { background: rgba(31,216,164,0.12); color: var(--green); border-color: rgba(31,216,164,0.3); }
 .btn-preview { background: rgba(77,142,240,0.12); border: 1px solid rgba(77,142,240,0.35); border-radius: 8px; padding: 8px 16px; color: var(--blue); font-size: 12px; cursor: pointer; transition: all 0.2s; }
 .btn-preview:hover:not(:disabled) { background: rgba(77,142,240,0.22); }
-.btn-preview:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn-qa-pass { background: rgba(31,216,164,0.12); border: 1px solid rgba(31,216,164,0.35); border-radius: 8px; padding: 8px 16px; color: var(--green); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; }
 .btn-qa-pass:hover { background: rgba(31,216,164,0.22); }
 .btn-qa-fail { background: rgba(240,80,96,0.1); border: 1px solid rgba(240,80,96,0.3); border-radius: 8px; padding: 8px 16px; color: var(--red); font-size: 12px; cursor: pointer; }
@@ -198,11 +197,11 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <div class="modal-div"></div>
     <div class="modal-footer">
       <button class="btn-close-modal" onclick="closeModal()">Close</button>
-      <button class="btn-preview" id="m-preview-btn" onclick="previewArtifact()" style="display:none;">👁 Preview in browser</button>
-      <button class="btn-qa-fail" id="m-qa-fail-btn" onclick="qaFail()" style="display:none;">✗ Send back</button>
-      <button class="btn-qa-pass" id="m-qa-pass-btn" onclick="qaPass()" style="display:none;">✓ QA passed</button>
-      <button class="btn-execute" id="m-execute-btn" onclick="executeStory()">⚡ Execute with Claude</button>
-      <button class="btn-move" id="m-move-btn" onclick="moveCard()">Move to next →</button>
+      <button class="btn-preview" id="m-preview-btn" onclick="previewArtifact()" style="display:none;">Preview in browser</button>
+      <button class="btn-qa-fail" id="m-qa-fail-btn" onclick="qaFail()" style="display:none;">Send back</button>
+      <button class="btn-qa-pass" id="m-qa-pass-btn" onclick="qaPass()" style="display:none;">QA passed</button>
+      <button class="btn-execute" id="m-execute-btn" onclick="executeStory()">Execute with Claude</button>
+      <button class="btn-move" id="m-move-btn" onclick="moveCard()">Move to next</button>
     </div>
   </div>
 </div>
@@ -396,30 +395,27 @@ function renderBoard(req) {
   const wrap = document.getElementById('board-wrap');
   wrap.innerHTML = '';
 
-  // ── Sprint filter bar ──
   const sprintsInUse = Array.from(new Set(stories.map(function(s) { return s.sprint || 'unsorted'; }))).sort();
   if (sprintsInUse.length > 0) {
     const sBar = document.createElement('div');
     sBar.className = 'sprint-bar';
-    let html = '<span class="sprint-bar-label">Sprints:</span>';
-    html += '<div class="sprint-pill ' + (currentSprintFilter === 'all' ? 's-active' : '') + '" onclick="setSprintFilter(\'all\')">All</div>';
+    let sBarHtml = '<span class="sprint-bar-label">Sprints:</span>';
+    sBarHtml += '<div class="sprint-pill ' + (currentSprintFilter === 'all' ? 's-active' : '') + '" onclick="setSprintFilter(\'all\')">All</div>';
     sprintsInUse.forEach(function(sp) {
-      html += '<div class="sprint-pill ' + (currentSprintFilter === sp ? 's-active' : '') + '" onclick="setSprintFilter(\'' + sp + '\')">' + esc(sp) + '</div>';
+      sBarHtml += '<div class="sprint-pill ' + (currentSprintFilter === sp ? 's-active' : '') + '" onclick="setSprintFilter(\'' + sp + '\')">' + esc(sp) + '</div>';
     });
-    // Show progress for active sprint
     const targetSprint = currentSprintFilter === 'all' ? null : currentSprintFilter;
     const sprintReady = stories.filter(function(s) {
       return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint) && (s.executor || '').toLowerCase() === 'claude';
     }).length;
     if (sprintReady > 0) {
-      html += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready to execute</span>';
-      html += '<button class="btn-run-sprint" id="run-sprint-btn" onclick="runSprintExecution()">⚡ Execute ' + (targetSprint || 'all ready') + '</button>';
+      sBarHtml += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready to execute</span>';
+      sBarHtml += '<button class="btn-run-sprint" id="run-sprint-btn" onclick="runSprintExecution()">Execute ' + (targetSprint || 'all ready') + '</button>';
     }
-    sBar.innerHTML = html;
+    sBar.innerHTML = sBarHtml;
     wrap.appendChild(sBar);
   }
 
-  // Filter stories by current sprint filter for display
   const displayStories = currentSprintFilter === 'all' ? stories : stories.filter(function(s) {
     return (s.sprint || 'unsorted') === currentSprintFilter;
   });
@@ -438,8 +434,8 @@ function renderBoard(req) {
       if (story.mvp) tags += '<span class="tag mvp">MVP</span>';
       if (story.sprint) tags += '<span class="tag sprint">' + esc(story.sprint) + '</span>';
       if (story.executor) tags += '<span class="tag ' + (story.executor === 'Claude' ? 'llm' : 'human') + '">' + esc(story.executor) + '</span>';
-      if (story.qa_status === 'passed') tags += '<span class="qa-result qa-passed-tag">QA ✓</span>';
-      if (story.qa_status === 'failed') tags += '<span class="qa-result qa-failed-tag">QA ✗</span>';
+      if (story.qa_status === 'passed') tags += '<span class="qa-result qa-passed-tag">QA passed</span>';
+      if (story.qa_status === 'failed') tags += '<span class="qa-result qa-failed-tag">QA failed</span>';
       const artifactDot = story.artifact ? '<span class="has-artifact" title="Artifact generated">●</span>' : '';
       card.innerHTML = '<div class="card-title">' + esc(story.title||'') + artifactDot + '</div><div class="card-why">' + esc(story.why||'') + '</div><div class="card-tags">' + tags + '</div>';
       colEl.appendChild(card);
@@ -474,7 +470,7 @@ function openModal(story, reqId, colId, idx) {
   if (canExec) {
     eb.style.display = 'inline-block';
     eb.disabled = false;
-    eb.textContent = story.artifact ? '↻ Regenerate' : '⚡ Execute with Claude';
+    eb.textContent = story.artifact ? 'Regenerate' : 'Execute with Claude';
   } else {
     eb.style.display = 'none';
   }
@@ -486,11 +482,10 @@ function openModal(story, reqId, colId, idx) {
   } else {
     artifactSec.style.display = 'none';
   }
-  // Preview button: visible whenever an artifact exists and is renderable
+  // Preview button
   const pb = document.getElementById('m-preview-btn');
-  const isRenderable = story.artifact && isArtifactRenderable(story.artifact);
-  pb.style.display = isRenderable ? 'inline-block' : 'none';
-  // QA pass/fail: only on Ready for QA column with an artifact
+  pb.style.display = (story.artifact && isArtifactRenderable(story.artifact)) ? 'inline-block' : 'none';
+  // QA buttons on Ready for QA column with artifact
   const qaPassBtn = document.getElementById('m-qa-pass-btn');
   const qaFailBtn = document.getElementById('m-qa-fail-btn');
   const qaSec = document.getElementById('m-qa-section');
@@ -675,14 +670,12 @@ async function executeStory() {
 }
 
 
-// ── Sprint filter ─────────────────────────────────────────────────────────────
 function setSprintFilter(s) {
   currentSprintFilter = s;
   const req = allReqs.find(function(r) { return r.id === activeId; });
   if (req) renderBoard(req);
 }
 
-// ── Preview artifact in iframe ────────────────────────────────────────────────
 function previewArtifact() {
   if (!activeCard || !activeCard.story.artifact) return;
   const art = activeCard.story.artifact;
@@ -690,79 +683,53 @@ function previewArtifact() {
   const fname = (art.filename || '').toLowerCase();
   let content = art.content || '';
 
-  // Build the full preview HTML based on artifact type
   let previewHtml;
   if (lang === 'html' || fname.endsWith('.html')) {
     previewHtml = content;
   } else if (lang === 'svg' || fname.endsWith('.svg')) {
-    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f7;font-family:system-ui}</style></head><body>' + content + '<div class="preview-modal" id="preview-modal" onclick="if(event.target===this)closePreview()">
-  <div class="preview-frame-wrap">
-    <div class="preview-bar">
-      <span class="preview-title" id="preview-title-text">Preview</span>
-      <span class="preview-fname" id="preview-filename"></span>
-      <button class="preview-close" onclick="closePreview()">Close</button>
-    </div>
-    <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
-  </div>
-</div>
-
-</body></html>';
+    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{margin:0;display:flex;align-items:center;justify-content:center;min-height:100vh;background:#f5f5f7;font-family:system-ui}</style></head><b' + 'ody>' + content + '</b' + 'ody></html>';
   } else if (lang === 'markdown' || fname.endsWith('.md')) {
-    // Simple markdown preview using marked-equivalent inline
     const escaped = content.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.6;color:#1d1d1f}pre{background:#f5f5f7;padding:16px;border-radius:8px;overflow-x:auto}code{font-family:Menlo,monospace;font-size:13px}</style></head><body><pre>' + escaped + '</pre></body></html>';
+    previewHtml = '<!doctype html><html><head><meta charset="utf-8"><style>body{font-family:system-ui;max-width:760px;margin:40px auto;padding:0 24px;line-height:1.6;color:#1d1d1f}pre{background:#f5f5f7;padding:16px;border-radius:8px;overflow-x:auto}</style></head><b' + 'ody><pre>' + escaped + '</pre></b' + 'ody></html>';
   } else if (lang === 'jsx' || fname.endsWith('.jsx')) {
-    // Render JSX via Babel + React from CDN
     previewHtml = buildJsxPreview(content);
   } else {
     alert('This artifact type is not previewable. Use Download to inspect.');
     return;
   }
 
-  // Open the preview modal with the iframe
   document.getElementById('preview-title-text').textContent = activeCard.story.title || 'Preview';
   document.getElementById('preview-filename').textContent = art.filename || '';
-  const iframe = document.getElementById('preview-iframe');
-  iframe.srcdoc = previewHtml;
+  document.getElementById('preview-iframe').srcdoc = previewHtml;
   document.getElementById('preview-modal').classList.add('open');
 }
 
 function buildJsxPreview(jsx) {
-  // Extract default export name if present, otherwise wrap whole thing
-  return [
-    '<!doctype html>',
-    '<html><head><meta charset="utf-8">',
-    '<script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin><\/script>',
-    '<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin><\/script>',
-    '<script src="https://unpkg.com/@babel/standalone/babel.min.js"><\/script>',
-    '<script src="https://cdn.tailwindcss.com"><\/script>',
-    '<style>body{margin:0;font-family:system-ui;background:#fff}</style>',
-    '</head><body>',
-    '<div id="root"></div>',
-    '<script type="text/babel" data-presets="env,react">',
-    'try {',
-    jsx,
-    '  // Try to detect the default export and mount it',
-    '  const exports = {};',
-    '  const moduleObj = { exports };',
-    '  let Component = null;',
-    '  // Heuristic: find a component named in the code',
-    '  const codeStr = ' + JSON.stringify(jsx) + ';',
-    '  const match = codeStr.match(/(?:export\\s+default\\s+(?:function\\s+)?|const\\s+|function\\s+)([A-Z][A-Za-z0-9_]*)/);',
-    '  if (match) {',
-    '    try { Component = eval(match[1]); } catch(e) {}',
-    '  }',
-    '  if (Component) {',
-    '    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Component));',
-    '  } else {',
-    '    document.getElementById("root").innerHTML = "<div style=\\"padding:40px;font-family:system-ui;color:#666\\">JSX loaded but no React component detected. Check the code structure.</div>";',
-    '  }',
-    '} catch(e) {',
-    '  document.getElementById("root").innerHTML = "<div style=\\"padding:40px;font-family:system-ui;color:#c00\\"><strong>Preview error:</strong><br><pre>" + e.message + "</pre></div>";',
-    '}',
-    '<\/script>',
-    '</body></html>'
-  ].join('\n');
+  const parts = [];
+  parts.push('<!doctype html><html><head><meta charset="utf-8">');
+  parts.push('<scr' + 'ipt src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></scr' + 'ipt>');
+  parts.push('<scr' + 'ipt src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></scr' + 'ipt>');
+  parts.push('<scr' + 'ipt src="https://unpkg.com/@babel/standalone/babel.min.js"></scr' + 'ipt>');
+  parts.push('<scr' + 'ipt src="https://cdn.tailwindcss.com"></scr' + 'ipt>');
+  parts.push('<style>body{margin:0;font-family:system-ui;background:#fff}</style></head>');
+  parts.push('<b' + 'ody><div id="root"></div>');
+  parts.push('<scr' + 'ipt type="text/babel" data-presets="env,react">');
+  parts.push('try {');
+  parts.push(jsx);
+  parts.push('  const codeStr = ' + JSON.stringify(jsx) + ';');
+  parts.push('  const match = codeStr.match(/(?:export\\s+default\\s+(?:function\\s+)?|const\\s+|function\\s+)([A-Z][A-Za-z0-9_]*)/);');
+  parts.push('  let Component = null;');
+  parts.push('  if (match) { try { Component = eval(match[1]); } catch(e) {} }');
+  parts.push('  if (Component) {');
+  parts.push('    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Component));');
+  parts.push('  } else {');
+  parts.push('    document.getElementById("root").innerHTML = "<div style=\\"padding:40px;color:#666\\">JSX loaded but no React component detected.</div>";');
+  parts.push('  }');
+  parts.push('} catch(e) {');
+  parts.push('  document.getElementById("root").innerHTML = "<div style=\\"padding:40px;color:#c00\\"><strong>Preview error:</strong><br><pre>" + e.message + "</pre></div>";');
+  parts.push('}');
+  parts.push('</scr' + 'ipt></b' + 'ody></html>');
+  return parts.join('\n');
 }
 
 function closePreview() {
@@ -770,7 +737,6 @@ function closePreview() {
   document.getElementById('preview-iframe').srcdoc = '';
 }
 
-// ── QA actions ────────────────────────────────────────────────────────────────
 async function qaPass() {
   if (!activeCard) return;
   const { reqId, colId, idx, story } = activeCard;
@@ -799,7 +765,7 @@ async function qaFail() {
   if (!activeCard) return;
   const { reqId, colId, idx, story } = activeCard;
   const notes = document.getElementById('m-qa-notes').value.trim();
-  if (!notes) { alert('Please add notes explaining what failed — this gets sent back to Claude for rebuilding.'); return; }
+  if (!notes) { alert('Please add notes explaining what failed.'); return; }
   const cacheStories = storyCache[reqId];
   let found = 0;
   for (let i = 0; i < cacheStories.length; i++) {
@@ -818,7 +784,7 @@ async function qaFail() {
   closeModal();
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) renderBoard(req);
-  alert('Card moved back to In Progress with your notes. Click Execute again to have Claude rebuild it with the feedback.');
+  alert('Card moved back to In Progress with your notes. Click Execute again to rebuild it.');
 }
 
 async function saveStoriesToDb(reqId, stories) {
@@ -836,7 +802,6 @@ async function saveStoriesToDb(reqId, stories) {
   return true;
 }
 
-// ── Sprint execution: run all Ready cards in current filter ──────────────────
 async function runSprintExecution() {
   const req = allReqs.find(function(r) { return r.id === activeId; });
   if (!req) return;
@@ -848,7 +813,7 @@ async function runSprintExecution() {
       && (s.executor || '').toLowerCase() === 'claude';
   });
   if (!queue.length) { alert('No Claude cards ready in this sprint.'); return; }
-  if (!confirm('Execute ' + queue.length + ' card' + (queue.length === 1 ? '' : 's') + ' sequentially? This may take a few minutes.')) return;
+  if (!confirm('Execute ' + queue.length + ' card' + (queue.length === 1 ? '' : 's') + ' sequentially?')) return;
 
   const btn = document.getElementById('run-sprint-btn');
   if (btn) { btn.disabled = true; btn.textContent = 'Running...'; }
@@ -860,7 +825,6 @@ async function runSprintExecution() {
     const s = queue[i];
     if (btn) btn.textContent = 'Running ' + (i+1) + ' of ' + queue.length + '...';
     try {
-      // Build context including previously generated artifacts
       const priorArtifacts = stories.filter(function(x) { return x.artifact; }).map(function(x) {
         return '## ' + x.title + ' (' + (x.artifact.filename || '') + ')\n' + (x.artifact.notes || '');
       }).join('\n\n');
@@ -876,13 +840,12 @@ async function runSprintExecution() {
         'MVP: ' + (req.mvp || '') + '\n' +
         'Constraints: ' + (req.constraints || 'None') + '\n\n' +
         '# Previously built artifacts in this epic\n' + (priorArtifacts || 'None yet') + '\n\n' +
-        '# Other stories in this epic (do NOT build)\n' + otherStories + '\n\n' +
+        '# Other stories (do NOT build)\n' + otherStories + '\n\n' +
         '# THIS story to execute\n' +
         'Title: ' + s.title + '\n' +
         'What it does: ' + (s.what || '') + '\n' +
-        'How to test: ' + (s.test || '') + '\n' +
-        'Sprint: ' + (s.sprint || '') + '\n\n' +
-        'Generate the artifact now. Build something consistent with the previously generated artifacts above. Return only valid JSON: {filename, language, content, notes}.';
+        'How to test: ' + (s.test || '') + '\n\n' +
+        'Generate the artifact now. Build something consistent with the previously generated artifacts. Return only valid JSON: {filename, language, content, notes}.';
 
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -904,7 +867,6 @@ async function runSprintExecution() {
       }
       artifact.generated_at = new Date().toISOString();
 
-      // Update in cache
       for (let j = 0; j < stories.length; j++) {
         if (stories[j] === s) {
           stories[j].artifact = artifact;
@@ -919,11 +881,10 @@ async function runSprintExecution() {
     }
   }
 
-  // Persist all changes once
   await saveStoriesToDb(req.id, stories);
   if (btn) { btn.disabled = false; btn.textContent = 'Done'; }
   renderBoard(req);
-  alert('Sprint execution complete.\n✓ ' + successCount + ' built\n' + (failCount ? '✗ ' + failCount + ' failed (check console)' : ''));
+  alert('Sprint execution complete. Built: ' + successCount + (failCount ? ', Failed: ' + failCount : ''));
 }
 
 async function moveCard() {
@@ -959,5 +920,17 @@ function showEmpty(msg) {
 
 function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
+<div class="preview-modal" id="preview-modal" onclick="if(event.target===this)closePreview()">
+  <div class="preview-frame-wrap">
+    <div class="preview-bar">
+      <span class="preview-title" id="preview-title-text">Preview</span>
+      <span class="preview-fname" id="preview-filename"></span>
+      <button class="preview-close" onclick="closePreview()">Close</button>
+    </div>
+    <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+  </div>
+</div>
+
+
 </body>
 </html>
