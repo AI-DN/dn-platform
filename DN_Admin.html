@@ -501,8 +501,8 @@ async function executeStory() {
     }
     artifact.generated_at = new Date().toISOString();
 
-    // Update story in storyCache and on the active card
-    const cacheStories = storyCache[reqId];
+    // Update story in storyCache
+    const cacheStories = storyCache[reqId] || [];
     let found = 0;
     for (let i = 0; i < cacheStories.length; i++) {
       if (cacheStories[i].title === story.title && cacheStories[i].column === colId) {
@@ -510,7 +510,8 @@ async function executeStory() {
           cacheStories[i].artifact = artifact;
           // Auto-move to Ready for QA if currently in Ready
           if (colId === 'ready') cacheStories[i].column = 'ready_qa';
-          activeCard.story = cacheStories[i];
+          // Only update activeCard if it still exists
+          if (activeCard) activeCard.story = cacheStories[i];
           break;
         }
         found++;
@@ -527,25 +528,38 @@ async function executeStory() {
     // Update local cache
     if (req) req.stories = JSON.stringify(cacheStories);
 
+    // Update local cache before re-render
+    if (req) req.stories = JSON.stringify(cacheStories);
+
     // Re-render board with updated state
     renderBoard(req);
+
     // Re-open modal with fresh state showing the artifact
     if (colId === 'ready') {
-      // Card moved to ready_qa — close modal, user can find it there
+      // Card moved to ready_qa — close modal cleanly
       closeModal();
-      alert('✓ Built and moved to "Ready for QA". Click the card there to see the artifact.');
+      setTimeout(function() {
+        alert('✓ Built and moved to "Ready for QA". Click the card there to see the artifact.');
+      }, 100);
     } else {
-      // Show artifact in current modal
-      document.getElementById('m-artifact-section').style.display = 'block';
-      renderArtifact(artifact);
-      btn.disabled = false;
-      btn.textContent = '↻ Regenerate';
-      moveBtn.disabled = false;
+      // Still in current column — show artifact in modal
+      const artSec = document.getElementById('m-artifact-section');
+      if (artSec) {
+        artSec.style.display = 'block';
+        renderArtifact(artifact);
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '↻ Regenerate';
+      }
+      if (moveBtn) moveBtn.disabled = false;
     }
   } catch(e) {
-    btn.disabled = false;
-    btn.textContent = '⚡ Execute with Claude';
-    moveBtn.disabled = false;
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '⚡ Execute with Claude';
+    }
+    if (moveBtn) moveBtn.disabled = false;
     alert('Execution failed: ' + e.message);
   }
 }
