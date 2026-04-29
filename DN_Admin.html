@@ -89,6 +89,17 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .modal-footer { display: flex; gap: 10px; justify-content: flex-end; }
 .btn-close-modal { background: none; border: 1px solid var(--border2); border-radius: 8px; padding: 8px 18px; color: var(--text2); font-size: 13px; cursor: pointer; }
 .btn-move { background: rgba(61,214,245,0.1); border: 1px solid rgba(61,214,245,0.3); border-radius: 8px; padding: 8px 18px; color: var(--cyan); font-size: 13px; cursor: pointer; }
+.btn-move:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-execute { background: linear-gradient(135deg, var(--purple) 0%, var(--cyan) 100%); border: none; border-radius: 8px; padding: 8px 18px; color: var(--navy); font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; }
+.btn-execute:hover:not(:disabled) { transform: translateY(-1px); opacity: 0.9; }
+.btn-execute:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+.artifact-box { background: var(--navy); border: 1px solid var(--border2); border-radius: 8px; padding: 12px; margin-top: 6px; max-height: 320px; overflow-y: auto; }
+.artifact-box pre { font-family: ui-monospace,Menlo,Consolas,monospace; font-size: 11px; line-height: 1.55; color: var(--text); white-space: pre-wrap; word-break: break-word; }
+.artifact-meta { font-size: 11px; color: var(--text3); margin-bottom: 6px; display: flex; gap: 10px; align-items: center; }
+.btn-download { font-size: 11px; padding: 4px 10px; border-radius: 6px; background: var(--panel2); border: 1px solid var(--border2); color: var(--text2); cursor: pointer; text-decoration: none; }
+.btn-download:hover { color: var(--text); }
+.tag.exec-claude { background: rgba(31,216,164,0.12); color: var(--green); border-color: rgba(31,216,164,0.3); }
+.card .has-artifact { display: inline-flex; align-items: center; gap: 3px; font-size: 9px; color: var(--green); margin-left: 4px; }
 .empty-board { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 12px; color: var(--text3); font-size: 14px; }
 .spinner { width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--border2); border-top-color: var(--purple); animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
@@ -145,9 +156,15 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <div class="msec"><div class="msec-label">Executor</div><div class="msec-val" id="m-exec"></div></div>
     <div class="msec"><div class="msec-label">How to test</div><div class="msec-val" id="m-test"></div></div>
     <div class="modal-div"></div>
+    <div class="msec" id="m-artifact-section" style="display:none;">
+      <div class="msec-label">Generated artifact</div>
+      <div id="m-artifact-content"></div>
+    </div>
+    <div class="modal-div"></div>
     <div class="modal-footer">
       <button class="btn-close-modal" onclick="closeModal()">Close</button>
-      <button class="btn-move" id="m-move-btn" onclick="moveCard()">Move to next column →</button>
+      <button class="btn-execute" id="m-execute-btn" onclick="executeStory()">⚡ Execute with Claude</button>
+      <button class="btn-move" id="m-move-btn" onclick="moveCard()">Move to next →</button>
     </div>
   </div>
 </div>
@@ -346,7 +363,8 @@ function renderBoard(req) {
       if (story.mvp) tags += '<span class="tag mvp">MVP</span>';
       if (story.sprint) tags += '<span class="tag sprint">' + esc(story.sprint) + '</span>';
       if (story.executor) tags += '<span class="tag ' + (story.executor === 'Claude' ? 'llm' : 'human') + '">' + esc(story.executor) + '</span>';
-      card.innerHTML = '<div class="card-title">' + esc(story.title||'') + '</div><div class="card-why">' + esc(story.why||'') + '</div><div class="card-tags">' + tags + '</div>';
+      const artifactDot = story.artifact ? '<span class="has-artifact" title="Artifact generated">●</span>' : '';
+      card.innerHTML = '<div class="card-title">' + esc(story.title||'') + artifactDot + '</div><div class="card-why">' + esc(story.why||'') + '</div><div class="card-tags">' + tags + '</div>';
       colEl.appendChild(card);
     });
     board.appendChild(colEl);
@@ -373,10 +391,164 @@ function openModal(story, reqId, colId, idx) {
   const mb = document.getElementById('m-move-btn');
   if (nxt) { mb.textContent = 'Move to ' + (COLS.find(function(c){return c.id===nxt;})||{}).label + ' →'; mb.style.display = 'inline-block'; }
   else mb.style.display = 'none';
+  // Execute button: show only for ready/in_progress cards with Claude as executor
+  const eb = document.getElementById('m-execute-btn');
+  const canExec = (colId === 'ready' || colId === 'in_progress') && (story.executor || '').toLowerCase() === 'claude';
+  if (canExec) {
+    eb.style.display = 'inline-block';
+    eb.disabled = false;
+    eb.textContent = story.artifact ? '↻ Regenerate' : '⚡ Execute with Claude';
+  } else {
+    eb.style.display = 'none';
+  }
+  // Artifact viewer
+  const artifactSec = document.getElementById('m-artifact-section');
+  if (story.artifact) {
+    artifactSec.style.display = 'block';
+    renderArtifact(story.artifact);
+  } else {
+    artifactSec.style.display = 'none';
+  }
   document.getElementById('card-modal').classList.add('open');
 }
 
+function renderArtifact(artifact) {
+  const c = document.getElementById('m-artifact-content');
+  const filename = artifact.filename || 'artifact';
+  const lang = artifact.language || 'text';
+  const dt = new Date(artifact.generated_at).toLocaleString();
+  const dataUrl = 'data:text/plain;charset=utf-8,' + encodeURIComponent(artifact.content || '');
+  c.innerHTML =
+    '<div class="artifact-meta">' +
+      '<span><strong style="color:var(--text2)">' + esc(filename) + '</strong></span>' +
+      '<span>· ' + esc(lang) + '</span>' +
+      '<span>· ' + esc(dt) + '</span>' +
+      '<a class="btn-download" href="' + dataUrl + '" download="' + esc(filename) + '">Download</a>' +
+    '</div>' +
+    '<div class="artifact-box"><pre>' + esc(artifact.content || '') + '</pre></div>' +
+    (artifact.notes ? '<div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6;"><strong style="color:var(--text)">Notes:</strong> ' + esc(artifact.notes) + '</div>' : '');
+}
+
 function closeModal() { document.getElementById('card-modal').classList.remove('open'); activeCard = null; }
+
+async function executeStory() {
+  if (!activeCard) return;
+  const { story, reqId, colId, idx } = activeCard;
+  const ck = localStorage.getItem('dn_claude');
+  if (!ck) { alert('Please save your Anthropic API key.'); return; }
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+
+  const btn = document.getElementById('m-execute-btn');
+  const moveBtn = document.getElementById('m-move-btn');
+  btn.disabled = true; btn.textContent = 'Claude is building...';
+  moveBtn.disabled = true;
+
+  // Build comprehensive context for Claude
+  const stories = storyCache[reqId] || [];
+  const otherStories = stories.filter(function(s, i) { return s !== story; }).map(function(s) {
+    return '- ' + s.title + ' (' + s.column + ')';
+  }).join('\n');
+
+  const systemPrompt = 'You are an expert software engineer at Digitata Networks. Your job is to execute a single backlog story by generating production-quality code or content. You receive the full epic context and produce one focused artifact.\n\n' +
+    'Respond with ONLY a valid JSON object in this exact format (no markdown, no preamble):\n' +
+    '{\n' +
+    '  "filename": "appropriate-filename.ext",\n' +
+    '  "language": "javascript|python|html|css|markdown|sql|etc",\n' +
+    '  "content": "the actual code or content as a string",\n' +
+    '  "notes": "brief explanation of what was built and any important decisions or assumptions"\n' +
+    '}\n\n' +
+    'Quality bar: production-ready, well-commented where useful, follows best practices, includes error handling. Keep it focused on this story only — do not build adjacent stories.';
+
+  const userPrompt =
+    '# Epic context\n' +
+    'Title: ' + req.title + '\n' +
+    'Goal: ' + (req.goal || '') + '\n' +
+    'Users: ' + (req.users || '') + '\n' +
+    'Scope: ' + (req.scope || '') + '\n' +
+    'MVP: ' + (req.mvp || '') + '\n' +
+    'Constraints: ' + (req.constraints || 'None') + '\n\n' +
+    '# Other stories in this epic (for context, do NOT build)\n' + otherStories + '\n\n' +
+    '# THIS story to execute\n' +
+    'Title: ' + story.title + '\n' +
+    'What it does: ' + (story.what || '') + '\n' +
+    'How to test: ' + (story.test || '') + '\n' +
+    'Sprint: ' + (story.sprint || '') + '\n\n' +
+    'Generate the artifact for this story now. Return only valid JSON.';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ck, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 8000,
+        system: systemPrompt,
+        messages: [{ role: 'user', content: userPrompt }]
+      })
+    });
+    const d = await resp.json();
+    if (!resp.ok) throw new Error(d.error ? d.error.message : 'API error');
+    const txt = d.content[0].text.replace(/^```json|```$/g,'').trim();
+    let artifact;
+    try {
+      artifact = JSON.parse(txt);
+    } catch(parseErr) {
+      // Fallback: try to find JSON in the response
+      const match = txt.match(/\{[\s\S]*\}/);
+      if (match) artifact = JSON.parse(match[0]);
+      else throw new Error('Claude returned invalid JSON');
+    }
+    artifact.generated_at = new Date().toISOString();
+
+    // Update story in storyCache and on the active card
+    const cacheStories = storyCache[reqId];
+    let found = 0;
+    for (let i = 0; i < cacheStories.length; i++) {
+      if (cacheStories[i].title === story.title && cacheStories[i].column === colId) {
+        if (found === idx) {
+          cacheStories[i].artifact = artifact;
+          // Auto-move to Ready for QA if currently in Ready
+          if (colId === 'ready') cacheStories[i].column = 'ready_qa';
+          activeCard.story = cacheStories[i];
+          break;
+        }
+        found++;
+      }
+    }
+
+    // Persist to Supabase
+    await fetch(surl('requests?id=eq.' + reqId), {
+      method: 'PATCH',
+      headers: { ...hdrs(), 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ stories: JSON.stringify(cacheStories) })
+    });
+
+    // Update local cache
+    if (req) req.stories = JSON.stringify(cacheStories);
+
+    // Re-render board with updated state
+    renderBoard(req);
+    // Re-open modal with fresh state showing the artifact
+    if (colId === 'ready') {
+      // Card moved to ready_qa — close modal, user can find it there
+      closeModal();
+      alert('✓ Built and moved to "Ready for QA". Click the card there to see the artifact.');
+    } else {
+      // Show artifact in current modal
+      document.getElementById('m-artifact-section').style.display = 'block';
+      renderArtifact(artifact);
+      btn.disabled = false;
+      btn.textContent = '↻ Regenerate';
+      moveBtn.disabled = false;
+    }
+  } catch(e) {
+    btn.disabled = false;
+    btn.textContent = '⚡ Execute with Claude';
+    moveBtn.disabled = false;
+    alert('Execution failed: ' + e.message);
+  }
+}
 
 async function moveCard() {
   if (!activeCard) return;
