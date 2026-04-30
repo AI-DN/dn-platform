@@ -243,6 +243,147 @@ body::before {
   color: #ff8090; margin: 0 18px 12px; display: none;
 }
 .file-status { display:none; margin-top:14px; padding:12px 14px; background:var(--panel2); border:1px solid var(--border2); border-radius:8px; font-size:13px; }
+
+/* ── Build view ────────────────────────────────────────────────────────── */
+.build-view { display: none; max-width: 1200px; margin: 0 auto; padding: 24px; }
+.build-view.open { display: block; }
+.build-header { margin-bottom: 20px; }
+.build-eyebrow { font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--cyan); margin-bottom: 6px; }
+.build-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 22px; margin-bottom: 6px; }
+.build-subtitle { font-size: 13px; color: var(--text2); }
+
+.build-grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
+@media (max-width: 900px) { .build-grid { grid-template-columns: 1fr; } }
+
+.activity-panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px; height: fit-content;
+}
+.activity-panel-title {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text3); margin-bottom: 12px;
+}
+.activity-list { display: flex; flex-direction: column; gap: 8px; }
+.activity-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 8px 10px; border-radius: 8px; font-size: 13px;
+}
+.activity-item.now { background: rgba(61,214,245,0.07); }
+.activity-bullet {
+  width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;
+  border: 1.5px solid var(--text3); margin-top: 1px;
+  position: relative;
+}
+.activity-item.done .activity-bullet { border-color: var(--green); background: var(--green); }
+.activity-item.done .activity-bullet::after {
+  content: ''; position: absolute; left: 3px; top: 1px;
+  width: 4px; height: 7px; border: solid white; border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.activity-item.now .activity-bullet {
+  border-color: var(--cyan);
+  animation: bulletPulse 1.5s infinite;
+}
+@keyframes bulletPulse {
+  0%,100% { box-shadow: 0 0 0 0 rgba(61,214,245,0.4); }
+  50% { box-shadow: 0 0 0 6px rgba(61,214,245,0); }
+}
+.activity-text { flex: 1; color: var(--text2); line-height: 1.5; }
+.activity-item.now .activity-text { color: var(--text); font-weight: 500; }
+.activity-item.done .activity-text { color: var(--text3); text-decoration: line-through; text-decoration-color: var(--text3); }
+
+.preview-panel {
+  background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; overflow: hidden;
+  display: flex; flex-direction: column;
+}
+.preview-toolbar {
+  background: rgba(0,0,0,0.25); border-bottom: 1px solid var(--border);
+  padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+}
+.preview-dots { display: flex; gap: 5px; }
+.preview-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--border2); }
+.preview-url-bar {
+  flex: 1; background: var(--panel2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 10px; font-size: 11px; color: var(--text3);
+  font-family: ui-monospace, monospace;
+}
+.preview-status {
+  font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  background: rgba(61,214,245,0.12); color: var(--cyan);
+  border: 1px solid rgba(61,214,245,0.25);
+}
+.preview-status.ready { background: rgba(31,216,164,0.12); color: var(--green); border-color: rgba(31,216,164,0.3); }
+
+.preview-frame-host {
+  background: #fff; min-height: 480px; position: relative;
+}
+.preview-iframe {
+  width: 100%; height: 480px; border: 0; background: #fff;
+}
+.preview-empty {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 16px; color: var(--text3); background: var(--navy3);
+}
+.preview-empty .build-spinner {
+  width: 36px; height: 36px; border-radius: 50%;
+  border: 2px solid var(--border2); border-top-color: var(--cyan);
+  animation: bspin 0.9s linear infinite;
+}
+@keyframes bspin { to { transform: rotate(360deg); } }
+
+.feedback-section {
+  margin-top: 16px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 12px; padding: 16px;
+}
+.feedback-header {
+  display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+}
+.feedback-title {
+  font-size: 13px; font-weight: 500; color: var(--text);
+}
+.feedback-version { font-size: 11px; color: var(--text3); }
+.feedback-version strong { color: var(--cyan); }
+.feedback-msgs {
+  display: flex; flex-direction: column; gap: 10px;
+  max-height: 220px; overflow-y: auto; margin-bottom: 12px;
+}
+.feedback-msg { display: flex; gap: 9px; align-items: flex-start; font-size: 13px; }
+.feedback-msg.user { flex-direction: row-reverse; }
+.feedback-msg .av { width: 24px; height: 24px; font-size: 9px; }
+.feedback-msg .bubble { padding: 8px 12px; max-width: 80%; line-height: 1.55; border-radius: 10px; }
+.feedback-msg.ai .bubble { background: var(--panel2); border: 1px solid var(--border); border-radius: 2px 10px 10px 10px; }
+.feedback-msg.user .bubble { background: rgba(139,127,245,0.12); border: 1px solid rgba(139,127,245,0.25); border-radius: 10px 2px 10px 10px; }
+
+.feedback-input-row {
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.feedback-input {
+  flex: 1; background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 9px 13px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.5;
+  resize: none; min-height: 38px; outline: none;
+}
+.feedback-input:focus { border-color: rgba(61,214,245,0.4); }
+.feedback-input::placeholder { color: var(--text3); }
+.btn-feedback-send {
+  background: var(--cyan); border: none; border-radius: 10px;
+  padding: 9px 18px; color: var(--navy); font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.btn-feedback-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
+.ship-row { margin-top: 16px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.btn-ship {
+  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  border: none; border-radius: 10px; padding: 11px 24px;
+  color: var(--navy); font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 13px; cursor: pointer;
+}
+.btn-ship:hover { transform: translateY(-1px); opacity: 0.92; }
+.ship-hint { font-size: 12px; color: var(--text3); }
+
 </style>
 </head>
 <body>
@@ -359,6 +500,63 @@ body::before {
 
   </div>
 
+
+<!-- ── BUILD VIEW ───────────────────────────────────────────────────────── -->
+<div class="build-view" id="build-view">
+  <div class="build-header">
+    <div class="build-eyebrow">Building your app</div>
+    <div class="build-title" id="build-title">Your app</div>
+    <div class="build-subtitle" id="build-subtitle">Watch as the platform assembles your app — preview will appear below.</div>
+  </div>
+
+  <div class="build-grid">
+    <!-- Activity panel -->
+    <div class="activity-panel">
+      <div class="activity-panel-title">Build progress</div>
+      <div class="activity-list" id="activity-list"></div>
+    </div>
+
+    <!-- Preview panel -->
+    <div class="preview-panel">
+      <div class="preview-toolbar">
+        <div class="preview-dots">
+          <div class="preview-dot"></div>
+          <div class="preview-dot"></div>
+          <div class="preview-dot"></div>
+        </div>
+        <div class="preview-url-bar" id="preview-url">localhost / your-app — preview</div>
+        <div class="preview-status" id="preview-status">Building...</div>
+      </div>
+      <div class="preview-frame-host" id="preview-host">
+        <div class="preview-empty" id="preview-empty">
+          <div class="build-spinner"></div>
+          <div style="font-size:13px;">Your app will appear here as soon as it is buildable</div>
+        </div>
+        <iframe class="preview-iframe" id="build-iframe" sandbox="allow-scripts" style="display:none;"></iframe>
+      </div>
+    </div>
+  </div>
+
+  <!-- Feedback chat -->
+  <div class="feedback-section">
+    <div class="feedback-header">
+      <div class="feedback-title">Feedback</div>
+      <div class="feedback-version">Version <strong id="build-version">1</strong></div>
+    </div>
+    <div class="feedback-msgs" id="feedback-msgs"></div>
+    <div class="feedback-input-row">
+      <textarea class="feedback-input" id="feedback-input" rows="1"
+        placeholder="Tell me what to change..."
+        onkeydown="handleFeedbackKey(event)"></textarea>
+      <button class="btn-feedback-send" id="btn-feedback-send" onclick="sendFeedback()">Apply</button>
+    </div>
+    <div class="ship-row">
+      <button class="btn-ship" onclick="shipApp()">Ship it →</button>
+      <span class="ship-hint">When happy, ship to get a permanent URL for your team.</span>
+    </div>
+  </div>
+</div>
+
   <!-- Success -->
   <div class="success-state" id="success-state">
     <div class="success-icon">✓</div>
@@ -466,17 +664,20 @@ function setDbStatus(ok, msg) {
 async function saveToSupabase(payload) {
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
-  if (!url || !key) return;
+  if (!url || !key) return null;
   try {
-    await fetch(url + '/rest/v1/requests', {
+    const r = await fetch(url + '/rest/v1/requests', {
       method: 'POST',
       headers: {
         'apikey': key, 'Authorization': 'Bearer ' + key,
-        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+        'Content-Type': 'application/json', 'Prefer': 'return=representation'
       },
       body: JSON.stringify(payload)
     });
-  } catch(e) { console.warn('Supabase save failed:', e); }
+    if (!r.ok) { console.warn('Supabase save failed:', await r.text()); return null; }
+    const rows = await r.json();
+    return rows && rows[0] ? rows[0] : null;
+  } catch(e) { console.warn('Supabase save failed:', e); return null; }
 }
 
 // ── Mode switching ────────────────────────────────────────────────────────────
@@ -648,16 +849,12 @@ async function approveEpic() {
     mode: currentMode,
     created_at: new Date().toISOString()
   };
-  await saveToSupabase(payload);
-  setStage(3);
-  document.getElementById('main-panel').style.display = 'none';
-  document.getElementById('mode-grid').style.display = 'none';
-  document.querySelector('.hero').style.display = 'none';
-  document.querySelector('.stages').style.display = 'none';
-  document.getElementById('settings-row').style.display = 'none';
-  const title = epicData['Title'] || 'Your request';
-  document.getElementById('success-msg').textContent = '"' + title + '" has been submitted to the admin board. The team will review, plan sprints, and begin building shortly.';
-  document.getElementById('success-state').style.display = 'block';
+  const inserted = await saveToSupabase(payload);
+  if (inserted && inserted.id) {
+    epicData._reqId = inserted.id;
+  }
+  // Instead of showing success state, take the user straight into the live build view
+  showBuildView(epicData);
 }
 
 function reviseEpic() {
@@ -771,6 +968,282 @@ function resetApp() {
   setStage(1);
   switchMode('guided');
 }
+
+// ── Build view state ─────────────────────────────────────────────────────
+let buildSteps = [];
+let buildVersion = 1;
+let buildHistory = [];
+let currentArtifactCode = '';
+
+const BUILD_SYSTEM_PROMPT = [
+  'You are an AI app builder for Digitata Networks. Your job is to take a user intent (from an approved epic) and BUILD a working, self-contained HTML page that fulfills it.',
+  '',
+  'Your output is a single HTML page that runs immediately in a browser preview. The page must:',
+  '- Be a complete valid HTML document with doctype, html, head, body',
+  '- Include all CSS inline in a style block (or use Tailwind via the CDN)',
+  '- Include all JavaScript inline in script tags',
+  '- Use Tailwind CSS by including the Tailwind CDN script tag (cdn.tailwindcss.com)',
+  '- Have a polished, modern, professional UI',
+  '- Use realistic placeholder data where needed',
+  '- Be fully interactive — buttons work, forms validate, state updates',
+  '- Use localStorage for persistence if relevant',
+  '- Be mobile-friendly and responsive',
+  '- Have NO external dependencies beyond the Tailwind CDN',
+  '',
+  'Respond with ONLY the HTML — no markdown wrapping, no preamble, no explanation. Just the raw HTML starting with the doctype declaration.'
+].join('\n');
+
+const BUILD_STEPS_TEMPLATE = [
+  { key: 'plan', label: 'Understanding your intent' },
+  { key: 'design', label: 'Designing the layout' },
+  { key: 'build', label: 'Building the components' },
+  { key: 'style', label: 'Applying brand styling' },
+  { key: 'mount', label: 'Mounting the preview' }
+];
+
+function showBuildView(epic) {
+  document.querySelector('.hero').style.display = 'none';
+  document.querySelector('.stages').style.display = 'none';
+  document.getElementById('settings-row').style.display = 'none';
+  document.getElementById('mode-grid').style.display = 'none';
+  document.getElementById('main-panel').style.display = 'none';
+
+  document.getElementById('build-view').classList.add('open');
+  document.getElementById('build-title').textContent = epic.Title || 'Your app';
+  document.getElementById('build-subtitle').textContent = epic.Goal || 'Building your app...';
+
+  buildSteps = JSON.parse(JSON.stringify(BUILD_STEPS_TEMPLATE));
+  buildVersion = 1;
+  buildHistory = [];
+  currentArtifactCode = '';
+  document.getElementById('build-version').textContent = buildVersion;
+  document.getElementById('feedback-msgs').innerHTML = '';
+  renderActivityList();
+
+  runInitialBuild(epic);
+}
+
+function renderActivityList() {
+  const list = document.getElementById('activity-list');
+  list.innerHTML = '';
+  buildSteps.forEach(function(step) {
+    const item = document.createElement('div');
+    const cls = step.status === 'done' ? 'done' : (step.status === 'now' ? 'now' : '');
+    item.className = 'activity-item ' + cls;
+    item.innerHTML = '<div class="activity-bullet"></div><div class="activity-text">' + esc(step.label) + '</div>';
+    list.appendChild(item);
+  });
+}
+
+function setStepStatus(key, status) {
+  const step = buildSteps.find(function(s) { return s.key === key; });
+  if (step) step.status = status;
+  renderActivityList();
+}
+
+function setPreviewStatus(text, isReady) {
+  const el = document.getElementById('preview-status');
+  el.textContent = text;
+  if (isReady) el.classList.add('ready');
+  else el.classList.remove('ready');
+}
+
+function stripCodeFences(text) {
+  return text.replace(/^```html\s*/i, '').replace(/^```\s*/, '').replace(/```\s*$/, '').trim();
+}
+
+async function runInitialBuild(epic) {
+  setPreviewStatus('Building...', false);
+
+  const stepKeys = ['plan', 'design', 'build', 'style'];
+  let stepIdx = 0;
+  setStepStatus(stepKeys[0], 'now');
+  const stepTimer = setInterval(function() {
+    if (stepIdx < stepKeys.length) {
+      setStepStatus(stepKeys[stepIdx], 'done');
+      stepIdx++;
+      if (stepIdx < stepKeys.length) setStepStatus(stepKeys[stepIdx], 'now');
+    }
+  }, 4500);
+
+  const ck = localStorage.getItem('dn_claude');
+  if (!ck) {
+    clearInterval(stepTimer);
+    alert('Anthropic API key required. Please go back and save it in settings.');
+    return;
+  }
+
+  const prompt = '# Epic to build\n' +
+    'Title: ' + (epic.Title || '') + '\n' +
+    'Goal: ' + (epic.Goal || '') + '\n' +
+    'Users: ' + (epic.Users || '') + '\n' +
+    'Scope: ' + (epic.Scope || '') + '\n' +
+    'MVP: ' + (epic.MVP || '') + '\n\n' +
+    'Build the MVP version as a single self-contained HTML page. Focus on the core happy path. ' +
+    'Make it look professional and feel polished. Use realistic placeholder data.';
+
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ck,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        system: BUILD_SYSTEM_PROMPT,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+    const data = await resp.json();
+    clearInterval(stepTimer);
+    if (!resp.ok) throw new Error(data.error ? data.error.message : 'API error');
+
+    const htmlOut = stripCodeFences(data.content[0].text);
+    currentArtifactCode = htmlOut;
+
+    stepKeys.forEach(function(k) { setStepStatus(k, 'done'); });
+    setStepStatus('mount', 'now');
+
+    mountPreview(htmlOut);
+
+    setTimeout(function() {
+      setStepStatus('mount', 'done');
+      setPreviewStatus('Live', true);
+      addFeedbackMsg('ai', 'Your app is live! Click around the preview and tell me what you would like to change. I will iterate until you are happy.');
+    }, 600);
+
+    persistArtifact();
+  } catch (err) {
+    clearInterval(stepTimer);
+    setPreviewStatus('Error', false);
+    addFeedbackMsg('ai', 'Build failed: ' + err.message + '. You can describe the problem below and I will try again.');
+  }
+}
+
+function mountPreview(html) {
+  const iframe = document.getElementById('build-iframe');
+  const empty = document.getElementById('preview-empty');
+  iframe.srcdoc = html;
+  iframe.style.display = 'block';
+  empty.style.display = 'none';
+}
+
+function addFeedbackMsg(role, text) {
+  const wrap = document.getElementById('feedback-msgs');
+  const msg = document.createElement('div');
+  msg.className = 'feedback-msg ' + role;
+  const initials = role === 'user' ? (currentUser || 'U').slice(0,2).toUpperCase() : 'DN';
+  msg.innerHTML = '<div class="av ' + (role === 'user' ? 'user' : 'ai') + '">' + initials + '</div>' +
+                  '<div class="bubble">' + esc(text) + '</div>';
+  wrap.appendChild(msg);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function handleFeedbackKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendFeedback(); }
+}
+
+async function sendFeedback() {
+  const input = document.getElementById('feedback-input');
+  const text = input.value.trim();
+  if (!text) return;
+  const ck = localStorage.getItem('dn_claude');
+  if (!ck) { alert('Anthropic API key required.'); return; }
+
+  input.value = '';
+  addFeedbackMsg('user', text);
+
+  const btn = document.getElementById('btn-feedback-send');
+  btn.disabled = true;
+  btn.textContent = 'Updating...';
+  setPreviewStatus('Updating...', false);
+
+  try {
+    const messages = [
+      { role: 'user', content: 'Here is the current version of the app:\n\n' + currentArtifactCode },
+      { role: 'assistant', content: 'Got it, this is the current state of the app.' },
+      { role: 'user', content: 'Apply this change: ' + text + '\n\nReturn the COMPLETE updated HTML page (not just the changed parts). Keep everything else identical except the requested change.' }
+    ];
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ck,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 16000,
+        system: BUILD_SYSTEM_PROMPT,
+        messages: messages
+      })
+    });
+    const data = await resp.json();
+    if (!resp.ok) throw new Error(data.error ? data.error.message : 'API error');
+
+    const htmlOut = stripCodeFences(data.content[0].text);
+    currentArtifactCode = htmlOut;
+    buildVersion++;
+    document.getElementById('build-version').textContent = buildVersion;
+    mountPreview(htmlOut);
+    setPreviewStatus('Live', true);
+    addFeedbackMsg('ai', 'Done — version ' + buildVersion + ' is live. What is next?');
+
+    persistArtifact();
+  } catch (err) {
+    setPreviewStatus('Error', false);
+    addFeedbackMsg('ai', 'Update failed: ' + err.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Apply';
+  }
+}
+
+async function persistArtifact() {
+  if (!epicData || !epicData._reqId) return;
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return;
+
+  try {
+    await fetch(url + '/rest/v1/requests?id=eq.' + epicData._reqId, {
+      method: 'PATCH',
+      headers: {
+        'apikey': key,
+        'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        artifacts: [{
+          version: buildVersion,
+          html: currentArtifactCode,
+          updated_at: new Date().toISOString()
+        }]
+      })
+    });
+  } catch (e) { console.warn('Persist failed:', e); }
+}
+
+function shipApp() {
+  if (!currentArtifactCode) { alert('Nothing built yet to ship.'); return; }
+  const blob = new Blob([currentArtifactCode], { type: 'text/html' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  const safeName = ((epicData && epicData.Title) || 'app').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+  a.download = safeName + '.html';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  addFeedbackMsg('ai', 'Shipped! Your app is downloading. The admin team has been notified to set up a permanent URL.');
+}
+
+
 </script>
 </body>
 </html>
