@@ -1122,6 +1122,7 @@ window.addEventListener('load', async () => {
   }
   await loadPlatformContext();
   recentActivity = await loadRecentActivity();
+  findPendingQuestions();
   startChat();
   if (window.location.protocol === 'file:') showFileWarning();
 });
