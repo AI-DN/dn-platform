@@ -1264,7 +1264,7 @@ const ADMIN_AGENT_SYSTEM = [
   '2. Wait for the admin to confirm the decision. Do not act on speculation — the admin must explicitly say something like "yes", "go with that", "approved", or state their own choice.',
   '3. Only when the admin confirms, write a one-sentence decision summary, then on a NEW LINE at the very end emit this HTML comment:',
   String.raw`   <!-- RESOLVE_CARD reqId="<the request id>" storyTitle="<exact story title>" decision="<the decision summary>" -->`,
-  '4. The frontend strips this comment before showing your message and uses it to commit the decision and move the card.',
+  '4. The frontend strips this comment before showing your message and uses it to commit the decision. The card moves directly to QA passed, because for admin cards the recorded decision IS the deliverable \u2014 there is nothing for the build agent to do with it.',
   '5. If the admin asks you to resolve multiple cards at once (e.g. "approve both with default settings"), emit one comment per card on separate lines.',
   '',
   '## Resolution constraints',
@@ -1318,8 +1318,8 @@ async function resolveAdminCard(reqId, storyTitle, decisionText) {
     }
     if (foundIdx === -1) return { ok: false, error: 'No matching needs_admin story' };
 
-    // Update the story
-    stories[foundIdx].column = 'ready';
+    // Update the story — admin decisions ARE the deliverable, so go straight to qa_passed
+    stories[foundIdx].column = 'qa_passed';
     stories[foundIdx].admin_decision = decisionText;
     stories[foundIdx].admin_decision_at = new Date().toISOString();
     stories[foundIdx].admin_decision_by = 'Admin (via agent)';
@@ -1422,7 +1422,7 @@ async function sendChatMsg() {
         const result = await resolveAdminCard(fullId, res.storyTitle, res.decision);
         if (result.ok) {
           console.log('Resolved: ' + res.storyTitle + ' \u2192 ' + res.decision);
-          appendChatMsg('ai', '\u2713 Resolved "' + res.storyTitle + '" \u2014 moved to Ready');
+          appendChatMsg('ai', '\u2713 Resolved "' + res.storyTitle + '" \u2014 marked as QA passed (decision recorded)');
         } else {
           console.warn('Resolve failed:', result.error, res);
           appendChatMsg('ai', '\u26a0 Could not resolve "' + res.storyTitle + '": ' + result.error);
