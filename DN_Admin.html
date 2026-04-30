@@ -1905,6 +1905,43 @@ async function resolveAdminCard(reqId, storyTitle, decisionText) {
 }
 
 
+
+// ── Conversation capture: appends turns to requests.conversation as a JSON array ──
+const _convQueue = {}; // reqId -> Promise chain
+
+async function logTurn(reqId, type, role, content) {
+  if (!reqId || !content) return;
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return;
+  // Truncate very long content (mostly to avoid blowing the column with multi-MB build artifacts)
+  const safe = (typeof content === 'string') ? content.slice(0, 20000) : JSON.stringify(content).slice(0, 20000);
+  const turn = { t: type, role: role, content: safe, at: new Date().toISOString() };
+
+  // Serialise per-request to avoid lost updates
+  const prev = _convQueue[reqId] || Promise.resolve();
+  const next = prev.then(async function() {
+    try {
+      const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+      const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=conversation', { headers });
+      if (!r.ok) return;
+      const rows = await r.json();
+      if (!rows.length) return;
+      let arr = [];
+      try { arr = rows[0].conversation ? JSON.parse(rows[0].conversation) : []; } catch(e) { arr = []; }
+      if (!Array.isArray(arr)) arr = [];
+      arr.push(turn);
+      const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+      await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
+        method: 'PATCH', headers: patchHeaders,
+        body: JSON.stringify({ conversation: JSON.stringify(arr) })
+      });
+    } catch(e) { console.warn('logTurn failed:', e); }
+  });
+  _convQueue[reqId] = next;
+}
+
+
 async function sendChatMsg() {
   const input = document.getElementById('chat-drawer-input');
   const text = input.value.trim();
@@ -1993,6 +2030,12 @@ async function sendChatMsg() {
 
     chatHistory.push({ role: 'assistant', content: reply });
     appendChatMsg('ai', reply);
+
+    // Capture this turn pair to whichever request is currently in focus
+    if (activeId) {
+      logTurn(activeId, 'admin', 'user', text);
+      logTurn(activeId, 'admin', 'assistant', reply);
+    }
   } catch (err) {
     removeThinking(thinkingId);
     appendChatMsg('ai', 'Error: ' + err.message);
