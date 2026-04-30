@@ -841,17 +841,31 @@ async function answerPendingQuestion(pq, answer) {
 
 function buildPendingQuestionsSection() {
   if (!pendingQuestions || !pendingQuestions.length) return '';
-  const lines = ['# Open questions for the user — they need answers to keep work moving', ''];
+
+  // Group by request title so the agent can present scope correctly
+  const byReq = {};
   pendingQuestions.forEach(function(pq, i) {
-    const kind = pq.isPlanningQuestion
-      ? '(sprint-planning context — needs user definition before story can be built)'
-      : '(runtime question from admin team)';
-    lines.push((i+1) + '. From "' + (pq.reqTitle || '') + '" — story "' + (pq.storyTitle || '') + '" ' + kind);
-    lines.push('   Question/topic: ' + pq.question);
+    const t = pq.reqTitle || 'Untitled';
+    if (!byReq[t]) byReq[t] = [];
+    byReq[t].push({ globalIdx: i + 1, pq: pq });
+  });
+
+  const lines = ['# Open questions for the user (' + pendingQuestions.length + ' total)', ''];
+  lines.push('Group counts by request:');
+  Object.keys(byReq).forEach(function(t) {
+    lines.push('- ' + t + ': ' + byReq[t].length + ' question(s)');
+  });
+  lines.push('');
+  lines.push('Full numbered list (these numbers are the 1-based indices to use in ANSWER_TO_QUESTION_INDEX markers):');
+  lines.push('');
+
+  pendingQuestions.forEach(function(pq, i) {
+    const kind = pq.isPlanningQuestion ? 'planning' : 'runtime';
+    lines.push((i+1) + '. [' + pq.reqTitle + '] story "' + pq.storyTitle + '" (' + kind + ')');
+    lines.push('   ' + pq.question);
     lines.push('');
   });
-  lines.push('Surface these naturally one at a time. After the user answers, end your reply with: ANSWER_TO_QUESTION_INDEX:N (1-based). For sprint-planning questions, the answer can be a brief description of what the user wants — that becomes input for the eventual build.');
-  lines.push('');
+
   return lines.join('\n');
 }
 
@@ -1006,13 +1020,46 @@ function buildContextSection() {
 
 const SYSTEM_PROMPT_BRIDGE_NOTE = `
 
-# Special: if pending questions are present
-If a "# Open questions from the admin team" section appears in your context, your job is to surface those questions one at a time and capture user answers. After the user provides what reads like an answer to the most recent question, do NOT call any tool — just acknowledge their answer briefly. The frontend will detect the answer and route it back. After acknowledging, ask the next question if there are more, or proceed to normal intent capture if all questions are answered.
+# When pending questions are present
+You are running a structured Q&A session to capture answers the team needs. Follow this protocol exactly:
 
-When you detect a user answering a pending question:
-- Be brief in your acknowledgement (e.g. "Got it — I will let the team know.")
-- If more questions remain, ask the next one
-- Mark the answer clearly in your response by ending with: ANSWER_TO_QUESTION_INDEX:N (where N is the 1-based index from the question list). The frontend uses this marker to route the answer to the right card.
+## On the very first message of the session
+Do NOT start asking questions immediately. Instead:
+1. Briefly acknowledge that there are open questions (use the actual count).
+2. Group the questions by request title so the user sees the scope.
+3. Ask the user which one they want to start with — by request, or "all of them in order", or "skip for now".
+4. End your message there. Wait for their reply.
+
+Example opening:
+"Welcome back — there are 4 open questions waiting for you:
+- Personal Weather Mobile App with Alerts: 2 questions
+- Add AI Image Prompt Editing to DN Deck Generator: 2 questions
+
+Which would you like to tackle first? You can pick a request, say 'all in order', or skip and come back later."
+
+## Once the user has chosen
+Ask ONE question at a time, formatted as:
+
+**Question N of M — [request title]**
+[the question text]
+
+Where N is the current question number across the chosen scope and M is the total in that scope. Use markdown bold around the header line so it stands out. Do NOT include any other questions in the same message.
+
+## After the user answers a question
+Respond ONLY with:
+1. A one-line acknowledgement (e.g. "Noted.", "Got it.", "Thanks.")
+2. The next question (if any), formatted the same way
+3. On a new line at the very end, an HTML comment containing the marker: <!-- ANSWER_TO_QUESTION_INDEX:N --> where N is the 1-based index of the question they JUST ANSWERED, taken from the original "# Open questions" list
+
+The HTML comment is critical — the frontend strips it before showing your message and uses it to commit the answer to the database. If you forget to include it, the answer is lost.
+
+## When all selected questions are answered
+Tell the user the team will pick those cards up now, and offer to either tackle remaining questions (if any) or capture a new request.
+
+## Important
+- Do NOT show the marker as visible text. It MUST be inside an HTML comment so the user does not see "ANSWER_TO_QUESTION_INDEX" anywhere on screen.
+- One question per message. Always.
+- Number the questions consistently with the list provided to you.
 `;
 
 const SYSTEM_PROMPT = `You are a requirements analyst for Digitata Networks. Your job is to understand what a user wants to build or improve, then produce a structured epic for the engineering team.
@@ -1229,10 +1276,15 @@ function startChat() {
   const win = document.getElementById('chat-window');
   win.innerHTML = '';
   if (pendingQuestions.length > 0) {
-    let greeting = 'Welcome back! The team is building your apps and has ';
-    greeting += (pendingQuestions.length === 1 ? 'a question' : pendingQuestions.length + ' questions') + ' for you. Let me ask the first:\n\n';
-    const first = pendingQuestions[0];
-    greeting += 'For "' + first.reqTitle + '" \u2014 ' + first.question;
+    // Group by request for the greeting
+    const byReq = {};
+    pendingQuestions.forEach(function(pq) {
+      const t = pq.reqTitle || 'Untitled';
+      if (!byReq[t]) byReq[t] = 0;
+      byReq[t]++;
+    });
+    const reqList = Object.keys(byReq).map(function(t) { return '- ' + t + ': ' + byReq[t] + ' question' + (byReq[t] === 1 ? '' : 's'); }).join('\n');
+    const greeting = 'Welcome back \u2014 there ' + (pendingQuestions.length === 1 ? 'is 1 open question' : 'are ' + pendingQuestions.length + ' open questions') + ' waiting for you:\n\n' + reqList + '\n\nWhich would you like to tackle first? You can pick a request, say "all in order", or skip and come back later.';
     addAiMsg(greeting);
     chatHistory.push({ role: 'assistant', content: greeting });
     return;
@@ -1327,7 +1379,39 @@ async function sendMessage() {
     const data = await resp.json();
     hideTyping();
     if (!resp.ok) throw new Error(data.error ? data.error.message : resp.statusText);
-    const reply = data.content[0].text;
+    let reply = data.content[0].text;
+
+    // Detect and strip the answer marker — committed to DB before showing the message
+    const markerMatch = reply.match(/<!--\s*ANSWER_TO_QUESTION_INDEX:\s*(\d+)\s*-->/i)
+                     || reply.match(/ANSWER_TO_QUESTION_INDEX:\s*(\d+)/i);
+    if (markerMatch) {
+      const idx1Based = parseInt(markerMatch[1], 10);
+      const pq = pendingQuestions[idx1Based - 1];
+      // Clean the marker and any naked variant from the visible reply
+      reply = reply.replace(/<!--\s*ANSWER_TO_QUESTION_INDEX:\s*\d+\s*-->/gi, '').trim();
+      reply = reply.replace(/ANSWER_TO_QUESTION_INDEX:\s*\d+/gi, '').trim();
+
+      if (pq) {
+        // Find the user's last message in chatHistory — that's the answer
+        let answer = '';
+        for (let i = chatHistory.length - 1; i >= 0; i--) {
+          if (chatHistory[i].role === 'user') { answer = chatHistory[i].content; break; }
+        }
+        if (answer) {
+          const ok = await answerPendingQuestion(pq, answer);
+          if (ok) {
+            // Refresh local state so subsequent UI shows the new column
+            await loadPlatformContext();
+            findPendingQuestions();
+            renderDashboard();
+            console.log('Answer committed for question ' + idx1Based + ': ' + (pq.storyTitle || ''));
+          } else {
+            console.warn('Answer commit failed for question ' + idx1Based);
+          }
+        }
+      }
+    }
+
     if (reply.indexOf('EPIC_READY') !== -1) {
       const epicText = reply.split('EPIC_READY')[1].trim();
       epicData = parseEpic(epicText);
@@ -1336,6 +1420,8 @@ async function sendMessage() {
       renderEpicCard();
       setStage(2);
     } else {
+      // Push the cleaned reply (with marker stripped) into history and UI
+      chatHistory.push({ role: 'assistant', content: reply });
       addAiMsg(reply);
     }
   } catch(e) {
