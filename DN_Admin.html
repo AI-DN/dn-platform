@@ -461,7 +461,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
       <div id="m-artifact-content"></div>
     </div>
     <div class="msec" id="m-qa-section" style="display:none;">
-      <div class="msec-label">QA notes (optional)</div>
+      <div class="msec-label">QA notes (sent to Claude on regenerate)</div>
       <textarea class="qa-notes-input" id="m-qa-notes" placeholder="Add notes for the team..."></textarea>
     </div>
     <div class="modal-div"></div>
@@ -966,6 +966,31 @@ async function executeStory() {
     '- May load CDN libraries (Tailwind, alpine.js, etc.) via script/link tags.\n\n' +
     'Quality bar: production-ready, polished UI, well-commented where useful, includes error handling. Keep it focused on this story only — do not build adjacent stories.';
 
+  // Build QA feedback section if this is a regeneration after a failed QA
+  let qaFeedback = '';
+  if (story.qa_status === 'failed' && story.qa_notes) {
+    qaFeedback = '# Previous QA feedback (this is a regeneration — fix the issues)\n' +
+                 'A previous version of this story was built and rejected by QA.\n' +
+                 'QA notes: ' + story.qa_notes + '\n';
+    if (story.artifact && story.artifact.content) {
+      const prev = String(story.artifact.content).slice(0, 6000);
+      qaFeedback += '\nPrevious artifact (for reference — do not repeat the same mistakes):\n```\n' + prev + '\n```\n';
+    }
+    qaFeedback += '\nAddress the QA notes specifically. Keep what worked, fix what did not.\n\n';
+  } else if (story.question_answer) {
+    // The user answered a question on this card — feed that as input
+    qaFeedback = '# User-provided input for this story\n' +
+                 'The user was asked a question about this story and answered:\n' +
+                 (story.question ? 'Question: ' + story.question + '\n' : '') +
+                 'Answer: ' + story.question_answer + '\n\n' +
+                 'Use this answer as a guiding requirement for the build.\n\n';
+  } else if (story.admin_decision) {
+    // Admin made a decision relevant to this card — include it
+    qaFeedback = '# Admin decision relevant to this story\n' +
+                 story.admin_decision + '\n\n' +
+                 'Build according to this decision.\n\n';
+  }
+
   const userPrompt =
     '# Epic context\n' +
     'Title: ' + req.title + '\n' +
@@ -975,6 +1000,7 @@ async function executeStory() {
     'MVP: ' + (req.mvp || '') + '\n' +
     'Constraints: ' + (req.constraints || 'None') + '\n\n' +
     '# Other stories in this epic (for context, do NOT build)\n' + otherStories + '\n\n' +
+    qaFeedback +
     '# THIS story to execute\n' +
     'Title: ' + story.title + '\n' +
     'What it does: ' + (story.what || '') + '\n' +
