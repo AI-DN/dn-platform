@@ -291,6 +291,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
       <span id="db-txt">No config</span>
     </div>
     <button class="chat-toggle-btn" onclick="toggleChat()">Ask agent</button>
+    <button class="btn-sm" onclick="tidyResolvedAdminCards(false)" title="Move resolved admin cards from Ready to QA passed">Tidy</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
@@ -458,6 +459,8 @@ async function loadData() {
     allReqs = await r.json();
     recentActivity = await loadRecentActivity();
     setDb(true, 'Connected');
+    // Silent one-shot cleanup of any resolved admin cards lingering in ready
+    await tidyResolvedAdminCards(true);
     renderTabs();
     if (allReqs.length > 0) {
       if (!activeId) activeId = allReqs[0].id;
@@ -1292,6 +1295,71 @@ const ADMIN_AGENT_SYSTEM = [
 
 
 // ── Resolve an admin-decision card (move from needs_admin to ready, with decision recorded)
+
+// ── One-shot migration: heal admin cards that were resolved into ready (should be qa_passed)
+async function tidyResolvedAdminCards(silent) {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return { fixed: 0 };
+
+  let totalFixed = 0;
+  const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+  const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+
+  for (let i = 0; i < allReqs.length; i++) {
+    const req = allReqs[i];
+    let stories = [];
+    try { stories = JSON.parse(req.stories || '[]'); } catch(e) { continue; }
+    if (!Array.isArray(stories)) continue;
+
+    let changed = false;
+    stories.forEach(function(s) {
+      // The signature of a resolved-admin card stuck in ready:
+      //  - has admin_decision recorded
+      //  - column is currently 'ready'
+      //  - executor is admin (or anything non-claude)
+      const exec = (s.executor || '').toLowerCase();
+      if (s.admin_decision && s.column === 'ready' && exec !== 'claude') {
+        s.column = 'qa_passed';
+        changed = true;
+        totalFixed++;
+      }
+    });
+
+    if (changed) {
+      try {
+        const resp = await fetch(url + '/rest/v1/requests?id=eq.' + req.id, {
+          method: 'PATCH', headers: patchHeaders,
+          body: JSON.stringify({ stories: JSON.stringify(stories) })
+        });
+        if (resp.ok) {
+          // Update local state too
+          req.stories = JSON.stringify(stories);
+          if (storyCache[req.id]) storyCache[req.id] = stories;
+        } else {
+          console.warn('Tidy PATCH failed for ' + req.id, resp.status);
+        }
+      } catch(e) {
+        console.warn('Tidy error for ' + req.id, e);
+      }
+    }
+  }
+
+  if (totalFixed > 0) {
+    console.log('Tidy: moved ' + totalFixed + ' resolved admin card(s) from Ready to QA passed');
+    // Re-render the active board if any
+    if (activeId) {
+      const req = allReqs.find(function(r) { return r.id === activeId; });
+      if (req) renderBoard(req);
+    }
+    if (!silent) alert('Cleaned up ' + totalFixed + ' resolved admin card(s) — moved to QA passed.');
+  } else if (!silent) {
+    alert('No cards needed cleanup. Everything looks correct.');
+  }
+  return { fixed: totalFixed };
+}
+
+
 async function resolveAdminCard(reqId, storyTitle, decisionText) {
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
