@@ -551,7 +551,17 @@ async function executeStory() {
     '  "content": "the actual code or content as a string",\n' +
     '  "notes": "brief explanation of what was built and any important decisions or assumptions"\n' +
     '}\n\n' +
-    'Quality bar: production-ready, well-commented where useful, follows best practices, includes error handling. Keep it focused on this story only — do not build adjacent stories.';
+    'CRITICAL RULES FOR JSX/REACT artifacts:\n' +
+    '- The artifact MUST be fully self-contained and renderable in a browser without a build step.\n' +
+    '- DO NOT use external CSS imports. Use Tailwind utility classes (Tailwind is preloaded) or inline styles.\n' +
+    '- DO NOT use ES6 imports for components or libraries. React, ReactDOM, useState/useEffect/useRef etc. are available globally.\n' +
+    '- End with: export default ComponentName; (this is rewritten to mount the component automatically)\n' +
+    '- Component name must start with a capital letter.\n' +
+    '- Use Tailwind classes generously for a polished, modern look.\n\n' +
+    'CRITICAL RULES FOR HTML artifacts:\n' +
+    '- Must be a complete, standalone HTML page with all CSS and JS inline.\n' +
+    '- May load CDN libraries (Tailwind, alpine.js, etc.) via script/link tags.\n\n' +
+    'Quality bar: production-ready, polished UI, well-commented where useful, includes error handling. Keep it focused on this story only — do not build adjacent stories.';
 
   const userPrompt =
     '# Epic context\n' +
@@ -857,7 +867,7 @@ async function runSprintExecution() {
         headers: { 'Content-Type': 'application/json', 'x-api-key': ck, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514', max_tokens: 8000,
-          system: 'Generate one focused artifact. Respond ONLY with JSON: {filename, language, content, notes}. No markdown wrapping.',
+          system: 'Generate one focused artifact. Respond ONLY with JSON: {filename, language, content, notes}. No markdown wrapping. For JSX/React: must be self-contained with Tailwind classes (preloaded) or inline styles, no CSS imports, no ES6 imports — React/ReactDOM/hooks are global. End with export default ComponentName. For HTML: standalone page with all CSS/JS inline, CDN libraries via script tags allowed.',
           messages: [{ role: 'user', content: userPrompt }]
         })
       });
