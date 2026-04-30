@@ -981,12 +981,89 @@ let currentMode = 'guided';
 let chatHistory = [];
 let epicData = null;
 let isAiTyping = false;
-let currentUser = 'User';
+let currentUser = '';
+
+
+function isValidName(name) {
+  if (!name) return false;
+  const trimmed = name.trim();
+  if (trimmed.length < 4) return false;
+  // Must have at least two parts (first + last)
+  const parts = trimmed.split(/\s+/);
+  if (parts.length < 2) return false;
+  // Each part at least 2 chars
+  if (parts.some(function(p) { return p.length < 2; })) return false;
+  // Block obvious placeholders
+  const lower = trimmed.toLowerCase();
+  const blocked = ['user user', 'test test', 'admin admin', 'first last', 'name name'];
+  if (blocked.indexOf(lower) !== -1) return false;
+  if (lower === 'user' || lower === 'test' || lower === 'admin') return false;
+  return true;
+}
+
+function ensureValidName() {
+  if (!isValidName(currentUser)) {
+    showNameRequiredOverlay();
+    return false;
+  }
+  return true;
+}
+
+function showNameRequiredOverlay() {
+  if (document.getElementById('name-required-overlay')) return;
+  const o = document.createElement('div');
+  o.id = 'name-required-overlay';
+  o.style.cssText = 'position:fixed;inset:0;background:rgba(11,18,32,0.95);z-index:10000;display:flex;align-items:center;justify-content:center;padding:24px;backdrop-filter:blur(6px);';
+  o.innerHTML =
+    '<div style="background:var(--navy3);border:1px solid var(--border2);border-radius:12px;padding:32px;max-width:480px;width:100%;">' +
+      '<h3 style="font-family:\'Syne\',sans-serif;font-weight:800;font-size:20px;margin:0 0 12px;color:var(--cyan);">Your name, please</h3>' +
+      '<p style="font-size:13px;color:var(--text2);line-height:1.6;margin:0 0 20px;">DN Platform routes questions and tracks ownership by name. Please enter your full name (first + last) so the team agents can communicate with you correctly.</p>' +
+      '<input id="overlay-name-input" type="text" placeholder="e.g. Philip Korf" style="width:100%;padding:11px 14px;background:var(--panel2);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-family:\'DM Sans\',sans-serif;font-size:14px;outline:none;margin-bottom:14px;" />' +
+      '<div id="overlay-name-err" style="color:var(--amber);font-size:12px;min-height:18px;margin-bottom:10px;"></div>' +
+      '<button onclick="submitOverlayName()" style="background:var(--cyan);color:var(--navy);border:none;border-radius:8px;padding:11px 24px;font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;cursor:pointer;width:100%;">Continue</button>' +
+    '</div>';
+  document.body.appendChild(o);
+  setTimeout(function() {
+    const inp = document.getElementById('overlay-name-input');
+    if (inp) {
+      inp.focus();
+      inp.addEventListener('keydown', function(e) { if (e.key === 'Enter') submitOverlayName(); });
+    }
+  }, 100);
+}
+
+function submitOverlayName() {
+  const inp = document.getElementById('overlay-name-input');
+  const err = document.getElementById('overlay-name-err');
+  const name = (inp.value || '').trim();
+  if (!isValidName(name)) {
+    err.textContent = 'Please enter your first and last name (at least 2 characters each).';
+    return;
+  }
+  currentUser = name;
+  localStorage.setItem('dn_user', name);
+  document.getElementById('inp-name').value = name;
+  refreshUserDisplay();
+  document.getElementById('name-required-overlay').remove();
+  // Reload context now that we have a real name
+  loadPlatformContext().then(function() {
+    recentActivity = [];
+    findPendingQuestions();
+    chatHistory = [];
+    startChat();
+  });
+}
+
 
 // ── Init ──────────────────────────────────────────────────────────────────────
 window.addEventListener('load', async () => {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
   loadSettings();
+  if (!isValidName(currentUser)) {
+    showNameRequiredOverlay();
+    if (window.location.protocol === 'file:') showFileWarning();
+    return;
+  }
   await loadPlatformContext();
   recentActivity = await loadRecentActivity();
   startChat();
@@ -1006,6 +1083,10 @@ function saveSettings() {
   const claude = document.getElementById('inp-claude').value.trim();
   const supaUrl = document.getElementById('inp-supa-url').value.trim();
   const supaKey = document.getElementById('inp-supa-key').value.trim();
+  if (name && !isValidName(name)) {
+    alert('Please enter your first and last name (at least 2 characters each).');
+    return;
+  }
   if (name) { localStorage.setItem('dn_user', name); currentUser = name; refreshUserDisplay(); }
   if (claude) localStorage.setItem('dn_claude', claude);
   if (supaUrl) localStorage.setItem('dn_supa_url', supaUrl);
@@ -1028,9 +1109,11 @@ function loadSettings() {
 }
 
 function refreshUserDisplay() {
-  const n = currentUser || 'User';
-  document.getElementById('user-name-display').textContent = n;
-  document.getElementById('user-avatar').textContent = n.slice(0,2).toUpperCase();
+  const n = currentUser || 'Unknown';
+  const el = document.getElementById('user-name-display');
+  const av = document.getElementById('user-avatar');
+  if (el) el.textContent = n;
+  if (av) av.textContent = (currentUser || '?').slice(0,2).toUpperCase();
 }
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
@@ -1243,6 +1326,7 @@ function renderEpicCard() {
 }
 
 async function approveEpic() {
+  if (!ensureValidName()) return;
   if (!epicData) return;
   const payload = {
     submitted_by: currentUser,
@@ -1283,6 +1367,7 @@ function reviseEpic() {
 
 // ── Quick submit ──────────────────────────────────────────────────────────────
 async function submitQuick() {
+  if (!ensureValidName()) return;
   const text = document.getElementById('quick-text').value.trim();
   if (!text) return;
   const key = localStorage.getItem('dn_claude');
