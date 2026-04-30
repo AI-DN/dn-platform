@@ -276,6 +276,114 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 }
 .chat-drawer-send:disabled { opacity: 0.4; cursor: not-allowed; }
 
+
+.btn-ship { background: linear-gradient(135deg, var(--green), var(--cyan)); color: var(--navy); border: none; border-radius: 8px; padding: 7px 16px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; margin-left: 8px; }
+.btn-ship:hover { transform: translateY(-1px); }
+.btn-ship:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-ship-spin { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--navy); border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.ship-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 1100; padding: 24px; }
+.ship-modal.open { display: flex; }
+.ship-card { background: var(--navy3); border: 1px solid var(--border2); border-radius: 12px; padding: 24px; width: 100%; max-width: 540px; }
+.ship-card h3 { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px; margin: 0 0 8px; color: var(--green); }
+.ship-card p { font-size: 13px; color: var(--text2); line-height: 1.6; margin: 0 0 16px; }
+.ship-row { margin-bottom: 12px; }
+.ship-row label { display: block; font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text3); margin-bottom: 4px; }
+.ship-row input { width: 100%; padding: 9px 12px; background: var(--panel2); border: 1px solid var(--border2); border-radius: 8px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none; }
+.ship-row input:focus { border-color: rgba(31,216,164,0.4); }
+.ship-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.ship-status { font-size: 12px; color: var(--text2); margin-top: 12px; padding: 10px; background: var(--panel2); border-radius: 6px; min-height: 18px; }
+.ship-status.success { color: var(--green); }
+.ship-status.error { color: var(--amber); }
+
+
+/* Settings gear + dropdown panel */
+.btn-settings-gear {
+  background: var(--panel2); border: 1px solid var(--border2); border-radius: 8px;
+  width: 36px; height: 32px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text2); font-size: 16px;
+  transition: all 0.15s;
+}
+.btn-settings-gear:hover { color: var(--text); border-color: var(--border2); background: var(--panel); }
+.btn-settings-gear.has-config::after {
+  content: ''; position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green); margin-left: 14px; margin-top: -10px;
+}
+.btn-settings-gear.no-config::after {
+  content: ''; position: absolute; width: 7px; height: 7px; border-radius: 50%;
+  background: var(--amber); margin-left: 14px; margin-top: -10px;
+}
+
+.settings-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: none; z-index: 200;
+  align-items: flex-start; justify-content: flex-end;
+  padding-top: 60px; padding-right: 24px;
+}
+.settings-overlay.open { display: flex; }
+.settings-panel {
+  width: 100%; max-width: 460px;
+  background: var(--navy3, var(--panel)); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 22px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  max-height: calc(100vh - 100px); overflow-y: auto;
+}
+.settings-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 6px;
+}
+.settings-panel-title {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 16px;
+  color: var(--cyan); letter-spacing: 0.04em;
+}
+.settings-panel-close {
+  background: none; border: none; color: var(--text3);
+  font-size: 18px; cursor: pointer; line-height: 1;
+  padding: 0; width: 24px; height: 24px;
+}
+.settings-panel-close:hover { color: var(--text); }
+.settings-panel-hint {
+  font-size: 12px; color: var(--text3); margin-bottom: 18px; line-height: 1.5;
+}
+.settings-panel .sfield { margin-bottom: 12px; min-width: 0; flex: none; }
+.settings-panel .sfield label {
+  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--text3); display: block; margin-bottom: 5px;
+}
+.settings-panel .sfield input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 9px 12px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
+}
+.settings-panel .sfield input:focus { border-color: rgba(61,214,245,0.4); }
+.settings-panel-section {
+  font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text3); padding-bottom: 6px; margin-top: 14px;
+  border-bottom: 1px solid var(--border); margin-bottom: 12px;
+}
+.settings-panel-section:first-of-type { margin-top: 6px; }
+.settings-panel-actions {
+  display: flex; gap: 10px; justify-content: flex-end;
+  margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border);
+}
+.settings-panel-save {
+  background: var(--cyan); color: var(--navy); border: none;
+  border-radius: 8px; padding: 9px 22px;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer;
+}
+.settings-panel-save:hover { opacity: 0.9; }
+.settings-saved-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--green); color: var(--navy);
+  padding: 10px 20px; border-radius: 24px;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 300;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.settings-saved-toast.show { opacity: 1; }
+
 </style>
 </head>
 <body>
@@ -293,16 +401,36 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <button class="chat-toggle-btn" onclick="toggleChat()">Ask agent</button>
     <button class="btn-sm" onclick="tidyResolvedAdminCards(false)" title="Move resolved admin cards from Ready to QA passed">Tidy</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
+    <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (API keys, GitHub)" aria-label="Settings">⚙</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
 </div>
 
-<div class="settings-bar">
-  <div class="sfield"><label>Anthropic API key</label><input type="password" id="inp-claude" placeholder="sk-ant-..."></div>
-  <div class="sfield"><label>Supabase URL</label><input type="text" id="inp-supa-url" placeholder="https://xxx.supabase.co"></div>
-  <div class="sfield"><label>Supabase anon key</label><input type="password" id="inp-supa-key" placeholder="eyJ..."></div>
-  <button class="btn-save" onclick="saveSettings()">Save</button>
+<div class="settings-overlay" id="settings-overlay" onclick="if(event.target===this)closeSettingsPanel()">
+  <div class="settings-panel">
+    <div class="settings-panel-head">
+      <span class="settings-panel-title">Settings</span>
+      <button class="settings-panel-close" onclick="closeSettingsPanel()" aria-label="Close">×</button>
+    </div>
+    <div class="settings-panel-hint">API keys are saved in this browser only. Update at any time — changes apply immediately.</div>
+
+    <div class="settings-panel-section">AI</div>
+    <div class="sfield"><label>Anthropic API key</label><input type="password" id="inp-claude" placeholder="sk-ant-..."></div>
+
+    <div class="settings-panel-section">Database</div>
+    <div class="sfield"><label>Supabase URL</label><input type="text" id="inp-supa-url" placeholder="https://xxx.supabase.co"></div>
+    <div class="sfield"><label>Supabase anon key</label><input type="password" id="inp-supa-key" placeholder="eyJ..."></div>
+
+    <div class="settings-panel-section">GitHub deployment (optional)</div>
+    <div class="sfield"><label>GitHub token</label><input type="password" id="inp-gh-token" placeholder="github_pat_..."></div>
+    <div class="sfield"><label>GitHub repo</label><input type="text" id="inp-gh-repo" placeholder="owner/repo"></div>
+
+    <div class="settings-panel-actions">
+      <button class="settings-panel-save" onclick="saveSettings()">Save changes</button>
+    </div>
+  </div>
 </div>
+<div class="settings-saved-toast" id="settings-saved-toast">Settings saved</div>
 
 <div class="epic-tabs" id="epic-tabs">
   <span class="empty-tabs" id="tabs-empty">Loading...</span>
@@ -416,6 +544,7 @@ let allReqs = [], activeId = null, storyCache = {}, activeCard = null, currentSp
 window.addEventListener('load', function() {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
   loadSettings();
+  refreshGearStatus();
   if (window.location.protocol === 'file:') {
     const w = document.createElement('div');
     w.style.cssText = 'position:fixed;bottom:0;left:0;right:0;padding:8px 20px;background:rgba(240,160,48,0.12);border-top:1px solid rgba(240,160,48,0.3);font-size:12px;color:#f0a030;z-index:200;text-align:center;';
@@ -424,13 +553,53 @@ window.addEventListener('load', function() {
   }
 });
 
+
+function toggleSettingsPanel() {
+  const overlay = document.getElementById('settings-overlay');
+  if (overlay.classList.contains('open')) closeSettingsPanel();
+  else openSettingsPanel();
+}
+function openSettingsPanel() {
+  loadSettings();
+  document.getElementById('settings-overlay').classList.add('open');
+  setTimeout(function() {
+    const first = document.getElementById('inp-claude');
+    if (first && !first.value) first.focus();
+  }, 80);
+}
+function closeSettingsPanel() {
+  document.getElementById('settings-overlay').classList.remove('open');
+}
+function refreshGearStatus() {
+  const gear = document.getElementById('btn-settings-gear');
+  if (!gear) return;
+  const hasClaude = !!localStorage.getItem('dn_claude');
+  const hasSupa = !!localStorage.getItem('dn_supa_url') && !!localStorage.getItem('dn_supa_key');
+  gear.classList.remove('has-config', 'no-config');
+  gear.classList.add((hasClaude && hasSupa) ? 'has-config' : 'no-config');
+}
+function showSettingsToast(msg) {
+  const toast = document.getElementById('settings-saved-toast');
+  if (!toast) return;
+  toast.textContent = msg || 'Settings saved';
+  toast.classList.add('show');
+  setTimeout(function() { toast.classList.remove('show'); }, 1800);
+}
+
 function saveSettings() {
   const c = document.getElementById('inp-claude').value.trim();
+  const ghToken = document.getElementById('inp-gh-token').value.trim();
+  const ghRepo = document.getElementById('inp-gh-repo').value.trim();
+  if (ghToken) localStorage.setItem('dn_gh_token', ghToken); else localStorage.removeItem('dn_gh_token');
+  if (ghRepo) localStorage.setItem('dn_gh_repo', ghRepo); else localStorage.removeItem('dn_gh_repo');
   const u = document.getElementById('inp-supa-url').value.trim();
   const k = document.getElementById('inp-supa-key').value.trim();
   if (c) localStorage.setItem('dn_claude', c);
   if (u) localStorage.setItem('dn_supa_url', u);
   if (k) localStorage.setItem('dn_supa_key', k);
+  closeSettingsPanel();
+  showSettingsToast('Settings saved');
+  refreshGearStatus();
   loadData();
 }
 
@@ -439,6 +608,10 @@ function loadSettings() {
   const u = localStorage.getItem('dn_supa_url') || '';
   const k = localStorage.getItem('dn_supa_key') || '';
   if (c) document.getElementById('inp-claude').value = c;
+  const ghToken = localStorage.getItem('dn_gh_token') || '';
+  const ghRepo = localStorage.getItem('dn_gh_repo') || '';
+  if (ghToken) document.getElementById('inp-gh-token').value = ghToken;
+  if (ghRepo) document.getElementById('inp-gh-repo').value = ghRepo;
   if (u) document.getElementById('inp-supa-url').value = u;
   if (k) document.getElementById('inp-supa-key').value = k;
   loadData();
@@ -609,6 +782,10 @@ function renderBoard(req) {
     if (sprintReady > 0) {
       sBarHtml += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready</span>';
       sBarHtml += '<button class="btn-run-sprint" id="run-sprint-btn" onclick="runSprintExecution()">Execute ' + (targetSprint || 'all ready') + '</button>';
+      if (canShipRequest(req)) {
+        const shipLabel = req.status === 'shipped' ? 'Re-ship' : 'Ship app';
+        sBarHtml += '<button class="btn-ship" onclick="openShipModal(\'' + req.id + '\')">' + shipLabel + '</button>';
+      }
     }
     sBar.innerHTML = sBarHtml;
     wrap.appendChild(sBar);
@@ -1294,6 +1471,314 @@ const ADMIN_AGENT_SYSTEM = [
 
 // ── Resolve an admin-decision card (move from needs_admin to ready, with decision recorded)
 
+
+// ── Ship pipeline ──────────────────────────────────────────────────────────
+function canShipRequest(req) {
+  // All Claude-executor cards must have artifact AND be in qa_passed/shipped
+  let stories = [];
+  try { stories = JSON.parse(req.stories || '[]'); } catch(e) {}
+  if (!Array.isArray(stories) || !stories.length) return false;
+  const claudeCards = stories.filter(function(s) { return (s.executor || '').toLowerCase() === 'claude'; });
+  if (!claudeCards.length) return false;
+  return claudeCards.every(function(s) { return s.artifact && (s.column === 'qa_passed' || s.column === 'shipped'); });
+}
+
+let shipTargetReqId = null;
+
+function openShipModal(reqId) {
+  shipTargetReqId = reqId;
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+  // Default filename: PascalCase from title
+  const slug = (req.title || 'App').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+(.)/g, function(_, c) { return c.toUpperCase(); }).replace(/\s/g, '').replace(/^./, function(c) { return c.toUpperCase(); });
+  document.getElementById('ship-filename').value = (req.shipped_filename || slug) + '.html';
+  document.getElementById('ship-branch').value = 'main';
+  document.getElementById('ship-status').textContent = 'Ready to ship.';
+  document.getElementById('ship-status').className = 'ship-status';
+  document.getElementById('ship-modal').classList.add('open');
+}
+
+function closeShipModal() {
+  document.getElementById('ship-modal').classList.remove('open');
+  shipTargetReqId = null;
+}
+
+function bundleArtifacts(req) {
+  // Take all Claude-executor stories with artifacts, merge into one HTML file
+  let stories = [];
+  try { stories = JSON.parse(req.stories || '[]'); } catch(e) {}
+  const arts = stories
+    .filter(function(s) { return s.artifact && (s.executor || '').toLowerCase() === 'claude'; })
+    .map(function(s) { return { story: s, art: s.artifact }; });
+
+  if (!arts.length) throw new Error('No artifacts to bundle');
+
+  // Detect: are these JSX components, or full HTML pages?
+  const isJsx = arts.some(function(a) {
+    const lang = (a.art.language || '').toLowerCase();
+    return lang === 'jsx' || lang === 'react' || lang === 'tsx';
+  });
+
+  const isHtml = arts.some(function(a) {
+    const lang = (a.art.language || '').toLowerCase();
+    return lang === 'html' && (a.art.content || '').indexOf('<!DOCTYPE') !== -1;
+  });
+
+  // CASE A: a single full HTML artifact — use it as-is
+  if (arts.length === 1 && isHtml) {
+    return arts[0].art.content;
+  }
+
+  // CASE B: JSX components — wrap in a tabbed React app
+  if (isJsx || arts.every(function(a) { return (a.art.language || '').toLowerCase() !== 'html'; })) {
+    return wrapJsxAsTabbed(req, arts);
+  }
+
+  // CASE C: mixed — fall back to single-page with sections
+  return wrapMixedAsSinglePage(req, arts);
+}
+
+function wrapJsxAsTabbed(req, arts) {
+  // Each artifact's content is a JSX component ending in `export default ComponentName`
+  // We strip the export, rename the component to a unique name, render inside a tabbed shell
+  const componentBlocks = [];
+  const componentNames = [];
+  arts.forEach(function(a, i) {
+    let code = a.art.content;
+    // Strip imports
+    code = code.replace(/^\s*import\s+[^;\n]+;?\s*$/gm, '');
+    // Strip 'const { useState, ... } = React;' redeclarations
+    code = code.replace(/const\s*\{[^}]+\}\s*=\s*React;?\s*\n/g, '');
+    // Find the exported component name
+    let name = 'Component' + i;
+    const expMatch = code.match(/export\s+default\s+(\w+)/);
+    if (expMatch) name = expMatch[1];
+    // Make name unique to avoid collisions
+    const uniqueName = name + '_' + i;
+    code = code.replace(new RegExp('\\b' + name + '\\b', 'g'), uniqueName);
+    // Strip the export line
+    code = code.replace(/export\s+default\s+\w+\s*;?/g, '');
+    componentNames.push({ display: a.story.title || name, key: uniqueName });
+    componentBlocks.push('// ' + (a.story.title || '') + '\n' + code);
+  });
+
+  const tabsArr = JSON.stringify(componentNames);
+  const allCode = componentBlocks.join('\n\n');
+
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    '<title>' + escapeHtml(req.title || 'DN App') + '</title>',
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"><\/script>',
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"><\/script>',
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"><\/script>',
+    '<script src="https://cdn.tailwindcss.com"><\/script>',
+    '<style>body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #e6ecf5; }</style>',
+    '</head>',
+    '<body>',
+    '<div id="root"></div>',
+    '<script type="text/babel" data-presets="react">',
+    'const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer } = React;',
+    '',
+    allCode,
+    '',
+    'function DNApp() {',
+    '  const tabs = ' + tabsArr + ';',
+    '  const [active, setActive] = useState(tabs[0] && tabs[0].key);',
+    '  const compMap = {' + componentNames.map(function(c) { return c.key + ': ' + c.key; }).join(', ') + '};',
+    '  const Active = compMap[active];',
+    '  return (',
+    '    <div className="min-h-screen">',
+    '      <header className="px-6 py-4 border-b border-slate-800 flex items-center gap-3">',
+    '        <h1 className="text-xl font-bold text-cyan-400">' + escapeHtml(req.title || 'DN App').replace(/'/g, "\\'") + '</h1>',
+    '      </header>',
+    '      <nav className="flex gap-1 px-6 py-3 border-b border-slate-800 overflow-x-auto">',
+    '        {tabs.map(function(t) { return <button key={t.key} onClick={function() { setActive(t.key); }} className={"px-4 py-2 rounded-lg text-sm whitespace-nowrap " + (active === t.key ? "bg-cyan-500 text-slate-900 font-semibold" : "text-slate-400 hover:text-white")}>{t.display}</button>; })}',
+    '      </nav>',
+    '      <main className="p-6">',
+    '        {Active ? <Active /> : <p className="text-slate-400">Select a section.</p>}',
+    '      </main>',
+    '    </div>',
+    '  );',
+    '}',
+    '',
+    'ReactDOM.createRoot(document.getElementById("root")).render(<DNApp />);',
+    '<\/script>',
+    '</body>',
+    '</html>'
+  ].join('\n');
+}
+
+function wrapMixedAsSinglePage(req, arts) {
+  // Fallback: just concatenate everything into a single page with section headers
+  const sections = arts.map(function(a) {
+    return '<section style="padding:24px;border-bottom:1px solid #334;"><h2 style="color:#5DCAA5;">' + escapeHtml(a.story.title || '') + '</h2><pre style="background:#0f1729;padding:12px;border-radius:8px;overflow-x:auto;color:#cbd5e1;">' + escapeHtml(a.art.content || '') + '</pre></section>';
+  }).join('\n');
+
+  return [
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">',
+    '<title>' + escapeHtml(req.title || 'DN App') + '</title>',
+    '<style>body{margin:0;font-family:system-ui;background:#0b1220;color:#e6ecf5;}</style>',
+    '</head><body>',
+    '<header style="padding:24px;border-bottom:1px solid #334;"><h1 style="color:#3DD6F5;margin:0;">' + escapeHtml(req.title || '') + '</h1></header>',
+    sections,
+    '</body></html>'
+  ].join('\n');
+}
+
+function escapeHtml(s) {
+  return String(s || '').replace(/[&<>"\']/g, function(c) {
+    return ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' })[c];
+  });
+}
+
+async function publishToGithub(filename, content, branch, status) {
+  const token = localStorage.getItem('dn_gh_token');
+  const repo = localStorage.getItem('dn_gh_repo');
+  if (!token || !repo) {
+    return { ok: false, error: 'GitHub token + repo not configured in settings.' };
+  }
+  const apiBase = 'https://api.github.com/repos/' + repo + '/contents/' + filename;
+  const headers = {
+    'Accept': 'application/vnd.github.v3+json',
+    'Authorization': 'Bearer ' + token,
+    'Content-Type': 'application/json'
+  };
+
+  // 1. Get current SHA if file exists (needed for updates)
+  let sha = null;
+  try {
+    status('Checking existing file...');
+    const r = await fetch(apiBase + '?ref=' + encodeURIComponent(branch), { headers });
+    if (r.ok) {
+      const j = await r.json();
+      sha = j.sha;
+    }
+  } catch(e) { /* file probably does not exist, that is fine */ }
+
+  // 2. Encode content as base64 (handle UTF-8 properly)
+  let encoded;
+  try {
+    encoded = btoa(unescape(encodeURIComponent(content)));
+  } catch(e) {
+    return { ok: false, error: 'Failed to encode content: ' + e.message };
+  }
+
+  // 3. Commit
+  status(sha ? 'Updating existing file...' : 'Creating new file...');
+  const body = {
+    message: 'Ship: ' + filename + ' from DN platform',
+    content: encoded,
+    branch: branch
+  };
+  if (sha) body.sha = sha;
+
+  const r = await fetch(apiBase, {
+    method: 'PUT',
+    headers: headers,
+    body: JSON.stringify(body)
+  });
+  if (!r.ok) {
+    const t = await r.text();
+    return { ok: false, error: 'GitHub PUT failed (' + r.status + '): ' + t.slice(0, 200) };
+  }
+  const result = await r.json();
+  return {
+    ok: true,
+    sha: result.content.sha,
+    htmlUrl: result.content.html_url,
+    downloadUrl: result.content.download_url,
+    pagesUrl: derivePagesUrl(repo, filename)
+  };
+}
+
+function derivePagesUrl(repo, filename) {
+  // owner/repo → https://owner.github.io/repo/filename
+  const parts = repo.split('/');
+  if (parts.length !== 2) return '';
+  return 'https://' + parts[0] + '.github.io/' + parts[1] + '/' + filename;
+}
+
+async function executeShip() {
+  const req = allReqs.find(function(r) { return r.id === shipTargetReqId; });
+  if (!req) return;
+  const filename = document.getElementById('ship-filename').value.trim();
+  const branch = document.getElementById('ship-branch').value.trim() || 'main';
+  if (!filename) { alert('Filename is required'); return; }
+  if (!filename.match(/^[a-zA-Z0-9_\-\/]+\.html$/)) {
+    alert('Filename must end in .html and contain only letters, numbers, dashes, underscores, slashes');
+    return;
+  }
+
+  const btn = document.getElementById('ship-go-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<span class="btn-ship-spin"></span>Shipping...';
+  const statusEl = document.getElementById('ship-status');
+  statusEl.className = 'ship-status';
+  const setStatus = function(msg) { statusEl.textContent = msg; };
+
+  try {
+    setStatus('Bundling artifacts...');
+    const content = bundleArtifacts(req);
+
+    setStatus('Publishing to GitHub...');
+    const ghResult = await publishToGithub(filename, content, branch, setStatus);
+    if (!ghResult.ok) {
+      statusEl.className = 'ship-status error';
+      setStatus('Failed: ' + ghResult.error);
+      btn.disabled = false;
+      btn.innerHTML = 'Bundle and publish';
+      return;
+    }
+
+    setStatus('Marking request shipped...');
+    // Update Supabase: status=shipped, store URL + filename
+    const url = localStorage.getItem('dn_supa_url');
+    const key = localStorage.getItem('dn_supa_key');
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const patchBody = {
+      status: 'shipped',
+      shipped_url: ghResult.pagesUrl,
+      shipped_filename: filename,
+      shipped_at: new Date().toISOString()
+    };
+    const p = await fetch(url + '/rest/v1/requests?id=eq.' + req.id, {
+      method: 'PATCH', headers: headers, body: JSON.stringify(patchBody)
+    });
+    if (!p.ok) {
+      console.warn('Supabase update failed but file is published:', await p.text());
+    }
+    // Update local state
+    req.status = 'shipped';
+    req.shipped_url = ghResult.pagesUrl;
+    req.shipped_filename = filename;
+
+    await logActivity({
+      request_id: req.id,
+      actor: 'admin_user',
+      actor_name: 'Admin',
+      action: 'shipped',
+      description: 'Bundled and published ' + filename + ' to ' + ghResult.pagesUrl
+    });
+
+    statusEl.className = 'ship-status success';
+    setStatus('Shipped! Live at: ' + ghResult.pagesUrl + ' (Pages may take 30-60s to update)');
+    btn.disabled = false;
+    btn.innerHTML = 'Done';
+    renderTabs();
+    if (activeId === req.id) renderEpic(req.id);
+  } catch(e) {
+    statusEl.className = 'ship-status error';
+    setStatus('Error: ' + e.message);
+    btn.disabled = false;
+    btn.innerHTML = 'Bundle and publish';
+  }
+}
+
+
 // ── One-shot migration: heal admin cards that were resolved into ready (should be qa_passed)
 async function tidyResolvedAdminCards(silent) {
   const url = localStorage.getItem('dn_supa_url');
@@ -1675,6 +2160,27 @@ async function submitAskQuestion() {
     <div class="ask-question-actions">
       <button class="btn-close-modal" onclick="closeAskQuestion()">Cancel</button>
       <button class="btn-ask-user" onclick="submitAskQuestion()">Send to user</button>
+    </div>
+  </div>
+</div>
+
+
+<div class="ship-modal" id="ship-modal" onclick="if(event.target===this)closeShipModal()">
+  <div class="ship-card">
+    <h3>Ship app</h3>
+    <p>Bundle all QA-passed artifacts into a single HTML file and publish it to your GitHub repo. The landing page will pick it up automatically.</p>
+    <div class="ship-row">
+      <label>Filename (in repo)</label>
+      <input type="text" id="ship-filename" placeholder="WeatherApp.html">
+    </div>
+    <div class="ship-row">
+      <label>Branch</label>
+      <input type="text" id="ship-branch" value="main">
+    </div>
+    <div class="ship-status" id="ship-status">Ready to ship.</div>
+    <div class="ship-actions">
+      <button class="btn-close-modal" onclick="closeShipModal()">Cancel</button>
+      <button class="btn-ship" id="ship-go-btn" onclick="executeShip()">Bundle and publish</button>
     </div>
   </div>
 </div>
