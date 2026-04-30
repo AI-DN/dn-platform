@@ -900,7 +900,56 @@ async function loadPlatformContext() {
 
 function buildContextSection() {
   if (!platformContext.loadedAt) return '';
-  const summarise = function(req) {
+
+  const COL_LABELS = {
+    needs_user: 'Needs user input',
+    needs_admin: 'Needs admin decision',
+    awaiting_user: 'Awaiting user answer',
+    ready: 'Ready to build',
+    in_progress: 'In progress',
+    ready_qa: 'Ready for QA',
+    qa_passed: 'QA passed',
+    shipped: 'Shipped'
+  };
+
+  const detailedSummary = function(req) {
+    const ver = (req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
+    const lines = [];
+    lines.push('### "' + (req.title || 'untitled') + '"' + ver);
+    lines.push('  by ' + (req.submitted_by || '?') + ', overall status: ' + (req.status || 'unknown') + ', id:' + (req.id || '').slice(0,8));
+    if (req.goal) lines.push('  Goal: ' + req.goal);
+
+    let stories = [];
+    if (req.stories) {
+      try { stories = JSON.parse(req.stories); } catch(e) {}
+    }
+    if (!Array.isArray(stories) || !stories.length) {
+      lines.push('  (no stories yet — epic submitted but team has not broken it down)');
+      return lines.join('\n');
+    }
+
+    // Tally by column
+    const tally = {};
+    stories.forEach(function(s) {
+      const c = s.column || 'unknown';
+      tally[c] = (tally[c] || 0) + 1;
+    });
+    const tallyLine = Object.keys(tally).map(function(c) {
+      return (COL_LABELS[c] || c) + ': ' + tally[c];
+    }).join(', ');
+    lines.push('  Story progress: ' + stories.length + ' total — ' + tallyLine);
+
+    // List each story with its column
+    lines.push('  Stories:');
+    stories.forEach(function(s, i) {
+      const ans = s.question_answer ? ' [answered]' : '';
+      lines.push('    ' + (i+1) + '. [' + (COL_LABELS[s.column] || s.column || '?') + '] ' + (s.title || '?') + ans);
+    });
+
+    return lines.join('\n');
+  };
+
+  const briefSummary = function(req) {
     const ver = (req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
     return '- "' + (req.title || 'untitled') + '"' + ver + ' (by ' + (req.submitted_by || '?') + ', ' + (req.status || 'unknown') + ', id:' + (req.id || '').slice(0,8) + ')';
   };
@@ -908,13 +957,16 @@ function buildContextSection() {
   const parts = [];
   parts.push('# Platform context — what exists right now');
   parts.push('');
-  parts.push('You have access to live data about the DN platform. Use this to answer questions about progress, avoid duplicate requests, and reference existing tools.');
+  parts.push('You have access to live data about the DN platform: requests, stories within each request, and what column each story sits in. Use this to answer questions about progress, avoid duplicate requests, and reference existing tools.');
   parts.push('');
 
   if (platformContext.myRequests.length) {
-    parts.push('## ' + currentUser + "'s past requests (" + platformContext.myRequests.length + ')');
-    platformContext.myRequests.slice(0,10).forEach(function(r) { parts.push(summarise(r)); });
+    parts.push('## ' + currentUser + "'s requests with full breakdown (" + platformContext.myRequests.length + ')');
     parts.push('');
+    platformContext.myRequests.slice(0, 10).forEach(function(r) {
+      parts.push(detailedSummary(r));
+      parts.push('');
+    });
   } else {
     parts.push('## ' + currentUser + "'s past requests");
     parts.push('None yet — this is their first request.');
@@ -923,25 +975,29 @@ function buildContextSection() {
 
   if (platformContext.shipped.length) {
     parts.push('## Shipped tools available on the platform (' + platformContext.shipped.length + ')');
-    platformContext.shipped.slice(0,10).forEach(function(r) {
+    platformContext.shipped.slice(0, 10).forEach(function(r) {
       parts.push('- "' + (r.title || 'untitled') + '" — ' + (r.goal || '') + ' (by ' + (r.submitted_by || '?') + ')');
     });
     parts.push('');
   }
 
   if (platformContext.active.length) {
-    parts.push('## Currently being built or in review (' + platformContext.active.length + ')');
-    platformContext.active.slice(0,10).forEach(function(r) {
-      parts.push('- "' + (r.title || 'untitled') + '" — ' + (r.status || '') + ' (by ' + (r.submitted_by || '?') + ')');
+    parts.push('## Other active builds across the platform (' + platformContext.active.length + ')');
+    platformContext.active.slice(0, 10).forEach(function(r) {
+      // If this request is also in myRequests, skip (already shown above with full detail)
+      const isMine = platformContext.myRequests.some(function(m) { return m.id === r.id; });
+      if (!isMine) parts.push(briefSummary(r));
     });
     parts.push('');
   }
 
-  parts.push('## How to use this context');
-  parts.push('- If user asks about progress on a specific request (theirs or anyone\'s), answer from above');
-  parts.push('- If user describes wanting to build something already shipped, mention it and ask if it covers their need');
-  parts.push('- If user describes something already being built, mention the active effort');
-  parts.push('- Otherwise proceed with capturing the new intent normally');
+  parts.push('## How to answer progress questions');
+  parts.push('- For requests under "' + currentUser + "'s requests with full breakdown\", you have the complete story list and which column each is in. Use it to answer specifically — do not say you lack details.");
+  parts.push('- Stories in "Needs user input" are waiting on the user to define something.');
+  parts.push('- Stories in "Needs admin decision" are blocked on an admin choice.');
+  parts.push('- Stories in "Awaiting user answer" have a specific question for the user (also surfaced in the pending-questions section if applicable).');
+  parts.push('- Stories in "Ready to build" are queued for the build agent.');
+  parts.push('- When asked "what input do you need from me" or similar, list every story in Needs user input or Awaiting user answer and explain what each needs.');
   parts.push('');
 
   return parts.join('\n');
@@ -1078,7 +1134,7 @@ function showFileWarning() {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
-function saveSettings() {
+async function saveSettings() {
   const name = document.getElementById('inp-name').value.trim();
   const claude = document.getElementById('inp-claude').value.trim();
   const supaUrl = document.getElementById('inp-supa-url').value.trim();
@@ -1092,7 +1148,9 @@ function saveSettings() {
   if (supaUrl) localStorage.setItem('dn_supa_url', supaUrl);
   if (supaKey) localStorage.setItem('dn_supa_key', supaKey);
   if (supaUrl && supaKey) pingSupabase();
-  loadPlatformContext();
+  await loadPlatformContext();
+  recentActivity = await loadRecentActivity();
+  findPendingQuestions();
 }
 
 function loadSettings() {
