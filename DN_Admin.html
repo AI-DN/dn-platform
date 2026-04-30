@@ -714,6 +714,8 @@ function buildJsxPreview(jsx) {
   // Strip ES6 import statements (Babel standalone can't resolve them)
   let cleanJsx = jsx
     .replace(/^\s*import\s+[^;\n]+;?\s*$/gm, '')
+    .replace(/^\s*const\s+\{[^}]*\}\s*=\s*React\s*;?\s*$/gm, '')
+    .replace(/^\s*const\s+React\s*=\s*window\.React\s*;?\s*$/gm, '')
     .replace(/^\s*export\s+default\s+/gm, 'window.__DN_Component = ')
     .replace(/^\s*export\s+\{[^}]*\}\s*;?\s*$/gm, '')
     .replace(/^\s*export\s+/gm, '');
