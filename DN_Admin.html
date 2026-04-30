@@ -136,6 +136,119 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .stats-bar { position: relative; z-index: 8; background: var(--navy2); border-top: 1px solid var(--border); padding: 8px 24px; display: flex; gap: 20px; align-items: center; flex-shrink: 0; }
 .stat { font-size: 12px; color: var(--text3); }
 .stat strong { color: var(--text2); }
+
+/* Admin chat drawer */
+.chat-toggle-btn {
+  background: linear-gradient(135deg, var(--purple), var(--cyan));
+  border: none; border-radius: 8px;
+  padding: 6px 14px; color: var(--navy);
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+  cursor: pointer; display: inline-flex; align-items: center; gap: 6px;
+}
+.chat-toggle-btn:hover { transform: translateY(-1px); opacity: 0.92; }
+.chat-toggle-btn::before {
+  content: ''; width: 6px; height: 6px; border-radius: 50%;
+  background: var(--navy); animation: dotPulse 2s infinite;
+}
+@keyframes dotPulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+.chat-drawer {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 420px; max-width: 92vw;
+  background: var(--navy3);
+  border-left: 1px solid var(--border2);
+  display: flex; flex-direction: column;
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 0.25s ease;
+  box-shadow: -10px 0 40px rgba(0,0,0,0.4);
+}
+.chat-drawer.open { transform: translateX(0); }
+
+.chat-drawer-head {
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.chat-drawer-title {
+  font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 13px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--purple); flex: 1;
+}
+.chat-drawer-close {
+  background: none; border: 1px solid var(--border2); border-radius: 6px;
+  padding: 4px 10px; color: var(--text2); font-size: 12px; cursor: pointer;
+}
+
+.chat-drawer-msgs {
+  flex: 1; overflow-y: auto; padding: 16px 18px;
+  display: flex; flex-direction: column; gap: 12px;
+}
+.chat-empty-hint {
+  color: var(--text3); font-size: 13px; line-height: 1.6;
+  padding: 16px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.chat-empty-hint strong { color: var(--text2); }
+.chat-suggestion {
+  display: block; padding: 8px 12px; margin-top: 8px;
+  background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: 8px; font-size: 12px; color: var(--text2);
+  cursor: pointer; transition: all 0.15s; text-align: left; width: 100%;
+  font-family: 'DM Sans', sans-serif;
+}
+.chat-suggestion:hover { color: var(--text); border-color: var(--purple); }
+
+.chat-msg-row { display: flex; gap: 10px; align-items: flex-start; }
+.chat-msg-row.user { flex-direction: row-reverse; }
+.chat-msg-av {
+  width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600;
+}
+.chat-msg-av.ai { background: rgba(139,127,245,0.15); color: var(--purple); border: 1px solid rgba(139,127,245,0.3); }
+.chat-msg-av.user { background: rgba(61,214,245,0.15); color: var(--cyan); border: 1px solid rgba(61,214,245,0.3); }
+.chat-msg-bubble {
+  padding: 9px 13px; border-radius: 10px; max-width: 85%;
+  font-size: 13px; line-height: 1.55; color: var(--text);
+}
+.chat-msg-row.ai .chat-msg-bubble { background: var(--panel2); border: 1px solid var(--border); border-radius: 2px 10px 10px 10px; }
+.chat-msg-row.user .chat-msg-bubble { background: rgba(61,214,245,0.08); border: 1px solid rgba(61,214,245,0.2); border-radius: 10px 2px 10px 10px; }
+.chat-msg-bubble pre { background: var(--navy); border: 1px solid var(--border); border-radius: 6px; padding: 8px; font-size: 11px; overflow-x: auto; margin: 6px 0 0; font-family: ui-monospace, monospace; }
+
+.chat-thinking {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 12px; color: var(--text3); padding: 4px 0;
+}
+.chat-thinking-dot {
+  width: 5px; height: 5px; border-radius: 50%; background: var(--purple);
+  animation: thinkBounce 1.4s infinite ease-in-out;
+}
+.chat-thinking-dot:nth-child(2) { animation-delay: 0.16s; }
+.chat-thinking-dot:nth-child(3) { animation-delay: 0.32s; }
+@keyframes thinkBounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.5; }
+  40% { transform: scale(1); opacity: 1; }
+}
+
+.chat-drawer-input {
+  padding: 14px 18px; border-top: 1px solid var(--border);
+  display: flex; gap: 8px; align-items: flex-end;
+}
+.chat-drawer-textarea {
+  flex: 1; background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: 10px; padding: 9px 13px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; font-size: 13px; line-height: 1.5;
+  resize: none; min-height: 38px; max-height: 120px; outline: none;
+}
+.chat-drawer-textarea:focus { border-color: rgba(139,127,245,0.4); }
+.chat-drawer-send {
+  background: var(--purple); border: none; border-radius: 10px;
+  padding: 9px 16px; color: white; font-family: 'Syne', sans-serif;
+  font-weight: 700; font-size: 12px; cursor: pointer; height: 38px;
+}
+.chat-drawer-send:disabled { opacity: 0.4; cursor: not-allowed; }
+
 </style>
 </head>
 <body>
@@ -150,6 +263,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
       <div class="db-dot" id="db-dot"></div>
       <span id="db-txt">No config</span>
     </div>
+    <button class="chat-toggle-btn" onclick="toggleChat()">Ask agent</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
@@ -222,6 +336,51 @@ const COLS = [
 
 const NEXT_COL = { needs_user:'ready', needs_admin:'ready', ready:'in_progress', in_progress:'ready_qa', ready_qa:'qa_passed', qa_passed:null };
 
+
+let recentActivity = [];
+
+async function loadRecentActivity(reqId) {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return [];
+  try {
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+    let endpoint = url + '/rest/v1/activity_log?order=created_at.desc&limit=30';
+    if (reqId) endpoint += '&request_id=eq.' + reqId;
+    const r = await fetch(endpoint, { headers });
+    if (!r.ok) return [];
+    return await r.json();
+  } catch(e) { return []; }
+}
+
+async function logActivity(entry) {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return;
+  try {
+    await fetch(url + '/rest/v1/activity_log', {
+      method: 'POST',
+      headers: {
+        'apikey': key, 'Authorization': 'Bearer ' + key,
+        'Content-Type': 'application/json', 'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(entry)
+    });
+  } catch(e) { console.warn('activity log write failed:', e); }
+}
+
+function buildActivitySection(entries) {
+  if (!entries || !entries.length) return '';
+  const lines = ['# Recent activity (most recent first)', ''];
+  entries.slice(0, 15).forEach(function(a) {
+    const when = a.created_at ? a.created_at.slice(0,16).replace('T',' ') : '';
+    const desc = a.description ? ' \u2014 ' + a.description : '';
+    lines.push('- [' + when + '] ' + (a.actor_name || a.actor) + ' ' + a.action + desc);
+  });
+  lines.push('');
+  return lines.join('\n');
+}
+
 let allReqs = [], activeId = null, storyCache = {}, activeCard = null, currentSprintFilter = 'all';
 
 window.addEventListener('load', function() {
@@ -268,6 +427,7 @@ async function loadData() {
     const r = await fetch(surl('requests?order=created_at.desc'), { headers: hdrs() });
     if (!r.ok) throw new Error(r.status);
     allReqs = await r.json();
+    recentActivity = await loadRecentActivity();
     setDb(true, 'Connected');
     renderTabs();
     if (allReqs.length > 0) {
@@ -382,6 +542,13 @@ async function generateStories(reqId) {
     }
     const idx = allReqs.findIndex(function(r) { return r.id === reqId; });
     if (idx !== -1) { allReqs[idx].status = 'active'; allReqs[idx].stories = JSON.stringify(stories); }
+    await logActivity({
+      request_id: reqId,
+      actor: 'admin_agent',
+      actor_name: 'Sprint planner',
+      action: 'sprint_plan_generated',
+      description: 'Broke epic into ' + stories.length + ' stories'
+    });
     renderTabs(); renderEpic(reqId);
   } catch(e) {
     alert('Error: ' + e.message);
@@ -652,6 +819,14 @@ async function executeStory() {
     // Update local cache before re-render
     if (req) req.stories = JSON.stringify(cacheStories);
 
+    await logActivity({
+      request_id: reqId,
+      actor: 'admin_agent',
+      actor_name: 'Build agent',
+      action: 'story_executed',
+      description: 'Built "' + (story.title || '') + '" — ' + (artifact.filename || 'artifact')
+    });
+
     // Re-render board with updated state
     renderBoard(req);
 
@@ -804,6 +979,13 @@ async function qaPass() {
     }
   }
   await saveStoriesToDb(reqId, cs);
+  await logActivity({
+    request_id: reqId,
+    actor: 'admin_user',
+    actor_name: 'Admin',
+    action: 'qa_passed',
+    description: '"' + (story.title || '') + '" passed QA' + (notes ? ': ' + notes : '')
+  });
   closeModal();
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) renderBoard(req);
@@ -829,6 +1011,13 @@ async function qaFail() {
     }
   }
   await saveStoriesToDb(reqId, cs);
+  await logActivity({
+    request_id: reqId,
+    actor: 'admin_user',
+    actor_name: 'Admin',
+    action: 'qa_failed',
+    description: '"' + (story.title || '') + '" failed QA: ' + notes
+  });
   closeModal();
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) renderBoard(req);
@@ -951,6 +1140,184 @@ function showEmpty(msg) {
   document.getElementById('stats-bar').style.display = 'none';
 }
 
+
+// ── Admin chat drawer ────────────────────────────────────────────────────
+let chatOpen = false;
+let chatHistory = []; // [{role, content}] for the LLM
+
+function toggleChat() {
+  chatOpen = !chatOpen;
+  document.getElementById('chat-drawer').classList.toggle('open', chatOpen);
+  if (chatOpen) {
+    setTimeout(function() { document.getElementById('chat-drawer-input').focus(); }, 250);
+  }
+}
+
+function handleChatKey(e) {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChatMsg(); }
+}
+
+function quickAsk(text) {
+  document.getElementById('chat-drawer-input').value = text;
+  sendChatMsg();
+}
+
+function buildPlatformSnapshot() {
+  // Build a structured snapshot of the entire platform state for Claude
+  if (!allReqs.length) return 'No requests on the platform yet.';
+
+  const lines = [];
+  lines.push('# Platform state');
+  lines.push('');
+  lines.push('Total requests: ' + allReqs.length);
+  lines.push('');
+
+  allReqs.forEach(function(req) {
+    lines.push('## ' + (req.title || 'Untitled') + ' (id: ' + (req.id || '').slice(0,8) + ')');
+    lines.push('Submitted by: ' + (req.submitted_by || '?') + ' on ' + (req.created_at ? req.created_at.slice(0,10) : '?'));
+    lines.push('Status: ' + (req.status || 'unknown'));
+    if (req.goal) lines.push('Goal: ' + req.goal);
+    if (req.mvp) lines.push('MVP: ' + req.mvp);
+
+    let stories = [];
+    if (req.stories) {
+      try { stories = JSON.parse(req.stories); } catch(e) {}
+    }
+    if (stories.length) {
+      lines.push('');
+      lines.push('Stories (' + stories.length + '):');
+      stories.forEach(function(s, i) {
+        const tags = [];
+        if (s.sprint) tags.push(s.sprint);
+        if (s.executor) tags.push(s.executor);
+        if (s.mvp) tags.push('MVP');
+        if (s.qa_status) tags.push('QA:' + s.qa_status);
+        if (s.artifact) tags.push('has-artifact');
+        lines.push('  ' + (i+1) + '. [' + (s.column || '?') + '] ' + (s.title || '') + ' — ' + tags.join(', '));
+        if (s.qa_status === 'failed' && s.qa_notes) {
+          lines.push('     QA failure note: ' + s.qa_notes);
+        }
+      });
+    }
+    lines.push('');
+  });
+
+  return lines.join('\n');
+}
+
+const ADMIN_AGENT_SYSTEM = [
+  'You are the DN platform admin agent. You help manage the kanban board for Digitata Networks.',
+  'You have full read access to the platform state — all epics, stories, columns, sprints, artifacts, QA notes — provided to you in each message as a snapshot.',
+  '',
+  'Your current capabilities (read-only):',
+  '- Answer questions about platform state',
+  '- Identify what is stuck, why, and who is involved',
+  '- Summarise epics, sprints, and progress',
+  '- Recommend next actions',
+  '- Find specific stories by description',
+  '',
+  'You CANNOT yet execute, regenerate, or move cards — when asked to perform an action, explain that you can identify the work but action tools are not yet enabled (this is coming next).',
+  '',
+  'Style:',
+  '- Be concise and direct. Plain prose, no headers, no bullet lists unless genuinely needed.',
+  '- Reference cards by title and parent epic. Use story IDs only when asked.',
+  '- When asked something that needs precise data, quote the data verbatim from the snapshot.',
+  '- If the snapshot does not contain enough info to answer, say so.',
+  '- Never hallucinate cards, stories, or activity that is not in the snapshot.'
+].join('\n');
+
+async function sendChatMsg() {
+  const input = document.getElementById('chat-drawer-input');
+  const text = input.value.trim();
+  if (!text) return;
+
+  const ck = localStorage.getItem('dn_claude');
+  if (!ck) { alert('Anthropic API key required. Save it at the top of the page.'); return; }
+
+  // Clear empty hint on first send
+  if (chatHistory.length === 0) {
+    document.getElementById('chat-msgs').innerHTML = '';
+  }
+
+  input.value = '';
+  appendChatMsg('user', text);
+  chatHistory.push({ role: 'user', content: text });
+
+  const sendBtn = document.getElementById('chat-drawer-send');
+  sendBtn.disabled = true; sendBtn.textContent = '...';
+  const thinkingId = appendThinking();
+
+  try {
+    const snapshot = buildPlatformSnapshot();
+    // Build messages: snapshot as a synthetic system addendum, then chat history
+    const fullSystem = ADMIN_AGENT_SYSTEM + '\n\n# Current platform snapshot\n\n' + snapshot + '\n\n' + buildActivitySection(recentActivity);
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': ck,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1500,
+        system: fullSystem,
+        messages: chatHistory
+      })
+    });
+    const data = await resp.json();
+    removeThinking(thinkingId);
+    if (!resp.ok) throw new Error(data.error ? data.error.message : 'API error');
+
+    const reply = data.content[0].text;
+    chatHistory.push({ role: 'assistant', content: reply });
+    appendChatMsg('ai', reply);
+  } catch (err) {
+    removeThinking(thinkingId);
+    appendChatMsg('ai', 'Error: ' + err.message);
+  } finally {
+    sendBtn.disabled = false; sendBtn.textContent = 'Send';
+  }
+}
+
+function appendChatMsg(role, text) {
+  const wrap = document.getElementById('chat-msgs');
+  const row = document.createElement('div');
+  row.className = 'chat-msg-row ' + role;
+  const av = role === 'user' ? 'ME' : 'DN';
+  row.innerHTML = '<div class="chat-msg-av ' + role + '">' + av + '</div>' +
+                  '<div class="chat-msg-bubble">' + esc(text).replace(/\n/g, '<br>') + '</div>';
+  wrap.appendChild(row);
+  wrap.scrollTop = wrap.scrollHeight;
+}
+
+function appendThinking() {
+  const wrap = document.getElementById('chat-msgs');
+  const row = document.createElement('div');
+  const id = 'thinking-' + Date.now();
+  row.id = id;
+  row.className = 'chat-msg-row ai';
+  row.innerHTML =
+    '<div class="chat-msg-av ai">DN</div>' +
+    '<div class="chat-msg-bubble"><span class="chat-thinking">' +
+      '<span class="chat-thinking-dot"></span>' +
+      '<span class="chat-thinking-dot"></span>' +
+      '<span class="chat-thinking-dot"></span>' +
+    '</span></div>';
+  wrap.appendChild(row);
+  wrap.scrollTop = wrap.scrollHeight;
+  return id;
+}
+
+function removeThinking(id) {
+  const el = document.getElementById(id);
+  if (el) el.remove();
+}
+
+
+
 function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
 <div class="preview-modal" id="preview-modal" onclick="if(event.target===this)closePreview()">
@@ -963,5 +1330,30 @@ function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
     <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts"></iframe>
   </div>
 </div>
+
+<!-- Admin chat drawer -->
+<div class="chat-drawer" id="chat-drawer">
+  <div class="chat-drawer-head">
+    <span class="chat-drawer-title">Admin agent</span>
+    <button class="chat-drawer-close" onclick="toggleChat()">Close</button>
+  </div>
+  <div class="chat-drawer-msgs" id="chat-msgs">
+    <div class="chat-empty-hint">
+      Ask anything about the platform. I can see all epics, stories, and artifacts.
+      <strong style="display:block;margin-top:8px;">Try:</strong>
+      <button class="chat-suggestion" onclick="quickAsk(this.textContent)">What is stuck right now and why?</button>
+      <button class="chat-suggestion" onclick="quickAsk(this.textContent)">Summarise the active epics</button>
+      <button class="chat-suggestion" onclick="quickAsk(this.textContent)">Which Claude cards are ready to execute?</button>
+      <button class="chat-suggestion" onclick="quickAsk(this.textContent)">What was built this week?</button>
+    </div>
+  </div>
+  <div class="chat-drawer-input">
+    <textarea class="chat-drawer-textarea" id="chat-drawer-input" rows="1"
+      placeholder="Ask the admin agent..."
+      onkeydown="handleChatKey(event)"></textarea>
+    <button class="chat-drawer-send" id="chat-drawer-send" onclick="sendChatMsg()">Send</button>
+  </div>
+</div>
+
 </body>
 </html>
