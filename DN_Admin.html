@@ -959,7 +959,8 @@ async function executeStory() {
     '- Component name must start with a capital letter.\n' +
     '- Use Tailwind classes generously for a polished, modern look.\n' +
     '- For HTTP requests use native fetch(). For state use useState. For side effects use useEffect.\n' +
-    '- CRITICAL: in JSX text content, bare < and > characters MUST be escaped. A bare < inside JSX text gets parsed as the start of a tag and breaks compilation. Use HTML entities: &lt; for < and &gt; for >. So WRONG: <div>Strong Down (<-2%)</div>. RIGHT: <div>Strong Down (&lt;-2%)</div>. This applies anywhere text contains comparison operators, arrows, or angle brackets.\n\n' +
+    '- CRITICAL: in JSX text content, bare < and > characters MUST be escaped. A bare < inside JSX text gets parsed as the start of a tag and breaks compilation. Use HTML entities: &lt; for < and &gt; for >. So WRONG: <div>Strong Down (<-2%)</div>. RIGHT: <div>Strong Down (&lt;-2%)</div>. This applies anywhere text contains comparison operators, arrows, or angle brackets.\n' +
+    '- CRITICAL: DO NOT use localStorage, sessionStorage, document.cookie, or any browser persistent storage. The preview iframe is sandboxed without same-origin access and these APIs throw SecurityError. Use React useState for all in-memory state. If persistence is required, mention in notes that the user will need to wire it up after extracting the component.\n\n' +
     'CRITICAL RULES FOR HTML artifacts:\n' +
     '- Must be a complete, standalone HTML page with all CSS and JS inline.\n' +
     '- May load CDN libraries (Tailwind, alpine.js, etc.) via script/link tags.\n\n' +
