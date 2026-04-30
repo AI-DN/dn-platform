@@ -1138,9 +1138,9 @@ function buildJsxPreview(jsx) {
 
   const parts = [];
   parts.push('<!doctype html><html><head><meta charset="utf-8">');
-  parts.push(SC + ' src="https://unpkg.com/react@18/umd/react.development.js" crossorigin>' + SCE);
-  parts.push(SC + ' src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin>' + SCE);
-  parts.push(SC + ' src="https://unpkg.com/@babel/standalone/babel.min.js">' + SCE);
+  parts.push(SC + ' src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js">' + SCE);
+  parts.push(SC + ' src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js">' + SCE);
+  parts.push(SC + ' src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js">' + SCE);
   parts.push(SC + ' src="https://cdn.tailwindcss.com">' + SCE);
   parts.push('<style>body{margin:0;font-family:system-ui;background:#fff;padding:24px}.dn-error{padding:24px;background:#fee;border:1px solid #fcc;border-radius:8px;color:#900;font-family:Menlo,monospace;font-size:13px;white-space:pre-wrap}</style></head>');
   parts.push(BO + '<div id="root"></div>');
@@ -1218,9 +1218,13 @@ async function qaFail() {
   if (!notes) { alert('Please add notes explaining what failed.'); return; }
   const cs = storyCache[reqId];
   let found = 0;
+  let i_for_rollback = -1;
+  let original_for_rollback = null;
   for (let i = 0; i < cs.length; i++) {
     if (cs[i].title === story.title && cs[i].column === colId) {
       if (found === idx) {
+        i_for_rollback = i;
+        original_for_rollback = JSON.parse(JSON.stringify(cs[i]));
         cs[i].column = 'in_progress';
         cs[i].qa_status = 'failed';
         cs[i].qa_notes = notes;
@@ -1230,7 +1234,21 @@ async function qaFail() {
       found++;
     }
   }
-  await saveStoriesToDb(reqId, cs);
+  if (i_for_rollback === -1) {
+    alert('Could not find matching card. Try refreshing.');
+    return;
+  }
+  const saved = await saveStoriesToDb(reqId, cs);
+  if (!saved) {
+    cs[i_for_rollback] = original_for_rollback;
+    return;
+  }
+  const verifyOk = await verifyStoryColumn(reqId, story.title, 'in_progress');
+  if (!verifyOk) {
+    alert('Save appeared to succeed but the database did not update. Check that the requests table has an UPDATE policy in Supabase. Run: create policy "Allow update" on requests for update using (true) with check (true);');
+    cs[i_for_rollback] = original_for_rollback;
+    return;
+  }
   await logActivity({
     request_id: reqId,
     actor: 'admin_user',
@@ -1242,6 +1260,23 @@ async function qaFail() {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (req) renderBoard(req);
   alert('Card moved back to In Progress with your notes.');
+}
+
+async function verifyStoryColumn(reqId, storyTitle, expectedColumn) {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return true;
+  try {
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories', {
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+    });
+    if (!r.ok) return true;
+    const rows = await r.json();
+    if (!rows.length) return true;
+    let stories = [];
+    try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) { return true; }
+    return stories.some(function(s) { return s.title === storyTitle && s.column === expectedColumn; });
+  } catch(e) { return true; }
 }
 
 async function saveStoriesToDb(reqId, stories) {
