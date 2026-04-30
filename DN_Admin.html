@@ -459,8 +459,6 @@ async function loadData() {
     allReqs = await r.json();
     recentActivity = await loadRecentActivity();
     setDb(true, 'Connected');
-    // Silent one-shot cleanup of any resolved admin cards lingering in ready
-    await tidyResolvedAdminCards(true);
     renderTabs();
     if (allReqs.length > 0) {
       if (!activeId) activeId = allReqs[0].id;
@@ -606,7 +604,7 @@ function renderBoard(req) {
     });
     const targetSprint = currentSprintFilter === 'all' ? null : currentSprintFilter;
     const sprintReady = stories.filter(function(s) {
-      return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint) && (s.executor || '').toLowerCase() === 'claude';
+      return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint);
     }).length;
     if (sprintReady > 0) {
       sBarHtml += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready</span>';
@@ -674,7 +672,7 @@ function openModal(story, reqId, colId, idx) {
   else mb.style.display = 'none';
   // Execute button
   const eb = document.getElementById('m-execute-btn');
-  const canExec = (colId === 'ready' || colId === 'in_progress' || colId === 'ready_qa') && (story.executor || '').toLowerCase() === 'claude';
+  const canExec = (colId === 'ready' || colId === 'in_progress' || colId === 'ready_qa');
   if (canExec) {
     eb.style.display = 'inline-block';
     eb.disabled = false;
@@ -1091,9 +1089,9 @@ async function runSprintExecution() {
   const stories = storyCache[req.id] || [];
   const targetSprint = currentSprintFilter === 'all' ? null : currentSprintFilter;
   const queue = stories.filter(function(s) {
-    return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint) && (s.executor || '').toLowerCase() === 'claude';
+    return s.column === 'ready' && (targetSprint === null || s.sprint === targetSprint);
   });
-  if (!queue.length) { alert('No Claude cards ready in this sprint.'); return; }
+  if (!queue.length) { alert('No cards ready in this sprint.'); return; }
   if (!confirm('Execute ' + queue.length + ' card(s) sequentially?')) return;
   const btn = document.getElementById('run-sprint-btn');
   if (btn) { btn.disabled = true; btn.innerHTML = '<span class="btn-spinner"></span>Running...'; }
@@ -1314,15 +1312,18 @@ async function tidyResolvedAdminCards(silent) {
 
     let changed = false;
     stories.forEach(function(s) {
-      // The signature of a resolved-admin card stuck in ready:
-      //  - has admin_decision recorded
-      //  - column is currently 'ready'
-      //  - executor is admin (or anything non-claude)
+      // Two patterns of resolved cards stuck in ready that should be qa_passed:
+      //  A) Resolved admin card: has admin_decision, in ready, executor is non-claude
+      //  B) Answered user card: has question_answer, in ready, executor is non-claude
+      // In both cases the recorded value IS the deliverable for that card,
+      // and downstream build work lives on separate Claude-executor cards.
       const exec = (s.executor || '').toLowerCase();
-      if (s.admin_decision && s.column === 'ready' && exec !== 'claude') {
-        s.column = 'qa_passed';
-        changed = true;
-        totalFixed++;
+      if (s.column === 'ready' && exec !== 'claude') {
+        if (s.admin_decision || s.question_answer) {
+          s.column = 'qa_passed';
+          changed = true;
+          totalFixed++;
+        }
       }
     });
 
@@ -1346,13 +1347,13 @@ async function tidyResolvedAdminCards(silent) {
   }
 
   if (totalFixed > 0) {
-    console.log('Tidy: moved ' + totalFixed + ' resolved admin card(s) from Ready to QA passed');
+    console.log('Tidy: moved ' + totalFixed + ' resolved card(s) from Ready to QA passed');
     // Re-render the active board if any
     if (activeId) {
       const req = allReqs.find(function(r) { return r.id === activeId; });
       if (req) renderBoard(req);
     }
-    if (!silent) alert('Cleaned up ' + totalFixed + ' resolved admin card(s) — moved to QA passed.');
+    if (!silent) alert('Cleaned up ' + totalFixed + ' resolved card(s) — moved to QA passed.');
   } else if (!silent) {
     alert('No cards needed cleanup. Everything looks correct.');
   }

@@ -815,8 +815,10 @@ async function answerPendingQuestion(pq, answer) {
     let stories = [];
     try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) { stories = []; }
     if (!stories[pq.storyIdx]) return false;
-    // Move card to Ready, write answer onto it
-    stories[pq.storyIdx].column = 'ready';
+    // Answer recorded — for human/user cards the answer IS the deliverable.
+    // The downstream build cards already exist as separate Claude-executor cards in Ready.
+    // So this card goes to qa_passed (done) — not back to ready.
+    stories[pq.storyIdx].column = 'qa_passed';
     stories[pq.storyIdx].question_answer = answer;
     stories[pq.storyIdx].question_answered_by = currentUser || 'intent_user';
     stories[pq.storyIdx].question_answered_at = new Date().toISOString();
