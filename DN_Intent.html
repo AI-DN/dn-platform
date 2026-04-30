@@ -748,12 +748,18 @@ function buildActivitySection(entries) {
 let pendingQuestions = [];
 
 function findPendingQuestions() {
-  // Scan both 'awaiting_user' (runtime questions) AND 'needs_user' (sprint-planning questions)
-  // Respect addressed_to if present, otherwise fall back to submitted_by
+  // Scan ALL loaded requests (mine + active + shipped) for cards in needs_user / awaiting_user
   pendingQuestions = [];
-  const myName = (currentUser || '').toLowerCase();
-  const allReqs = [].concat(platformContext.myRequests, platformContext.active);
+  const myName = (currentUser || '').trim().toLowerCase();
+  const allReqs = [].concat(
+    platformContext.myRequests || [],
+    platformContext.active || [],
+    platformContext.shipped || []
+  );
   const seen = {};
+  let totalCards = 0;
+  let skippedRouting = 0;
+
   allReqs.forEach(function(req) {
     if (seen[req.id]) return;
     seen[req.id] = true;
@@ -761,15 +767,20 @@ function findPendingQuestions() {
     if (req.stories) {
       try { stories = JSON.parse(req.stories); } catch(e) {}
     }
+    if (!Array.isArray(stories)) return;
+
     stories.forEach(function(s, idx) {
       const inUserCol = (s.column === 'awaiting_user' || s.column === 'needs_user');
       if (!inUserCol) return;
-      // Skip if already answered
       if (s.question_answer) return;
-      // Routing: addressed_to overrides submitted_by
-      const target = (s.addressed_to || req.submitted_by || '').toLowerCase();
-      if (target !== myName) return;
-      // Determine the question text — explicit question field wins, otherwise use why/title
+      totalCards++;
+
+      // Routing: addressed_to wins. If absent, fall back to submitter.
+      // If neither is set or no current user is set, INCLUDE it (better to over-surface than miss).
+      const target = (s.addressed_to || req.submitted_by || '').trim().toLowerCase();
+      const matches = !myName || !target || target === myName;
+      if (!matches) { skippedRouting++; return; }
+
       const questionText = s.question || s.why || ('Need your input on: ' + (s.title || 'a story'));
       pendingQuestions.push({
         reqId: req.id,
@@ -784,6 +795,10 @@ function findPendingQuestions() {
       });
     });
   });
+
+  console.log('Pending questions: scanned ' + allReqs.length + ' requests, found ' +
+    totalCards + ' cards in user columns, ' + pendingQuestions.length + ' for current user, ' +
+    skippedRouting + ' routed to others');
   return pendingQuestions;
 }
 
@@ -857,7 +872,7 @@ async function loadPlatformContext() {
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
     // Fetch all requests, then partition client-side
-    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts&order=created_at.desc&limit=50', { headers });
+    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories&order=created_at.desc&limit=50', { headers });
     if (!r.ok) { console.warn('Context load failed:', r.status); return; }
     const rows = await r.json();
 
@@ -1083,6 +1098,9 @@ function startChat() {
   let greeting = 'Hi! I am here to help you with a new request — or to check progress on existing ones.';
   if (platformContext.myRequests.length > 0) {
     greeting += ' I can see you have ' + platformContext.myRequests.length + ' past request' + (platformContext.myRequests.length === 1 ? '' : 's') + ' on the platform.';
+  }
+  if (platformContext.active.length > 0) {
+    greeting += ' There ' + (platformContext.active.length === 1 ? 'is' : 'are') + ' ' + platformContext.active.length + ' active build' + (platformContext.active.length === 1 ? '' : 's') + ' across the platform.';
   }
   if (platformContext.shipped.length > 0) {
     greeting += ' There ' + (platformContext.shipped.length === 1 ? 'is' : 'are') + ' ' + platformContext.shipped.length + ' shipped tool' + (platformContext.shipped.length === 1 ? '' : 's') + ' you can use.';
