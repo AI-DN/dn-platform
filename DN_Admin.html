@@ -565,10 +565,13 @@ async function executeStory() {
     'CRITICAL RULES FOR JSX/REACT artifacts:\n' +
     '- The artifact MUST be fully self-contained and renderable in a browser without a build step.\n' +
     '- DO NOT use external CSS imports. Use Tailwind utility classes (Tailwind is preloaded) or inline styles.\n' +
-    '- DO NOT use ES6 imports for components or libraries. React, ReactDOM, useState/useEffect/useRef etc. are available globally.\n' +
+    '- DO NOT use ES6 imports for any libraries. The preview only has React, ReactDOM, and Tailwind.\n' +
+    '- DO NOT use PropTypes, classnames, lodash, axios, or any other npm package — they are not available.\n' +
+    '- React hooks (useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer) are available as globals — do NOT redeclare them.\n' +
     '- End with: export default ComponentName; (this is rewritten to mount the component automatically)\n' +
     '- Component name must start with a capital letter.\n' +
-    '- Use Tailwind classes generously for a polished, modern look.\n\n' +
+    '- Use Tailwind classes generously for a polished, modern look.\n' +
+    '- For HTTP requests use native fetch(). For state use useState. For side effects use useEffect.\n\n' +
     'CRITICAL RULES FOR HTML artifacts:\n' +
     '- Must be a complete, standalone HTML page with all CSS and JS inline.\n' +
     '- May load CDN libraries (Tailwind, alpine.js, etc.) via script/link tags.\n\n' +
@@ -748,6 +751,9 @@ function buildJsxPreview(jsx) {
   parts.push(BO + '<div id="root"></div>');
   parts.push(SC + ' type="text/babel" data-presets="env,react">');
   parts.push('try {');
+  parts.push('  // Shims for libraries Claude sometimes uses but we do not load');
+  parts.push('  const PropTypes = new Proxy({}, { get: function() { return new Proxy(function(){}, { get: function() { return PropTypes; } }); } });');
+  parts.push('  const classNames = function() { return Array.from(arguments).filter(Boolean).join(" "); };');
   parts.push(hookDecl);
   parts.push(cleanJsx);
   parts.push('  // Detect the component to mount');
@@ -880,7 +886,7 @@ async function runSprintExecution() {
         headers: { 'Content-Type': 'application/json', 'x-api-key': ck, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
         body: JSON.stringify({
           model: 'claude-sonnet-4-20250514', max_tokens: 8000,
-          system: 'Generate one focused artifact. Respond ONLY with JSON: {filename, language, content, notes}. No markdown wrapping. For JSX/React: must be self-contained with Tailwind classes (preloaded) or inline styles, no CSS imports, no ES6 imports — React/ReactDOM/hooks are global. End with export default ComponentName. For HTML: standalone page with all CSS/JS inline, CDN libraries via script tags allowed.',
+          system: 'Generate one focused artifact. Respond ONLY with JSON: {filename, language, content, notes}. No markdown wrapping. For JSX/React: self-contained with Tailwind classes (preloaded), no external CSS, no ES6 imports, no PropTypes/classnames/lodash/axios. React + ReactDOM + hooks (useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer) are global — do not redeclare. End with export default ComponentName. For HTML: standalone page with all CSS/JS inline, CDN libraries via script tags allowed.',
           messages: [{ role: 'user', content: userPrompt }]
         })
       });
