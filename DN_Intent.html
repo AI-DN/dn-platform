@@ -748,39 +748,46 @@ function buildActivitySection(entries) {
 let pendingQuestions = [];
 
 function findPendingQuestions() {
-  // Scan platform context for awaiting_user cards belonging to this user's epics
+  // Scan both 'awaiting_user' (runtime questions) AND 'needs_user' (sprint-planning questions)
+  // Respect addressed_to if present, otherwise fall back to submitted_by
   pendingQuestions = [];
   const myName = (currentUser || '').toLowerCase();
   const allReqs = [].concat(platformContext.myRequests, platformContext.active);
-  // dedupe
   const seen = {};
   allReqs.forEach(function(req) {
     if (seen[req.id]) return;
     seen[req.id] = true;
-    if ((req.submitted_by || '').toLowerCase() !== myName) return;
     let stories = [];
     if (req.stories) {
       try { stories = JSON.parse(req.stories); } catch(e) {}
     }
     stories.forEach(function(s, idx) {
-      if (s.column === 'awaiting_user' && s.question && !s.question_answer) {
-        pendingQuestions.push({
-          reqId: req.id,
-          reqTitle: req.title,
-          storyIdx: idx,
-          storyTitle: s.title,
-          question: s.question,
-          askedBy: s.question_asked_by,
-          askedAt: s.question_asked_at
-        });
-      }
+      const inUserCol = (s.column === 'awaiting_user' || s.column === 'needs_user');
+      if (!inUserCol) return;
+      // Skip if already answered
+      if (s.question_answer) return;
+      // Routing: addressed_to overrides submitted_by
+      const target = (s.addressed_to || req.submitted_by || '').toLowerCase();
+      if (target !== myName) return;
+      // Determine the question text — explicit question field wins, otherwise use why/title
+      const questionText = s.question || s.why || ('Need your input on: ' + (s.title || 'a story'));
+      pendingQuestions.push({
+        reqId: req.id,
+        reqTitle: req.title,
+        storyIdx: idx,
+        storyTitle: s.title,
+        column: s.column,
+        question: questionText,
+        askedBy: s.question_asked_by || (s.column === 'needs_user' ? 'sprint_planner' : 'admin_user'),
+        askedAt: s.question_asked_at,
+        isPlanningQuestion: (s.column === 'needs_user' && !s.question)
+      });
     });
   });
   return pendingQuestions;
 }
 
 async function answerPendingQuestion(pq, answer) {
-  // Fetch fresh row, update the story, write back
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
   if (!url || !key) return false;
@@ -793,9 +800,10 @@ async function answerPendingQuestion(pq, answer) {
     let stories = [];
     try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) { stories = []; }
     if (!stories[pq.storyIdx]) return false;
+    // Move card to Ready, write answer onto it
     stories[pq.storyIdx].column = 'ready';
     stories[pq.storyIdx].question_answer = answer;
-    stories[pq.storyIdx].question_answered_by = 'intent_user';
+    stories[pq.storyIdx].question_answered_by = currentUser || 'intent_user';
     stories[pq.storyIdx].question_answered_at = new Date().toISOString();
 
     const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
@@ -818,13 +826,16 @@ async function answerPendingQuestion(pq, answer) {
 
 function buildPendingQuestionsSection() {
   if (!pendingQuestions || !pendingQuestions.length) return '';
-  const lines = ['# Open questions from the admin team that the user needs to answer', ''];
+  const lines = ['# Open questions for the user — they need answers to keep work moving', ''];
   pendingQuestions.forEach(function(pq, i) {
-    lines.push((i+1) + '. From "' + (pq.reqTitle || '') + '" — story "' + (pq.storyTitle || '') + '"');
-    lines.push('   Question: ' + pq.question);
+    const kind = pq.isPlanningQuestion
+      ? '(sprint-planning context — needs user definition before story can be built)'
+      : '(runtime question from admin team)';
+    lines.push((i+1) + '. From "' + (pq.reqTitle || '') + '" — story "' + (pq.storyTitle || '') + '" ' + kind);
+    lines.push('   Question/topic: ' + pq.question);
     lines.push('');
   });
-  lines.push('When the user shows up, surface these questions naturally one at a time. After the user responds to a question, you must call the answerQuestion function with the answer. Do NOT batch all questions into one message — ask them one by one.');
+  lines.push('Surface these naturally one at a time. After the user answers, end your reply with: ANSWER_TO_QUESTION_INDEX:N (1-based). For sprint-planning questions, the answer can be a brief description of what the user wants — that becomes input for the eventual build.');
   lines.push('');
   return lines.join('\n');
 }

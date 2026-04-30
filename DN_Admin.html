@@ -635,7 +635,7 @@ function renderBoard(req) {
       if (story.qa_status === 'failed') tags += '<span class="qa-result qa-failed-tag">QA failed</span>';
       const artifactDot = story.artifact ? '<span class="has-artifact" title="Artifact generated">●</span>' : '';
       const questionBlock = (col.id === 'awaiting_user' && story.question)
-        ? '<div class="card-question">' + esc(story.question) + '</div>'
+        ? '<div class="card-question">' + esc(story.question) + (story.addressed_to ? '<div style="margin-top:4px;font-size:10px;color:var(--text3);font-style:normal;">Asked of: ' + esc(story.addressed_to) + '</div>' : '') + '</div>'
         : '';
       const answerBlock = (story.question_answer && col.id !== 'awaiting_user')
         ? '<div class="card-question" style="background:rgba(31,216,164,0.06);border-left-color:rgba(31,216,164,0.4)">Answer: ' + esc(story.question_answer) + '</div>'
@@ -1246,15 +1246,22 @@ function buildPlatformSnapshot() {
 }
 
 const ADMIN_AGENT_SYSTEM = [
-  'You are the DN platform admin agent. You help manage the kanban board for Digitata Networks.',
-  'You have full read access to the platform state — all epics, stories, columns, sprints, artifacts, QA notes — provided to you in each message as a snapshot.',
+  'You are the DN platform admin agent. You help the human admin manage the DN kanban board for Digitata Networks.',
+  'You have full read access to the platform state — all epics, stories, columns, sprints, artifacts, QA notes, recent activity — provided to you in each message as a snapshot.',
   '',
-  'Your current capabilities (read-only):',
-  '- Answer questions about platform state',
+  'Your current capabilities:',
+  '- Answer questions about platform state and progress',
   '- Identify what is stuck, why, and who is involved',
   '- Summarise epics, sprints, and progress',
-  '- Recommend next actions',
-  '- Find specific stories by description',
+  '- Help the admin reason through "Needs Admin" cards: these are stories the LLM identified as requiring an admin-level decision (architecture, infrastructure, vendor choice, security setup). Discuss the options with the admin, recommend an approach, and tell them how to act on it.',
+  '- Suggest when a card should move to "Awaiting answer" by clicking Ask User. The card will be routed to the most recently active user on the request — not always the original submitter. Once they respond, the card returns to Ready with their answer attached.',
+  '',
+  'Column meaning:',
+  '- needs_user: stories the LLM flagged at planning time as requiring user definition (e.g. personas, preferences). The intent agent surfaces these to the user.',
+  '- needs_admin: stories requiring admin-level decision before they can be built. Admin must talk through and decide.',
+  '- awaiting_user: stories with a specific question waiting on a specific user.',
+  '- ready: ready for Claude to execute.',
+  '- in_progress / ready_qa / qa_passed: standard build flow.',
   '',
   'You CAN ask the user a question by suggesting the admin click Ask User on a card. This moves the card to Awaiting answer; the user will see it next time they open DN Intent and once they respond, it will return to Ready with their answer attached. You CANNOT yet execute, regenerate, or move cards yourself \u2014 when asked to perform such an action, explain that you can identify the work but execution tools are not yet enabled (coming next).',
   '',
@@ -1360,6 +1367,19 @@ function removeThinking(id) {
 
 function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
+
+function mostRecentActiveUser(reqId, fallback) {
+  // Scan recent activity for the most recent intent_user actor on this request
+  if (!recentActivity || !recentActivity.length) return fallback;
+  for (let i = 0; i < recentActivity.length; i++) {
+    const a = recentActivity[i];
+    if (a.request_id === reqId && a.actor === 'intent_user' && a.actor_name) {
+      return a.actor_name;
+    }
+  }
+  return fallback;
+}
+
 // ── Ask user (kanban bridge to intent agent) ─────────────────────────────
 function openAskQuestion() {
   if (!activeCard) return;
@@ -1384,6 +1404,11 @@ async function submitAskQuestion() {
   const cs = storyCache[reqId];
   if (!cs) return;
 
+  // Determine who to address — most recent active user, falling back to original submitter
+  const reqForAddress = allReqs.find(function(r) { return r.id === reqId; });
+  const submitter = reqForAddress ? reqForAddress.submitted_by : null;
+  const addressTo = mostRecentActiveUser(reqId, submitter);
+
   let found = 0;
   for (let i = 0; i < cs.length; i++) {
     if (cs[i].title === story.title && cs[i].column === colId) {
@@ -1392,6 +1417,7 @@ async function submitAskQuestion() {
         cs[i].question = question;
         cs[i].question_asked_by = 'admin_user';
         cs[i].question_asked_at = new Date().toISOString();
+        cs[i].addressed_to = addressTo;
         delete cs[i].question_answer;
         delete cs[i].question_answered_at;
         delete cs[i].question_answered_by;
@@ -1407,7 +1433,7 @@ async function submitAskQuestion() {
     actor: 'admin_user',
     actor_name: 'Admin',
     action: 'asked_user',
-    description: '"' + (story.title || '') + '": ' + question
+    description: 'For ' + addressTo + ' on "' + (story.title || '') + '": ' + question
   });
 
   closeAskQuestion();
@@ -1457,7 +1483,7 @@ async function submitAskQuestion() {
 <div class="ask-question-modal" id="ask-question-modal" onclick="if(event.target===this)closeAskQuestion()">
   <div class="ask-question-card">
     <h4>Ask the user a question</h4>
-    <div class="ask-question-hint">This card will move to "Awaiting answer". Next time the user opens DN Intent, the agent will surface your question and bring back their answer.</div>
+    <div class="ask-question-hint">This card moves to "Awaiting answer". The question will be routed to whoever has been most active on this request — typically the original submitter or the last person to iterate. The intent agent will surface it and return their answer.</div>
     <textarea class="ask-question-input" id="ask-question-text" placeholder="What do you need from the user?"></textarea>
     <div class="ask-question-actions">
       <button class="btn-close-modal" onclick="closeAskQuestion()">Cancel</button>
