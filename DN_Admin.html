@@ -458,7 +458,7 @@ function openModal(story, reqId, colId, idx) {
   else mb.style.display = 'none';
   // Execute button
   const eb = document.getElementById('m-execute-btn');
-  const canExec = (colId === 'ready' || colId === 'in_progress') && (story.executor || '').toLowerCase() === 'claude';
+  const canExec = (colId === 'ready' || colId === 'in_progress' || colId === 'ready_qa') && (story.executor || '').toLowerCase() === 'claude';
   if (canExec) {
     eb.style.display = 'inline-block';
     eb.disabled = false;
