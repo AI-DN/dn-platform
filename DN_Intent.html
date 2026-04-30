@@ -743,6 +743,93 @@ function buildActivitySection(entries) {
 }
 
 
+
+// ── Pending questions from admin (kanban bridge) ────────────────────────
+let pendingQuestions = [];
+
+function findPendingQuestions() {
+  // Scan platform context for awaiting_user cards belonging to this user's epics
+  pendingQuestions = [];
+  const myName = (currentUser || '').toLowerCase();
+  const allReqs = [].concat(platformContext.myRequests, platformContext.active);
+  // dedupe
+  const seen = {};
+  allReqs.forEach(function(req) {
+    if (seen[req.id]) return;
+    seen[req.id] = true;
+    if ((req.submitted_by || '').toLowerCase() !== myName) return;
+    let stories = [];
+    if (req.stories) {
+      try { stories = JSON.parse(req.stories); } catch(e) {}
+    }
+    stories.forEach(function(s, idx) {
+      if (s.column === 'awaiting_user' && s.question && !s.question_answer) {
+        pendingQuestions.push({
+          reqId: req.id,
+          reqTitle: req.title,
+          storyIdx: idx,
+          storyTitle: s.title,
+          question: s.question,
+          askedBy: s.question_asked_by,
+          askedAt: s.question_asked_at
+        });
+      }
+    });
+  });
+  return pendingQuestions;
+}
+
+async function answerPendingQuestion(pq, answer) {
+  // Fetch fresh row, update the story, write back
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return false;
+  try {
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId + '&select=stories', { headers });
+    if (!r.ok) return false;
+    const rows = await r.json();
+    if (!rows.length) return false;
+    let stories = [];
+    try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) { stories = []; }
+    if (!stories[pq.storyIdx]) return false;
+    stories[pq.storyIdx].column = 'ready';
+    stories[pq.storyIdx].question_answer = answer;
+    stories[pq.storyIdx].question_answered_by = 'intent_user';
+    stories[pq.storyIdx].question_answered_at = new Date().toISOString();
+
+    const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+    const p = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId, {
+      method: 'PATCH', headers: patchHeaders,
+      body: JSON.stringify({ stories: JSON.stringify(stories) })
+    });
+    if (!p.ok) return false;
+
+    await logActivity({
+      request_id: pq.reqId,
+      actor: 'intent_user',
+      actor_name: currentUser || 'unknown',
+      action: 'answered_question',
+      description: '"' + (pq.storyTitle || '') + '": ' + answer
+    });
+    return true;
+  } catch(e) { console.warn('answer failed:', e); return false; }
+}
+
+function buildPendingQuestionsSection() {
+  if (!pendingQuestions || !pendingQuestions.length) return '';
+  const lines = ['# Open questions from the admin team that the user needs to answer', ''];
+  pendingQuestions.forEach(function(pq, i) {
+    lines.push((i+1) + '. From "' + (pq.reqTitle || '') + '" — story "' + (pq.storyTitle || '') + '"');
+    lines.push('   Question: ' + pq.question);
+    lines.push('');
+  });
+  lines.push('When the user shows up, surface these questions naturally one at a time. After the user responds to a question, you must call the answerQuestion function with the answer. Do NOT batch all questions into one message — ask them one by one.');
+  lines.push('');
+  return lines.join('\n');
+}
+
+
 // ── Platform context (loaded from Supabase) ─────────────────────────────────
 let platformContext = {
   myRequests: [],
@@ -834,6 +921,17 @@ function buildContextSection() {
   return parts.join('\n');
 }
 
+
+const SYSTEM_PROMPT_BRIDGE_NOTE = `
+
+# Special: if pending questions are present
+If a "# Open questions from the admin team" section appears in your context, your job is to surface those questions one at a time and capture user answers. After the user provides what reads like an answer to the most recent question, do NOT call any tool — just acknowledge their answer briefly. The frontend will detect the answer and route it back. After acknowledging, ask the next question if there are more, or proceed to normal intent capture if all questions are answered.
+
+When you detect a user answering a pending question:
+- Be brief in your acknowledgement (e.g. "Got it — I will let the team know.")
+- If more questions remain, ask the next one
+- Mark the answer clearly in your response by ending with: ANSWER_TO_QUESTION_INDEX:N (where N is the 1-based index from the question list). The frontend uses this marker to route the answer to the right card.
+`;
 
 const SYSTEM_PROMPT = `You are a requirements analyst for Digitata Networks. Your job is to understand what a user wants to build or improve, then produce a structured epic for the engineering team.
 
@@ -962,6 +1060,15 @@ function startChat() {
   chatHistory = [];
   const win = document.getElementById('chat-window');
   win.innerHTML = '';
+  if (pendingQuestions.length > 0) {
+    let greeting = 'Welcome back! The team is building your apps and has ';
+    greeting += (pendingQuestions.length === 1 ? 'a question' : pendingQuestions.length + ' questions') + ' for you. Let me ask the first:\n\n';
+    const first = pendingQuestions[0];
+    greeting += 'For "' + first.reqTitle + '" \u2014 ' + first.question;
+    addAiMsg(greeting);
+    chatHistory.push({ role: 'assistant', content: greeting });
+    return;
+  }
   let greeting = 'Hi! I am here to help you with a new request — or to check progress on existing ones.';
   if (platformContext.myRequests.length > 0) {
     greeting += ' I can see you have ' + platformContext.myRequests.length + ' past request' + (platformContext.myRequests.length === 1 ? '' : 's') + ' on the platform.';
@@ -1042,7 +1149,7 @@ async function sendMessage() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1200,
-        system: buildContextSection() + buildActivitySection(recentActivity) + SYSTEM_PROMPT,
+        system: buildContextSection() + buildPendingQuestionsSection() + buildActivitySection(recentActivity) + SYSTEM_PROMPT + SYSTEM_PROMPT_BRIDGE_NOTE,
         messages: chatHistory
       })
     });
