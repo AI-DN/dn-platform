@@ -946,6 +946,50 @@ async function answerPendingQuestion(pq, answer) {
   } catch(e) { console.warn('answer failed:', e); return false; }
 }
 
+
+function buildConversationHistorySection() {
+  // Compile last 10 turns per request belonging to the current user
+  const myName = (currentUser || '').trim().toLowerCase();
+  const myReqs = (platformContext.myRequests || []).filter(function(r) {
+    return (r.submitted_by || '').trim().toLowerCase() === myName;
+  });
+  if (!myReqs.length) return '';
+
+  const lines = ['# Captured conversation history (last 10 turns per request)', ''];
+  let totalTurns = 0;
+
+  myReqs.forEach(function(req) {
+    let conv = [];
+    if (req.conversation) {
+      try { conv = JSON.parse(req.conversation); } catch(e) { conv = []; }
+    }
+    if (!Array.isArray(conv) || !conv.length) return;
+
+    const recent = conv.slice(-10);
+    if (!recent.length) return;
+    totalTurns += recent.length;
+
+    lines.push('## "' + (req.title || 'Untitled') + '"');
+    recent.forEach(function(turn) {
+      const tag = turn.t ? '[' + turn.t + ']' : '';
+      const who = turn.role === 'user' ? (currentUser || 'User') : 'Agent';
+      const content = (turn.content || '').slice(0, 500);
+      lines.push(tag + ' ' + who + ': ' + content);
+    });
+    lines.push('');
+  });
+
+  if (totalTurns === 0) return '';
+  lines.push('## How to use this');
+  lines.push('- This is your record of past conversations with this user across their requests.');
+  lines.push('- When the user asks "do you remember", "our previous chat", or refers back to past discussion, ground your reply in these turns specifically.');
+  lines.push('- The "[capture]" tag means it was during initial intent capture; "[build]" was build feedback; "[pending_qa]" was a kanban question; "[admin]" was admin-side discussion.');
+  lines.push('- Do NOT pretend to remember things not in this section. If the user references something not present, say so plainly.');
+  lines.push('');
+  return lines.join('\n');
+}
+
+
 function buildPendingQuestionsSection() {
   if (!pendingQuestions || !pendingQuestions.length) return '';
 
@@ -993,7 +1037,7 @@ async function loadPlatformContext() {
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
     // Fetch all requests, then partition client-side
-    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories&order=created_at.desc&limit=50', { headers });
+    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation&order=created_at.desc&limit=50', { headers });
     if (!r.ok) { console.warn('Context load failed:', r.status); return; }
     const rows = await r.json();
 
@@ -1555,7 +1599,7 @@ async function sendMessage() {
       body: JSON.stringify({
         model: 'claude-sonnet-4-20250514',
         max_tokens: 1200,
-        system: buildContextSection() + buildPendingQuestionsSection() + buildActivitySection(recentActivity) + SYSTEM_PROMPT + SYSTEM_PROMPT_BRIDGE_NOTE,
+        system: buildContextSection() + buildConversationHistorySection() + buildPendingQuestionsSection() + buildActivitySection(recentActivity) + SYSTEM_PROMPT + SYSTEM_PROMPT_BRIDGE_NOTE,
         messages: chatHistory
       })
     });
