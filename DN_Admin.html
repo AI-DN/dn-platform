@@ -700,29 +700,50 @@ function buildJsxPreview(jsx) {
   const SCE = '</scr' + 'ipt>';
   const BO = '<bo' + 'dy>';
   const BC = '</bo' + 'dy>';
+
+  // Strip ES6 import statements (Babel standalone can't resolve them)
+  let cleanJsx = jsx
+    .replace(/^\s*import\s+[^;\n]+;?\s*$/gm, '')
+    .replace(/^\s*export\s+default\s+/gm, 'window.__DN_Component = ')
+    .replace(/^\s*export\s+\{[^}]*\}\s*;?\s*$/gm, '')
+    .replace(/^\s*export\s+/gm, '');
+
+  // Detect React hooks/APIs being used and inject them as locals
+  const hooks = ['useState','useEffect','useRef','useMemo','useCallback','useContext','useReducer','Fragment'];
+  const usedHooks = hooks.filter(function(h) {
+    return new RegExp('\\b' + h + '\\b').test(cleanJsx);
+  });
+  const hookDecl = usedHooks.length ? 'const { ' + usedHooks.join(', ') + ' } = React;\n' : '';
+
   const parts = [];
   parts.push('<!doctype html><html><head><meta charset="utf-8">');
   parts.push(SC + ' src="https://unpkg.com/react@18/umd/react.development.js" crossorigin>' + SCE);
   parts.push(SC + ' src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin>' + SCE);
   parts.push(SC + ' src="https://unpkg.com/@babel/standalone/babel.min.js">' + SCE);
   parts.push(SC + ' src="https://cdn.tailwindcss.com">' + SCE);
-  parts.push('<style>body{margin:0;font-family:system-ui;background:#fff}</style></head>');
+  parts.push('<style>body{margin:0;font-family:system-ui;background:#fff;padding:24px}.dn-error{padding:24px;background:#fee;border:1px solid #fcc;border-radius:8px;color:#900;font-family:Menlo,monospace;font-size:13px;white-space:pre-wrap}</style></head>');
   parts.push(BO + '<div id="root"></div>');
   parts.push(SC + ' type="text/babel" data-presets="env,react">');
   parts.push('try {');
-  parts.push(jsx);
-  parts.push('  const codeStr = ' + JSON.stringify(jsx) + ';');
-  parts.push('  const re = /(?:export\\s+default\\s+(?:function\\s+)?|const\\s+|function\\s+)([A-Z][A-Za-z0-9_]*)/;');
-  parts.push('  const m = codeStr.match(re);');
+  parts.push(hookDecl);
+  parts.push(cleanJsx);
+  parts.push('  // Detect the component to mount');
   parts.push('  let Component = null;');
-  parts.push('  if (m) { try { Component = eval(m[1]); } catch(e) {} }');
+  parts.push('  if (typeof window.__DN_Component !== "undefined") Component = window.__DN_Component;');
+  parts.push('  else {');
+  parts.push('    const codeStr = ' + JSON.stringify(cleanJsx) + ';');
+  parts.push('    const re = /(?:const\\s+|function\\s+)([A-Z][A-Za-z0-9_]*)/g;');
+  parts.push('    let m, lastName = null;');
+  parts.push('    while ((m = re.exec(codeStr)) !== null) lastName = m[1];');
+  parts.push('    if (lastName) { try { Component = eval(lastName); } catch(e) {} }');
+  parts.push('  }');
   parts.push('  if (Component) {');
   parts.push('    ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(Component));');
   parts.push('  } else {');
-  parts.push('    document.getElementById("root").innerHTML = "No React component detected";');
+  parts.push('    document.getElementById("root").innerHTML = "<div class=\\"dn-error\\">No React component found in artifact. Make sure it defines a component starting with a capital letter.</div>";');
   parts.push('  }');
   parts.push('} catch(e) {');
-  parts.push('  document.getElementById("root").innerHTML = "Error: " + e.message;');
+  parts.push('  document.getElementById("root").innerHTML = "<div class=\\"dn-error\\">Preview error: " + (e.message || e) + "</div>";');
   parts.push('}');
   parts.push(SCE);
   parts.push(BC + '</html>');
@@ -909,7 +930,7 @@ function esc(t) { return String(t||'').replace(/&/g,'&amp;').replace(/</g,'&lt;'
       <span class="preview-fname" id="preview-filename"></span>
       <button class="preview-close" onclick="closePreview()">Close</button>
     </div>
-    <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts allow-same-origin"></iframe>
+    <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts"></iframe>
   </div>
 </div>
 </body>
