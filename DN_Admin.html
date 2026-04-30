@@ -782,10 +782,11 @@ function renderBoard(req) {
     if (sprintReady > 0) {
       sBarHtml += '<span class="sprint-progress"><strong>' + sprintReady + '</strong> Claude card' + (sprintReady === 1 ? '' : 's') + ' ready</span>';
       sBarHtml += '<button class="btn-run-sprint" id="run-sprint-btn" onclick="runSprintExecution()">Execute ' + (targetSprint || 'all ready') + '</button>';
-      if (canShipRequest(req)) {
-        const shipLabel = req.status === 'shipped' ? 'Re-ship' : 'Ship app';
-        sBarHtml += '<button class="btn-ship" onclick="openShipModal(\'' + req.id + '\')">' + shipLabel + '</button>';
-      }
+    }
+    // Ship button is independent of sprintReady — it should appear whenever the request is shippable
+    if (canShipRequest(req)) {
+      const shipLabel = req.status === 'shipped' ? 'Re-ship' : 'Ship app';
+      sBarHtml += '<button class="btn-ship" onclick="openShipModal(\'' + req.id + '\')">' + shipLabel + '</button>';
     }
     sBar.innerHTML = sBarHtml;
     wrap.appendChild(sBar);
@@ -1213,10 +1214,17 @@ async function qaPass() {
   const reqId = activeCard.reqId, colId = activeCard.colId, idx = activeCard.idx, story = activeCard.story;
   const notes = document.getElementById('m-qa-notes').value.trim();
   const cs = storyCache[reqId];
+
+  // Resilient match: prefer (title + colId), fall back to title in any QA-related column, then title alone
+  const acceptableCols = ['ready_qa', 'qa_passed', colId];
   let found = 0;
+  let i_for_rollback = -1;
+  let original_for_rollback = null;
   for (let i = 0; i < cs.length; i++) {
-    if (cs[i].title === story.title && cs[i].column === colId) {
+    if (cs[i].title === story.title && acceptableCols.indexOf(cs[i].column) !== -1) {
       if (found === idx) {
+        i_for_rollback = i;
+        original_for_rollback = JSON.parse(JSON.stringify(cs[i]));
         cs[i].column = 'qa_passed';
         cs[i].qa_status = 'passed';
         cs[i].qa_notes = notes;
@@ -1226,7 +1234,35 @@ async function qaPass() {
       found++;
     }
   }
-  await saveStoriesToDb(reqId, cs);
+  if (i_for_rollback === -1) {
+    for (let i = 0; i < cs.length; i++) {
+      if (cs[i].title === story.title) {
+        i_for_rollback = i;
+        original_for_rollback = JSON.parse(JSON.stringify(cs[i]));
+        cs[i].column = 'qa_passed';
+        cs[i].qa_status = 'passed';
+        cs[i].qa_notes = notes;
+        cs[i].qa_timestamp = new Date().toISOString();
+        break;
+      }
+    }
+  }
+  if (i_for_rollback === -1) {
+    alert('Could not find matching card. Try refreshing the page.');
+    return;
+  }
+
+  const saved = await saveStoriesToDb(reqId, cs);
+  if (!saved) {
+    cs[i_for_rollback] = original_for_rollback;
+    return;
+  }
+  const verifyOk = await verifyStoryColumn(reqId, story.title, 'qa_passed');
+  if (!verifyOk) {
+    alert('Save appeared to succeed but the database did not update. Check that the requests table has an UPDATE policy in Supabase. Run: create policy "Allow update" on requests for update using (true) with check (true);');
+    cs[i_for_rollback] = original_for_rollback;
+    return;
+  }
   await logActivity({
     request_id: reqId,
     actor: 'admin_user',
