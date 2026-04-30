@@ -958,7 +958,8 @@ async function executeStory() {
     '- End with: export default ComponentName; (this is rewritten to mount the component automatically)\n' +
     '- Component name must start with a capital letter.\n' +
     '- Use Tailwind classes generously for a polished, modern look.\n' +
-    '- For HTTP requests use native fetch(). For state use useState. For side effects use useEffect.\n\n' +
+    '- For HTTP requests use native fetch(). For state use useState. For side effects use useEffect.\n' +
+    '- CRITICAL: in JSX text content, bare < and > characters MUST be escaped. A bare < inside JSX text gets parsed as the start of a tag and breaks compilation. Use HTML entities: &lt; for < and &gt; for >. So WRONG: <div>Strong Down (<-2%)</div>. RIGHT: <div>Strong Down (&lt;-2%)</div>. This applies anywhere text contains comparison operators, arrows, or angle brackets.\n\n' +
     'CRITICAL RULES FOR HTML artifacts:\n' +
     '- Must be a complete, standalone HTML page with all CSS and JS inline.\n' +
     '- May load CDN libraries (Tailwind, alpine.js, etc.) via script/link tags.\n\n' +
@@ -1220,8 +1221,10 @@ async function qaFail() {
   let found = 0;
   let i_for_rollback = -1;
   let original_for_rollback = null;
+  // Accept the card from either ready_qa or in_progress columns — cache can drift in either direction
+  const acceptableCols = ['ready_qa', 'in_progress', colId];
   for (let i = 0; i < cs.length; i++) {
-    if (cs[i].title === story.title && cs[i].column === colId) {
+    if (cs[i].title === story.title && acceptableCols.indexOf(cs[i].column) !== -1) {
       if (found === idx) {
         i_for_rollback = i;
         original_for_rollback = JSON.parse(JSON.stringify(cs[i]));
@@ -1234,8 +1237,22 @@ async function qaFail() {
       found++;
     }
   }
+  // Fallback: title alone (any column) — last resort
   if (i_for_rollback === -1) {
-    alert('Could not find matching card. Try refreshing.');
+    for (let i = 0; i < cs.length; i++) {
+      if (cs[i].title === story.title) {
+        i_for_rollback = i;
+        original_for_rollback = JSON.parse(JSON.stringify(cs[i]));
+        cs[i].column = 'in_progress';
+        cs[i].qa_status = 'failed';
+        cs[i].qa_notes = notes;
+        cs[i].qa_timestamp = new Date().toISOString();
+        break;
+      }
+    }
+  }
+  if (i_for_rollback === -1) {
+    alert('Could not find matching card. Try refreshing the page.');
     return;
   }
   const saved = await saveStoriesToDb(reqId, cs);
