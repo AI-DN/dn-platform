@@ -752,7 +752,8 @@ function buildJsxPreview(jsx) {
   parts.push(SC + ' type="text/babel" data-presets="env,react">');
   parts.push('try {');
   parts.push('  // Shims for libraries Claude sometimes uses but we do not load');
-  parts.push('  const PropTypes = new Proxy({}, { get: function() { return new Proxy(function(){}, { get: function() { return PropTypes; } }); } });');
+  parts.push('  const __dnHandler = { get: function(t,p) { return new Proxy(function(){}, __dnHandler); }, apply: function(t,a,r) { return new Proxy(function(){}, __dnHandler); } };');
+  parts.push('  const PropTypes = new Proxy(function(){}, __dnHandler);');
   parts.push('  const classNames = function() { return Array.from(arguments).filter(Boolean).join(" "); };');
   parts.push(hookDecl);
   parts.push(cleanJsx);
