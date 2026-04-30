@@ -107,7 +107,6 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   font-size: 11px; color: var(--text2);
   line-height: 1.5; font-style: italic;
 }
-.card-question::before { content: '? '; color: #f483a8; font-weight: 700; }
 .btn-ask-user {
   background: rgba(244,131,168,0.12); border: 1px solid rgba(244,131,168,0.35);
   border-radius: 8px; padding: 8px 16px; color: #f483a8;
@@ -640,7 +639,10 @@ function renderBoard(req) {
       const answerBlock = (story.question_answer && col.id !== 'awaiting_user')
         ? '<div class="card-question" style="background:rgba(31,216,164,0.06);border-left-color:rgba(31,216,164,0.4)">Answer: ' + esc(story.question_answer) + '</div>'
         : '';
-      card.innerHTML = '<div class="card-title">' + esc(story.title||'') + artifactDot + '</div><div class="card-why">' + esc(story.why||'') + '</div><div class="card-tags">' + tags + '</div>' + questionBlock + answerBlock;
+      const decisionBlock = story.admin_decision
+        ? '<div class="card-question" style="background:rgba(139,127,245,0.08);border-left-color:rgba(139,127,245,0.4)">Admin decision: ' + esc(story.admin_decision) + '</div>'
+        : '';
+      card.innerHTML = '<div class="card-title">' + esc(story.title||'') + artifactDot + '</div><div class="card-why">' + esc(story.why||'') + '</div><div class="card-tags">' + tags + '</div>' + questionBlock + answerBlock + decisionBlock;
       colEl.appendChild(card);
     });
     board.appendChild(colEl);
@@ -1253,8 +1255,23 @@ const ADMIN_AGENT_SYSTEM = [
   '- Answer questions about platform state and progress',
   '- Identify what is stuck, why, and who is involved',
   '- Summarise epics, sprints, and progress',
-  '- Help the admin reason through "Needs Admin" cards: these are stories the LLM identified as requiring an admin-level decision (architecture, infrastructure, vendor choice, security setup). Discuss the options with the admin, recommend an approach, and tell them how to act on it.',
+  '- Help the admin reason through "Needs Admin" cards: these are stories the LLM identified as requiring an admin-level decision (architecture, infrastructure, vendor choice, security setup).',
+  '- After the admin and you reach a decision on a "Needs Admin" card, you can RESOLVE it: this records the decision on the card and moves it to Ready so the build agent can pick it up.',
   '- Suggest when a card should move to "Awaiting answer" by clicking Ask User. The card will be routed to the most recently active user on the request — not always the original submitter. Once they respond, the card returns to Ready with their answer attached.',
+  '',
+  '## Resolving Needs Admin cards — the protocol',
+  '1. When the admin asks about a Needs Admin card, propose options, lay out tradeoffs, and recommend.',
+  '2. Wait for the admin to confirm the decision. Do not act on speculation — the admin must explicitly say something like "yes", "go with that", "approved", or state their own choice.',
+  '3. Only when the admin confirms, write a one-sentence decision summary, then on a NEW LINE at the very end emit this HTML comment:',
+  String.raw`   <!-- RESOLVE_CARD reqId="<the request id>" storyTitle="<exact story title>" decision="<the decision summary>" -->`,
+  '4. The frontend strips this comment before showing your message and uses it to commit the decision and move the card.',
+  '5. If the admin asks you to resolve multiple cards at once (e.g. "approve both with default settings"), emit one comment per card on separate lines.',
+  '',
+  '## Resolution constraints',
+  '- Never resolve a card without explicit admin confirmation in the conversation.',
+  '- Always identify the exact request id (8-char or full) and exact story title from the snapshot — do not invent.',
+  '- The decision text should be self-contained: a future reader should understand the choice without needing the chat context.',
+  '- If the admin asks an open question (e.g. "what should we do?"), DO NOT resolve — just discuss and recommend.',
   '',
   'Column meaning:',
   '- needs_user: stories the LLM flagged at planning time as requiring user definition (e.g. personas, preferences). The intent agent surfaces these to the user.',
@@ -1272,6 +1289,67 @@ const ADMIN_AGENT_SYSTEM = [
   '- If the snapshot does not contain enough info to answer, say so.',
   '- Never hallucinate cards, stories, or activity that is not in the snapshot.'
 ].join('\n');
+
+
+// ── Resolve an admin-decision card (move from needs_admin to ready, with decision recorded)
+async function resolveAdminCard(reqId, storyTitle, decisionText) {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return { ok: false, error: 'No DB credentials' };
+  try {
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories,title', { headers });
+    if (!r.ok) return { ok: false, error: 'Fetch failed' };
+    const rows = await r.json();
+    if (!rows.length) return { ok: false, error: 'Request not found' };
+
+    let stories = [];
+    try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) {}
+    if (!Array.isArray(stories)) return { ok: false, error: 'No stories' };
+
+    // Find the story by title — first matching one in needs_admin column
+    const targetTitle = (storyTitle || '').toLowerCase().trim();
+    let foundIdx = -1;
+    for (let i = 0; i < stories.length; i++) {
+      const t = (stories[i].title || '').toLowerCase().trim();
+      if (stories[i].column === 'needs_admin' && (t === targetTitle || t.indexOf(targetTitle) !== -1 || targetTitle.indexOf(t) !== -1)) {
+        foundIdx = i; break;
+      }
+    }
+    if (foundIdx === -1) return { ok: false, error: 'No matching needs_admin story' };
+
+    // Update the story
+    stories[foundIdx].column = 'ready';
+    stories[foundIdx].admin_decision = decisionText;
+    stories[foundIdx].admin_decision_at = new Date().toISOString();
+    stories[foundIdx].admin_decision_by = 'Admin (via agent)';
+
+    const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+    const p = await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
+      method: 'PATCH', headers: patchHeaders,
+      body: JSON.stringify({ stories: JSON.stringify(stories) })
+    });
+    if (!p.ok) return { ok: false, error: 'Patch failed' };
+
+    await logActivity({
+      request_id: reqId,
+      actor: 'admin_agent',
+      actor_name: 'Admin agent',
+      action: 'resolved_admin_card',
+      description: '"' + (stories[foundIdx].title || '') + '": ' + decisionText
+    });
+
+    // Update the cache so the board re-renders correctly
+    if (storyCache[reqId]) storyCache[reqId] = stories;
+    const reqObj = allReqs.find(function(x) { return x.id === reqId; });
+    if (reqObj) reqObj.stories = JSON.stringify(stories);
+
+    return { ok: true, story: stories[foundIdx] };
+  } catch(e) {
+    return { ok: false, error: e.message };
+  }
+}
+
 
 async function sendChatMsg() {
   const input = document.getElementById('chat-drawer-input');
@@ -1318,7 +1396,47 @@ async function sendChatMsg() {
     removeThinking(thinkingId);
     if (!resp.ok) throw new Error(data.error ? data.error.message : 'API error');
 
-    const reply = data.content[0].text;
+    let reply = data.content[0].text;
+
+    // Parse RESOLVE_CARD markers — could be multiple
+    const markerRegex = /<!--\s*RESOLVE_CARD\s+reqId="([^"]+)"\s+storyTitle="([^"]+)"\s+decision="([^"]+)"\s*-->/gi;
+    const resolutions = [];
+    let m;
+    while ((m = markerRegex.exec(reply)) !== null) {
+      resolutions.push({ reqId: m[1], storyTitle: m[2], decision: m[3] });
+    }
+
+    if (resolutions.length > 0) {
+      // Strip all markers from the visible text
+      reply = reply.replace(markerRegex, '').trim();
+
+      // Try to match short reqId (8-char prefix) to full id
+      for (let i = 0; i < resolutions.length; i++) {
+        const res = resolutions[i];
+        let fullId = res.reqId;
+        if (fullId.length < 36) {
+          // It's a short prefix — find the full request id
+          const match = allReqs.find(function(r) { return (r.id || '').slice(0, fullId.length) === fullId; });
+          if (match) fullId = match.id;
+        }
+        const result = await resolveAdminCard(fullId, res.storyTitle, res.decision);
+        if (result.ok) {
+          console.log('Resolved: ' + res.storyTitle + ' \u2192 ' + res.decision);
+          appendChatMsg('ai', '\u2713 Resolved "' + res.storyTitle + '" \u2014 moved to Ready');
+        } else {
+          console.warn('Resolve failed:', result.error, res);
+          appendChatMsg('ai', '\u26a0 Could not resolve "' + res.storyTitle + '": ' + result.error);
+        }
+      }
+      // Re-render board to reflect changes
+      if (activeId) {
+        const req = allReqs.find(function(r) { return r.id === activeId; });
+        if (req) renderBoard(req);
+      }
+      // Refresh activity for next turn
+      recentActivity = await loadRecentActivity();
+    }
+
     chatHistory.push({ role: 'assistant', content: reply });
     appendChatMsg('ai', reply);
   } catch (err) {
