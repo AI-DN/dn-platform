@@ -567,6 +567,30 @@ body::before {
 }
 .settings-saved-toast.show { opacity: 1; }
 
+
+.btn-refresh-intent {
+  background: var(--panel2); border: 1px solid var(--border2); border-radius: 8px;
+  height: 32px; padding: 0 12px;
+  display: inline-flex; align-items: center; gap: 6px;
+  cursor: pointer; color: var(--text2); font-size: 12px;
+  font-family: 'Syne', sans-serif; font-weight: 700; letter-spacing: 0.04em;
+  transition: all 0.15s;
+}
+.btn-refresh-intent:hover { color: var(--text); background: var(--panel); }
+.btn-refresh-intent.refreshing { color: var(--cyan); pointer-events: none; }
+.btn-refresh-intent .ri-icon { display: inline-block; transition: transform 0.3s; }
+.btn-refresh-intent.refreshing .ri-icon { animation: ri-spin 0.8s linear infinite; }
+@keyframes ri-spin { to { transform: rotate(360deg); } }
+.refresh-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--cyan); color: var(--navy);
+  padding: 10px 20px; border-radius: 24px;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4); z-index: 300;
+  opacity: 0; pointer-events: none; transition: opacity 0.2s;
+}
+.refresh-toast.show { opacity: 1; }
+
 </style>
 </head>
 <body>
@@ -584,6 +608,7 @@ body::before {
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">Guest</span>
     </div>
+    <button class="btn-refresh-intent" id="btn-refresh" onclick="manualRefresh()" title="Refresh platform data"><span class="ri-icon">↻</span><span>Refresh</span></button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (name, API keys)" aria-label="Settings">⚙</button>
   </div>
 </div>
@@ -628,6 +653,7 @@ body::before {
     </div>
   </div>
   <div class="settings-saved-toast" id="settings-saved-toast">Settings saved</div>
+  <div class="refresh-toast" id="refresh-toast">Updated</div>
 
   <!-- Platform dashboard -->
   <div class="platform-dashboard" id="platform-dashboard" style="display:none">
@@ -1335,6 +1361,71 @@ function showFileWarning() {
 }
 
 // ── Settings ──────────────────────────────────────────────────────────────────
+
+
+// ── Manual + tab-focus refresh ─────────────────────────────────────────
+let _lastRefreshAt = 0;
+async function refreshPlatform(opts) {
+  opts = opts || {};
+  const now = Date.now();
+  // Throttle: don't auto-refresh more than once every 5s
+  if (opts.auto && (now - _lastRefreshAt) < 5000) return;
+  _lastRefreshAt = now;
+
+  const btn = document.getElementById('btn-refresh');
+  const toast = document.getElementById('refresh-toast');
+  if (btn) btn.classList.add('refreshing');
+
+  try {
+    const before = JSON.stringify({
+      shipped: (platformContext.shipped || []).map(function(r) { return r.id; }).sort(),
+      active: (platformContext.active || []).map(function(r) { return r.id; }).sort(),
+      pendingCount: (pendingQuestions || []).length
+    });
+
+    await loadPlatformContext();
+    recentActivity = await loadRecentActivity();
+    findPendingQuestions();
+    renderDashboard();
+
+    const after = JSON.stringify({
+      shipped: (platformContext.shipped || []).map(function(r) { return r.id; }).sort(),
+      active: (platformContext.active || []).map(function(r) { return r.id; }).sort(),
+      pendingCount: (pendingQuestions || []).length
+    });
+
+    const changed = (before !== after);
+    if (toast) {
+      toast.textContent = changed ? 'Platform updated' : 'Already up to date';
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 1600);
+    }
+  } catch(e) {
+    console.warn('Refresh failed:', e);
+    if (toast) {
+      toast.textContent = 'Refresh failed';
+      toast.classList.add('show');
+      setTimeout(function() { toast.classList.remove('show'); }, 2000);
+    }
+  } finally {
+    if (btn) btn.classList.remove('refreshing');
+  }
+}
+
+function manualRefresh() {
+  refreshPlatform({ auto: false });
+}
+
+// Auto-refresh when the tab gains focus (user comes back from another tab/app)
+document.addEventListener('visibilitychange', function() {
+  if (document.visibilityState === 'visible' && isValidName(currentUser)) {
+    refreshPlatform({ auto: true });
+  }
+});
+window.addEventListener('focus', function() {
+  if (isValidName(currentUser)) refreshPlatform({ auto: true });
+});
+
 
 function toggleSettingsPanel() {
   const overlay = document.getElementById('settings-overlay');
