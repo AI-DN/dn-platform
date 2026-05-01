@@ -2174,6 +2174,39 @@ function renderDashboard() {
   document.getElementById('dash-active-sub').textContent = platformContext.active.length ? 'click to see' : 'none right now';
 }
 
+
+// ── Derive a launch URL even when shipped_url isn't set in DB ──────────
+function deriveAppUrl(req) {
+  if (!req || req.status !== 'shipped') return null;
+
+  // 1. Best case: URL is recorded
+  if (req.shipped_url) return req.shipped_url;
+
+  // 2. Have a filename + a GitHub repo configured? Reconstruct.
+  const repo = localStorage.getItem('dn_gh_repo');
+  if (req.shipped_filename && repo && repo.indexOf('/') !== -1) {
+    const parts = repo.split('/');
+    return 'https://' + parts[0] + '.github.io/' + parts[1] + '/' + req.shipped_filename;
+  }
+
+  // 3. Have a filename but no repo? Try same-origin (works when intent is on github.io)
+  if (req.shipped_filename && location.hostname.endsWith('github.io')) {
+    // Strip the current page name from the path, append the shipped filename
+    const path = location.pathname.replace(/[^\/]*$/, '') + req.shipped_filename;
+    return location.protocol + '//' + location.host + path;
+  }
+
+  // 4. Last resort: derive a guessed filename from the title (matches admin's auto-suggestion)
+  if (repo && repo.indexOf('/') !== -1 && req.title) {
+    const slug = (req.title || 'App').replace(/[^a-zA-Z0-9 ]/g, '').replace(/\s+(.)/g, function(_, c) { return c.toUpperCase(); }).replace(/\s/g, '').replace(/^./, function(c) { return c.toUpperCase(); });
+    const parts = repo.split('/');
+    return 'https://' + parts[0] + '.github.io/' + parts[1] + '/' + slug + '.html';
+  }
+
+  return null;
+}
+
+
 function showDashDetail(which) {
   const titleMap = { mine: 'Your requests', shipped: 'Available tools', active: 'In progress' };
   const dataMap = { mine: platformContext.myRequests, shipped: platformContext.shipped, active: platformContext.active };
@@ -2188,7 +2221,8 @@ function showDashDetail(which) {
     data.forEach(function(req) {
       const row = document.createElement('div');
       row.className = 'dash-row';
-      const isShipped = (req.status === 'shipped') && req.shipped_url;
+      const launchUrl = deriveAppUrl(req);
+      const isShipped = !!launchUrl;
       const statusClass = (req.status === 'shipped' || req.status === 'qa_passed') ? 'shipped' :
                          (req.status === 'pending') ? 'pending' : 'active';
       const ver = (req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
@@ -2197,7 +2231,7 @@ function showDashDetail(which) {
       // Build action buttons depending on whether the app is shipped
       let actionsHtml = '<div class="dash-row-actions">';
       if (isShipped) {
-        actionsHtml += '<a class="dash-row-launch" href="' + esc(req.shipped_url) + '" target="_blank" rel="noopener">Open ↗</a>';
+        actionsHtml += '<a class="dash-row-launch" href="' + esc(launchUrl) + '" target="_blank" rel="noopener">Open ↗</a>';
         actionsHtml += '<button class="dash-row-bug" onclick="openBugModal(\'' + (req.id || '') + '\')">Bug</button>';
       }
       actionsHtml += '<button class="dash-row-action" onclick="askAboutRequest(\'' + (req.id || '') + '\')">Ask</button>';
