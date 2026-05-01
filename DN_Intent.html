@@ -601,62 +601,6 @@ body::before {
   text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
 }
 .dash-row-launch:hover { opacity: 0.9; }
-.dash-row-bug {
-  background: transparent; color: var(--amber); border: 1px solid rgba(245,158,11,0.4);
-  border-radius: 6px; padding: 5px 10px;
-  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 10px;
-  cursor: pointer; letter-spacing: 0.04em; text-transform: uppercase;
-}
-.dash-row-bug:hover { background: rgba(245,158,11,0.1); }
-
-.bug-modal {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-  display: none; z-index: 250;
-  align-items: center; justify-content: center; padding: 24px;
-}
-.bug-modal.open { display: flex; }
-.bug-card {
-  background: var(--panel); border: 1px solid var(--border2);
-  border-radius: 12px; padding: 24px; width: 100%; max-width: 520px;
-  backdrop-filter: blur(20px);
-}
-.bug-card h3 {
-  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px;
-  margin: 0 0 8px; color: var(--amber);
-}
-.bug-card p {
-  font-size: 13px; color: var(--text2); line-height: 1.6; margin: 0 0 16px;
-}
-.bug-row { margin-bottom: 12px; }
-.bug-row label {
-  font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase;
-  color: var(--text3); display: block; margin-bottom: 5px;
-}
-.bug-row input, .bug-row textarea {
-  width: 100%; background: var(--panel2); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 9px 12px; color: var(--text);
-  font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
-  resize: vertical;
-}
-.bug-row textarea { min-height: 100px; }
-.bug-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 18px; }
-.bug-cancel {
-  background: transparent; color: var(--text2); border: 1px solid var(--border2);
-  border-radius: 8px; padding: 9px 18px;
-  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer;
-}
-.bug-submit {
-  background: var(--amber); color: var(--navy); border: none;
-  border-radius: 8px; padding: 9px 22px;
-  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer;
-}
-.bug-status {
-  font-size: 12px; color: var(--text2); margin-top: 12px;
-  padding: 9px; background: var(--panel2); border-radius: 6px; min-height: 18px;
-}
-.bug-status.success { color: var(--green); }
-.bug-status.error { color: var(--amber); }
-
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"></head>
 <body>
@@ -715,29 +659,6 @@ body::before {
 
       <div class="settings-panel-actions">
         <button class="settings-panel-save" onclick="saveSettings()">Save changes</button>
-      </div>
-    </div>
-  </div>
-  <div class="bug-modal" id="bug-modal" onclick="if(event.target===this)closeBugModal()">
-    <div class="bug-card">
-      <h3>Report a bug</h3>
-      <p>Describe what went wrong and the team will create a new task to fix it. The bug will land on the kanban as a new card for the build agent.</p>
-      <div class="bug-row" id="bug-app-row" style="display:none;">
-        <label>App</label>
-        <input type="text" id="bug-app-name" readonly>
-      </div>
-      <div class="bug-row">
-        <label>Summary (a card title)</label>
-        <input type="text" id="bug-title" placeholder="e.g. Sector chart does not load on mobile">
-      </div>
-      <div class="bug-row">
-        <label>Details</label>
-        <textarea id="bug-details" placeholder="What did you do, what did you expect, what happened instead? Steps to reproduce help a lot."></textarea>
-      </div>
-      <div class="bug-status" id="bug-status">Ready to file.</div>
-      <div class="bug-actions">
-        <button class="bug-cancel" onclick="closeBugModal()">Cancel</button>
-        <button class="bug-submit" id="bug-submit-btn" onclick="submitBug()">File bug</button>
       </div>
     </div>
   </div>
@@ -1453,75 +1374,25 @@ function showFileWarning() {
 
 
 
-// ── Bug reporting ─────────────────────────────────────────────────────
-let _bugTargetReqId = null;
 
-function openBugModal(reqId) {
-  _bugTargetReqId = reqId;
-  const req = [].concat(platformContext.myRequests, platformContext.shipped, platformContext.active)
-    .find(function(r) { return r.id === reqId; });
-  if (!req) return;
-  hideDashDetail();
-  document.getElementById('bug-app-row').style.display = '';
-  document.getElementById('bug-app-name').value = req.title || '';
-  document.getElementById('bug-title').value = '';
-  document.getElementById('bug-details').value = '';
-  const statusEl = document.getElementById('bug-status');
-  statusEl.className = 'bug-status';
-  statusEl.textContent = 'Ready to file.';
-  document.getElementById('bug-submit-btn').disabled = false;
-  document.getElementById('bug-submit-btn').textContent = 'File bug';
-  document.getElementById('bug-modal').classList.add('open');
-  setTimeout(function() {
-    const t = document.getElementById('bug-title');
-    if (t) t.focus();
-  }, 80);
-}
-
-function closeBugModal() {
-  document.getElementById('bug-modal').classList.remove('open');
-  _bugTargetReqId = null;
-}
-
-async function submitBug() {
-  const title = document.getElementById('bug-title').value.trim();
-  const details = document.getElementById('bug-details').value.trim();
-  const statusEl = document.getElementById('bug-status');
-  const btn = document.getElementById('bug-submit-btn');
-
-  if (!title || !details) {
-    statusEl.className = 'bug-status error';
-    statusEl.textContent = 'Both summary and details are required.';
-    return;
-  }
-  if (!_bugTargetReqId) return;
-
-  btn.disabled = true;
-  btn.textContent = 'Filing...';
-  statusEl.className = 'bug-status';
-  statusEl.textContent = 'Filing bug...';
-
+// ── Agent-driven bug filing — called when the agent emits a FILE_BUG marker
+async function fileBugForAgent(reqId, title, details) {
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
-  if (!url || !key) {
-    statusEl.className = 'bug-status error';
-    statusEl.textContent = 'Database is not configured.';
-    btn.disabled = false; btn.textContent = 'File bug';
-    return;
-  }
+  if (!url || !key) return { ok: false, error: 'No DB credentials' };
+  if (!reqId || !title || !details) return { ok: false, error: 'Missing required fields' };
 
   try {
-    // Fetch the current row, append a new bug card to its stories array
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
-    const r = await fetch(url + '/rest/v1/requests?id=eq.' + _bugTargetReqId + '&select=stories,status,sprints', { headers });
-    if (!r.ok) throw new Error('Could not fetch request: HTTP ' + r.status);
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories,title', { headers });
+    if (!r.ok) return { ok: false, error: 'Could not fetch request: HTTP ' + r.status };
     const rows = await r.json();
-    if (!rows.length) throw new Error('Request not found');
+    if (!rows.length) return { ok: false, error: 'Request not found' };
+
     let stories = [];
     try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) { stories = []; }
     if (!Array.isArray(stories)) stories = [];
 
-    // New bug card
     const bugCard = {
       title: '[Bug] ' + title,
       why: details,
@@ -1538,45 +1409,26 @@ async function submitBug() {
     stories.push(bugCard);
 
     const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
-    // The status of the request goes back to active so admin sees the new work
-    const patchBody = {
-      stories: JSON.stringify(stories),
-      status: 'active'
-    };
-    const p = await fetch(url + '/rest/v1/requests?id=eq.' + _bugTargetReqId, {
-      method: 'PATCH', headers: patchHeaders, body: JSON.stringify(patchBody)
+    const p = await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
+      method: 'PATCH', headers: patchHeaders,
+      body: JSON.stringify({ stories: JSON.stringify(stories), status: 'active' })
     });
     if (!p.ok) {
       const errText = await p.text();
-      throw new Error('Save failed: ' + errText.slice(0, 200));
+      return { ok: false, error: 'Save failed: ' + errText.slice(0, 200) };
     }
 
-    // Log to activity
     await logActivity({
-      request_id: _bugTargetReqId,
+      request_id: reqId,
       actor: 'intent_user',
       actor_name: currentUser || 'unknown',
       action: 'bug_reported',
-      description: '"' + title + '": ' + details.slice(0, 200)
+      description: '"' + title + '" via agent: ' + details.slice(0, 200)
     });
 
-    // Capture in conversation history
-    logTurn(_bugTargetReqId, 'bug_report', 'user', 'Bug filed: ' + title + '\n\n' + details);
-
-    statusEl.className = 'bug-status success';
-    statusEl.textContent = 'Filed. The team will pick it up — re-ship after the fix to deploy.';
-    btn.textContent = 'Done';
-
-    // Refresh local data so the dashboard reflects the request returning to active
-    setTimeout(async function() {
-      await refreshPlatform({ auto: false });
-      closeBugModal();
-    }, 1400);
-
+    return { ok: true, bugTitle: bugCard.title, requestTitle: rows[0].title };
   } catch(e) {
-    statusEl.className = 'bug-status error';
-    statusEl.textContent = 'Error: ' + e.message;
-    btn.disabled = false; btn.textContent = 'File bug';
+    return { ok: false, error: e.message };
   }
 }
 
@@ -1917,6 +1769,36 @@ async function sendMessage() {
     if (!resp.ok) throw new Error(data.error ? data.error.message : resp.statusText);
     let reply = data.content[0].text;
 
+    // Detect and process FILE_BUG markers (could be multiple on separate lines)
+    const bugRegex = /<!--\s*FILE_BUG\s+reqId="([^"]+)"\s+title="([^"]+)"\s+details="([^"]+)"\s*-->/gi;
+    const bugMatches = [];
+    let bm;
+    while ((bm = bugRegex.exec(reply)) !== null) {
+      bugMatches.push({ reqId: bm[1], title: bm[2], details: bm[3] });
+    }
+    if (bugMatches.length > 0) {
+      reply = reply.replace(bugRegex, '').trim();
+      for (let bi = 0; bi < bugMatches.length; bi++) {
+        const bug = bugMatches[bi];
+        // Match short reqId prefix to full id if needed
+        let fullId = bug.reqId;
+        if (fullId.length < 36) {
+          const allReqs = [].concat(platformContext.myRequests || [], platformContext.shipped || [], platformContext.active || []);
+          const found = allReqs.find(function(r) { return (r.id || '').slice(0, fullId.length) === fullId; });
+          if (found) fullId = found.id;
+        }
+        const result = await fileBugForAgent(fullId, bug.title, bug.details);
+        if (result.ok) {
+          console.log('Bug filed: [' + result.requestTitle + '] ' + result.bugTitle);
+        } else {
+          console.warn('Bug filing failed:', result.error, bug);
+        }
+      }
+      // Refresh local state so the dashboard reflects the request returning to active
+      await loadPlatformContext();
+      renderDashboard();
+    }
+
     // Detect and strip the answer marker — committed to DB before showing the message
     const markerMatch = reply.match(/<!--\s*ANSWER_TO_QUESTION_INDEX:\s*(\d+)\s*-->/i)
                      || reply.match(/ANSWER_TO_QUESTION_INDEX:\s*(\d+)/i);
@@ -2232,7 +2114,6 @@ function showDashDetail(which) {
       let actionsHtml = '<div class="dash-row-actions">';
       if (isShipped) {
         actionsHtml += '<a class="dash-row-launch" href="' + esc(launchUrl) + '" target="_blank" rel="noopener">Open ↗</a>';
-        actionsHtml += '<button class="dash-row-bug" onclick="openBugModal(\'' + (req.id || '') + '\')">Bug</button>';
       }
       actionsHtml += '<button class="dash-row-action" onclick="askAboutRequest(\'' + (req.id || '') + '\')">Ask</button>';
       actionsHtml += '</div>';
