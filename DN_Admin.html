@@ -280,6 +280,15 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .btn-ship { background: linear-gradient(135deg, var(--green), var(--cyan)); color: var(--navy); border: none; border-radius: 8px; padding: 7px 16px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; margin-left: 8px; }
 .btn-ship:hover { transform: translateY(-1px); }
 .btn-ship:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.btn-open-live {
+  background: var(--cyan); color: var(--navy); border: none; border-radius: 8px;
+  padding: 7px 14px; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px;
+  cursor: pointer; margin-left: 8px; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.btn-open-live:hover { opacity: 0.9; }
+
 .btn-ship-spin { display: inline-block; width: 10px; height: 10px; border: 2px solid var(--navy); border-top-color: transparent; border-radius: 50%; animation: spin 0.7s linear infinite; margin-right: 6px; vertical-align: middle; }
 @keyframes spin { to { transform: rotate(360deg); } }
 
@@ -787,6 +796,10 @@ function renderBoard(req) {
     if (canShipRequest(req)) {
       const shipLabel = req.status === 'shipped' ? 'Re-ship' : 'Ship app';
       sBarHtml += '<button class="btn-ship" onclick="openShipModal(\'' + req.id + '\')">' + shipLabel + '</button>';
+    }
+    // Open live app — if shipped and we have a URL
+    if (req.status === 'shipped' && req.shipped_url) {
+      sBarHtml += '<a class="btn-open-live" href="' + esc(req.shipped_url) + '" target="_blank" rel="noopener">Open live ↗</a>';
     }
     sBar.innerHTML = sBarHtml;
     wrap.appendChild(sBar);
