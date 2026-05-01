@@ -1849,23 +1849,64 @@ async function executeShip() {
       return;
     }
 
-    setStatus('Marking request shipped...');
+    setStatus('Marking request shipped in database...');
     // Update Supabase: status=shipped, store URL + filename
     const url = localStorage.getItem('dn_supa_url');
     const key = localStorage.getItem('dn_supa_key');
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
-    const patchBody = {
+
+    // Try the full update first (with shipped_url, shipped_filename, shipped_at)
+    const fullPatch = {
       status: 'shipped',
       shipped_url: ghResult.pagesUrl,
       shipped_filename: filename,
       shipped_at: new Date().toISOString()
     };
-    const p = await fetch(url + '/rest/v1/requests?id=eq.' + req.id, {
-      method: 'PATCH', headers: headers, body: JSON.stringify(patchBody)
+    let p = await fetch(url + '/rest/v1/requests?id=eq.' + req.id, {
+      method: 'PATCH', headers: headers, body: JSON.stringify(fullPatch)
     });
+
+    let usedFallback = false;
     if (!p.ok) {
-      console.warn('Supabase update failed but file is published:', await p.text());
+      const errText = await p.text();
+      console.warn('Full status update failed:', p.status, errText);
+
+      // If the failure looks like missing columns, retry with just status=shipped
+      if (errText.indexOf('shipped_url') !== -1 || errText.indexOf('shipped_filename') !== -1 || errText.indexOf('shipped_at') !== -1 || errText.indexOf('column') !== -1) {
+        setStatus('Retry with minimal fields (status=shipped only)...');
+        usedFallback = true;
+        p = await fetch(url + '/rest/v1/requests?id=eq.' + req.id, {
+          method: 'PATCH', headers: headers, body: JSON.stringify({ status: 'shipped' })
+        });
+      }
     }
+
+    if (!p.ok) {
+      const errText2 = await p.text();
+      statusEl.className = 'ship-status error';
+      setStatus('File is live on GitHub but database update failed: ' + (errText2.slice(0, 300) || ('HTTP ' + p.status)) + '. The intent dashboard will not show this app until Supabase is updated. Run the column migration: alter table requests add column if not exists shipped_url text; alter table requests add column if not exists shipped_filename text; alter table requests add column if not exists shipped_at timestamptz;');
+      btn.disabled = false;
+      btn.innerHTML = 'Retry status update';
+      return;
+    }
+
+    // Verify by re-reading the row
+    const verify = await fetch(url + '/rest/v1/requests?id=eq.' + req.id + '&select=status', { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } });
+    if (verify.ok) {
+      const rows = await verify.json();
+      if (rows.length && rows[0].status !== 'shipped') {
+        statusEl.className = 'ship-status error';
+        setStatus('Database write returned OK but row was not actually updated. Likely RLS policy issue. Run: create policy "Allow update" on requests for update using (true) with check (true);');
+        btn.disabled = false;
+        btn.innerHTML = 'Retry status update';
+        return;
+      }
+    }
+
+    if (usedFallback) {
+      console.log('Status updated with fallback. Add the shipped_url/filename/at columns later for full tracking.');
+    }
+
     // Update local state
     req.status = 'shipped';
     req.shipped_url = ghResult.pagesUrl;
