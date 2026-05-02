@@ -2324,9 +2324,91 @@ function bundleArtifacts(req) {
     return arts[0].art.content;
   }
 
-  // Otherwise build a unified shell with one tab per artifact, each rendered
-  // in the appropriate way for its kind (iframe for full HTML, React for JSX, etc.)
+  // If every artifact is a full HTML page, use the lightweight iframe-only shell
+  // (no React, no Babel — safer and faster).
+  if (arts.every(function(a) { return a.kind === 'html_full'; })) {
+    return buildIframeOnlyShell(req, arts);
+  }
+
+  // Mixed or all-JSX → use the React-aware unified shell.
   return buildUnifiedShell(req, arts);
+}
+
+function buildIframeOnlyShell(req, arts) {
+  // Pure vanilla shell: tab strip + one iframe per artifact, source loaded from <template> tags.
+  // <template> content is not parsed as live DOM, so embedded HTML is safe regardless of contents.
+  // No JSON.stringify into a script block, no React, no Babel.
+  const titleEsc = escapeHtml(req.title || 'DN App');
+  const tabs = arts.map(function(a, i) {
+    return { idx: i, title: a.story.title || ('Tab ' + (i+1)) };
+  });
+
+  // Each iframe's source goes into a <template> with a unique id.
+  // The shell script reads template.innerHTML (the un-parsed text) and assigns to iframe.srcdoc.
+  // Important: <template> content can contain anything except </template>, so we escape that token.
+  const templateBlocks = arts.map(function(a, i) {
+    const safe = String(a.art.content || '').replace(/<\/template>/gi, '<\\/template>');
+    return '<template id="dn-tpl-' + i + '">' + safe + '</template>';
+  }).join('\n');
+
+  const tabButtons = tabs.map(function(t, i) {
+    return '<button class="dn-tab" data-idx="' + i + '"' + (i === 0 ? ' data-active="1"' : '') + '>' + escapeHtml(t.title) + '</button>';
+  }).join('');
+
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    '<title>' + titleEsc + '</title>',
+    '<style>',
+    '  * { box-sizing: border-box; }',
+    '  body { margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0b1220; color: #e6ecf5; min-height: 100vh; display: flex; flex-direction: column; }',
+    '  .dn-header { padding: 14px 24px; border-bottom: 1px solid #1f2937; flex-shrink: 0; }',
+    '  .dn-header h1 { color: #3DD6F5; font-weight: 700; font-size: 17px; margin: 0; }',
+    '  .dn-tabs { display: flex; gap: 4px; padding: 10px 24px; border-bottom: 1px solid #1f2937; overflow-x: auto; flex-shrink: 0; background: #0f1729; }',
+    '  .dn-tab { padding: 7px 14px; border-radius: 6px; font-size: 12px; color: #9ca3af; cursor: pointer; white-space: nowrap; background: transparent; border: none; font-family: inherit; }',
+    '  .dn-tab:hover { color: #e6ecf5; }',
+    '  .dn-tab[data-active="1"] { background: #3DD6F5; color: #0b1220; font-weight: 600; }',
+    '  .dn-frame-wrap { flex: 1; position: relative; }',
+    '  .dn-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: white; display: none; }',
+    '  .dn-frame[data-active="1"] { display: block; }',
+    '</style>',
+    '</head>',
+    '<body>',
+    '<div class="dn-header"><h1>' + titleEsc + '</h1></div>',
+    '<div class="dn-tabs">' + tabButtons + '</div>',
+    '<div class="dn-frame-wrap" id="dn-frames">',
+    arts.map(function(_, i) {
+      return '<iframe class="dn-frame" data-idx="' + i + '"' + (i === 0 ? ' data-active="1"' : '') + ' sandbox="allow-scripts allow-forms allow-popups allow-same-origin"></iframe>';
+    }).join(''),
+    '</div>',
+    templateBlocks,
+    '<script>',
+    '(function() {',
+    '  // Hydrate iframes from templates',
+    '  document.querySelectorAll(".dn-frame").forEach(function(f) {',
+    '    const idx = f.getAttribute("data-idx");',
+    '    const tpl = document.getElementById("dn-tpl-" + idx);',
+    '    if (tpl) f.srcdoc = tpl.innerHTML.replace(/<\\\\\\/template>/g, "<\\/template>");',
+    '  });',
+    '  // Tab switching',
+    '  document.querySelectorAll(".dn-tab").forEach(function(b) {',
+    '    b.addEventListener("click", function() {',
+    '      const idx = b.getAttribute("data-idx");',
+    '      document.querySelectorAll(".dn-tab").forEach(function(x) { x.removeAttribute("data-active"); });',
+    '      b.setAttribute("data-active", "1");',
+    '      document.querySelectorAll(".dn-frame").forEach(function(x) { x.removeAttribute("data-active"); });',
+    '      const f = document.querySelector(".dn-frame[data-idx=\\"" + idx + "\\"]");',
+    '      if (f) f.setAttribute("data-active", "1");',
+    '    });',
+    '  });',
+    '})();',
+    '<\/script>',
+    '</body>',
+    '</html>'
+  ].join('\n');
 }
 
 function buildUnifiedShell(req, arts) {
