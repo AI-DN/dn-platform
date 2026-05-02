@@ -393,6 +393,241 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 }
 .settings-saved-toast.show { opacity: 1; }
 
+
+/* ── Request sidebar ─────────────────────────────────────────────── */
+.body-flex { display: flex; flex: 1; min-height: 0; }
+.req-sidebar {
+  width: 260px; flex-shrink: 0;
+  background: var(--navy2); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  transition: width 0.2s ease;
+  overflow: hidden;
+}
+.req-sidebar.collapsed { width: 44px; }
+.req-sidebar.collapsed .req-sidebar-search,
+.req-sidebar.collapsed .req-sidebar-filters,
+.req-sidebar.collapsed .req-row-meta,
+.req-sidebar.collapsed .req-row-title { display: none; }
+.req-sidebar.collapsed .req-row { padding: 8px 14px; justify-content: center; }
+.req-sidebar.collapsed .req-row-dot { margin: 0; }
+.req-sidebar.collapsed .req-row-badge { display: none; }
+
+.req-sidebar-head {
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  height: 44px;
+}
+.req-sidebar-toggle {
+  background: var(--panel2); border: 1px solid var(--border2); border-radius: 6px;
+  width: 28px; height: 28px; padding: 0; display: inline-flex; align-items: center; justify-content: center;
+  cursor: pointer; color: var(--text2); font-size: 13px; flex-shrink: 0;
+}
+.req-sidebar-toggle:hover { color: var(--text); background: var(--panel); }
+.req-sidebar-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 11px;
+  color: var(--text2); letter-spacing: 0.06em; text-transform: uppercase;
+}
+.req-sidebar.collapsed .req-sidebar-title { display: none; }
+
+.req-sidebar-search {
+  padding: 8px 12px; border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.req-sidebar-search input {
+  width: 100%; background: var(--panel2); border: 1px solid var(--border2);
+  border-radius: 6px; padding: 7px 10px; font-size: 12px; color: var(--text);
+  font-family: 'DM Sans', sans-serif; outline: none;
+}
+.req-sidebar-search input:focus { border-color: rgba(61,214,245,0.4); }
+
+.req-sidebar-filters {
+  display: flex; gap: 5px; padding: 6px 12px 10px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.req-filter-pill {
+  font-size: 10px; padding: 3px 8px;
+  background: var(--panel2); color: var(--text3); border: 1px solid transparent;
+  border-radius: 10px; cursor: pointer; user-select: none;
+  font-family: 'DM Sans', sans-serif;
+}
+.req-filter-pill:hover { color: var(--text2); }
+.req-filter-pill.active { background: var(--panel); color: var(--cyan); border-color: rgba(61,214,245,0.3); }
+.req-filter-pill .pill-count { opacity: 0.7; margin-left: 4px; }
+
+.req-list { flex: 1; overflow-y: auto; padding: 4px 0; min-height: 0; }
+.req-list::-webkit-scrollbar { width: 5px; }
+.req-list::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+
+.req-row {
+  padding: 8px 12px; cursor: pointer;
+  border-left: 2px solid transparent;
+  display: flex; align-items: flex-start; gap: 8px;
+  transition: background 0.1s;
+  position: relative;
+}
+.req-row:hover { background: var(--panel2); }
+.req-row.active { background: rgba(139,127,245,0.08); border-left-color: var(--purple); }
+.req-row.rejected { opacity: 0.5; }
+.req-row.rejected .req-row-title { text-decoration: line-through; }
+.req-row-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  flex-shrink: 0; margin-top: 5px;
+}
+.req-row-dot.active { background: var(--amber); }
+.req-row-dot.shipped { background: var(--green); }
+.req-row-dot.pending { background: var(--text3); }
+.req-row-dot.rejected { background: #71717a; }
+.req-row-dot.attention { background: var(--pink); box-shadow: 0 0 0 2px rgba(244,131,168,0.2); }
+.req-row-body { flex: 1; min-width: 0; }
+.req-row-title {
+  font-size: 12px; font-weight: 500; color: var(--text);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 2px;
+}
+.req-row-meta {
+  font-size: 10px; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.req-row-badge {
+  font-size: 9px; padding: 1px 6px;
+  background: rgba(244,131,168,0.15); color: var(--pink);
+  border-radius: 8px; flex-shrink: 0;
+  margin-top: 2px;
+}
+.req-list-empty {
+  padding: 16px; text-align: center; color: var(--text3); font-size: 11px;
+}
+
+/* ── Request header in main pane ────────────────────────────────── */
+.req-header {
+  padding: 14px 24px; border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between;
+  gap: 16px; flex-shrink: 0;
+}
+.req-header-info { flex: 1; min-width: 0; }
+.req-header-title-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 4px;
+}
+.req-header-title {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 17px;
+  color: var(--text); margin: 0;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.req-status-badge {
+  font-size: 10px; padding: 2px 8px; border-radius: 10px;
+  letter-spacing: 0.04em; text-transform: uppercase; font-weight: 700;
+  font-family: 'Syne', sans-serif; flex-shrink: 0;
+}
+.req-status-badge.active { background: rgba(245,158,11,0.15); color: var(--amber); }
+.req-status-badge.shipped { background: rgba(110,231,183,0.15); color: var(--green); }
+.req-status-badge.pending { background: rgba(160,160,160,0.15); color: var(--text2); }
+.req-status-badge.rejected { background: rgba(160,60,60,0.2); color: #fca5a5; }
+.req-header-meta {
+  font-size: 11px; color: var(--text3);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.req-header-actions {
+  display: flex; gap: 6px; flex-shrink: 0; flex-wrap: wrap;
+}
+.req-action-btn {
+  background: transparent; border: 1px solid var(--border2); border-radius: 6px;
+  padding: 6px 11px; font-family: 'Syne', sans-serif; font-weight: 700;
+  font-size: 11px; color: var(--text2); cursor: pointer;
+  letter-spacing: 0.04em;
+}
+.req-action-btn:hover { color: var(--text); }
+.req-action-btn.reject { color: #fca5a5; border-color: rgba(252,165,165,0.4); }
+.req-action-btn.reject:hover { background: rgba(252,165,165,0.1); }
+.req-action-btn.un-reject { color: var(--green); border-color: rgba(110,231,183,0.4); }
+
+/* ── Details overlay ─────────────────────────────────────────────── */
+.details-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: none; z-index: 250;
+  align-items: center; justify-content: flex-end;
+  padding: 24px;
+}
+.details-overlay.open { display: flex; }
+.details-panel {
+  width: 100%; max-width: 600px; height: 100%;
+  background: var(--navy2); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 24px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  overflow-y: auto;
+}
+.details-head {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--border);
+}
+.details-title {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 18px;
+  color: var(--cyan); margin: 0;
+}
+.details-close {
+  background: none; border: none; color: var(--text3);
+  font-size: 22px; cursor: pointer; padding: 0; width: 28px; height: 28px;
+}
+.details-close:hover { color: var(--text); }
+.details-section {
+  margin-bottom: 18px;
+}
+.details-section-label {
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 10px;
+  color: var(--text3); letter-spacing: 0.08em; text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.details-section-content {
+  font-size: 13px; color: var(--text); line-height: 1.6;
+  background: var(--panel2); border-radius: 8px; padding: 12px;
+  white-space: pre-wrap; word-wrap: break-word;
+}
+.details-section-content.empty {
+  color: var(--text3); font-style: italic;
+}
+
+/* ── Reject modal ────────────────────────────────────────────────── */
+.reject-modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; z-index: 260;
+  align-items: center; justify-content: center; padding: 24px;
+}
+.reject-modal.open { display: flex; }
+.reject-card {
+  background: var(--navy2); border: 1px solid var(--border2);
+  border-radius: 12px; padding: 22px; width: 100%; max-width: 480px;
+}
+.reject-card h3 {
+  font-family: 'Syne', sans-serif; font-weight: 800; font-size: 17px;
+  color: #fca5a5; margin: 0 0 6px;
+}
+.reject-card p {
+  font-size: 12px; color: var(--text2); line-height: 1.6; margin: 0 0 14px;
+}
+.reject-card label {
+  display: block; font-family: 'Syne', sans-serif; font-weight: 700; font-size: 10px;
+  color: var(--text3); letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 5px;
+}
+.reject-card textarea {
+  width: 100%; min-height: 100px; resize: vertical;
+  background: var(--panel2); border: 1px solid var(--border2); border-radius: 8px;
+  padding: 9px 12px; color: var(--text); font-family: 'DM Sans', sans-serif;
+  font-size: 13px; outline: none;
+}
+.reject-card textarea:focus { border-color: rgba(252,165,165,0.4); }
+.reject-actions {
+  display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px;
+}
+.reject-cancel {
+  background: transparent; color: var(--text2); border: 1px solid var(--border2);
+  border-radius: 8px; padding: 8px 16px;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer;
+}
+.reject-confirm {
+  background: rgba(252,165,165,0.15); color: #fca5a5; border: 1px solid rgba(252,165,165,0.4);
+  border-radius: 8px; padding: 8px 18px;
+  font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer;
+}
+.reject-confirm:hover { background: rgba(252,165,165,0.25); }
+
 </style>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiM4QjdGRjUiPjxyZWN0IHg9IjUiIHk9IjciIHdpZHRoPSI2IiBoZWlnaHQ9IjE4IiByeD0iMS41Ii8+PHJlY3QgeD0iMTMiIHk9IjciIHdpZHRoPSI2IiBoZWlnaHQ9IjEzIiByeD0iMS41Ii8+PHJlY3QgeD0iMjEiIHk9IjciIHdpZHRoPSI2IiBoZWlnaHQ9IjIyIiByeD0iMS41Ii8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"></head>
 <body>
@@ -441,12 +676,43 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 </div>
 <div class="settings-saved-toast" id="settings-saved-toast">Settings saved</div>
 
-<div class="epic-tabs" id="epic-tabs">
-  <span class="empty-tabs" id="tabs-empty">Loading...</span>
+<div class="body-flex">
+  <aside class="req-sidebar" id="req-sidebar">
+    <div class="req-sidebar-head">
+      <button class="req-sidebar-toggle" id="sidebar-toggle" onclick="toggleSidebar()" title="Toggle sidebar">‹</button>
+      <span class="req-sidebar-title">Requests</span>
+    </div>
+    <div class="req-sidebar-search">
+      <input type="text" id="req-search" placeholder="Search..." oninput="renderRequestList()">
+    </div>
+    <div class="req-sidebar-filters" id="req-filters"></div>
+    <div class="req-list" id="req-list">
+      <div class="req-list-empty">Loading...</div>
+    </div>
+  </aside>
+  <main class="req-main" id="req-main" style="flex:1; display:flex; flex-direction:column; min-width:0;">
+    <div class="req-header" id="req-header" style="display:none;"></div>
+    <div class="board-wrap" id="board-wrap" style="flex:1;">
+      <div class="empty-board"><div class="spinner"></div><div>Loading...</div></div>
+    </div>
+  </main>
 </div>
 
-<div class="board-wrap" id="board-wrap">
-  <div class="empty-board"><div class="spinner"></div><div>Loading requests...</div></div>
+<div class="details-overlay" id="details-overlay" onclick="if(event.target===this)closeDetails()">
+  <div class="details-panel" id="details-panel"></div>
+</div>
+
+<div class="reject-modal" id="reject-modal" onclick="if(event.target===this)closeRejectModal()">
+  <div class="reject-card">
+    <h3>Reject this request</h3>
+    <p>The request will be marked rejected. The intent agent will surface your reason to the user the next time they open DN Intent. Cards already done are preserved — un-rejecting brings everything back.</p>
+    <label>Reason (will be shown to the user)</label>
+    <textarea id="reject-reason" placeholder="e.g. This overlaps with the Multi-Company Financial project already in flight. Let's discuss before duplicating effort."></textarea>
+    <div class="reject-actions">
+      <button class="reject-cancel" onclick="closeRejectModal()">Cancel</button>
+      <button class="reject-confirm" onclick="confirmReject()">Reject request</button>
+    </div>
+  </div>
 </div>
 
 <div class="stats-bar" id="stats-bar" style="display:none">
@@ -549,9 +815,12 @@ function buildActivitySection(entries) {
 }
 
 let allReqs = [], activeId = null, storyCache = {}, activeCard = null, currentSprintFilter = 'all';
+let sidebarCollapsed = (localStorage.getItem('dn_sidebar_collapsed') === '1');
+let currentReqFilter = 'all';
 
 window.addEventListener('load', function() {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
+  applySidebarCollapsedState();
   loadSettings();
   refreshGearStatus();
   if (window.location.protocol === 'file:') {
@@ -645,6 +914,7 @@ async function loadData() {
     if (allReqs.length > 0) {
       if (!activeId) activeId = allReqs[0].id;
       renderEpic(activeId);
+      renderRequestHeader();
     } else {
       showEmpty('No requests yet. Submit one via DN Intent.');
     }
@@ -656,22 +926,417 @@ function setDb(ok, msg) {
   document.getElementById('db-txt').textContent = msg;
 }
 
+// ── Sidebar rendering and request management ─────────────────────────────
 function renderTabs() {
-  const tabs = document.getElementById('epic-tabs');
-  tabs.innerHTML = '';
-  if (!allReqs.length) { tabs.innerHTML = '<span class="empty-tabs">No requests yet</span>'; return; }
-  const pending = allReqs.filter(function(r) { return r.status === 'pending'; }).length;
-  const badge = document.getElementById('needs-action-badge');
-  if (pending > 0) { badge.textContent = pending + ' pending'; badge.style.display = 'inline-flex'; }
-  else badge.style.display = 'none';
-  allReqs.forEach(function(req) {
-    const t = document.createElement('div');
-    t.className = 'epic-tab' + (req.status === 'pending' ? ' pending-tab' : '') + (req.id === activeId ? ' active' : '');
-    t.innerHTML = esc(req.title || 'Untitled') + (req.status === 'pending' ? '<span class="tab-badge">Pending</span>' : '');
-    t.onclick = function() { activeId = req.id; renderTabs(); renderEpic(req.id); };
-    tabs.appendChild(t);
+  // Backwards-compat shim — keep callers working while we migrate
+  renderRequestList();
+  renderRequestHeader();
+}
+
+function applySidebarCollapsedState() {
+  const sb = document.getElementById('req-sidebar');
+  if (!sb) return;
+  if (sidebarCollapsed) sb.classList.add('collapsed');
+  else sb.classList.remove('collapsed');
+  const tog = document.getElementById('sidebar-toggle');
+  if (tog) tog.textContent = sidebarCollapsed ? '›' : '‹';
+}
+
+function toggleSidebar() {
+  sidebarCollapsed = !sidebarCollapsed;
+  localStorage.setItem('dn_sidebar_collapsed', sidebarCollapsed ? '1' : '0');
+  applySidebarCollapsedState();
+}
+
+function reqMatchesFilter(req, filter) {
+  const status = req.status || 'active';
+  if (filter === 'all') return status !== 'rejected';
+  if (filter === 'rejected') return status === 'rejected';
+  if (filter === 'active') return status === 'active' || status === 'pending';
+  if (filter === 'shipped') return status === 'shipped';
+  if (filter === 'attention') return needsAdminAttention(req);
+  return true;
+}
+
+function needsAdminAttention(req) {
+  if (req.status === 'rejected' || req.status === 'shipped') return false;
+  let stories = [];
+  try { stories = JSON.parse(req.stories || '[]'); } catch(e) {}
+  if (!Array.isArray(stories)) return false;
+  return stories.some(function(s) {
+    return s.column === 'needs_admin' || s.column === 'ready_qa' || (s.column === 'awaiting_user' && !s.question_answer);
   });
 }
+
+function summariseRequestState(req) {
+  let stories = [];
+  try { stories = JSON.parse(req.stories || '[]'); } catch(e) {}
+  if (!Array.isArray(stories)) stories = [];
+
+  // Even with no stories, surface meaningful state for shipped/rejected/pending
+  if (!stories.length && req.status !== 'active') {
+    const submitter = req.submitted_by || '?';
+    if (req.status === 'shipped') {
+      let shipBit = 'shipped';
+      if (req.shipped_at) {
+        try {
+          const ago = Math.floor((Date.now() - new Date(req.shipped_at).getTime()) / (1000 * 60 * 60 * 24));
+          shipBit = 'shipped ' + (ago === 0 ? 'today' : (ago + 'd ago'));
+        } catch(e) {}
+      }
+      return submitter + ' · ' + shipBit;
+    }
+    if (req.status === 'rejected') return submitter + ' · rejected';
+    if (req.status === 'pending') return submitter + ' · pending';
+    return submitter;
+  }
+  if (!stories.length) return (req.submitted_by || '?');
+
+  const tally = { needs_admin: 0, awaiting_user: 0, needs_user: 0, ready: 0, in_progress: 0, ready_qa: 0, qa_passed: 0 };
+  stories.forEach(function(s) { if (tally[s.column] !== undefined) tally[s.column]++; });
+
+  const submitter = req.submitted_by || '?';
+  const parts = [submitter];
+
+  if (req.status === 'shipped') {
+    if (req.shipped_at) {
+      try {
+        const ago = Math.floor((Date.now() - new Date(req.shipped_at).getTime()) / (1000 * 60 * 60 * 24));
+        parts.push('shipped ' + (ago === 0 ? 'today' : (ago + 'd ago')));
+      } catch(e) { parts.push('shipped'); }
+    } else parts.push('shipped');
+  } else if (req.status === 'rejected') {
+    parts.push('rejected');
+  } else if (tally.needs_admin > 0) {
+    parts.push(tally.needs_admin + ' need decision');
+  } else if (tally.ready_qa > 0) {
+    parts.push(tally.ready_qa + ' for QA');
+  } else if (tally.in_progress > 0) {
+    parts.push(tally.in_progress + ' in progress');
+  } else if (tally.ready > 0) {
+    parts.push(tally.ready + ' ready');
+  } else if (tally.awaiting_user > 0) {
+    parts.push(tally.awaiting_user + ' awaiting user');
+  } else if (tally.needs_user > 0) {
+    parts.push(tally.needs_user + ' needs user');
+  }
+  return parts.join(' · ');
+}
+
+function renderRequestList() {
+  const list = document.getElementById('req-list');
+  const filters = document.getElementById('req-filters');
+  if (!list || !filters) return;
+
+  // Render filter pills with counts
+  const counts = {
+    all: allReqs.filter(function(r) { return r.status !== 'rejected'; }).length,
+    active: allReqs.filter(function(r) { return r.status === 'active' || r.status === 'pending'; }).length,
+    shipped: allReqs.filter(function(r) { return r.status === 'shipped'; }).length,
+    attention: allReqs.filter(function(r) { return needsAdminAttention(r); }).length,
+    rejected: allReqs.filter(function(r) { return r.status === 'rejected'; }).length
+  };
+
+  const filterDefs = [
+    { key: 'all', label: 'All' },
+    { key: 'active', label: 'Active' },
+    { key: 'attention', label: 'Needs me' },
+    { key: 'shipped', label: 'Shipped' },
+    { key: 'rejected', label: 'Rejected' }
+  ];
+  let pillsHtml = '';
+  filterDefs.forEach(function(f) {
+    if (f.key === 'rejected' && counts.rejected === 0) return; // hide if empty
+    pillsHtml += '<span class="req-filter-pill ' + (currentReqFilter === f.key ? 'active' : '') + '" onclick="setReqFilter(\'' + f.key + '\')">' + f.label + '<span class="pill-count">' + counts[f.key] + '</span></span>';
+  });
+  filters.innerHTML = pillsHtml;
+
+  // Render the actual list, filtered + searched
+  const search = (document.getElementById('req-search') || {}).value || '';
+  const searchLower = search.toLowerCase();
+  list.innerHTML = '';
+  if (!allReqs.length) {
+    list.innerHTML = '<div class="req-list-empty">No requests yet</div>';
+    return;
+  }
+  const filtered = allReqs.filter(function(r) {
+    if (!reqMatchesFilter(r, currentReqFilter)) return false;
+    if (search && (r.title || '').toLowerCase().indexOf(searchLower) === -1) return false;
+    return true;
+  });
+  if (!filtered.length) {
+    list.innerHTML = '<div class="req-list-empty">No matches</div>';
+    return;
+  }
+
+  filtered.forEach(function(req) {
+    const row = document.createElement('div');
+    const status = req.status || 'active';
+    const isActive = req.id === activeId;
+    const attention = needsAdminAttention(req);
+    let dotClass = 'active';
+    if (status === 'shipped') dotClass = 'shipped';
+    else if (status === 'pending') dotClass = 'pending';
+    else if (status === 'rejected') dotClass = 'rejected';
+    if (attention) dotClass = 'attention';
+
+    row.className = 'req-row' + (isActive ? ' active' : '') + (status === 'rejected' ? ' rejected' : '');
+    row.title = req.title || '';
+    row.innerHTML =
+      '<div class="req-row-dot ' + dotClass + '"></div>' +
+      '<div class="req-row-body">' +
+        '<div class="req-row-title">' + esc(req.title || 'Untitled') + '</div>' +
+        '<div class="req-row-meta">' + esc(summariseRequestState(req)) + '</div>' +
+      '</div>';
+    row.onclick = function() { activeId = req.id; renderRequestList(); renderRequestHeader(); renderEpic(req.id); };
+    list.appendChild(row);
+  });
+
+  // Update top-bar pending badge
+  const pending = allReqs.filter(function(r) { return r.status === 'pending'; }).length;
+  const badge = document.getElementById('needs-action-badge');
+  if (badge) {
+    if (pending > 0) { badge.textContent = pending + ' pending'; badge.style.display = 'inline-flex'; }
+    else badge.style.display = 'none';
+  }
+}
+
+function setReqFilter(key) {
+  currentReqFilter = key;
+  renderRequestList();
+}
+
+function renderRequestHeader() {
+  const head = document.getElementById('req-header');
+  if (!head) return;
+  if (!activeId) { head.style.display = 'none'; return; }
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) { head.style.display = 'none'; return; }
+
+  const status = req.status || 'active';
+  const statusLabel = (status === 'shipped' ? 'Shipped' : status === 'rejected' ? 'Rejected' : status === 'pending' ? 'Pending' : 'Active');
+  let storyCount = 0;
+  try { storyCount = JSON.parse(req.stories || '[]').length; } catch(e) {}
+  const ver = (req.artifacts && req.artifacts.length) ? ' · v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
+  let metaParts = ['Submitted by ' + (req.submitted_by || '?')];
+  if (req.created_at) {
+    try {
+      const ago = Math.floor((Date.now() - new Date(req.created_at).getTime()) / (1000 * 60 * 60 * 24));
+      metaParts.push(ago === 0 ? 'today' : (ago + ' days ago'));
+    } catch(e) {}
+  }
+  if (storyCount > 0) metaParts.push(storyCount + ' stories' + ver);
+
+  let actionsHtml = '';
+  actionsHtml += '<button class="req-action-btn" onclick="openDetails()">Details</button>';
+  if (status === 'rejected') {
+    actionsHtml += '<button class="req-action-btn un-reject" onclick="unRejectRequest()">Un-reject</button>';
+  } else {
+    actionsHtml += '<button class="req-action-btn reject" onclick="openRejectModal()">Reject</button>';
+  }
+
+  head.innerHTML =
+    '<div class="req-header-info">' +
+      '<div class="req-header-title-row">' +
+        '<h2 class="req-header-title">' + esc(req.title || 'Untitled') + '</h2>' +
+        '<span class="req-status-badge ' + status + '">' + statusLabel + '</span>' +
+      '</div>' +
+      '<div class="req-header-meta">' + esc(metaParts.join(' · ')) + '</div>' +
+    '</div>' +
+    '<div class="req-header-actions">' + actionsHtml + '</div>';
+  head.style.display = 'flex';
+}
+
+
+// ── Details panel ───────────────────────────────────────────────────
+function openDetails() {
+  if (!activeId) return;
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) return;
+  const panel = document.getElementById('details-panel');
+
+  function section(label, content) {
+    const isEmpty = !content || !String(content).trim();
+    return '<div class="details-section">' +
+      '<div class="details-section-label">' + esc(label) + '</div>' +
+      '<div class="details-section-content' + (isEmpty ? ' empty' : '') + '">' +
+        (isEmpty ? 'Not specified' : esc(content)) +
+      '</div>' +
+    '</div>';
+  }
+
+  // Conversation summary — count turns by type
+  let convSummary = '';
+  if (req.conversation) {
+    try {
+      const turns = JSON.parse(req.conversation);
+      if (Array.isArray(turns) && turns.length) {
+        const counts = {};
+        turns.forEach(function(t) { const k = t.t || 'other'; counts[k] = (counts[k] || 0) + 1; });
+        const parts = [];
+        Object.keys(counts).forEach(function(k) { parts.push(counts[k] + ' ' + k); });
+        convSummary = turns.length + ' turns: ' + parts.join(', ');
+      }
+    } catch(e) {}
+  }
+
+  let storyCount = 0;
+  try { storyCount = JSON.parse(req.stories || '[]').length; } catch(e) {}
+
+  let html = '<div class="details-head">' +
+    '<h3 class="details-title">' + esc(req.title || 'Request details') + '</h3>' +
+    '<button class="details-close" onclick="closeDetails()" aria-label="Close">×</button>' +
+  '</div>';
+
+  html += section('Goal', req.goal);
+  html += section('Users', req.users);
+  html += section('Scope', req.scope);
+  html += section('MVP', req.mvp);
+  html += section('Constraints', req.constraints);
+  if (req.status === 'rejected' && req.rejected_reason) {
+    html += '<div class="details-section">' +
+      '<div class="details-section-label" style="color:#fca5a5;">Rejected reason</div>' +
+      '<div class="details-section-content" style="background:rgba(252,165,165,0.08);">' + esc(req.rejected_reason) + '</div>' +
+    '</div>';
+    if (req.rejected_by) html += section('Rejected by', req.rejected_by);
+  }
+  html += section('Submitted by', req.submitted_by);
+  html += section('Status', (req.status || 'active') + (req.shipped_url ? ' · ' + req.shipped_url : ''));
+  html += section('Stories', storyCount + ' total');
+  if (convSummary) html += section('Captured conversation', convSummary);
+
+  panel.innerHTML = html;
+  document.getElementById('details-overlay').classList.add('open');
+}
+
+function closeDetails() {
+  document.getElementById('details-overlay').classList.remove('open');
+}
+
+// ── Reject flow ──────────────────────────────────────────────────────
+function openRejectModal() {
+  if (!activeId) return;
+  document.getElementById('reject-reason').value = '';
+  document.getElementById('reject-modal').classList.add('open');
+  setTimeout(function() {
+    const t = document.getElementById('reject-reason');
+    if (t) t.focus();
+  }, 80);
+}
+
+function closeRejectModal() {
+  document.getElementById('reject-modal').classList.remove('open');
+}
+
+async function confirmReject() {
+  const reason = document.getElementById('reject-reason').value.trim();
+  if (!reason) {
+    alert('Please provide a reason — the user will see this.');
+    return;
+  }
+  if (!activeId) return;
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) { alert('Database not configured.'); return; }
+
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) return;
+  const previousStatus = req.status || 'active';
+
+  try {
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + activeId, {
+      method: 'PATCH', headers: headers,
+      body: JSON.stringify({
+        status: 'rejected',
+        rejected_reason: reason,
+        rejected_by: 'Admin',
+        rejected_at: new Date().toISOString(),
+        previous_status: previousStatus
+      })
+    });
+    if (!r.ok) {
+      const errText = await r.text();
+      // Likely missing columns — retry with status only
+      if (errText.indexOf('column') !== -1 || errText.indexOf('rejected_') !== -1) {
+        const retry = await fetch(url + '/rest/v1/requests?id=eq.' + activeId, {
+          method: 'PATCH', headers: headers,
+          body: JSON.stringify({ status: 'rejected' })
+        });
+        if (!retry.ok) throw new Error('Reject failed: ' + (await retry.text()).slice(0, 200));
+        alert('Request rejected, but the rejected_reason and rejected_by columns are missing in Supabase. Run this SQL once: alter table requests add column if not exists rejected_reason text; alter table requests add column if not exists rejected_by text; alter table requests add column if not exists rejected_at timestamptz; alter table requests add column if not exists previous_status text;');
+      } else {
+        throw new Error('Reject failed: ' + errText.slice(0, 200));
+      }
+    }
+    // Update local state
+    req.status = 'rejected';
+    req.rejected_reason = reason;
+    req.rejected_by = 'Admin';
+    req.rejected_at = new Date().toISOString();
+    req.previous_status = previousStatus;
+
+    await logActivity({
+      request_id: activeId,
+      actor: 'admin_user',
+      actor_name: 'Admin',
+      action: 'rejected',
+      description: reason
+    });
+
+    closeRejectModal();
+    renderRequestList();
+    renderRequestHeader();
+    renderEpic(activeId);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
+async function unRejectRequest() {
+  if (!activeId) return;
+  if (!confirm('Restore this request? It will return to its previous active state.')) return;
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) return;
+  const restoreTo = req.previous_status || 'active';
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) return;
+
+  try {
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + activeId, {
+      method: 'PATCH', headers: headers,
+      body: JSON.stringify({ status: restoreTo, rejected_reason: null, rejected_by: null, rejected_at: null })
+    });
+    if (!r.ok) {
+      // Fallback to status-only
+      const retry = await fetch(url + '/rest/v1/requests?id=eq.' + activeId, {
+        method: 'PATCH', headers: headers,
+        body: JSON.stringify({ status: restoreTo })
+      });
+      if (!retry.ok) throw new Error('Un-reject failed: ' + (await retry.text()).slice(0, 200));
+    }
+    req.status = restoreTo;
+    req.rejected_reason = null;
+    req.rejected_by = null;
+
+    await logActivity({
+      request_id: activeId,
+      actor: 'admin_user',
+      actor_name: 'Admin',
+      action: 'un_rejected',
+      description: 'Restored to ' + restoreTo
+    });
+
+    renderRequestList();
+    renderRequestHeader();
+    renderEpic(activeId);
+  } catch(e) {
+    alert('Error: ' + e.message);
+  }
+}
+
 
 function renderEpic(id) {
   const req = allReqs.find(function(r) { return r.id === id; });
