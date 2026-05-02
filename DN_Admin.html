@@ -2306,29 +2306,168 @@ function bundleArtifacts(req) {
 
   if (!arts.length) throw new Error('No artifacts to bundle');
 
-  // Detect: are these JSX components, or full HTML pages?
-  const isJsx = arts.some(function(a) {
+  // Classify each artifact
+  function classify(a) {
     const lang = (a.art.language || '').toLowerCase();
-    return lang === 'jsx' || lang === 'react' || lang === 'tsx';
-  });
+    const content = a.art.content || '';
+    if (lang === 'jsx' || lang === 'react' || lang === 'tsx') return 'jsx';
+    if (lang === 'html' && content.indexOf('<!DOCTYPE') !== -1) return 'html_full';
+    if (lang === 'html') return 'html_fragment';
+    if (lang === 'js' || lang === 'javascript') return 'js';
+    if (lang === 'css') return 'css';
+    return 'unknown';
+  }
+  arts.forEach(function(a) { a.kind = classify(a); });
 
-  const isHtml = arts.some(function(a) {
-    const lang = (a.art.language || '').toLowerCase();
-    return lang === 'html' && (a.art.content || '').indexOf('<!DOCTYPE') !== -1;
-  });
-
-  // CASE A: a single full HTML artifact — use it as-is
-  if (arts.length === 1 && isHtml) {
+  // Special case: single full-HTML page → ship as-is
+  if (arts.length === 1 && arts[0].kind === 'html_full') {
     return arts[0].art.content;
   }
 
-  // CASE B: JSX components — wrap in a tabbed React app
-  if (isJsx || arts.every(function(a) { return (a.art.language || '').toLowerCase() !== 'html'; })) {
-    return wrapJsxAsTabbed(req, arts);
-  }
+  // Otherwise build a unified shell with one tab per artifact, each rendered
+  // in the appropriate way for its kind (iframe for full HTML, React for JSX, etc.)
+  return buildUnifiedShell(req, arts);
+}
 
-  // CASE C: mixed — fall back to single-page with sections
-  return wrapMixedAsSinglePage(req, arts);
+function buildUnifiedShell(req, arts) {
+  // Group artifacts: JSX components are rendered as live React, full-HTML pages get iframes,
+  // CSS/JS get attached, fragments get inlined into a div.
+  const tabs = arts.map(function(a, i) {
+    return { idx: i, title: a.story.title || ('Component ' + (i+1)), kind: a.kind, content: a.art.content || '' };
+  });
+
+  const jsxBlocks = [];
+  const jsxComponents = [];
+  const iframeData = {}; // tabIdx -> srcdoc string
+  const fragmentData = {}; // tabIdx -> raw fragment HTML
+
+  arts.forEach(function(a, i) {
+    if (a.kind === 'jsx') {
+      let code = a.art.content;
+      code = code.replace(/^\s*import\s+[^;\n]+;?\s*$/gm, '');
+      code = code.replace(/const\s*\{[^}]+\}\s*=\s*React;?\s*\n/g, '');
+      let name = 'Component' + i;
+      const m = code.match(/export\s+default\s+(\w+)/);
+      if (m) name = m[1];
+      const uniqueName = name + '_tab' + i;
+      code = code.replace(new RegExp('\\b' + name + '\\b', 'g'), uniqueName);
+      code = code.replace(/export\s+default\s+\w+\s*;?/g, '');
+      jsxBlocks.push('// Tab ' + i + ': ' + (a.story.title || '') + '\n' + code);
+      jsxComponents[i] = uniqueName;
+    } else if (a.kind === 'html_full') {
+      iframeData[i] = a.art.content;
+    } else if (a.kind === 'html_fragment') {
+      fragmentData[i] = a.art.content;
+    } else if (a.kind === 'js' || a.kind === 'css' || a.kind === 'unknown') {
+      // Treat as inline source view in a styled <pre> — better than nothing for a tab,
+      // but really these should rarely appear as standalone Claude artifacts.
+      fragmentData[i] = '<pre style="padding:16px;overflow:auto;color:#cbd5e1;font-size:12px;background:#0f1729;border-radius:8px;">' + escapeHtml(a.art.content) + '</pre>';
+    }
+  });
+
+  const tabsArr = JSON.stringify(tabs.map(function(t) { return { idx: t.idx, title: t.title, kind: t.kind }; }));
+  const iframeDataLiteral = JSON.stringify(iframeData);
+  const fragmentDataLiteral = JSON.stringify(fragmentData);
+  const jsxComponentsLiteral = JSON.stringify(jsxComponents);
+  const allJsx = jsxBlocks.join('\n\n');
+
+  return [
+    '<!DOCTYPE html>',
+    '<html lang="en">',
+    '<head>',
+    '<meta charset="UTF-8">',
+    '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+    '<title>' + escapeHtml(req.title || 'DN App') + '</title>',
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"><\/script>',
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"><\/script>',
+    '<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"><\/script>',
+    '<script src="https://cdn.tailwindcss.com"><\/script>',
+    '<style>',
+    '  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #e6ecf5; min-height: 100vh; }',
+    '  .dn-shell-header { padding: 16px 24px; border-bottom: 1px solid #1f2937; }',
+    '  .dn-shell-title { color: #3DD6F5; font-weight: 700; font-size: 18px; margin: 0; }',
+    '  .dn-shell-tabs { display: flex; gap: 4px; padding: 12px 24px; border-bottom: 1px solid #1f2937; overflow-x: auto; }',
+    '  .dn-shell-tab { padding: 8px 14px; border-radius: 8px; font-size: 13px; color: #9ca3af; cursor: pointer; white-space: nowrap; background: transparent; border: none; }',
+    '  .dn-shell-tab:hover { color: #e6ecf5; }',
+    '  .dn-shell-tab.active { background: #3DD6F5; color: #0b1220; font-weight: 600; }',
+    '  .dn-shell-pane { padding: 0; }',
+    '  .dn-shell-pane.has-pad { padding: 24px; }',
+    '  .dn-shell-iframe { width: 100%; min-height: calc(100vh - 130px); border: 0; background: white; }',
+    '</style>',
+    '</head>',
+    '<body>',
+    '<div class="dn-shell-header"><h1 class="dn-shell-title">' + escapeHtml(req.title || 'DN App') + '</h1></div>',
+    '<div class="dn-shell-tabs" id="dn-tabs"></div>',
+    '<div class="dn-shell-pane has-pad" id="dn-pane"><div id="jsx-root"></div></div>',
+    '',
+    '<script type="text/babel" data-presets="react">',
+    'const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer } = React;',
+    '',
+    allJsx,
+    '',
+    'window.__dn_tabs = ' + tabsArr + ';',
+    'window.__dn_iframes = ' + iframeDataLiteral + ';',
+    'window.__dn_fragments = ' + fragmentDataLiteral + ';',
+    'window.__dn_jsx = ' + jsxComponentsLiteral + ';',
+    'window.__dn_components = {' + jsxComponents.map(function(n, i) { return n ? (i + ': ' + n) : ''; }).filter(Boolean).join(', ') + '};',
+    '<\/script>',
+    '<script>',
+    '(function() {',
+    '  const tabsEl = document.getElementById("dn-tabs");',
+    '  const paneEl = document.getElementById("dn-pane");',
+    '  const tabs = window.__dn_tabs;',
+    '  let active = 0;',
+    '',
+    '  function renderTabs() {',
+    '    tabsEl.innerHTML = "";',
+    '    tabs.forEach(function(t, i) {',
+    '      const b = document.createElement("button");',
+    '      b.className = "dn-shell-tab" + (i === active ? " active" : "");',
+    '      b.textContent = t.title;',
+    '      b.onclick = function() { active = i; renderTabs(); renderPane(); };',
+    '      tabsEl.appendChild(b);',
+    '    });',
+    '  }',
+    '',
+    '  function renderPane() {',
+    '    const t = tabs[active];',
+    '    if (!t) return;',
+    '    paneEl.innerHTML = "";',
+    '    if (t.kind === "jsx") {',
+    '      paneEl.classList.add("has-pad");',
+    '      paneEl.innerHTML = "<div id=\\"jsx-root\\"></div>";',
+    '      const Comp = window.__dn_components[t.idx];',
+    '      if (Comp) {',
+    '        ReactDOM.createRoot(document.getElementById("jsx-root")).render(React.createElement(Comp));',
+    '      }',
+    '    } else if (t.kind === "html_full") {',
+    '      paneEl.classList.remove("has-pad");',
+    '      const f = document.createElement("iframe");',
+    '      f.className = "dn-shell-iframe";',
+    '      f.srcdoc = window.__dn_iframes[t.idx] || "";',
+    '      f.sandbox = "allow-scripts allow-forms allow-popups";',
+    '      paneEl.appendChild(f);',
+    '    } else {',
+    '      paneEl.classList.add("has-pad");',
+    '      paneEl.innerHTML = window.__dn_fragments[t.idx] || "";',
+    '    }',
+    '  }',
+    '',
+    '  // Wait for Babel to finish compiling JSX before rendering',
+    '  function start() {',
+    '    if (typeof Babel === "undefined" || !window.__dn_components) {',
+    '      setTimeout(start, 50);',
+    '      return;',
+    '    }',
+    '    renderTabs();',
+    '    renderPane();',
+    '  }',
+    '  start();',
+    '})();',
+    '<\/script>',
+    '</body>',
+    '</html>'
+  ].join('\n');
 }
 
 function wrapJsxAsTabbed(req, arts) {
