@@ -2,6 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<style id="dn-gate-style">html body{display:none !important}</style>
+<script id="dn-gate-script">
+(function() {
+  const HASH = "DN_GATE_HASH_PLACEHOLDER";
+  const SESSION_KEY = "dn_gate_authed_v1";
+
+  // Already authed in this session — skip gate
+  if (sessionStorage.getItem(SESSION_KEY) === "1") {
+    document.getElementById("dn-gate-style").remove();
+    return;
+  }
+
+  function showGate() {
+    // Insert gate UI
+    const overlay = document.createElement("div");
+    overlay.id = "dn-gate-overlay";
+    overlay.style.cssText = "position:fixed;inset:0;background:#0b1220;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;";
+    overlay.innerHTML = ''
+      + '<div style="max-width:380px;width:100%;padding:32px 28px;background:#0f1729;border:1px solid #1f2937;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">'
+      +   '<div style="font-family:Syne,system-ui,sans-serif;font-weight:800;font-size:20px;color:#3DD6F5;letter-spacing:0.04em;margin-bottom:6px;">DN Platform</div>'
+      +   '<div style="font-size:13px;color:#9ca3af;line-height:1.5;margin-bottom:20px;">This platform is access-controlled. Enter the shared password to continue.</div>'
+      +   '<input type="password" id="dn-gate-pw" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:11px 14px;font-size:14px;background:#1f2937;color:white;border:1px solid #374151;border-radius:8px;outline:none;font-family:inherit;">'
+      +   '<div id="dn-gate-msg" style="font-size:12px;color:#fca5a5;min-height:18px;margin-top:8px;"></div>'
+      +   '<button id="dn-gate-btn" style="width:100%;margin-top:8px;padding:11px;background:#3DD6F5;color:#0b1220;border:none;border-radius:8px;font-family:Syne,system-ui,sans-serif;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:0.04em;">Unlock</button>'
+      + '</div>';
+    document.body.appendChild(overlay);
+
+    const inp = document.getElementById("dn-gate-pw");
+    const btn = document.getElementById("dn-gate-btn");
+    const msg = document.getElementById("dn-gate-msg");
+    inp.focus();
+
+    async function sha256(str) {
+      const buf = new TextEncoder().encode(str);
+      const hash = await crypto.subtle.digest("SHA-256", buf);
+      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("");
+    }
+
+    async function attempt() {
+      const v = inp.value;
+      if (!v) return;
+      btn.disabled = true; btn.textContent = "Checking...";
+      const h = await sha256(v);
+      if (h === HASH) {
+        sessionStorage.setItem(SESSION_KEY, "1");
+        document.getElementById("dn-gate-style").remove();
+        overlay.remove();
+      } else {
+        msg.textContent = "Incorrect password.";
+        btn.disabled = false; btn.textContent = "Unlock";
+        inp.value = ""; inp.focus();
+      }
+    }
+
+    btn.addEventListener("click", attempt);
+    inp.addEventListener("keydown", function(e) { if (e.key === "Enter") attempt(); });
+  }
+
+  // Wait for body to exist (we run early in head), then show gate
+  if (document.body) showGate();
+  else document.addEventListener("DOMContentLoaded", showGate);
+})();
+</script>
+
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DN Admin — Digitata Networks</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
