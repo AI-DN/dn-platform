@@ -2057,8 +2057,11 @@ async function approveEpic() {
       action: 'epic_approved',
       description: 'Epic "' + (epicData.Title || 'Untitled') + '" approved and submitted'
     });
+  } else {
+    alert('Could not save your epic — the database may be misconfigured. Check the gear icon settings (Anthropic key, Supabase URL, Supabase anon key) and try again. If everything looks right, paste the browser console output to the team.');
+    return;
   }
-  // Instead of showing success state, take the user straight into the live build view
+  // Save succeeded — take the user straight into the live build view
   showBuildView(epicData);
 }
 
@@ -2316,15 +2319,23 @@ const BUILD_STEPS_TEMPLATE = [
 ];
 
 function showBuildView(epic) {
-  document.querySelector('.hero').style.display = 'none';
-  document.querySelector('.stages').style.display = 'none';
-  document.getElementById('settings-row').style.display = 'none';
-  document.getElementById('mode-grid').style.display = 'none';
-  document.getElementById('main-panel').style.display = 'none';
+  // Hide pre-build UI elements; null-guard each so a missing element can't crash the flow
+  ['.hero', '.stages', '#mode-grid', '#main-panel'].forEach(function(sel) {
+    const el = document.querySelector(sel);
+    if (el) el.style.display = 'none';
+  });
 
-  document.getElementById('build-view').classList.add('open');
-  document.getElementById('build-title').textContent = epic.Title || 'Your app';
-  document.getElementById('build-subtitle').textContent = epic.Goal || 'Building your app...';
+  const buildView = document.getElementById('build-view');
+  if (!buildView) {
+    console.error('Build view container missing — cannot enter build mode');
+    alert('Something went wrong setting up the build view. Refresh the page and try again.');
+    return;
+  }
+  buildView.classList.add('open');
+  const titleEl = document.getElementById('build-title');
+  if (titleEl) titleEl.textContent = epic.Title || 'Your app';
+  const subEl = document.getElementById('build-subtitle');
+  if (subEl) subEl.textContent = epic.Goal || 'Building your app...';
 
   buildSteps = JSON.parse(JSON.stringify(BUILD_STEPS_TEMPLATE));
   buildVersion = 1;
