@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<style id="dn-gate-style">html body > *:not(#dn-gate-overlay){display:none !important}body{visibility:visible !important}</style>
+<style id="dn-gate-style">html body{display:none !important}</style>
 <script id="dn-gate-script">
 (function() {
   const HASH = "e28247c54630d4592f4705e2220c4d4f821004cb6e83ff9567474ee767a8d649";
@@ -268,6 +268,8 @@ body::before {
 .epic-field strong { color: var(--text); }
 .epic-divider { height: 1px; background: var(--border); margin: 12px 0; }
 .epic-note { font-size: 11px; color: var(--text3); line-height: 1.5; font-style: italic; }
+.epic-caps { margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; color: var(--text2); line-height: 1.6; }
+.epic-caps li { margin-bottom: 3px; }
 .epic-actions { display: flex; gap: 10px; margin-top: 14px; }
 .btn-approve {
   background: var(--green2); border: 1px solid rgba(31,216,164,0.35);
@@ -1375,11 +1377,24 @@ Goal: [one sentence]
 Users: [who will use this]
 Scope: [key features comma separated]
 Constraints: [technical or business constraints or None identified]
-Est stories: [e.g. 6-8]
 MVP: [minimum viable first version]
 Summary: [2-3 sentence plain English summary]
+Capabilities:
+- [user-language description of one thing the app must do]
+- [another capability]
+- [continue, typically 5-12 capabilities total]
 
-Keep titles short and specific. No fluff.`;
+Capabilities are observable behaviours from the user's perspective — what the app DOES, not how it is built. Examples of good capabilities:
+  "Two paddles, one on each side, controlled by W/S and arrow keys"
+  "Score tracking, first to 11 wins"
+  "Dark/light theme toggle persisted across sessions"
+  "Filter portfolio by sector with multi-select dropdown"
+Examples of BAD capabilities (avoid these — they're implementation tasks, not behaviours):
+  "Build the paddle component"
+  "Set up state management"
+  "Create the database schema"
+
+Each capability should be testable by looking at the running app. Together they should fully describe the MVP. Keep titles short and specific. No fluff.`;
 
 // ── State ─────────────────────────────────────────────────────────────────────
 let currentMode = 'guided';
@@ -1994,12 +2009,42 @@ async function sendMessage() {
 
 function parseEpic(text) {
   const result = {};
-  text.split('\n').forEach(function(line) {
+  const lines = text.split('\n');
+  let inCapabilities = false;
+  const capabilities = [];
+
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i];
+    const trimmed = line.trim();
+    if (!trimmed) { inCapabilities = false; continue; }
+
+    // Check if this is a top-level field key (e.g. "Title:", "Capabilities:")
     const idx = line.indexOf(':');
-    if (idx > 0) {
-      result[line.slice(0, idx).trim()] = line.slice(idx + 1).trim();
+    const looksLikeFieldHeader = idx > 0 && /^[A-Z][A-Za-z ]{1,30}:/.test(trimmed);
+
+    if (looksLikeFieldHeader) {
+      const key = line.slice(0, idx).trim();
+      const val = line.slice(idx + 1).trim();
+      if (key === 'Capabilities') {
+        inCapabilities = true;
+        // If anything follows on same line, treat as first capability
+        if (val) capabilities.push(val.replace(/^[-*•]\s*/, ''));
+      } else {
+        inCapabilities = false;
+        result[key] = val;
+      }
+    } else if (inCapabilities && /^[-*•]/.test(trimmed)) {
+      // Bullet line under Capabilities
+      capabilities.push(trimmed.replace(/^[-*•]\s*/, ''));
+    } else if (inCapabilities && trimmed) {
+      // Continuation line — append to last capability
+      if (capabilities.length > 0) {
+        capabilities[capabilities.length - 1] += ' ' + trimmed;
+      }
     }
-  });
+  }
+
+  result.Capabilities = capabilities;
   return result;
 }
 
@@ -2008,6 +2053,17 @@ function renderEpicCard() {
   const win = document.getElementById('chat-window');
   const wrap = document.createElement('div');
   wrap.className = 'epic-wrap'; wrap.id = 'epic-card-wrap';
+
+  const caps = (epicData.Capabilities || []);
+  let capsHtml = '';
+  if (caps.length > 0) {
+    capsHtml = '<div class="epic-divider"></div>' +
+      '<div class="epic-field"><strong>Capabilities (' + caps.length + ')</strong> — what the app must do:</div>' +
+      '<ul class="epic-caps">' +
+      caps.map(function(c) { return '<li>' + esc(c) + '</li>'; }).join('') +
+      '</ul>';
+  }
+
   wrap.innerHTML =
     '<div class="epic-card">' +
       '<div class="epic-tag">Epic — awaiting your approval</div>' +
@@ -2016,10 +2072,10 @@ function renderEpicCard() {
       '<div class="epic-field"><strong>Users:</strong> ' + esc(epicData['Users'] || '—') + '</div>' +
       '<div class="epic-field"><strong>Scope:</strong> ' + esc(epicData['Scope'] || '—') + '</div>' +
       '<div class="epic-field"><strong>Constraints:</strong> ' + esc(epicData['Constraints'] || '—') + '</div>' +
-      '<div class="epic-field"><strong>Estimated stories:</strong> ' + esc(epicData['Est stories'] || '—') + '</div>' +
       '<div class="epic-field"><strong>MVP target:</strong> ' + esc(epicData['MVP'] || '—') + '</div>' +
+      capsHtml +
       '<div class="epic-divider"></div>' +
-      '<div class="epic-note">' + esc(epicData['Summary'] || '') + ' Once approved, this goes to the admin board for sprint planning.</div>' +
+      '<div class="epic-note">' + esc(epicData['Summary'] || '') + ' Once approved, this goes to the admin board to be built and tested.</div>' +
       '<div class="epic-actions">' +
         '<button class="btn-approve" onclick="approveEpic()">Approve and submit</button>' +
         '<button class="btn-revise" onclick="reviseEpic()">Request changes</button>' +
@@ -2032,6 +2088,7 @@ function renderEpicCard() {
 async function approveEpic() {
   if (!ensureValidName()) return;
   if (!epicData) return;
+  const caps = (epicData.Capabilities || []).map(function(c) { return { title: c, description: '' }; });
   const payload = {
     submitted_by: currentUser,
     title: epicData['Title'] || 'Untitled',
@@ -2039,9 +2096,11 @@ async function approveEpic() {
     users: epicData['Users'] || '',
     scope: epicData['Scope'] || '',
     constraints: epicData['Constraints'] || '',
-    est_stories: epicData['Est stories'] || '',
     mvp: epicData['MVP'] || '',
     summary: epicData['Summary'] || '',
+    capabilities: caps,
+    qa_status: 'not_built',
+    artifact_version: 0,
     conversation: JSON.stringify(chatHistory),
     status: 'pending',
     mode: currentMode,
@@ -2055,13 +2114,10 @@ async function approveEpic() {
       actor: 'intent_user',
       actor_name: currentUser || 'unknown',
       action: 'epic_approved',
-      description: 'Epic "' + (epicData.Title || 'Untitled') + '" approved and submitted'
+      description: 'Epic "' + (epicData.Title || 'Untitled') + '" approved with ' + caps.length + ' capabilities'
     });
-  } else {
-    alert('Could not save your epic — the database may be misconfigured. Check the gear icon settings (Anthropic key, Supabase URL, Supabase anon key) and try again. If everything looks right, paste the browser console output to the team.');
-    return;
   }
-  // Save succeeded — take the user straight into the live build view
+  // Instead of showing success state, take the user straight into the live build view
   showBuildView(epicData);
 }
 
@@ -2319,23 +2375,15 @@ const BUILD_STEPS_TEMPLATE = [
 ];
 
 function showBuildView(epic) {
-  // Hide pre-build UI elements; null-guard each so a missing element can't crash the flow
-  ['.hero', '.stages', '#mode-grid', '#main-panel'].forEach(function(sel) {
-    const el = document.querySelector(sel);
-    if (el) el.style.display = 'none';
-  });
+  document.querySelector('.hero').style.display = 'none';
+  document.querySelector('.stages').style.display = 'none';
+  document.getElementById('settings-row').style.display = 'none';
+  document.getElementById('mode-grid').style.display = 'none';
+  document.getElementById('main-panel').style.display = 'none';
 
-  const buildView = document.getElementById('build-view');
-  if (!buildView) {
-    console.error('Build view container missing — cannot enter build mode');
-    alert('Something went wrong setting up the build view. Refresh the page and try again.');
-    return;
-  }
-  buildView.classList.add('open');
-  const titleEl = document.getElementById('build-title');
-  if (titleEl) titleEl.textContent = epic.Title || 'Your app';
-  const subEl = document.getElementById('build-subtitle');
-  if (subEl) subEl.textContent = epic.Goal || 'Building your app...';
+  document.getElementById('build-view').classList.add('open');
+  document.getElementById('build-title').textContent = epic.Title || 'Your app';
+  document.getElementById('build-subtitle').textContent = epic.Goal || 'Building your app...';
 
   buildSteps = JSON.parse(JSON.stringify(BUILD_STEPS_TEMPLATE));
   buildVersion = 1;

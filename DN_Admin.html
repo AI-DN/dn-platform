@@ -142,6 +142,39 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .btn-gen:hover { background: rgba(139,127,245,0.2); }
 .btn-gen:disabled { opacity: 0.4; cursor: not-allowed; }
 .epic-hint { font-size: 12px; color: var(--text3); }
+
+/* ── PHASE 1: monolithic flow styles ─────────────────────────────────── */
+.mono-view { padding: 20px 24px; animation: fadeUp 0.3s ease; max-width: 980px; }
+.mono-header { background: var(--navy3); border: 1px solid var(--border2); border-radius: 12px; padding: 16px 20px; display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px; }
+.mono-status-row { display: flex; align-items: center; gap: 10px; }
+.mono-dot { width: 10px; height: 10px; border-radius: 50%; }
+.mono-status-label { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
+.mono-version { font-size: 11px; color: var(--text3); background: var(--panel); padding: 2px 8px; border-radius: 4px; }
+.mono-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.mono-btn { border: 1px solid var(--border2); border-radius: 8px; padding: 8px 16px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
+.mono-btn-primary { background: rgba(61,214,245,0.12); border-color: rgba(61,214,245,0.35); color: var(--cyan); }
+.mono-btn-primary:hover { background: rgba(61,214,245,0.22); }
+.mono-btn-success { background: rgba(34,197,94,0.12); border-color: rgba(34,197,94,0.35); color: #22c55e; }
+.mono-btn-success:hover { background: rgba(34,197,94,0.22); }
+.mono-btn-warning { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.35); color: #f59e0b; }
+.mono-btn-warning:hover { background: rgba(245,158,11,0.22); }
+.mono-btn-secondary { background: transparent; color: var(--text2); }
+.mono-btn-secondary:hover { background: var(--panel); color: var(--text); }
+.mono-section { background: var(--navy3); border: 1px solid var(--border2); border-radius: 12px; padding: 16px 20px; margin-bottom: 14px; }
+.mono-section-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--cyan); margin-bottom: 10px; }
+.mono-field { font-size: 13px; color: var(--text2); line-height: 1.6; margin-bottom: 4px; }
+.mono-field strong { color: var(--text); margin-right: 4px; }
+.mono-caps { margin: 6px 0 8px 0; padding-left: 22px; font-size: 13px; color: var(--text); line-height: 1.7; }
+.mono-caps li { margin-bottom: 4px; }
+.mono-caps-note { font-size: 11px; color: var(--text3); font-style: italic; }
+.mono-qa-notes { border-color: rgba(245,158,11,0.35); }
+.mono-qa-notes .mono-section-title { color: #f59e0b; }
+.mono-reject-notes { border-color: rgba(239,68,68,0.35); }
+.mono-reject-notes .mono-section-title { color: #ef4444; }
+.mono-notes-body { font-size: 13px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
+.mono-building { display: flex; align-items: center; gap: 10px; color: var(--text2); font-size: 13px; }
+.mono-spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 999; padding: 24px; }
 .modal-overlay.open { display: flex; }
 .modal { background: var(--navy3); border: 1px solid var(--border2); border-radius: 16px; padding: 24px; width: 100%; max-width: 540px; max-height: 88vh; overflow-y: auto; }
@@ -1024,6 +1057,10 @@ function reqMatchesFilter(req, filter) {
 
 function needsAdminAttention(req) {
   if (req.status === 'rejected' || req.status === 'shipped') return false;
+  // Monolithic: surface attention if ready_for_qa or not_built (admin needs to act)
+  if (isMonolithicRequest(req)) {
+    return req.qa_status === 'ready_for_qa' || req.qa_status === 'not_built' || req.qa_status === 'qa_passed';
+  }
   let stories = [];
   try { stories = JSON.parse(req.stories || '[]'); } catch(e) {}
   if (!Array.isArray(stories)) return false;
@@ -1033,6 +1070,23 @@ function needsAdminAttention(req) {
 }
 
 function summariseRequestState(req) {
+  // Monolithic: summarise based on qa_status
+  if (isMonolithicRequest(req)) {
+    const submitter = req.submitted_by || '?';
+    if (req.status === 'rejected') return submitter + ' · rejected';
+    if (req.qa_status === 'shipped') {
+      let shipBit = 'shipped';
+      if (req.shipped_at) {
+        try {
+          const ago = Math.floor((Date.now() - new Date(req.shipped_at).getTime()) / (1000 * 60 * 60 * 24));
+          shipBit = 'shipped ' + (ago === 0 ? 'today' : (ago + 'd ago'));
+        } catch(e) {}
+      }
+      return submitter + ' · ' + shipBit;
+    }
+    return submitter + ' · ' + statusLabel(req.qa_status || 'not_built').toLowerCase();
+  }
+
   let stories = [];
   try { stories = JSON.parse(req.stories || '[]'); } catch(e) {}
   if (!Array.isArray(stories)) stories = [];
@@ -1408,6 +1462,13 @@ function renderEpic(id) {
   currentSprintFilter = 'all';
   const wrap = document.getElementById('board-wrap');
   wrap.innerHTML = '';
+
+  // Phase 1: monolithic flow — dispatch if request has qa_status set
+  if (isMonolithicRequest(req)) {
+    renderMonolithicView(req);
+    return;
+  }
+
   if (req.status === 'pending') {
     const div = document.createElement('div');
     div.className = 'epic-pending-card';
@@ -1496,6 +1557,519 @@ async function generateStories(reqId) {
     if (btn) { btn.disabled = false; btn.textContent = 'Generate sprint plan with Claude →'; }
   }
 }
+
+// ── PHASE 1: MONOLITHIC BUILD FLOW ─────────────────────────────────────────
+// New requests have qa_status set (not_built / building / ready_for_qa / qa_passed / shipped).
+// For these we generate a single coherent artifact via one LLM call, QA at the request level,
+// and ship the artifact_html directly without the bundler.
+
+function isMonolithicRequest(req) {
+  return req && req.qa_status && req.qa_status !== '';
+}
+
+function getCapabilities(req) {
+  if (!req || !req.capabilities) return [];
+  if (Array.isArray(req.capabilities)) return req.capabilities;
+  try {
+    const parsed = typeof req.capabilities === 'string' ? JSON.parse(req.capabilities) : req.capabilities;
+    return Array.isArray(parsed) ? parsed : [];
+  } catch(e) { return []; }
+}
+
+function statusLabel(qaStatus) {
+  return ({
+    not_built: 'Not built',
+    building: 'Building...',
+    ready_for_qa: 'Ready for QA',
+    qa_passed: 'QA passed',
+    shipped: 'Shipped'
+  })[qaStatus] || qaStatus || 'Unknown';
+}
+
+function statusDotColor(qaStatus) {
+  return ({
+    not_built: '#6c7280',
+    building: '#f59e0b',
+    ready_for_qa: '#3DD6F5',
+    qa_passed: '#22c55e',
+    shipped: '#8b5cf6'
+  })[qaStatus] || '#6c7280';
+}
+
+function renderMonolithicView(req) {
+  const wrap = document.getElementById('board-wrap');
+  const caps = getCapabilities(req);
+  const status = req.qa_status || 'not_built';
+  const isRejected = req.status === 'rejected';
+  const dotColor = isRejected ? '#ef4444' : statusDotColor(status);
+  const label = isRejected ? 'Rejected' : statusLabel(status);
+
+  // Build action button row based on state
+  let actions = '';
+  if (isRejected) {
+    actions = '<button class="mono-btn mono-btn-secondary" onclick="unRejectRequest()">Un-reject</button>';
+  } else if (status === 'not_built') {
+    actions = '<button class="mono-btn mono-btn-primary" onclick="buildRequest(\'' + req.id + '\')">Build with Claude →</button>' +
+              '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
+  } else if (status === 'building') {
+    actions = '<div class="mono-building"><span class="mono-spinner"></span>Building... this may take 30-60 seconds</div>';
+  } else if (status === 'ready_for_qa') {
+    actions = '<button class="mono-btn mono-btn-primary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview</button>' +
+              '<button class="mono-btn mono-btn-success" onclick="approveQa_mono(\'' + req.id + '\')">Approve</button>' +
+              '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>' +
+              '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
+  } else if (status === 'qa_passed') {
+    actions = '<button class="mono-btn mono-btn-primary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview</button>' +
+              '<button class="mono-btn mono-btn-success" onclick="openShipModalMono(\'' + req.id + '\')">Ship app</button>' +
+              '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>' +
+              '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
+  } else if (status === 'shipped') {
+    if (req.shipped_url) {
+      actions = '<a class="mono-btn mono-btn-primary" href="' + esc(req.shipped_url) + '" target="_blank" rel="noopener">Open live ↗</a>';
+    }
+    actions += '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview source</button>' +
+               '<button class="mono-btn mono-btn-secondary" onclick="openShipModalMono(\'' + req.id + '\')">Re-ship</button>' +
+               '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>';
+  }
+
+  // Capabilities list
+  let capsHtml = '';
+  if (caps.length > 0) {
+    capsHtml = '<div class="mono-section"><div class="mono-section-title">Capability checklist (' + caps.length + ')</div>' +
+      '<ul class="mono-caps">' +
+      caps.map(function(c) {
+        const t = (typeof c === 'string') ? c : (c.title || '');
+        return '<li>' + esc(t) + '</li>';
+      }).join('') +
+      '</ul>' +
+      '<div class="mono-caps-note">These are the capabilities the user expects from the app. Verify each one when reviewing the build.</div>' +
+      '</div>';
+  } else {
+    capsHtml = '<div class="mono-section"><div class="mono-section-title">Capability checklist</div>' +
+      '<div class="mono-caps-note">No capabilities defined for this request.</div></div>';
+  }
+
+  // QA notes from previous send-back if any
+  let qaNotesHtml = '';
+  if (req.qa_notes && (status === 'building' || status === 'ready_for_qa')) {
+    qaNotesHtml = '<div class="mono-section mono-qa-notes"><div class="mono-section-title">Last QA feedback</div>' +
+      '<div class="mono-notes-body">' + esc(req.qa_notes) + '</div></div>';
+  }
+
+  // Rejection reason
+  let rejectHtml = '';
+  if (isRejected && req.rejected_reason) {
+    rejectHtml = '<div class="mono-section mono-reject-notes"><div class="mono-section-title">Rejection reason</div>' +
+      '<div class="mono-notes-body">' + esc(req.rejected_reason) + '</div></div>';
+  }
+
+  // Version indicator
+  const version = req.artifact_version || 0;
+  const versionLabel = version > 0 ? ('v' + version) : '';
+
+  wrap.innerHTML =
+    '<div class="mono-view">' +
+      '<div class="mono-header">' +
+        '<div class="mono-status-row">' +
+          '<span class="mono-dot" style="background:' + dotColor + '"></span>' +
+          '<span class="mono-status-label">' + label + '</span>' +
+          (versionLabel ? '<span class="mono-version">' + versionLabel + '</span>' : '') +
+        '</div>' +
+        '<div class="mono-actions">' + actions + '</div>' +
+      '</div>' +
+      rejectHtml +
+      qaNotesHtml +
+      '<div class="mono-section"><div class="mono-section-title">Epic</div>' +
+        '<div class="mono-field"><strong>Goal:</strong> ' + esc(req.goal || '—') + '</div>' +
+        '<div class="mono-field"><strong>Users:</strong> ' + esc(req.users || '—') + '</div>' +
+        '<div class="mono-field"><strong>Scope:</strong> ' + esc(req.scope || '—') + '</div>' +
+        '<div class="mono-field"><strong>Constraints:</strong> ' + esc(req.constraints || '—') + '</div>' +
+        '<div class="mono-field"><strong>MVP:</strong> ' + esc(req.mvp || '—') + '</div>' +
+        '<div class="mono-field"><strong>Submitted by:</strong> ' + esc(req.submitted_by || '—') + '</div>' +
+      '</div>' +
+      capsHtml +
+    '</div>';
+  document.getElementById('stats-bar').style.display = 'none';
+}
+
+// ── BUILD: single LLM call producing one HTML artifact ────────────────────
+async function buildRequest(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+
+  const apiKey = localStorage.getItem('dn_anthropic_key');
+  if (!apiKey) { alert('Anthropic API key not configured. Open settings (gear icon) to add one.'); return; }
+
+  const caps = getCapabilities(req);
+  if (caps.length === 0) {
+    if (!confirm('This request has no capabilities defined. Build anyway from epic spec only?')) return;
+  }
+
+  // Mark building
+  req.qa_status = 'building';
+  renderMonolithicView(req);
+  await patchRequest(reqId, { qa_status: 'building' });
+
+  await logActivity({
+    request_id: reqId,
+    actor: 'admin',
+    actor_name: 'admin',
+    action: 'build_started',
+    description: 'Monolithic build started for "' + (req.title || 'Untitled') + '"'
+  });
+
+  try {
+    const previousHtml = req.artifact_html || '';
+    const qaNotes = req.qa_notes || '';
+    const isRebuild = previousHtml.length > 0;
+
+    const prompt = buildMonolithicPrompt(req, caps, previousHtml, qaNotes);
+
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 16000,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!resp.ok) {
+      const errText = await resp.text();
+      throw new Error('API error (' + resp.status + '): ' + errText.slice(0, 300));
+    }
+
+    const data = await resp.json();
+    const reply = data.content[0].text;
+
+    // Parse the JSON response — expects { "html": "..." }
+    const html = parseMonolithicReply(reply);
+    if (!html || html.length < 200) {
+      throw new Error('Build produced no HTML or output was too short. The model response was: ' + reply.slice(0, 500));
+    }
+
+    const newVersion = (req.artifact_version || 0) + 1;
+    const update = {
+      artifact_html: html,
+      artifact_version: newVersion,
+      qa_status: 'ready_for_qa',
+      qa_notes: ''  // clear old QA notes on successful rebuild
+    };
+    await patchRequest(reqId, update);
+    Object.assign(req, update);
+
+    await logActivity({
+      request_id: reqId,
+      actor: 'admin',
+      actor_name: 'admin',
+      action: isRebuild ? 'rebuild_complete' : 'build_complete',
+      description: (isRebuild ? 'Rebuild' : 'Build') + ' v' + newVersion + ' complete (' + Math.round(html.length / 1024) + ' KB)'
+    });
+
+    renderMonolithicView(req);
+  } catch(e) {
+    console.error('Build failed:', e);
+    alert('Build failed: ' + e.message + '\n\nThe request has been reset to its previous state.');
+    // Roll back qa_status
+    const rollbackTo = (req.artifact_html && req.artifact_html.length > 0) ? 'ready_for_qa' : 'not_built';
+    req.qa_status = rollbackTo;
+    await patchRequest(reqId, { qa_status: rollbackTo });
+    renderMonolithicView(req);
+  }
+}
+
+function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
+  const capsList = caps.map(function(c, i) {
+    const t = (typeof c === 'string') ? c : (c.title || '');
+    return (i + 1) + '. ' + t;
+  }).join('\n');
+
+  const isRebuild = previousHtml && previousHtml.length > 0;
+
+  let prompt =
+'You are an expert front-end engineer building a complete, working web application based on the following epic. ' +
+'You will produce ONE single self-contained HTML file that runs in the browser as a sandboxed iframe.\n\n' +
+'EPIC\n' +
+'Title: ' + (req.title || '') + '\n' +
+'Goal: ' + (req.goal || '') + '\n' +
+'Users: ' + (req.users || '') + '\n' +
+'Scope: ' + (req.scope || '') + '\n' +
+'MVP: ' + (req.mvp || '') + '\n' +
+'Constraints: ' + (req.constraints || 'none') + '\n\n' +
+'CAPABILITY CHECKLIST — the app MUST satisfy every item below:\n' + capsList + '\n\n' +
+'HARD RULES:\n' +
+'- Output a SINGLE coherent HTML file. Do NOT produce multiple separate apps. Do NOT produce alternative implementations of the same thing. ONE app, all features integrated.\n' +
+'- Inline ALL CSS and JS. No external file references except via well-known CDNs (cdnjs.cloudflare.com, unpkg.com).\n' +
+'- Do NOT use localStorage, sessionStorage, IndexedDB, or any browser storage API. State must live in memory only — these APIs are not supported in the sandboxed iframe and will throw.\n' +
+'- Do NOT use alert(), confirm(), or prompt() — use inline UI for messages and confirmations instead.\n' +
+'- The HTML must include a complete <!DOCTYPE html> declaration and run standalone when opened in a browser.\n' +
+'- Make the app visually polished and usable — proper layout, sensible colors, readable typography, responsive.\n' +
+'- Handle errors gracefully. Validate inputs. Don\'t let runtime errors crash the page.\n\n';
+
+  if (isRebuild) {
+    prompt +=
+'THIS IS A REBUILD. The previous version of this app has been reviewed and needs changes.\n\n' +
+'PREVIOUS VERSION HTML (preserve what works, only fix the issues described below):\n' +
+'```html\n' + previousHtml + '\n```\n\n';
+    if (qaNotes) {
+      prompt +=
+'REQUESTED CHANGES from the QA reviewer:\n' + qaNotes + '\n\n' +
+'Apply these changes while preserving everything else that already works. Do NOT regress on capabilities that were already implemented correctly.\n\n';
+    }
+  }
+
+  prompt +=
+'OUTPUT FORMAT:\n' +
+'Respond with a single JSON object containing one field "html" with the complete HTML document as the value. No prose, no markdown fences, no explanation. Just:\n' +
+'{"html":"<!DOCTYPE html>...</html>"}\n\n' +
+'JSON STRING ESCAPING — this is critical:\n' +
+'- All double quotes in the HTML must be escaped as \\"\n' +
+'- All backslashes must be escaped as \\\\\n' +
+'- Newlines in the HTML must be escaped as \\n (or you can use literal newlines — both are valid JSON when properly handled)\n' +
+'- Do NOT wrap the JSON in markdown code fences\n' +
+'- Output the JSON object and nothing else\n';
+
+  return prompt;
+}
+
+function parseMonolithicReply(reply) {
+  if (!reply) return null;
+  let text = reply.trim();
+
+  // Strip markdown code fences if the model added them despite instructions
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+  // Strategy 1: direct JSON.parse
+  try {
+    const obj = JSON.parse(text);
+    if (obj && typeof obj.html === 'string') return obj.html;
+  } catch(e) { /* fall through */ }
+
+  // Strategy 2: find {"html": ... } block and parse just that
+  const m = text.match(/\{\s*"html"\s*:/);
+  if (m) {
+    const start = m.index;
+    // Try parsing progressively from start — find the matching close brace
+    for (let end = text.length; end > start + 20; end--) {
+      try {
+        const slice = text.slice(start, end);
+        const obj = JSON.parse(slice);
+        if (obj && typeof obj.html === 'string') return obj.html;
+      } catch(e) { /* keep looking */ }
+    }
+  }
+
+  // Strategy 3: heuristic extract — find the first <!DOCTYPE through the last </html>
+  const docMatch = text.match(/<!DOCTYPE[\s\S]*<\/html\s*>/i);
+  if (docMatch) {
+    return docMatch[0]
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+  }
+
+  return null;
+}
+
+async function patchRequest(reqId, fields) {
+  const url = surl('requests?id=eq.' + reqId);
+  const headers = Object.assign({}, hdrs(), { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+  const resp = await fetch(url, { method: 'PATCH', headers: headers, body: JSON.stringify(fields) });
+  if (!resp.ok) {
+    const t = await resp.text();
+    console.error('PATCH failed:', resp.status, t);
+    throw new Error('Failed to update request: ' + resp.status);
+  }
+}
+
+// ── PREVIEW: show artifact_html in iframe overlay ────────────────────────
+function previewArtifact_mono(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req || !req.artifact_html) { alert('No artifact to preview yet.'); return; }
+
+  const overlay = document.createElement('div');
+  overlay.id = 'mono-preview-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.85);z-index:1000;display:flex;flex-direction:column;';
+  overlay.innerHTML =
+    '<div style="padding:12px 18px;background:#0a1628;color:#e6ecf5;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #1f2937;">' +
+      '<div><strong>Preview:</strong> ' + esc(req.title || 'Untitled') + ' <span style="color:#6c7280;margin-left:8px;">v' + (req.artifact_version || 0) + '</span></div>' +
+      '<button onclick="closePreviewMono()" style="background:#3DD6F5;color:#0a1628;border:0;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;">Close ✕</button>' +
+    '</div>' +
+    '<iframe id="mono-preview-frame" sandbox="allow-scripts allow-modals allow-popups allow-forms allow-same-origin" style="flex:1;border:0;background:white;"></iframe>';
+  document.body.appendChild(overlay);
+
+  const frame = document.getElementById('mono-preview-frame');
+  frame.srcdoc = req.artifact_html;
+}
+
+function closePreviewMono() {
+  const o = document.getElementById('mono-preview-overlay');
+  if (o) o.remove();
+}
+
+// ── QA Approve: ready_for_qa → qa_passed ────────────────────────────────
+async function approveQa_mono(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+  await patchRequest(reqId, { qa_status: 'qa_passed' });
+  req.qa_status = 'qa_passed';
+  await logActivity({
+    request_id: reqId,
+    actor: 'admin',
+    actor_name: 'admin',
+    action: 'qa_passed',
+    description: 'QA approved v' + (req.artifact_version || 0)
+  });
+  renderMonolithicView(req);
+}
+
+// ── QA Send-back: open notes modal ──────────────────────────────────────
+function openSendBackModal(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'sendback-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:560px;max-width:92vw;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
+      '<h3 style="margin:0 0 8px 0;color:#3DD6F5;font-size:16px;">Send back for changes</h3>' +
+      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Describe what needs to change. Be specific — your notes are passed to the build agent and used to regenerate the app while preserving what works.</p>' +
+      '<textarea id="sendback-notes" rows="6" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="e.g. The AI difficulty levels do not actually behave differently. Difficulty 3 should be noticeably harder than difficulty 1. Also the score does not reset when R is pressed."></textarea>' +
+      '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
+        '<button onclick="closeSendBackModal()" style="background:transparent;color:#9ca3af;border:1px solid #1f2937;padding:8px 14px;border-radius:6px;cursor:pointer;">Cancel</button>' +
+        '<button onclick="confirmSendBack(\'' + reqId + '\')" style="background:#f59e0b;color:#0a1628;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;">Send back &amp; rebuild</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function() {
+    const ta = document.getElementById('sendback-notes');
+    if (ta) ta.focus();
+  }, 50);
+}
+
+function closeSendBackModal() {
+  const o = document.getElementById('sendback-overlay');
+  if (o) o.remove();
+}
+
+async function confirmSendBack(reqId) {
+  const ta = document.getElementById('sendback-notes');
+  const notes = (ta ? ta.value : '').trim();
+  if (!notes) { alert('Please describe what needs to change.'); return; }
+
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+
+  await patchRequest(reqId, { qa_notes: notes, qa_status: 'not_built' });
+  req.qa_notes = notes;
+  req.qa_status = 'not_built';
+
+  await logActivity({
+    request_id: reqId,
+    actor: 'admin',
+    actor_name: 'admin',
+    action: 'qa_send_back',
+    description: 'Sent back v' + (req.artifact_version || 0) + ' for changes: ' + notes.slice(0, 120) + (notes.length > 120 ? '...' : '')
+  });
+
+  closeSendBackModal();
+  // Immediately trigger a rebuild
+  buildRequest(reqId);
+}
+
+// ── SHIP for monolithic — direct artifact_html publish ────────────────────
+function openShipModalMono(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req || !req.artifact_html) { alert('No artifact to ship yet.'); return; }
+
+  const defaultFilename = (req.title || 'app').replace(/[^a-zA-Z0-9]/g, '') + '.html';
+  const branch = localStorage.getItem('dn_gh_branch') || 'main';
+
+  const overlay = document.createElement('div');
+  overlay.id = 'ship-mono-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:560px;max-width:92vw;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
+      '<h3 style="margin:0 0 8px 0;color:#3DD6F5;font-size:16px;">Ship app</h3>' +
+      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Publish this artifact to GitHub. The landing page picks it up automatically.</p>' +
+      '<label style="display:block;font-size:12px;color:#9ca3af;margin-bottom:4px;">Filename in repo</label>' +
+      '<input id="ship-filename" type="text" value="' + esc(defaultFilename) + '" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:12px;">' +
+      '<label style="display:block;font-size:12px;color:#9ca3af;margin-bottom:4px;">Branch</label>' +
+      '<input id="ship-branch" type="text" value="' + esc(branch) + '" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;">' +
+      '<div id="ship-status-mono" style="margin-top:12px;font-size:12px;color:#9ca3af;min-height:18px;"></div>' +
+      '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
+        '<button onclick="closeShipModalMono()" style="background:transparent;color:#9ca3af;border:1px solid #1f2937;padding:8px 14px;border-radius:6px;cursor:pointer;">Cancel</button>' +
+        '<button id="ship-mono-go" onclick="executeShipMono(\'' + reqId + '\')" style="background:#22c55e;color:#0a1628;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;">Publish</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+}
+
+function closeShipModalMono() {
+  const o = document.getElementById('ship-mono-overlay');
+  if (o) o.remove();
+}
+
+async function executeShipMono(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req || !req.artifact_html) { alert('No artifact to ship.'); return; }
+
+  const filenameEl = document.getElementById('ship-filename');
+  const branchEl = document.getElementById('ship-branch');
+  const statusEl = document.getElementById('ship-status-mono');
+  const btn = document.getElementById('ship-mono-go');
+  if (!filenameEl || !branchEl || !statusEl) return;
+
+  const filename = filenameEl.value.trim();
+  const branch = branchEl.value.trim();
+  if (!filename || !branch) { alert('Filename and branch are required.'); return; }
+  if (!/^[A-Za-z0-9_.-]+\.html$/.test(filename)) { alert('Filename must end in .html and contain only letters, numbers, dot, dash, underscore.'); return; }
+
+  btn.disabled = true; btn.textContent = 'Publishing...';
+  statusEl.textContent = '';
+  statusEl.style.color = '#9ca3af';
+
+  function setStatus(msg) { statusEl.textContent = msg; }
+
+  const result = await publishToGithub(filename, req.artifact_html, branch, setStatus);
+  if (!result.ok) {
+    statusEl.style.color = '#ef4444';
+    statusEl.textContent = result.error;
+    btn.disabled = false; btn.textContent = 'Publish';
+    return;
+  }
+
+  // Save shipped_url + qa_status
+  const update = {
+    shipped_url: result.pagesUrl,
+    qa_status: 'shipped',
+    status: 'shipped'
+  };
+  await patchRequest(reqId, update);
+  Object.assign(req, update);
+
+  await logActivity({
+    request_id: reqId,
+    actor: 'admin',
+    actor_name: 'admin',
+    action: 'shipped',
+    description: 'Shipped v' + (req.artifact_version || 0) + ' to ' + result.pagesUrl
+  });
+
+  statusEl.style.color = '#22c55e';
+  statusEl.innerHTML = 'Shipped! Live at: <a href="' + esc(result.pagesUrl) + '" target="_blank" style="color:#3DD6F5;">' + esc(result.pagesUrl) + '</a><br>(Pages may take 30-60s to update)';
+  btn.textContent = 'Done';
+  btn.onclick = function() { closeShipModalMono(); renderMonolithicView(req); };
+}
+
+// ── END MONOLITHIC FLOW ─────────────────────────────────────────────────
 
 function renderBoard(req) {
   let stories = storyCache[req.id] || [];
