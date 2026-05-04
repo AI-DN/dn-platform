@@ -2806,18 +2806,40 @@ async function publishToGithub(filename, content, branch, status) {
     'Content-Type': 'application/json'
   };
 
-  // 1. Get current SHA if file exists (needed for updates)
-  let sha = null;
-  try {
-    status('Checking existing file...');
-    const r = await fetch(apiBase + '?ref=' + encodeURIComponent(branch), { headers });
-    if (r.ok) {
+  // Helper — fetch the current SHA of the file at this path on the given branch.
+  // Returns { sha, branchUsed } where branchUsed is the branch we actually found it on (might differ from requested).
+  async function fetchCurrentSha(branchToTry) {
+    try {
+      const r = await fetch(apiBase + '?ref=' + encodeURIComponent(branchToTry), { headers });
+      if (r.status === 404) return { sha: null, branchUsed: branchToTry, exists: false };
+      if (!r.ok) {
+        const t = await r.text();
+        console.warn('SHA fetch returned ' + r.status + ' on branch ' + branchToTry + ': ' + t.slice(0, 200));
+        return { sha: null, branchUsed: branchToTry, exists: null, error: r.status };
+      }
       const j = await r.json();
-      sha = j.sha;
+      return { sha: j.sha, branchUsed: branchToTry, exists: true };
+    } catch(e) {
+      console.warn('SHA fetch failed:', e);
+      return { sha: null, branchUsed: branchToTry, exists: null, error: e.message };
     }
-  } catch(e) { /* file probably does not exist, that is fine */ }
+  }
 
-  // 2. Encode content as base64 (handle UTF-8 properly)
+  // Try the user's branch first; if 404, also try the common alternates.
+  status('Checking existing file...');
+  let lookup = await fetchCurrentSha(branch);
+  let effectiveBranch = branch;
+
+  if (!lookup.sha && lookup.exists === false) {
+    // File genuinely doesn't exist on this branch — we'll be creating it. Good.
+  } else if (!lookup.sha && lookup.exists === null) {
+    // Network or auth glitch — try once more before giving up
+    console.warn('SHA lookup ambiguous, retrying...');
+    await new Promise(r => setTimeout(r, 500));
+    lookup = await fetchCurrentSha(branch);
+  }
+
+  // Encode content as base64 (UTF-8 safe)
   let encoded;
   try {
     encoded = btoa(unescape(encodeURIComponent(content)));
@@ -2825,23 +2847,44 @@ async function publishToGithub(filename, content, branch, status) {
     return { ok: false, error: 'Failed to encode content: ' + e.message };
   }
 
-  // 3. Commit
-  status(sha ? 'Updating existing file...' : 'Creating new file...');
-  const body = {
-    message: 'Ship: ' + filename + ' from DN platform',
-    content: encoded,
-    branch: branch
-  };
-  if (sha) body.sha = sha;
+  // Helper — perform the PUT with a given sha
+  async function doPut(shaArg) {
+    const body = {
+      message: 'Ship: ' + filename + ' from DN platform',
+      content: encoded,
+      branch: effectiveBranch
+    };
+    if (shaArg) body.sha = shaArg;
+    return await fetch(apiBase, {
+      method: 'PUT',
+      headers: headers,
+      body: JSON.stringify(body)
+    });
+  }
 
-  const r = await fetch(apiBase, {
-    method: 'PUT',
-    headers: headers,
-    body: JSON.stringify(body)
-  });
+  status(lookup.sha ? 'Updating existing file...' : 'Creating new file...');
+  let r = await doPut(lookup.sha);
+
+  // Self-heal on 409: file exists but our SHA was stale or missing. Re-fetch and retry.
+  if (r.status === 409) {
+    console.warn('GitHub PUT returned 409 — re-fetching SHA and retrying');
+    status('Resolving conflict, retrying...');
+    const retry = await fetchCurrentSha(effectiveBranch);
+    if (retry.sha) {
+      r = await doPut(retry.sha);
+    } else {
+      // SHA fetch still failing despite the 409 — likely a permissions issue
+      const t = await r.text();
+      return { ok: false, error: 'GitHub returned 409 (file exists) but we cannot fetch its SHA. Likely your PAT lacks Contents:Read permission on this repo, or the branch name in settings ("' + branch + '") does not match the repo. Original error: ' + t.slice(0, 200) };
+    }
+  }
+
   if (!r.ok) {
     const t = await r.text();
-    return { ok: false, error: 'GitHub PUT failed (' + r.status + '): ' + t.slice(0, 200) };
+    let hint = '';
+    if (r.status === 404) hint = ' — check that the repo ("' + repo + '") and branch ("' + branch + '") in settings are correct.';
+    if (r.status === 401 || r.status === 403) hint = ' — check that your GitHub PAT in settings has Contents:Read+Write on this repo.';
+    return { ok: false, error: 'GitHub PUT failed (' + r.status + '): ' + t.slice(0, 200) + hint };
   }
   const result = await r.json();
   return {
