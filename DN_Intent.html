@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<style id="dn-gate-style">html body{display:none !important}</style>
+<style id="dn-gate-style">html body > *:not(#dn-gate-overlay){display:none !important}body{visibility:visible !important}</style>
 <script id="dn-gate-script">
 (function() {
   const HASH = "e28247c54630d4592f4705e2220c4d4f821004cb6e83ff9567474ee767a8d649";
@@ -1516,18 +1516,69 @@ async function addStoryForAgent(reqId, kind, title, what, test) {
   const validKinds = ['bug', 'feature', 'improvement'];
   if (validKinds.indexOf(kind) === -1) kind = 'feature';
 
-  const titlePrefix = kind === 'bug' ? '[Bug] ' : kind === 'improvement' ? '[Improvement] ' : '[Feature] ';
-  const sprintName = kind === 'bug' ? 'Bugs' : 'Features';
-
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
-    const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories,title', { headers });
+    // Fetch the request — including monolithic fields so we know which path to take
+    const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories,title,qa_status,capabilities,artifact_version', { headers });
     if (!r.ok) return { ok: false, error: 'Could not fetch request: HTTP ' + r.status };
     const rows = await r.json();
     if (!rows.length) return { ok: false, error: 'Request not found' };
 
+    const row = rows[0];
+    const isMonolithic = !!(row.qa_status && row.qa_status !== '');
+
+    if (isMonolithic) {
+      // Phase 2 path: append to capabilities, flag as added-after-build, flip status to not_built
+      // so admin sees the "build/rebuild" button and the new capabilities show as pending.
+      let caps = [];
+      if (Array.isArray(row.capabilities)) caps = row.capabilities;
+      else if (typeof row.capabilities === 'string') {
+        try { caps = JSON.parse(row.capabilities) || []; } catch(e) { caps = []; }
+      }
+      if (!Array.isArray(caps)) caps = [];
+
+      const labelPrefix = kind === 'bug' ? '[Fix] ' : kind === 'improvement' ? '[Improve] ' : '[Add] ';
+      const newCap = {
+        title: labelPrefix + title,
+        description: what,
+        kind: kind,
+        added_after_build: true,
+        added_by: currentUser || 'unknown',
+        added_at: new Date().toISOString()
+      };
+      caps.push(newCap);
+
+      const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+      const p = await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
+        method: 'PATCH', headers: patchHeaders,
+        body: JSON.stringify({
+          capabilities: caps,
+          qa_status: 'not_built'  // signals to admin: there are unbuilt capabilities
+        })
+      });
+      if (!p.ok) {
+        const errText = await p.text();
+        return { ok: false, error: 'Save failed: ' + errText.slice(0, 200) };
+      }
+
+      await logActivity({
+        request_id: reqId,
+        actor: 'intent_user',
+        actor_name: currentUser || 'unknown',
+        action: kind + '_capability_added',
+        description: '"' + title + '" via agent (capability): ' + what.slice(0, 200)
+      });
+      logTurn(reqId, 'add_capability', 'user', kind + ' capability added: ' + title + '\n\nWhat: ' + what + '\nTest: ' + test);
+
+      return { ok: true, cardTitle: labelPrefix + title, requestTitle: row.title, kind: kind, monolithic: true };
+    }
+
+    // Legacy path: append to stories array (existing behaviour)
+    const titlePrefix = kind === 'bug' ? '[Bug] ' : kind === 'improvement' ? '[Improvement] ' : '[Feature] ';
+    const sprintName = kind === 'bug' ? 'Bugs' : 'Features';
+
     let stories = [];
-    try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) {}
+    try { stories = JSON.parse(row.stories || '[]'); } catch(e) {}
     if (!Array.isArray(stories)) stories = [];
 
     const card = {
@@ -1565,7 +1616,7 @@ async function addStoryForAgent(reqId, kind, title, what, test) {
     });
     logTurn(reqId, 'add_story', 'user', kind + ' added: ' + title + '\n\nWhat: ' + what + '\nTest: ' + test);
 
-    return { ok: true, cardTitle: card.title, requestTitle: rows[0].title, kind: kind };
+    return { ok: true, cardTitle: card.title, requestTitle: row.title, kind: kind, monolithic: false };
   } catch(e) {
     return { ok: false, error: e.message };
   }

@@ -169,6 +169,13 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .mono-caps-note { font-size: 11px; color: var(--text3); font-style: italic; }
 .mono-qa-notes { border-color: rgba(245,158,11,0.35); }
 .mono-qa-notes .mono-section-title { color: #f59e0b; }
+.mono-pending { border-color: rgba(139,127,245,0.45); background: linear-gradient(180deg, rgba(139,127,245,0.06), var(--navy3)); }
+.mono-pending .mono-section-title { color: var(--purple); }
+.mono-caps-pending li { color: var(--text); }
+.mono-cap-desc { color: var(--text2); font-style: italic; }
+.mono-cap-meta { color: var(--text3); font-size: 11px; }
+.mono-cap-badge { display: inline-block; background: rgba(139,127,245,0.18); border: 1px solid rgba(139,127,245,0.4); color: var(--purple); font-size: 10px; padding: 1px 7px; border-radius: 10px; margin-left: 6px; font-weight: 600; vertical-align: middle; }
+.cap-pending { color: var(--text); }
 .mono-reject-notes { border-color: rgba(239,68,68,0.35); }
 .mono-reject-notes .mono-section-title { color: #ef4444; }
 .mono-notes-body { font-size: 13px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
@@ -1602,15 +1609,29 @@ function renderMonolithicView(req) {
   const status = req.qa_status || 'not_built';
   const isRejected = req.status === 'rejected';
   const dotColor = isRejected ? '#ef4444' : statusDotColor(status);
-  const label = isRejected ? 'Rejected' : statusLabel(status);
+  const hasPriorArtifact = !!(req.artifact_html && req.artifact_html.length > 0);
+  const pendingCaps = caps.filter(function(c) { return c && typeof c === 'object' && c.added_after_build; });
+  const hasPendingChanges = pendingCaps.length > 0;
+  let label = isRejected ? 'Rejected' : statusLabel(status);
+  // Friendlier label when not_built but artifact exists (i.e., changes pending after a previous build)
+  if (!isRejected && status === 'not_built' && hasPriorArtifact) {
+    label = hasPendingChanges ? ('Changes pending (' + pendingCaps.length + ')') : 'Ready to rebuild';
+  }
 
   // Build action button row based on state
   let actions = '';
   if (isRejected) {
     actions = '<button class="mono-btn mono-btn-secondary" onclick="unRejectRequest()">Un-reject</button>';
   } else if (status === 'not_built') {
-    actions = '<button class="mono-btn mono-btn-primary" onclick="buildRequest(\'' + req.id + '\')">Build with Claude →</button>' +
-              '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
+    const buildLabel = hasPriorArtifact ? (hasPendingChanges ? 'Rebuild with changes →' : 'Rebuild with Claude →') : 'Build with Claude →';
+    actions = '<button class="mono-btn mono-btn-primary" onclick="buildRequest(\'' + req.id + '\')">' + buildLabel + '</button>';
+    if (hasPriorArtifact) {
+      actions += '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview current version</button>';
+      if (req.shipped_url) {
+        actions += '<a class="mono-btn mono-btn-secondary" href="' + esc(req.shipped_url) + '" target="_blank" rel="noopener">Open live ↗</a>';
+      }
+    }
+    actions += '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'building') {
     actions = '<div class="mono-building"><span class="mono-spinner"></span>Building... this may take 30-60 seconds</div>';
   } else if (status === 'ready_for_qa') {
@@ -1632,14 +1653,31 @@ function renderMonolithicView(req) {
                '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>';
   }
 
-  // Capabilities list
+  // Pending-changes panel — highlights what's new since the last build
+  let pendingHtml = '';
+  if (hasPendingChanges) {
+    pendingHtml = '<div class="mono-section mono-pending"><div class="mono-section-title">User-requested changes (' + pendingCaps.length + ')</div>' +
+      '<ul class="mono-caps mono-caps-pending">' +
+      pendingCaps.map(function(c) {
+        const t = c.title || '';
+        const d = c.description ? (' <span class="mono-cap-desc">— ' + esc(c.description) + '</span>') : '';
+        const who = c.added_by ? (' <span class="mono-cap-meta">(by ' + esc(c.added_by) + ')</span>') : '';
+        return '<li>' + esc(t) + d + who + '</li>';
+      }).join('') +
+      '</ul>' +
+      '<div class="mono-caps-note">These were added after the last build. Click "Rebuild with changes" to incorporate them — the build agent will preserve the previous version and add these capabilities.</div>' +
+      '</div>';
+  }
+
+  // Capabilities list (full checklist — pending items annotated with a marker)
   let capsHtml = '';
   if (caps.length > 0) {
     capsHtml = '<div class="mono-section"><div class="mono-section-title">Capability checklist (' + caps.length + ')</div>' +
       '<ul class="mono-caps">' +
       caps.map(function(c) {
         const t = (typeof c === 'string') ? c : (c.title || '');
-        return '<li>' + esc(t) + '</li>';
+        const isPending = c && typeof c === 'object' && c.added_after_build;
+        return '<li' + (isPending ? ' class="cap-pending"' : '') + '>' + esc(t) + (isPending ? ' <span class="mono-cap-badge">new</span>' : '') + '</li>';
       }).join('') +
       '</ul>' +
       '<div class="mono-caps-note">These are the capabilities the user expects from the app. Verify each one when reviewing the build.</div>' +
@@ -1678,6 +1716,7 @@ function renderMonolithicView(req) {
         '<div class="mono-actions">' + actions + '</div>' +
       '</div>' +
       rejectHtml +
+      pendingHtml +
       qaNotesHtml +
       '<div class="mono-section"><div class="mono-section-title">Epic</div>' +
         '<div class="mono-field"><strong>Goal:</strong> ' + esc(req.goal || '—') + '</div>' +
@@ -1755,11 +1794,22 @@ async function buildRequest(reqId) {
     }
 
     const newVersion = (req.artifact_version || 0) + 1;
+    // Clear the added_after_build flags on capabilities — they're now part of the build
+    const clearedCaps = caps.map(function(c) {
+      if (c && typeof c === 'object' && c.added_after_build) {
+        const copy = Object.assign({}, c);
+        delete copy.added_after_build;
+        return copy;
+      }
+      return c;
+    });
+
     const update = {
       artifact_html: html,
       artifact_version: newVersion,
       qa_status: 'ready_for_qa',
-      qa_notes: ''  // clear old QA notes on successful rebuild
+      qa_notes: '',  // clear old QA notes on successful rebuild
+      capabilities: clearedCaps
     };
     await patchRequest(reqId, update);
     Object.assign(req, update);
@@ -1815,8 +1865,22 @@ function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
   if (isRebuild) {
     prompt +=
 'THIS IS A REBUILD. The previous version of this app has been reviewed and needs changes.\n\n' +
-'PREVIOUS VERSION HTML (preserve what works, only fix the issues described below):\n' +
+'PREVIOUS VERSION HTML (preserve what works, only address the changes described below):\n' +
 '```html\n' + previousHtml + '\n```\n\n';
+
+    // Pending capabilities = user-requested additions since the last build
+    const pendingCaps = caps.filter(function(c) { return c && typeof c === 'object' && c.added_after_build; });
+    if (pendingCaps.length > 0) {
+      const pendingList = pendingCaps.map(function(c, i) {
+        const t = c.title || '';
+        const d = c.description ? (' — ' + c.description) : '';
+        return (i + 1) + '. ' + t + d;
+      }).join('\n');
+      prompt +=
+'NEW CAPABILITIES requested by the user (these were added AFTER the previous build — they are the primary focus of this rebuild):\n' + pendingList + '\n\n' +
+'Implement these new capabilities while preserving everything that already works in the previous HTML. Do NOT regress on capabilities that were already implemented correctly. Integrate the new capabilities cleanly into the existing app — extend the existing UI rather than replacing it.\n\n';
+    }
+
     if (qaNotes) {
       prompt +=
 'REQUESTED CHANGES from the QA reviewer:\n' + qaNotes + '\n\n' +
