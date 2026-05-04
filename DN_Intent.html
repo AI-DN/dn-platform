@@ -1180,16 +1180,19 @@ function buildContextSection() {
 
   if (platformContext.shipped.length) {
     parts.push('## Shipped tools available on the platform (' + platformContext.shipped.length + ')');
-    platformContext.shipped.slice(0, 10).forEach(function(r) {
-      parts.push('- "' + (r.title || 'untitled') + '" — ' + (r.goal || '') + ' (by ' + (r.submitted_by || '?') + ')');
-    });
     parts.push('');
+    parts.push('These are live, deployed apps. The user can launch them, request changes against them, or report bugs. When the user asks about an app or wants to change something in it, identify which one and use the story breakdown to talk specifically about its features.');
+    parts.push('');
+    platformContext.shipped.slice(0, 10).forEach(function(r) {
+      parts.push(detailedSummary(r));
+      if (r.shipped_url) parts.push('  Live URL: ' + r.shipped_url);
+      parts.push('');
+    });
   }
 
   if (platformContext.active.length) {
     parts.push('## Other active builds across the platform (' + platformContext.active.length + ')');
     platformContext.active.slice(0, 10).forEach(function(r) {
-      // If this request is also in myRequests, skip (already shown above with full detail)
       const isMine = platformContext.myRequests.some(function(m) { return m.id === r.id; });
       if (!isMine) parts.push(briefSummary(r));
     });
@@ -1260,19 +1263,41 @@ If any of the user's requests has status 'rejected', the platform context will s
 4. If they want to submit a follow-up, treat it as a fresh request — don't try to revive the rejected one.
 5. Do NOT proactively bring up rejected requests unless the user asks. Surface the reason when asked, not unsolicited.
 
-# Bug reports for shipped apps
-The user can talk to you about bugs in apps that have been shipped to them. When this happens:
-1. Ask clarifying questions if needed — what happened, what did they expect, steps to reproduce, which app exactly. Don't grill them; one or two clarifications maximum.
-2. Once you have enough to write a useful bug card, summarise it back: a one-line title and a few sentences of detail. Get explicit user confirmation ("yes, file it" or similar).
-3. Only when confirmed, write the confirmation message and at the very end emit on its own line: <!-- FILE_BUG reqId="<request id>" title="<bug title without [Bug] prefix>" details="<description>" -->
-4. The frontend strips the marker before showing your message and creates a Bug card on the kanban. The marker MUST be inside an HTML comment so the user does not see it.
-5. If multiple bugs come up in one conversation, emit one marker per bug on separate lines.
+# Changes against existing apps (bugs, features, improvements)
+The user can talk to you about three kinds of changes to apps that already exist:
+- **Bugs** — something broken in a shipped app
+- **Features** — new functionality to add to an existing app
+- **Improvements** — refinements to existing functionality (better layout, smoother UX, performance)
 
-# Constraints for bug filing
+When the user describes any of these:
+1. Identify which app they mean. Look in the "Shipped tools available" section — match by title, by description, or by features they mention. If unclear, ask which one.
+2. For features and improvements: ask a couple of clarifying questions to make the change concrete. What page does it appear on? What's the input/output? What does success look like? For bugs: what happened, what did they expect, steps to reproduce. Don't grill — one or two clarifications max.
+3. Once you have enough to write a useful card, summarise it back: a one-line title and a few sentences of detail. Get explicit user confirmation ("yes, file it" or similar).
+4. Only when confirmed, write the confirmation message and at the very end emit on its own line:
+   <!-- ADD_STORY reqId="<request id>" kind="<bug|feature|improvement>" title="<title without prefix>" what="<concrete description of what to build>" test="<how to verify it works>" -->
+5. The frontend strips the marker before showing your message and creates a card on the kanban. The marker MUST be inside an HTML comment so the user does not see it.
+6. If multiple changes come up in one conversation, emit one marker per change on separate lines.
+
+# Constraints for filing changes
 - Use the exact request id from the platform context (the 8-char prefix shown as 'id:xxxxxxxx' is enough — frontend resolves to full uuid).
-- Title should be concise, written from the system perspective — "Sector chart does not load on mobile" not "I tried to look at the chart but"
-- Details should include reproduction steps if the user gave any. Do not invent details.
-- Never file a bug without explicit user confirmation. If the user is venting or describing expected behaviour, discuss instead of filing.
+- Title should be concise, written from the system perspective. For bugs: "Sector chart does not load on mobile". For features: "Add news headlines per stock". For improvements: "Make legend wrap properly on narrow screens".
+- The 'what' field should be specific enough that a developer could implement it without asking back. Reference UI elements by name where possible, mention which file/component if you know it.
+- The 'test' field describes how to verify the change worked. For bugs: "the bug no longer reproduces". For features: "user can do X and see Y".
+- Do NOT invent details the user didn't give. If you're unsure about something material, ask before filing.
+- Never file without explicit user confirmation. If the user is venting, exploring, or describing expected behaviour, discuss instead.
+
+# Recognising the difference: change vs new request
+- "Add X to the stock tracker" → change to existing app, use ADD_STORY
+- "Build me a stock tracker" → new request, follow the normal capture flow (EPIC_READY)
+- "I want a new app for X" → new request, normal flow
+- If the user describes something that COULD be a feature of an existing app, raise that explicitly: "this could be a feature on the Stock Tracker, or a fresh app — which fits better?" Most users underestimate how much functionality could fit into one app.
+
+# Talking substantively about shipped apps
+The "Shipped tools" section gives you each app's full story breakdown. Use this to answer questions concretely:
+- "What does the stock tracker do?" → list its actual features from the stories, not generic descriptions
+- "What's broken?" → look for stories with qa_failed status or recent bug_report cards
+- "Has X been built?" → check the story list for that app
+- Refer to specific features by their story titles when relevant
 `;
 
 const SYSTEM_PROMPT = `You are a requirements analyst for Digitata Networks. Your job is to understand what a user wants to build or improve, then produce a structured epic for the engineering team.
@@ -1401,12 +1426,19 @@ function showFileWarning() {
 
 
 
-// ── Agent-driven bug filing — called when the agent emits a FILE_BUG marker
-async function fileBugForAgent(reqId, title, details) {
+// ── Agent-driven story addition — called when the agent emits an ADD_STORY marker
+async function addStoryForAgent(reqId, kind, title, what, test) {
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
   if (!url || !key) return { ok: false, error: 'No DB credentials' };
-  if (!reqId || !title || !details) return { ok: false, error: 'Missing required fields' };
+  if (!reqId || !title || !what) return { ok: false, error: 'Missing required fields' };
+
+  // Normalise kind
+  const validKinds = ['bug', 'feature', 'improvement'];
+  if (validKinds.indexOf(kind) === -1) kind = 'feature';
+
+  const titlePrefix = kind === 'bug' ? '[Bug] ' : kind === 'improvement' ? '[Improvement] ' : '[Feature] ';
+  const sprintName = kind === 'bug' ? 'Bugs' : 'Features';
 
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
@@ -1416,23 +1448,24 @@ async function fileBugForAgent(reqId, title, details) {
     if (!rows.length) return { ok: false, error: 'Request not found' };
 
     let stories = [];
-    try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) { stories = []; }
+    try { stories = JSON.parse(rows[0].stories || '[]'); } catch(e) {}
     if (!Array.isArray(stories)) stories = [];
 
-    const bugCard = {
-      title: '[Bug] ' + title,
-      why: details,
-      what: 'Fix: ' + details,
-      test: 'Manually verify the bug is no longer reproducible',
+    const card = {
+      title: titlePrefix + title,
+      why: what,
+      what: what,
+      test: test || 'Manually verify this works',
       executor: 'Claude',
-      sprint: 'Bugs',
+      sprint: sprintName,
       column: 'ready',
       mvp: false,
       reported_by: currentUser || 'unknown',
       reported_at: new Date().toISOString(),
-      bug_report: true
+      change_kind: kind,
+      bug_report: kind === 'bug'  // legacy flag kept for compatibility
     };
-    stories.push(bugCard);
+    stories.push(card);
 
     const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
     const p = await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
@@ -1448,14 +1481,23 @@ async function fileBugForAgent(reqId, title, details) {
       request_id: reqId,
       actor: 'intent_user',
       actor_name: currentUser || 'unknown',
-      action: 'bug_reported',
-      description: '"' + title + '" via agent: ' + details.slice(0, 200)
+      action: kind + '_added',
+      description: '"' + title + '" via agent: ' + what.slice(0, 200)
     });
+    logTurn(reqId, 'add_story', 'user', kind + ' added: ' + title + '\n\nWhat: ' + what + '\nTest: ' + test);
 
-    return { ok: true, bugTitle: bugCard.title, requestTitle: rows[0].title };
+    return { ok: true, cardTitle: card.title, requestTitle: rows[0].title, kind: kind };
   } catch(e) {
     return { ok: false, error: e.message };
   }
+}
+
+// ── Backwards-compat wrapper — older code may call fileBugForAgent ──
+async function fileBugForAgent(reqId, title, details) {
+  const result = await addStoryForAgent(reqId, 'bug', title, details, 'Verify the bug no longer reproduces');
+  // Old result shape used 'bugTitle'; keep that for callers
+  if (result.ok) result.bugTitle = result.cardTitle;
+  return result;
 }
 
 
@@ -1795,32 +1837,36 @@ async function sendMessage() {
     if (!resp.ok) throw new Error(data.error ? data.error.message : resp.statusText);
     let reply = data.content[0].text;
 
-    // Detect and process FILE_BUG markers (could be multiple on separate lines)
+    // Detect ADD_STORY markers (preferred new format) — kind=bug|feature|improvement
+    const addStoryRegex = /<!--\s*ADD_STORY\s+reqId="([^"]+)"\s+kind="([^"]+)"\s+title="([^"]+)"\s+what="([^"]+)"\s+test="([^"]+)"\s*-->/gi;
+    const addMatches = [];
+    let am;
+    while ((am = addStoryRegex.exec(reply)) !== null) {
+      addMatches.push({ reqId: am[1], kind: am[2], title: am[3], what: am[4], test: am[5] });
+    }
+    // Backwards-compat: also detect old FILE_BUG markers in case any older agent reply used them
     const bugRegex = /<!--\s*FILE_BUG\s+reqId="([^"]+)"\s+title="([^"]+)"\s+details="([^"]+)"\s*-->/gi;
-    const bugMatches = [];
     let bm;
     while ((bm = bugRegex.exec(reply)) !== null) {
-      bugMatches.push({ reqId: bm[1], title: bm[2], details: bm[3] });
+      addMatches.push({ reqId: bm[1], kind: 'bug', title: bm[2], what: bm[3], test: 'Verify the bug no longer reproduces' });
     }
-    if (bugMatches.length > 0) {
-      reply = reply.replace(bugRegex, '').trim();
-      for (let bi = 0; bi < bugMatches.length; bi++) {
-        const bug = bugMatches[bi];
-        // Match short reqId prefix to full id if needed
-        let fullId = bug.reqId;
+    if (addMatches.length > 0) {
+      reply = reply.replace(addStoryRegex, '').replace(bugRegex, '').trim();
+      for (let bi = 0; bi < addMatches.length; bi++) {
+        const change = addMatches[bi];
+        let fullId = change.reqId;
         if (fullId.length < 36) {
           const allReqs = [].concat(platformContext.myRequests || [], platformContext.shipped || [], platformContext.active || []);
           const found = allReqs.find(function(r) { return (r.id || '').slice(0, fullId.length) === fullId; });
           if (found) fullId = found.id;
         }
-        const result = await fileBugForAgent(fullId, bug.title, bug.details);
+        const result = await addStoryForAgent(fullId, change.kind, change.title, change.what, change.test);
         if (result.ok) {
-          console.log('Bug filed: [' + result.requestTitle + '] ' + result.bugTitle);
+          console.log(change.kind + ' filed: [' + result.requestTitle + '] ' + result.cardTitle);
         } else {
-          console.warn('Bug filing failed:', result.error, bug);
+          console.warn(change.kind + ' filing failed:', result.error, change);
         }
       }
-      // Refresh local state so the dashboard reflects the request returning to active
       await loadPlatformContext();
       renderDashboard();
     }
