@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tip Calculator</title>
+    <title>Digital Ping Pong Game</title>
     <style>
         * {
             margin: 0;
@@ -12,311 +12,484 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            font-family: 'Courier New', monospace;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
             display: flex;
             justify-content: center;
             align-items: center;
+            min-height: 100vh;
             padding: 20px;
         }
 
-        .container {
-            background: white;
-            border-radius: 20px;
-            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-            padding: 40px;
-            max-width: 500px;
-            width: 100%;
-        }
-
-        h1 {
-            color: #333;
-            margin-bottom: 30px;
-            text-align: center;
-            font-size: 28px;
-        }
-
-        .input-group {
-            margin-bottom: 25px;
-        }
-
-        label {
-            display: block;
-            color: #555;
-            font-weight: 600;
-            margin-bottom: 8px;
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        input[type="number"] {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 18px;
-            transition: all 0.3s ease;
-            font-family: inherit;
-        }
-
-        input[type="number"]:focus {
-            outline: none;
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-
-        input[type="number"]::-webkit-inner-spin-button,
-        input[type="number"]::-webkit-outer-spin-button {
-            opacity: 1;
-        }
-
-        .results {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        .game-container {
+            background: #1a1a2e;
             border-radius: 15px;
-            padding: 25px;
-            margin: 30px 0;
-            color: white;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+            max-width: 900px;
+            width: 100%;
         }
 
-        .result-row {
+        .title {
+            text-align: center;
+            color: #00ff88;
+            font-size: 32px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .score-board {
             display: flex;
-            justify-content: space-between;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            color: #fff;
+            font-size: 48px;
+            font-weight: bold;
+        }
+
+        .player-score {
+            display: flex;
+            flex-direction: column;
             align-items: center;
-            margin-bottom: 15px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .result-row:last-child {
-            margin-bottom: 0;
-            padding-bottom: 0;
-            border-bottom: none;
-        }
-
-        .result-label {
+        .score-label {
             font-size: 16px;
-            font-weight: 500;
-            opacity: 0.95;
-        }
-
-        .result-value {
-            font-size: 24px;
-            font-weight: 700;
-        }
-
-        .per-person-result {
-            background: rgba(255, 255, 255, 0.15);
-            border-radius: 10px;
-            padding: 15px;
-            margin-top: 20px;
-        }
-
-        .per-person-result .result-label {
-            font-size: 14px;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            color: #aaa;
             margin-bottom: 5px;
         }
 
-        .per-person-result .result-value {
-            font-size: 32px;
-        }
-
-        .reset-btn {
-            width: 100%;
-            padding: 15px;
-            background: #ff6b6b;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 16px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .reset-btn:hover {
-            background: #ee5a52;
-            transform: translateY(-2px);
-            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
-        }
-
-        .reset-btn:active {
-            transform: translateY(0);
-        }
-
-        .input-prefix {
-            position: relative;
-        }
-
-        .input-prefix input {
-            padding-left: 35px;
-        }
-
-        .input-prefix::before {
-            content: attr(data-prefix);
-            position: absolute;
-            left: 15px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #999;
-            font-size: 18px;
-            font-weight: 600;
-        }
-
-        @media (max-width: 600px) {
-            .container {
-                padding: 25px;
-            }
-
-            h1 {
-                font-size: 24px;
-                margin-bottom: 20px;
-            }
-
-            .result-value {
-                font-size: 20px;
-            }
-
-            .per-person-result .result-value {
-                font-size: 28px;
-            }
-        }
-
-        .error {
-            border-color: #ff6b6b !important;
-        }
-
-        .error-message {
-            color: #ff6b6b;
-            font-size: 12px;
-            margin-top: 5px;
-            display: none;
-        }
-
-        .error-message.show {
+        #gameCanvas {
             display: block;
+            background: #0f0f1e;
+            border: 3px solid #00ff88;
+            border-radius: 10px;
+            margin: 0 auto;
+            cursor: none;
+        }
+
+        .controls {
+            margin-top: 20px;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+
+        .controls h3 {
+            color: #00ff88;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .controls p {
+            color: #ccc;
+            margin: 5px 0;
+            font-size: 14px;
+        }
+
+        .difficulty-selector {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .difficulty-selector label {
+            color: #fff;
+            font-size: 14px;
+        }
+
+        .difficulty-selector select {
+            padding: 8px 15px;
+            background: #2a2a3e;
+            color: #fff;
+            border: 2px solid #00ff88;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            outline: none;
+        }
+
+        .difficulty-selector select:hover {
+            background: #3a3a4e;
+        }
+
+        .game-message {
+            text-align: center;
+            margin-top: 15px;
+            font-size: 24px;
+            color: #00ff88;
+            min-height: 30px;
+            font-weight: bold;
+            text-shadow: 0 0 10px #00ff88;
+        }
+
+        .restart-btn {
+            display: block;
+            margin: 15px auto 0;
+            padding: 12px 30px;
+            background: #00ff88;
+            color: #1a1a2e;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .restart-btn:hover {
+            background: #00dd77;
+            transform: scale(1.05);
+        }
+
+        .restart-btn:active {
+            transform: scale(0.95);
+        }
+
+        .hidden {
+            display: none;
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <h1>💵 Tip Calculator</h1>
+    <div class="game-container">
+        <h1 class="title">🏓 PING PONG 🏓</h1>
         
-        <div class="input-group">
-            <label for="billAmount">Bill Amount</label>
-            <div class="input-prefix" data-prefix="$">
-                <input type="number" id="billAmount" min="0" step="0.01" value="0" placeholder="0.00">
+        <div class="score-board">
+            <div class="player-score">
+                <div class="score-label">PLAYER</div>
+                <div id="playerScore">0</div>
+            </div>
+            <div class="player-score">
+                <div class="score-label">COMPUTER</div>
+                <div id="computerScore">0</div>
             </div>
         </div>
 
-        <div class="input-group">
-            <label for="tipPercentage">Tip Percentage</label>
-            <div class="input-prefix" data-prefix="%">
-                <input type="number" id="tipPercentage" min="0" max="100" step="1" value="15" placeholder="15">
+        <canvas id="gameCanvas" width="800" height="500"></canvas>
+
+        <div class="game-message" id="gameMessage"></div>
+        <button class="restart-btn hidden" id="restartBtn">Play Again</button>
+
+        <div class="controls">
+            <h3>🎮 Controls</h3>
+            <p>⬆️ Move Up: W or Arrow Up</p>
+            <p>⬇️ Move Down: S or Arrow Down</p>
+            
+            <div class="difficulty-selector">
+                <label for="difficulty">AI Difficulty:</label>
+                <select id="difficulty">
+                    <option value="easy">Easy</option>
+                    <option value="medium" selected>Medium</option>
+                    <option value="hard">Hard</option>
+                </select>
             </div>
         </div>
-
-        <div class="input-group">
-            <label for="numPeople">Number of People</label>
-            <input type="number" id="numPeople" min="1" step="1" value="1" placeholder="1">
-        </div>
-
-        <div class="results">
-            <div class="result-row">
-                <span class="result-label">Tip Amount:</span>
-                <span class="result-value" id="tipAmount">$0.00</span>
-            </div>
-            <div class="result-row">
-                <span class="result-label">Total:</span>
-                <span class="result-value" id="totalAmount">$0.00</span>
-            </div>
-            <div class="per-person-result">
-                <div class="result-label">Per Person</div>
-                <div class="result-value" id="perPersonAmount">$0.00</div>
-            </div>
-        </div>
-
-        <button class="reset-btn" id="resetBtn">Reset</button>
     </div>
 
     <script>
-        const billAmountInput = document.getElementById('billAmount');
-        const tipPercentageInput = document.getElementById('tipPercentage');
-        const numPeopleInput = document.getElementById('numPeople');
-        const tipAmountDisplay = document.getElementById('tipAmount');
-        const totalAmountDisplay = document.getElementById('totalAmount');
-        const perPersonAmountDisplay = document.getElementById('perPersonAmount');
-        const resetBtn = document.getElementById('resetBtn');
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const playerScoreEl = document.getElementById('playerScore');
+        const computerScoreEl = document.getElementById('computerScore');
+        const gameMessageEl = document.getElementById('gameMessage');
+        const restartBtn = document.getElementById('restartBtn');
+        const difficultySelect = document.getElementById('difficulty');
 
-        function formatCurrency(amount) {
-            return '$' + amount.toFixed(2);
-        }
+        // Game constants
+        const WINNING_SCORE = 11;
+        const PADDLE_WIDTH = 15;
+        const PADDLE_HEIGHT = 80;
+        const BALL_SIZE = 12;
+        const INITIAL_BALL_SPEED = 5;
+        const SPEED_INCREASE = 0.3;
+        const PADDLE_SPEED = 7;
 
-        function validateInput(input, min = 0) {
-            let value = parseFloat(input.value);
-            if (isNaN(value) || value < min) {
-                value = min;
-                input.value = value;
+        // Game state
+        let gameState = {
+            playerScore: 0,
+            computerScore: 0,
+            gameOver: false,
+            difficulty: 'medium'
+        };
+
+        // Paddle objects
+        const playerPaddle = {
+            x: 30,
+            y: canvas.height / 2 - PADDLE_HEIGHT / 2,
+            width: PADDLE_WIDTH,
+            height: PADDLE_HEIGHT,
+            dy: 0
+        };
+
+        const computerPaddle = {
+            x: canvas.width - 30 - PADDLE_WIDTH,
+            y: canvas.height / 2 - PADDLE_HEIGHT / 2,
+            width: PADDLE_WIDTH,
+            height: PADDLE_HEIGHT
+        };
+
+        // Ball object
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: BALL_SIZE,
+            dx: INITIAL_BALL_SPEED,
+            dy: INITIAL_BALL_SPEED,
+            speed: INITIAL_BALL_SPEED
+        };
+
+        // Keyboard state
+        const keys = {
+            w: false,
+            s: false,
+            arrowUp: false,
+            arrowDown: false
+        };
+
+        // Event listeners
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'w' || e.key === 'W') keys.w = true;
+            if (e.key === 's' || e.key === 'S') keys.s = true;
+            if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                keys.arrowUp = true;
             }
-            return value;
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                keys.arrowDown = true;
+            }
+        });
+
+        document.addEventListener('keyup', (e) => {
+            if (e.key === 'w' || e.key === 'W') keys.w = false;
+            if (e.key === 's' || e.key === 'S') keys.s = false;
+            if (e.key === 'ArrowUp') keys.arrowUp = false;
+            if (e.key === 'ArrowDown') keys.arrowDown = false;
+        });
+
+        restartBtn.addEventListener('click', resetGame);
+
+        difficultySelect.addEventListener('change', (e) => {
+            gameState.difficulty = e.target.value;
+        });
+
+        // Draw functions
+        function drawRect(x, y, width, height, color) {
+            ctx.fillStyle = color;
+            ctx.fillRect(x, y, width, height);
         }
 
-        function calculate() {
-            try {
-                let billAmount = validateInput(billAmountInput, 0);
-                let tipPercentage = validateInput(tipPercentageInput, 0);
-                let numPeople = validateInput(numPeopleInput, 1);
+        function drawCircle(x, y, size, color) {
+            ctx.fillStyle = color;
+            ctx.beginPath();
+            ctx.arc(x, y, size, 0, Math.PI * 2);
+            ctx.fill();
+        }
 
-                // Ensure numPeople is at least 1 and an integer
-                numPeople = Math.max(1, Math.round(numPeople));
-                numPeopleInput.value = numPeople;
+        function drawCenterLine() {
+            ctx.strokeStyle = '#333';
+            ctx.lineWidth = 4;
+            ctx.setLineDash([10, 10]);
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            ctx.setLineDash([]);
+        }
 
-                // Ensure tip percentage doesn't exceed 100%
-                if (tipPercentage > 100) {
-                    tipPercentage = 100;
-                    tipPercentageInput.value = 100;
+        function drawPaddles() {
+            drawRect(playerPaddle.x, playerPaddle.y, playerPaddle.width, playerPaddle.height, '#00ff88');
+            drawRect(computerPaddle.x, computerPaddle.y, computerPaddle.width, computerPaddle.height, '#ff0055');
+        }
+
+        function drawBall() {
+            drawCircle(ball.x, ball.y, ball.size, '#fff');
+        }
+
+        function draw() {
+            // Clear canvas
+            drawRect(0, 0, canvas.width, canvas.height, '#0f0f1e');
+            
+            // Draw game elements
+            drawCenterLine();
+            drawPaddles();
+            drawBall();
+        }
+
+        // Update functions
+        function updatePaddlePosition() {
+            if (gameState.gameOver) return;
+
+            // Player paddle movement
+            if (keys.w || keys.arrowUp) {
+                playerPaddle.y -= PADDLE_SPEED;
+            }
+            if (keys.s || keys.arrowDown) {
+                playerPaddle.y += PADDLE_SPEED;
+            }
+
+            // Keep player paddle in bounds
+            if (playerPaddle.y < 0) playerPaddle.y = 0;
+            if (playerPaddle.y + playerPaddle.height > canvas.height) {
+                playerPaddle.y = canvas.height - playerPaddle.height;
+            }
+        }
+
+        function updateComputerPaddle() {
+            if (gameState.gameOver) return;
+
+            // AI difficulty settings
+            let aiSpeed = 0;
+            let reactionDelay = 0;
+            
+            switch(gameState.difficulty) {
+                case 'easy':
+                    aiSpeed = 3;
+                    reactionDelay = 30;
+                    break;
+                case 'medium':
+                    aiSpeed = 5;
+                    reactionDelay = 15;
+                    break;
+                case 'hard':
+                    aiSpeed = 6.5;
+                    reactionDelay = 5;
+                    break;
+            }
+
+            // AI follows ball with some delay for realism
+            const paddleCenter = computerPaddle.y + computerPaddle.height / 2;
+            const targetY = ball.y;
+
+            if (Math.abs(paddleCenter - targetY) > reactionDelay) {
+                if (paddleCenter < targetY) {
+                    computerPaddle.y += aiSpeed;
+                } else {
+                    computerPaddle.y -= aiSpeed;
                 }
+            }
 
-                // Calculate tip and total
-                const tipAmount = billAmount * (tipPercentage / 100);
-                const totalAmount = billAmount + tipAmount;
-                const perPersonAmount = totalAmount / numPeople;
-
-                // Update displays
-                tipAmountDisplay.textContent = formatCurrency(tipAmount);
-                totalAmountDisplay.textContent = formatCurrency(totalAmount);
-                perPersonAmountDisplay.textContent = formatCurrency(perPersonAmount);
-            } catch (error) {
-                console.error('Calculation error:', error);
-                // Set default values on error
-                tipAmountDisplay.textContent = '$0.00';
-                totalAmountDisplay.textContent = '$0.00';
-                perPersonAmountDisplay.textContent = '$0.00';
+            // Keep computer paddle in bounds
+            if (computerPaddle.y < 0) computerPaddle.y = 0;
+            if (computerPaddle.y + computerPaddle.height > canvas.height) {
+                computerPaddle.y = canvas.height - computerPaddle.height;
             }
         }
 
-        function reset() {
-            billAmountInput.value = '0';
-            tipPercentageInput.value = '15';
-            numPeopleInput.value = '1';
-            calculate();
+        function updateBall() {
+            if (gameState.gameOver) return;
+
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Ball collision with top and bottom walls
+            if (ball.y - ball.size < 0 || ball.y + ball.size > canvas.height) {
+                ball.dy *= -1;
+            }
+
+            // Ball collision with player paddle
+            if (ball.x - ball.size < playerPaddle.x + playerPaddle.width &&
+                ball.x + ball.size > playerPaddle.x &&
+                ball.y > playerPaddle.y &&
+                ball.y < playerPaddle.y + playerPaddle.height) {
+                
+                // Calculate hit position for angle variation
+                const hitPos = (ball.y - (playerPaddle.y + playerPaddle.height / 2)) / (playerPaddle.height / 2);
+                ball.dy = hitPos * 5;
+                
+                ball.dx = Math.abs(ball.dx) + SPEED_INCREASE;
+                ball.x = playerPaddle.x + playerPaddle.width + ball.size;
+            }
+
+            // Ball collision with computer paddle
+            if (ball.x + ball.size > computerPaddle.x &&
+                ball.x - ball.size < computerPaddle.x + computerPaddle.width &&
+                ball.y > computerPaddle.y &&
+                ball.y < computerPaddle.y + computerPaddle.height) {
+                
+                // Calculate hit position for angle variation
+                const hitPos = (ball.y - (computerPaddle.y + computerPaddle.height / 2)) / (computerPaddle.height / 2);
+                ball.dy = hitPos * 5;
+                
+                ball.dx = -(Math.abs(ball.dx) + SPEED_INCREASE);
+                ball.x = computerPaddle.x - ball.size;
+            }
+
+            // Ball goes past player paddle (computer scores)
+            if (ball.x - ball.size < 0) {
+                gameState.computerScore++;
+                updateScore();
+                resetBall();
+                checkWin();
+            }
+
+            // Ball goes past computer paddle (player scores)
+            if (ball.x + ball.size > canvas.width) {
+                gameState.playerScore++;
+                updateScore();
+                resetBall();
+                checkWin();
+            }
         }
 
-        // Add event listeners for real-time calculation
-        billAmountInput.addEventListener('input', calculate);
-        tipPercentageInput.addEventListener('input', calculate);
-        numPeopleInput.addEventListener('input', calculate);
+        function resetBall() {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            
+            // Random direction
+            const angle = (Math.random() * Math.PI / 2) - Math.PI / 4;
+            const direction = Math.random() < 0.5 ? 1 : -1;
+            
+            ball.speed = INITIAL_BALL_SPEED;
+            ball.dx = Math.cos(angle) * ball.speed * direction;
+            ball.dy = Math.sin(angle) * ball.speed;
+        }
 
-        // Reset button
-        resetBtn.addEventListener('click', reset);
+        function updateScore() {
+            playerScoreEl.textContent = gameState.playerScore;
+            computerScoreEl.textContent = gameState.computerScore;
+        }
 
-        // Initial calculation
-        calculate();
+        function checkWin() {
+            if (gameState.playerScore >= WINNING_SCORE) {
+                gameState.gameOver = true;
+                gameMessageEl.textContent = '🎉 YOU WIN! 🎉';
+                restartBtn.classList.remove('hidden');
+            } else if (gameState.computerScore >= WINNING_SCORE) {
+                gameState.gameOver = true;
+                gameMessageEl.textContent = '💻 COMPUTER WINS! 💻';
+                restartBtn.classList.remove('hidden');
+            }
+        }
+
+        function resetGame() {
+            gameState.playerScore = 0;
+            gameState.computerScore = 0;
+            gameState.gameOver = false;
+            
+            updateScore();
+            resetBall();
+            
+            playerPaddle.y = canvas.height / 2 - PADDLE_HEIGHT / 2;
+            computerPaddle.y = canvas.height / 2 - PADDLE_HEIGHT / 2;
+            
+            gameMessageEl.textContent = '';
+            restartBtn.classList.add('hidden');
+        }
+
+        function gameLoop() {
+            updatePaddlePosition();
+            updateComputerPaddle();
+            updateBall();
+            draw();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Initialize game
+        resetBall();
+        gameLoop();
     </script>
 </body>
 </html>
