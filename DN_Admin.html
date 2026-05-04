@@ -2000,9 +2000,9 @@ function openShipModalMono(reqId) {
       '<h3 style="margin:0 0 8px 0;color:#3DD6F5;font-size:16px;">Ship app</h3>' +
       '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Publish this artifact to GitHub. The landing page picks it up automatically.</p>' +
       '<label style="display:block;font-size:12px;color:#9ca3af;margin-bottom:4px;">Filename in repo</label>' +
-      '<input id="ship-filename" type="text" value="' + esc(defaultFilename) + '" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:12px;">' +
+      '<input id="ship-filename-mono" type="text" value="' + esc(defaultFilename) + '" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;margin-bottom:12px;">' +
       '<label style="display:block;font-size:12px;color:#9ca3af;margin-bottom:4px;">Branch</label>' +
-      '<input id="ship-branch" type="text" value="' + esc(branch) + '" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;">' +
+      '<input id="ship-branch-mono" type="text" value="' + esc(branch) + '" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;box-sizing:border-box;">' +
       '<div id="ship-status-mono" style="margin-top:12px;font-size:12px;color:#9ca3af;min-height:18px;"></div>' +
       '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
         '<button onclick="closeShipModalMono()" style="background:transparent;color:#9ca3af;border:1px solid #1f2937;padding:8px 14px;border-radius:6px;cursor:pointer;">Cancel</button>' +
@@ -2021,8 +2021,8 @@ async function executeShipMono(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req || !req.artifact_html) { alert('No artifact to ship.'); return; }
 
-  const filenameEl = document.getElementById('ship-filename');
-  const branchEl = document.getElementById('ship-branch');
+  const filenameEl = document.getElementById('ship-filename-mono');
+  const branchEl = document.getElementById('ship-branch-mono');
   const statusEl = document.getElementById('ship-status-mono');
   const btn = document.getElementById('ship-mono-go');
   if (!filenameEl || !branchEl || !statusEl) return;
