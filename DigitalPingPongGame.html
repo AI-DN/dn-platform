@@ -1,576 +1,322 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Digital Ping Pong Game</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.3.1/umd/react.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.3.1/umd/react-dom.production.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.24.7/babel.min.js"></script>
-<script src="https://cdn.tailwindcss.com"></script>
-<style>
-  body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; background: #0b1220; color: #e6ecf5; min-height: 100vh; }
-  .dn-shell-header { padding: 16px 24px; border-bottom: 1px solid #1f2937; }
-  .dn-shell-title { color: #3DD6F5; font-weight: 700; font-size: 18px; margin: 0; }
-  .dn-shell-tabs { display: flex; gap: 4px; padding: 12px 24px; border-bottom: 1px solid #1f2937; overflow-x: auto; }
-  .dn-shell-tab { padding: 8px 14px; border-radius: 8px; font-size: 13px; color: #9ca3af; cursor: pointer; white-space: nowrap; background: transparent; border: none; }
-  .dn-shell-tab:hover { color: #e6ecf5; }
-  .dn-shell-tab.active { background: #3DD6F5; color: #0b1220; font-weight: 600; }
-  .dn-shell-pane { padding: 0; }
-  .dn-shell-pane.has-pad { padding: 24px; }
-  .dn-shell-iframe { width: 100%; min-height: calc(100vh - 130px); border: 0; background: white; }
-</style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tip Calculator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 500px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 30px;
+            text-align: center;
+            font-size: 28px;
+        }
+
+        .input-group {
+            margin-bottom: 25px;
+        }
+
+        label {
+            display: block;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 8px;
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        input[type="number"] {
+            width: 100%;
+            padding: 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            font-family: inherit;
+        }
+
+        input[type="number"]:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            opacity: 1;
+        }
+
+        .results {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            color: white;
+        }
+
+        .result-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .result-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .result-label {
+            font-size: 16px;
+            font-weight: 500;
+            opacity: 0.95;
+        }
+
+        .result-value {
+            font-size: 24px;
+            font-weight: 700;
+        }
+
+        .per-person-result {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 15px;
+            margin-top: 20px;
+        }
+
+        .per-person-result .result-label {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 5px;
+        }
+
+        .per-person-result .result-value {
+            font-size: 32px;
+        }
+
+        .reset-btn {
+            width: 100%;
+            padding: 15px;
+            background: #ff6b6b;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .reset-btn:hover {
+            background: #ee5a52;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(255, 107, 107, 0.3);
+        }
+
+        .reset-btn:active {
+            transform: translateY(0);
+        }
+
+        .input-prefix {
+            position: relative;
+        }
+
+        .input-prefix input {
+            padding-left: 35px;
+        }
+
+        .input-prefix::before {
+            content: attr(data-prefix);
+            position: absolute;
+            left: 15px;
+            top: 50%;
+            transform: translateY(-50%);
+            color: #999;
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 25px;
+            }
+
+            h1 {
+                font-size: 24px;
+                margin-bottom: 20px;
+            }
+
+            .result-value {
+                font-size: 20px;
+            }
+
+            .per-person-result .result-value {
+                font-size: 28px;
+            }
+        }
+
+        .error {
+            border-color: #ff6b6b !important;
+        }
+
+        .error-message {
+            color: #ff6b6b;
+            font-size: 12px;
+            margin-top: 5px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
 </head>
 <body>
-<div class="dn-shell-header"><h1 class="dn-shell-title">Digital Ping Pong Game</h1></div>
-<div class="dn-shell-tabs" id="dn-tabs"></div>
-<div class="dn-shell-pane has-pad" id="dn-pane"><div id="jsx-root"></div></div>
-
-<script type="text/babel" data-presets="react">
-const { useState, useEffect, useRef, useMemo, useCallback, useContext, useReducer } = React;
-
-// Tab 0: Game Board and Paddle Setup
-const GameBoard_tab0 = () => {
-  const canvasRef = useRef(null);
-  const [gameState, setGameState] = useState({
-    leftPaddle: { x: 20, y: 200, width: 15, height: 100 },
-    rightPaddle: { x: 765, y: 200, width: 15, height: 100 },
-    ball: { x: 400, y: 250, radius: 10 }
-  });
-
-  const CANVAS_WIDTH = 800;
-  const CANVAS_HEIGHT = 500;
-  const PADDLE_COLOR = '#ffffff';
-  const BALL_COLOR = '#ffffff';
-  const BACKGROUND_COLOR = '#000000';
-  const CENTER_LINE_COLOR = '#444444';
-
-  // Draw the game board and all elements
-  const draw = useCallback(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    
-    const ctx = canvas.getContext('2d');
-    
-    // Clear canvas
-    ctx.fillStyle = BACKGROUND_COLOR;
-    ctx.fillRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-    
-    // Draw center line
-    ctx.strokeStyle = CENTER_LINE_COLOR;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([10, 10]);
-    ctx.beginPath();
-    ctx.moveTo(CANVAS_WIDTH / 2, 0);
-    ctx.lineTo(CANVAS_WIDTH / 2, CANVAS_HEIGHT);
-    ctx.stroke();
-    ctx.setLineDash([]);
-    
-    // Draw left paddle
-    ctx.fillStyle = PADDLE_COLOR;
-    ctx.fillRect(
-      gameState.leftPaddle.x,
-      gameState.leftPaddle.y,
-      gameState.leftPaddle.width,
-      gameState.leftPaddle.height
-    );
-    
-    // Draw right paddle
-    ctx.fillRect(
-      gameState.rightPaddle.x,
-      gameState.rightPaddle.y,
-      gameState.rightPaddle.width,
-      gameState.rightPaddle.height
-    );
-    
-    // Draw ball
-    ctx.beginPath();
-    ctx.arc(gameState.ball.x, gameState.ball.y, gameState.ball.radius, 0, Math.PI * 2);
-    ctx.fill();
-    
-    // Draw game boundaries (for visual reference)
-    ctx.strokeStyle = '#333333';
-    ctx.lineWidth = 2;
-    ctx.strokeRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-  }, [gameState]);
-
-  // Initial draw and setup
-  useEffect(() => {
-    draw();
-  }, [draw]);
-
-  // Handle canvas resize and maintain aspect ratio
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.width = CANVAS_WIDTH;
-      canvas.height = CANVAS_HEIGHT;
-    }
-  }, []);
-
-  // Test function to move paddles (for visual verification)
-  const testPaddleMovement = () => {
-    setGameState(prev => ({
-      ...prev,
-      leftPaddle: {
-        ...prev.leftPaddle,
-        y: Math.max(0, Math.min(CANVAS_HEIGHT - prev.leftPaddle.height, prev.leftPaddle.y + (Math.random() - 0.5) * 50))
-      },
-      rightPaddle: {
-        ...prev.rightPaddle,
-        y: Math.max(0, Math.min(CANVAS_HEIGHT - prev.rightPaddle.height, prev.rightPaddle.y + (Math.random() - 0.5) * 50))
-      }
-    }));
-  };
-
-  return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 p-4">
-      <div className="mb-6 text-center">
-        <h1 className="text-4xl font-bold text-white mb-2">Digital Ping Pong</h1>
-        <p className="text-gray-400">Game Board Setup - Two Paddles Ready</p>
-      </div>
-      
-      <div className="relative border-2 border-gray-600 rounded-lg overflow-hidden shadow-2xl">
-        <canvas
-          ref={canvasRef}
-          className="block bg-black"
-          width={CANVAS_WIDTH}
-          height={CANVAS_HEIGHT}
-        />
+    <div class="container">
+        <h1>💵 Tip Calculator</h1>
         
-        {/* Overlay with game info */}
-        <div className="absolute top-4 left-4 text-white text-sm font-mono">
-          <div>Left Paddle: ({gameState.leftPaddle.x}, {gameState.leftPaddle.y})</div>
-          <div>Right Paddle: ({gameState.rightPaddle.x}, {gameState.rightPaddle.y})</div>
-          <div>Ball: ({gameState.ball.x}, {gameState.ball.y})</div>
-        </div>
-      </div>
-      
-      <div className="mt-6 flex gap-4">
-        <button
-          onClick={testPaddleMovement}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-colors"
-        >
-          Test Paddle Movement
-        </button>
-        <button
-          onClick={() => setGameState({
-            leftPaddle: { x: 20, y: 200, width: 15, height: 100 },
-            rightPaddle: { x: 765, y: 200, width: 15, height: 100 },
-            ball: { x: 400, y: 250, radius: 10 }
-          })}
-          className="px-6 py-3 bg-gray-600 hover:bg-gray-700 text-white font-semibold rounded-lg transition-colors"
-        >
-          Reset Positions
-        </button>
-      </div>
-      
-      <div className="mt-4 max-w-2xl text-center text-gray-300 text-sm">
-        <p>Game board is set up with two paddles positioned on opposite sides.</p>
-        <p>Left paddle at x=20, Right paddle at x=765. Canvas size: 800x500px.</p>
-        <p>Use the test button to verify paddle positioning and rendering.</p>
-      </div>
-    </div>
-  );
-};
-
-
-
-// Tab 3: Game State Management
-const GameStateManager_tab3 = () => {
-  const [gameState, setGameState] = useState('menu'); // 'menu', 'playing', 'paused', 'gameOver'
-  const [score, setScore] = useState({ player: 0, ai: 0 });
-  const [gameTime, setGameTime] = useState(0);
-  const [ballPosition, setBallPosition] = useState({ x: 400, y: 300 });
-  const [ballVelocity, setBallVelocity] = useState({ x: 5, y: 3 });
-  const [playerPaddle, setPlayerPaddle] = useState(250);
-  const [aiPaddle, setAiPaddle] = useState(250);
-  const [winner, setWinner] = useState(null);
-  const intervalRef = useRef(null);
-
-  // Game configuration
-  const WINNING_SCORE = 5;
-  const PADDLE_SPEED = 8;
-  const BALL_SPEED = 5;
-  const CANVAS_WIDTH = 800;
-  const CANVAS_HEIGHT = 600;
-  const PADDLE_HEIGHT = 100;
-  const PADDLE_WIDTH = 10;
-
-  // Start new game
-  const startNewGame = () => {
-    setGameState('playing');
-    setScore({ player: 0, ai: 0 });
-    setGameTime(0);
-    setBallPosition({ x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 });
-    setBallVelocity({ 
-      x: Math.random() > 0.5 ? BALL_SPEED : -BALL_SPEED, 
-      y: (Math.random() - 0.5) * 4 
-    });
-    setPlayerPaddle(CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2);
-    setAiPaddle(CANVAS_HEIGHT / 2 - PADDLE_HEIGHT / 2);
-    setWinner(null);
-  };
-
-  // Pause/Resume game
-  const togglePause = () => {
-    if (gameState === 'playing') {
-      setGameState('paused');
-    } else if (gameState === 'paused') {
-      setGameState('playing');
-    }
-  };
-
-  // Restart current game
-  const restartGame = () => {
-    if (gameState === 'playing' || gameState === 'paused' || gameState === 'gameOver') {
-      startNewGame();
-    }
-  };
-
-  // Return to menu
-  const returnToMenu = () => {
-    setGameState('menu');
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-      intervalRef.current = null;
-    }
-  };
-
-  // Game loop effect
-  useEffect(() => {
-    if (gameState === 'playing') {
-      intervalRef.current = setInterval(() => {
-        setGameTime(prev => prev + 1);
-        
-        // Update ball position
-        setBallPosition(prev => {
-          const newX = prev.x + ballVelocity.x;
-          const newY = prev.y + ballVelocity.y;
-          
-          // Ball collision with top/bottom walls
-          if (newY <= 10 || newY >= CANVAS_HEIGHT - 10) {
-            setBallVelocity(vel => ({ ...vel, y: -vel.y }));
-          }
-          
-          // Ball collision with paddles
-          if (newX <= 20 && newY >= playerPaddle && newY <= playerPaddle + PADDLE_HEIGHT) {
-            setBallVelocity(vel => ({ x: Math.abs(vel.x), y: vel.y }));
-          }
-          if (newX >= CANVAS_WIDTH - 30 && newY >= aiPaddle && newY <= aiPaddle + PADDLE_HEIGHT) {
-            setBallVelocity(vel => ({ x: -Math.abs(vel.x), y: vel.y }));
-          }
-          
-          // Scoring
-          if (newX < 0) {
-            setScore(prev => ({ ...prev, ai: prev.ai + 1 }));
-            return { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 };
-          }
-          if (newX > CANVAS_WIDTH) {
-            setScore(prev => ({ ...prev, player: prev.player + 1 }));
-            return { x: CANVAS_WIDTH / 2, y: CANVAS_HEIGHT / 2 };
-          }
-          
-          return { x: newX, y: newY };
-        });
-        
-        // Simple AI paddle movement
-        setAiPaddle(prev => {
-          const paddleCenter = prev + PADDLE_HEIGHT / 2;
-          const diff = ballPosition.y - paddleCenter;
-          if (Math.abs(diff) > 5) {
-            return Math.max(0, Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, prev + (diff > 0 ? 3 : -3)));
-          }
-          return prev;
-        });
-      }, 16); // ~60 FPS
-    } else {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-        intervalRef.current = null;
-      }
-    }
-
-    return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
-    };
-  }, [gameState, ballVelocity, ballPosition.y, playerPaddle, aiPaddle]);
-
-  // Check for game over
-  useEffect(() => {
-    if (score.player >= WINNING_SCORE) {
-      setWinner('player');
-      setGameState('gameOver');
-    } else if (score.ai >= WINNING_SCORE) {
-      setWinner('ai');
-      setGameState('gameOver');
-    }
-  }, [score]);
-
-  // Keyboard controls
-  useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (gameState === 'playing') {
-        if (e.key === ' ') {
-          e.preventDefault();
-          togglePause();
-        }
-        if (e.key === 'ArrowUp') {
-          setPlayerPaddle(prev => Math.max(0, prev - PADDLE_SPEED));
-        }
-        if (e.key === 'ArrowDown') {
-          setPlayerPaddle(prev => Math.min(CANVAS_HEIGHT - PADDLE_HEIGHT, prev + PADDLE_SPEED));
-        }
-      }
-      if (e.key === 'Escape') {
-        returnToMenu();
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameState]);
-
-  const formatTime = (time) => {
-    const seconds = Math.floor(time / 60);
-    const minutes = Math.floor(seconds / 60);
-    return `${minutes}:${(seconds % 60).toString().padStart(2, '0')}`;
-  };
-
-  const getStateDisplay = () => {
-    switch (gameState) {
-      case 'menu': return 'Ready to Play';
-      case 'playing': return 'Playing';
-      case 'paused': return 'Paused';
-      case 'gameOver': return 'Game Over';
-      default: return 'Unknown';
-    }
-  };
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-900 to-purple-900 flex items-center justify-center p-4">
-      <div className="bg-black rounded-lg shadow-2xl p-6 w-full max-w-6xl">
-        <div className="text-center mb-6">
-          <h1 className="text-4xl font-bold text-white mb-2">Digital Ping Pong</h1>
-          <div className="flex justify-center items-center gap-6 text-white">
-            <div className="text-lg">
-              Status: <span className={`font-bold ${
-                gameState === 'playing' ? 'text-green-400' :
-                gameState === 'paused' ? 'text-yellow-400' :
-                gameState === 'gameOver' ? 'text-red-400' :
-                'text-blue-400'
-              }`}>{getStateDisplay()}</span>
+        <div class="input-group">
+            <label for="billAmount">Bill Amount</label>
+            <div class="input-prefix" data-prefix="$">
+                <input type="number" id="billAmount" min="0" step="0.01" value="0" placeholder="0.00">
             </div>
-            <div className="text-lg">Time: {formatTime(gameTime)}</div>
-          </div>
         </div>
 
-        {/* Game Canvas Area */}
-        <div className="relative mx-auto mb-6" style={{ width: CANVAS_WIDTH, height: CANVAS_HEIGHT }}>
-          <div className="absolute inset-0 bg-green-800 border-4 border-white rounded-lg">
-            {/* Center line */}
-            <div className="absolute left-1/2 top-0 bottom-0 w-1 bg-white transform -translate-x-1/2 opacity-50"></div>
-            
-            {/* Player paddle */}
-            <div 
-              className="absolute left-2 bg-white rounded"
-              style={{
-                top: `${playerPaddle}px`,
-                width: `${PADDLE_WIDTH}px`,
-                height: `${PADDLE_HEIGHT}px`
-              }}
-            ></div>
-            
-            {/* AI paddle */}
-            <div 
-              className="absolute right-2 bg-white rounded"
-              style={{
-                top: `${aiPaddle}px`,
-                width: `${PADDLE_WIDTH}px`,
-                height: `${PADDLE_HEIGHT}px`
-              }}
-            ></div>
-            
-            {/* Ball */}
-            <div 
-              className="absolute bg-white rounded-full"
-              style={{
-                left: `${ballPosition.x - 5}px`,
-                top: `${ballPosition.y - 5}px`,
-                width: '10px',
-                height: '10px'
-              }}
-            ></div>
-            
-            {/* Score display */}
-            <div className="absolute top-4 left-1/2 transform -translate-x-1/2 text-white text-4xl font-bold">
-              {score.player} - {score.ai}
+        <div class="input-group">
+            <label for="tipPercentage">Tip Percentage</label>
+            <div class="input-prefix" data-prefix="%">
+                <input type="number" id="tipPercentage" min="0" max="100" step="1" value="15" placeholder="15">
             </div>
-            
-            {/* Game state overlays */}
-            {gameState === 'menu' && (
-              <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <h2 className="text-3xl font-bold mb-4">Welcome to Ping Pong!</h2>
-                  <p className="text-lg mb-6">Use Arrow Keys to move your paddle</p>
-                  <button
-                    onClick={startNewGame}
-                    className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded-lg text-xl font-bold transition-colors"
-                  >
-                    Start Game
-                  </button>
-                </div>
-              </div>
-            )}
-            
-            {gameState === 'paused' && (
-              <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <h2 className="text-3xl font-bold mb-4">Game Paused</h2>
-                  <p className="text-lg mb-6">Press Space to resume or Escape to quit</p>
-                </div>
-              </div>
-            )}
-            
-            {gameState === 'gameOver' && (
-              <div className="absolute inset-0 bg-black bg-opacity-80 flex items-center justify-center">
-                <div className="text-center text-white">
-                  <h2 className="text-3xl font-bold mb-2">
-                    {winner === 'player' ? 'You Win!' : 'AI Wins!'}
-                  </h2>
-                  <p className="text-lg mb-2">Final Score: {score.player} - {score.ai}</p>
-                  <p className="text-lg mb-6">Game Time: {formatTime(gameTime)}</p>
-                  <div className="space-x-4">
-                    <button
-                      onClick={startNewGame}
-                      className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-bold transition-colors"
-                    >
-                      Play Again
-                    </button>
-                    <button
-                      onClick={returnToMenu}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-bold transition-colors"
-                    >
-                      Main Menu
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
-        {/* Control Buttons */}
-        <div className="flex justify-center gap-4">
-          {gameState === 'menu' && (
-            <button
-              onClick={startNewGame}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
-            >
-              Start Game
-            </button>
-          )}
-          
-          {(gameState === 'playing' || gameState === 'paused') && (
-            <>
-              <button
-                onClick={togglePause}
-                className="bg-yellow-600 hover:bg-yellow-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
-              >
-                {gameState === 'playing' ? 'Pause' : 'Resume'}
-              </button>
-              <button
-                onClick={restartGame}
-                className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
-              >
-                Restart
-              </button>
-            </>
-          )}
-          
-          {gameState !== 'menu' && (
-            <button
-              onClick={returnToMenu}
-              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-lg font-bold transition-colors"
-            >
-              Main Menu
-            </button>
-          )}
+        <div class="input-group">
+            <label for="numPeople">Number of People</label>
+            <input type="number" id="numPeople" min="1" step="1" value="1" placeholder="1">
         </div>
 
-        {/* Instructions */}
-        <div className="mt-6 text-center text-gray-300 text-sm">
-          <p>Controls: Arrow Keys to move • Space to pause/resume • Escape to quit</p>
-          <p>First to {WINNING_SCORE} points wins!</p>
+        <div class="results">
+            <div class="result-row">
+                <span class="result-label">Tip Amount:</span>
+                <span class="result-value" id="tipAmount">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">Total:</span>
+                <span class="result-value" id="totalAmount">$0.00</span>
+            </div>
+            <div class="per-person-result">
+                <div class="result-label">Per Person</div>
+                <div class="result-value" id="perPersonAmount">$0.00</div>
+            </div>
         </div>
-      </div>
+
+        <button class="reset-btn" id="resetBtn">Reset</button>
     </div>
-  );
-};
 
+    <script>
+        const billAmountInput = document.getElementById('billAmount');
+        const tipPercentageInput = document.getElementById('tipPercentage');
+        const numPeopleInput = document.getElementById('numPeople');
+        const tipAmountDisplay = document.getElementById('tipAmount');
+        const totalAmountDisplay = document.getElementById('totalAmount');
+        const perPersonAmountDisplay = document.getElementById('perPersonAmount');
+        const resetBtn = document.getElementById('resetBtn');
 
+        function formatCurrency(amount) {
+            return '$' + amount.toFixed(2);
+        }
 
-window.__dn_tabs = [{"idx":0,"title":"Game Board and Paddle Setup","kind":"jsx"},{"idx":1,"title":"Ball Physics and Movement","kind":"html_full"},{"idx":2,"title":"Score Tracking System","kind":"html_full"},{"idx":3,"title":"Game State Management","kind":"jsx"},{"idx":4,"title":"Enhanced Visual Effects","kind":"html_full"}];
-window.__dn_iframes = {"1":"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Ping Pong Ball Physics</title>\n    <style>\n        body {\n            margin: 0;\n            padding: 20px;\n            background: linear-gradient(135deg, #1e3c72, #2a5298);\n            font-family: 'Courier New', monospace;\n            display: flex;\n            flex-direction: column;\n            align-items: center;\n            min-height: 100vh;\n            color: #fff;\n        }\n        \n        h1 {\n            margin-bottom: 20px;\n            text-shadow: 0 0 10px #00ffff;\n        }\n        \n        #gameContainer {\n            position: relative;\n            background: #001122;\n            border: 2px solid #00ffff;\n            border-radius: 10px;\n            box-shadow: 0 0 20px #00ffff;\n        }\n        \n        #gameCanvas {\n            display: block;\n            background: radial-gradient(circle at center, #001122, #000511);\n        }\n        \n        #controls {\n            margin-top: 20px;\n            text-align: center;\n            background: rgba(0, 255, 255, 0.1);\n            padding: 15px;\n            border-radius: 10px;\n            border: 1px solid #00ffff;\n        }\n        \n        .control-row {\n            margin: 10px 0;\n        }\n        \n        button {\n            background: linear-gradient(45deg, #00ffff, #0099cc);\n            border: none;\n            color: #000;\n            padding: 10px 20px;\n            margin: 0 10px;\n            border-radius: 5px;\n            font-weight: bold;\n            cursor: pointer;\n            transition: all 0.3s;\n        }\n        \n        button:hover {\n            transform: translateY(-2px);\n            box-shadow: 0 5px 15px rgba(0, 255, 255, 0.4);\n        }\n        \n        #gameInfo {\n            margin-top: 15px;\n            font-size: 14px;\n            color: #aaa;\n        }\n    </style>\n</head>\n<body>\n    <h1>🏓 Ping Pong Ball Physics</h1>\n    \n    <div id=\"gameContainer\">\n        <canvas id=\"gameCanvas\" width=\"800\" height=\"400\"></canvas>\n    </div>\n    \n    <div id=\"controls\">\n        <div class=\"control-row\">\n            <button onclick=\"startGame()\">Start Game</button>\n            <button onclick=\"pauseGame()\">Pause/Resume</button>\n            <button onclick=\"resetBall()\">Reset Ball</button>\n        </div>\n        <div class=\"control-row\">\n            <button onclick=\"increaseBallSpeed()\">Speed +</button>\n            <button onclick=\"decreaseBallSpeed()\">Speed -</button>\n            <button onclick=\"runPhysicsTest()\">Test Physics</button>\n        </div>\n        <div id=\"gameInfo\">\n            Ball Speed: <span id=\"speedDisplay\">5</span> | \n            Position: (<span id=\"posX\">400</span>, <span id=\"posY\">200</span>) | \n            Velocity: (<span id=\"velX\">5</span>, <span id=\"velY\">3</span>)\n        </div>\n    </div>\n\n    <script>\n        class Ball {\n            constructor(x, y, radius = 8) {\n                this.x = x;\n                this.y = y;\n                this.radius = radius;\n                this.velocityX = 5;\n                this.velocityY = 3;\n                this.maxSpeed = 12;\n                this.minSpeed = 3;\n                this.trail = [];\n                this.maxTrailLength = 8;\n            }\n            \n            update() {\n                // Store previous position for trail\n                this.trail.push({x: this.x, y: this.y});\n                if (this.trail.length > this.maxTrailLength) {\n                    this.trail.shift();\n                }\n                \n                // Update position\n                this.x += this.velocityX;\n                this.y += this.velocityY;\n                \n                // Wall collision detection (top and bottom)\n                if (this.y - this.radius <= 0) {\n                    this.y = this.radius;\n                    this.velocityY = Math.abs(this.velocityY);\n                    this.addSpeedVariation();\n                }\n                \n                if (this.y + this.radius >= canvas.height) {\n                    this.y = canvas.height - this.radius;\n                    this.velocityY = -Math.abs(this.velocityY);\n                    this.addSpeedVariation();\n                }\n                \n                // Paddle collision detection\n                this.checkPaddleCollision(leftPaddle, 'left');\n                this.checkPaddleCollision(rightPaddle, 'right');\n                \n                // Keep ball in bounds horizontally (for demo purposes)\n                if (this.x - this.radius <= 0) {\n                    this.x = this.radius;\n                    this.velocityX = Math.abs(this.velocityX);\n                }\n                \n                if (this.x + this.radius >= canvas.width) {\n                    this.x = canvas.width - this.radius;\n                    this.velocityX = -Math.abs(this.velocityX);\n                }\n                \n                // Limit speed\n                this.limitSpeed();\n            }\n            \n            checkPaddleCollision(paddle, side) {\n                const ballLeft = this.x - this.radius;\n                const ballRight = this.x + this.radius;\n                const ballTop = this.y - this.radius;\n                const ballBottom = this.y + this.radius;\n                \n                const paddleLeft = paddle.x;\n                const paddleRight = paddle.x + paddle.width;\n                const paddleTop = paddle.y;\n                const paddleBottom = paddle.y + paddle.height;\n                \n                // Check for collision\n                if (ballLeft < paddleRight && ballRight > paddleLeft &&\n                    ballTop < paddleBottom && ballBottom > paddleTop) {\n                    \n                    // Calculate collision point relative to paddle center\n                    const paddleCenter = paddleTop + paddle.height / 2;\n                    const hitPoint = (this.y - paddleCenter) / (paddle.height / 2);\n                    \n                    // Adjust angle based on hit point\n                    const maxAngle = Math.PI / 3; // 60 degrees max\n                    const angle = hitPoint * maxAngle;\n                    \n                    // Calculate new velocity\n                    const speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);\n                    \n                    if (side === 'left') {\n                        this.velocityX = Math.abs(speed * Math.cos(angle));\n                        this.x = paddleRight + this.radius; // Push ball away from paddle\n                    } else {\n                        this.velocityX = -Math.abs(speed * Math.cos(angle));\n                        this.x = paddleLeft - this.radius; // Push ball away from paddle\n                    }\n                    \n                    this.velocityY = speed * Math.sin(angle);\n                    \n                    // Add slight speed increase\n                    this.velocityX *= 1.05;\n                    this.velocityY *= 1.05;\n                    \n                    this.addSpeedVariation();\n                }\n            }\n            \n            addSpeedVariation() {\n                // Add small random variation to prevent predictable bouncing\n                const variation = 0.1;\n                this.velocityX += (Math.random() - 0.5) * variation;\n                this.velocityY += (Math.random() - 0.5) * variation;\n            }\n            \n            limitSpeed() {\n                const speed = Math.sqrt(this.velocityX * this.velocityX + this.velocityY * this.velocityY);\n                \n                if (speed > this.maxSpeed) {\n                    const ratio = this.maxSpeed / speed;\n                    this.velocityX *= ratio;\n                    this.velocityY *= ratio;\n                }\n                \n                if (speed < this.minSpeed) {\n                    const ratio = this.minSpeed / speed;\n                    this.velocityX *= ratio;\n                    this.velocityY *= ratio;\n                }\n            }\n            \n            draw(ctx) {\n                // Draw trail\n                ctx.globalAlpha = 0.3;\n                for (let i = 0; i < this.trail.length; i++) {\n                    const alpha = i / this.trail.length * 0.3;\n                    ctx.globalAlpha = alpha;\n                    ctx.fillStyle = '#00ffff';\n                    ctx.beginPath();\n                    ctx.arc(this.trail[i].x, this.trail[i].y, this.radius * (i / this.trail.length), 0, Math.PI * 2);\n                    ctx.fill();\n                }\n                \n                ctx.globalAlpha = 1;\n                \n                // Draw main ball with gradient\n                const gradient = ctx.createRadialGradient(this.x - 3, this.y - 3, 0, this.x, this.y, this.radius);\n                gradient.addColorStop(0, '#ffffff');\n                gradient.addColorStop(0.3, '#00ffff');\n                gradient.addColorStop(1, '#0099cc');\n                \n                ctx.fillStyle = gradient;\n                ctx.beginPath();\n                ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);\n                ctx.fill();\n                \n                // Draw ball outline\n                ctx.strokeStyle = '#ffffff';\n                ctx.lineWidth = 1;\n                ctx.stroke();\n                \n                // Draw velocity vector (for debugging)\n                if (showDebugInfo) {\n                    ctx.strokeStyle = '#ff00ff';\n                    ctx.lineWidth = 2;\n                    ctx.beginPath();\n                    ctx.moveTo(this.x, this.y);\n                    ctx.lineTo(this.x + this.velocityX * 5, this.y + this.velocityY * 5);\n                    ctx.stroke();\n                }\n            }\n            \n            reset() {\n                this.x = canvas.width / 2;\n                this.y = canvas.height / 2;\n                this.velocityX = (Math.random() > 0.5 ? 1 : -1) * 5;\n                this.velocityY = (Math.random() - 0.5) * 6;\n                this.trail = [];\n            }\n        }\n        \n        class Paddle {\n            constructor(x, y, width = 15, height = 80) {\n                this.x = x;\n                this.y = y;\n                this.width = width;\n                this.height = height;\n                this.speed = 6;\n            }\n            \n            draw(ctx) {\n                // Paddle gradient\n                const gradient = ctx.createLinearGradient(this.x, this.y, this.x + this.width, this.y + this.height);\n                gradient.addColorStop(0, '#00ffff');\n                gradient.addColorStop(0.5, '#ffffff');\n                gradient.addColorStop(1, '#00cccc');\n                \n                ctx.fillStyle = gradient;\n                ctx.fillRect(this.x, this.y, this.width, this.height);\n                \n                // Paddle outline\n                ctx.strokeStyle = '#ffffff';\n                ctx.lineWidth = 2;\n                ctx.strokeRect(this.x, this.y, this.width, this.height);\n                \n                // Grip details\n                ctx.strokeStyle = '#0099cc';\n                ctx.lineWidth = 1;\n                for (let i = 1; i < 4; i++) {\n                    const gripY = this.y + (this.height / 4) * i;\n                    ctx.beginPath();\n                    ctx.moveTo(this.x + 2, gripY);\n                    ctx.lineTo(this.x + this.width - 2, gripY);\n                    ctx.stroke();\n                }\n            }\n        }\n        \n        // Game variables\n        const canvas = document.getElementById('gameCanvas');\n        const ctx = canvas.getContext('2d');\n        \n        let ball, leftPaddle, rightPaddle;\n        let gameRunning = false;\n        let gamePaused = false;\n        let showDebugInfo = false;\n        let animationId;\n        \n        // Initialize game objects\n        function initializeGame() {\n            ball = new Ball(canvas.width / 2, canvas.height / 2);\n            leftPaddle = new Paddle(20, canvas.height / 2 - 40);\n            rightPaddle = new Paddle(canvas.width - 35, canvas.height / 2 - 40);\n        }\n        \n        // Draw game board\n        function drawGameBoard() {\n            // Clear canvas\n            ctx.clearRect(0, 0, canvas.width, canvas.height);\n            \n            // Center line\n            ctx.strokeStyle = '#00ffff';\n            ctx.lineWidth = 2;\n            ctx.setLineDash([10, 10]);\n            ctx.beginPath();\n            ctx.moveTo(canvas.width / 2, 0);\n            ctx.lineTo(canvas.width / 2, canvas.height);\n            ctx.stroke();\n            ctx.setLineDash([]);\n            \n            // Center circle\n            ctx.strokeStyle = '#00ffff';\n            ctx.lineWidth = 2;\n            ctx.beginPath();\n            ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);\n            ctx.stroke();\n            \n            // Center dot with glow\n            const glowIntensity = Math.sin(Date.now() * 0.005) * 0.5 + 0.5;\n            ctx.fillStyle = `rgba(0, 255, 255, ${0.5 + glowIntensity * 0.5})`;\n            ctx.beginPath();\n            ctx.arc(canvas.width / 2, canvas.height / 2, 3, 0, Math.PI * 2);\n            ctx.fill();\n        }\n        \n        // Game loop\n        function gameLoop() {\n            if (!gameRunning || gamePaused) {\n                return;\n            }\n            \n            // Update ball physics\n            ball.update();\n            \n            // Draw everything\n            drawGameBoard();\n            leftPaddle.draw(ctx);\n            rightPaddle.draw(ctx);\n            ball.draw(ctx);\n            \n            // Update display info\n            updateGameInfo();\n            \n            animationId = requestAnimationFrame(gameLoop);\n        }\n        \n        // Update game info display\n        function updateGameInfo() {\n            const speed = Math.sqrt(ball.velocityX * ball.velocityX + ball.velocityY * ball.velocityY);\n            document.getElementById('speedDisplay').textContent = speed.toFixed(1);\n            document.getElementById('posX').textContent = ball.x.toFixed(0);\n            document.getElementById('posY').textContent = ball.y.toFixed(0);\n            document.getElementById('velX').textContent = ball.velocityX.toFixed(1);\n            document.getElementById('velY').textContent = ball.velocityY.toFixed(1);\n        }\n        \n        // Game controls\n        function startGame() {\n            if (!gameRunning) {\n                gameRunning = true;\n                gamePaused = false;\n                gameLoop();\n            }\n        }\n        \n        function pauseGame() {\n            gamePaused = !gamePaused;\n            if (!gamePaused && gameRunning) {\n                gameLoop();\n            }\n        }\n        \n        function resetBall() {\n            ball.reset();\n            updateGameInfo();\n        }\n        \n        function increaseBallSpeed() {\n            const multiplier = 1.2;\n            ball.velocityX *= multiplier;\n            ball.velocityY *= multiplier;\n            ball.limitSpeed();\n        }\n        \n        function decreaseBallSpeed() {\n            const multiplier = 0.8;\n            ball.velocityX *= multiplier;\n            ball.velocityY *= multiplier;\n            ball.limitSpeed();\n        }\n        \n        // Physics test function\n        function runPhysicsTest() {\n            console.log('🔬 Running Physics Test...');\n            \n            // Test 1: Ball movement\n            const initialX = ball.x;\n            const initialY = ball.y;\n            ball.update();\n            const moved = ball.x !== initialX || ball.y !== initialY;\n            console.log(`✓ Ball movement: ${moved ? 'PASS' : 'FAIL'}`);\n            \n            // Test 2: Wall collision (simulate ball at top)\n            const testBall = new Ball(400, 5, 8);\n            testBall.velocityY = -5;\n            testBall.update();\n            const wallBounce = testBall.velocityY > 0;\n            console.log(`✓ Wall collision: ${wallBounce ? 'PASS' : 'FAIL'}`);\n            \n            // Test 3: Speed limiting\n            testBall.velocityX = 20;\n            testBall.velocityY = 20;\n            testBall.limitSpeed();\n            const speed = Math.sqrt(testBall.velocityX ** 2 + testBall.velocityY ** 2);\n            const speedLimited = speed <= testBall.maxSpeed + 0.1;\n            console.log(`✓ Speed limiting: ${speedLimited ? 'PASS' : 'FAIL'}`);\n            \n            // Test 4: Paddle collision simulation\n            const testPaddle = new Paddle(50, 160, 15, 80);\n            const collisionBall = new Ball(65, 200, 8);\n            collisionBall.velocityX = 5;\n            collisionBall.checkPaddleCollision(testPaddle, 'left');\n            const paddleBounce = collisionBall.velocityX > 5;\n            console.log(`✓ Paddle collision: ${paddleBounce ? 'PASS' : 'FAIL'}`);\n            \n            console.log('🎯 Physics test complete!');\n            \n            // Visual feedback\n            alert('Physics test complete! Check console for detailed results.');\n        }\n        \n        // Keyboard controls for paddles\n        const keys = {};\n        \n        document.addEventListener('keydown', (e) => {\n            keys[e.code] = true;\n        });\n        \n        document.addEventListener('keyup', (e) => {\n            keys[e.code] = false;\n        });\n        \n        // Update paddle positions based on input\n        function updatePaddles() {\n            // Left paddle (W/S or Arrow Keys)\n            if (keys['KeyW'] || keys['ArrowUp']) {\n                leftPaddle.y = Math.max(0, leftPaddle.y - leftPaddle.speed);\n            }\n            if (keys['KeyS'] || keys['ArrowDown']) {\n                leftPaddle.y = Math.min(canvas.height - leftPaddle.height, leftPaddle.y + leftPaddle.speed);\n            }\n            \n            // Right paddle (I/K keys)\n            if (keys['KeyI']) {\n                rightPaddle.y = Math.max(0, rightPaddle.y - rightPaddle.speed);\n            }\n            if (keys['KeyK']) {\n                rightPaddle.y = Math.min(canvas.height - rightPaddle.height, rightPaddle.y + rightPaddle.speed);\n            }\n        }\n        \n        // Enhanced game loop with paddle updates\n        function enhancedGameLoop() {\n            if (!gameRunning || gamePaused) {\n                return;\n            }\n            \n            updatePaddles();\n            ball.update();\n            \n            drawGameBoard();\n            leftPaddle.draw(ctx);\n            rightPaddle.draw(ctx);\n            ball.draw(ctx);\n            \n            updateGameInfo();\n            \n            animationId = requestAnimationFrame(enhancedGameLoop);\n        }\n        \n        // Replace gameLoop with enhanced version\n        gameLoop = enhancedGameLoop;\n        \n        // Debug mode toggle\n        document.addEventListener('keydown', (e) => {\n            if (e.code === 'KeyD') {\n                showDebugInfo = !showDebugInfo;\n            }\n        });\n        \n        // Initialize game on load\n        window.addEventListener('load', () => {\n            initializeGame();\n            drawGameBoard();\n            leftPaddle.draw(ctx);\n            rightPaddle.draw(ctx);\n            ball.draw(ctx);\n            updateGameInfo();\n            \n            console.log('🏓 Ping Pong Ball Physics Loaded!');\n            console.log('Controls: W/S or ↑/↓ for left paddle, I/K for right paddle');\n            console.log('Press D for debug mode (shows velocity vectors)');\n        });\n    </script>\n</body>\n</html>","2":"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Ping Pong Score System</title>\n    <style>\n        body {\n            margin: 0;\n            padding: 20px;\n            background: linear-gradient(135deg, #1a1a2e, #16213e, #0f3460);\n            font-family: 'Courier New', monospace;\n            display: flex;\n            flex-direction: column;\n            align-items: center;\n            min-height: 100vh;\n            color: #00ffff;\n        }\n\n        .game-container {\n            border: 3px solid #00ffff;\n            border-radius: 10px;\n            padding: 20px;\n            background: rgba(0, 0, 0, 0.3);\n            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);\n        }\n\n        #gameCanvas {\n            border: 2px solid #00ffff;\n            background: #000;\n            box-shadow: 0 0 20px rgba(0, 255, 255, 0.3);\n        }\n\n        .score-display {\n            display: flex;\n            justify-content: space-between;\n            align-items: center;\n            width: 800px;\n            margin-bottom: 20px;\n            font-size: 36px;\n            font-weight: bold;\n            text-shadow: 0 0 10px #00ffff;\n        }\n\n        .player-score {\n            display: flex;\n            flex-direction: column;\n            align-items: center;\n            gap: 10px;\n        }\n\n        .player-name {\n            font-size: 18px;\n            opacity: 0.8;\n        }\n\n        .score-number {\n            font-size: 48px;\n            color: #ff6b6b;\n            text-shadow: 0 0 15px #ff6b6b;\n        }\n\n        .center-info {\n            display: flex;\n            flex-direction: column;\n            align-items: center;\n            gap: 5px;\n        }\n\n        .game-time {\n            font-size: 14px;\n            opacity: 0.7;\n        }\n\n        .controls {\n            margin-top: 20px;\n            text-align: center;\n            font-size: 14px;\n            opacity: 0.8;\n        }\n\n        .game-info {\n            position: absolute;\n            top: 10px;\n            left: 10px;\n            font-size: 12px;\n            opacity: 0.6;\n            line-height: 1.4;\n        }\n\n        .test-panel {\n            margin-top: 20px;\n            padding: 15px;\n            background: rgba(0, 0, 0, 0.5);\n            border: 1px solid #00ffff;\n            border-radius: 5px;\n            font-size: 14px;\n        }\n\n        .test-button {\n            background: #00ffff;\n            color: #000;\n            border: none;\n            padding: 8px 15px;\n            margin: 5px;\n            border-radius: 3px;\n            cursor: pointer;\n            font-family: inherit;\n        }\n\n        .test-button:hover {\n            background: #ff6b6b;\n        }\n\n        .score-animation {\n            animation: scoreFlash 0.5s ease-out;\n        }\n\n        @keyframes scoreFlash {\n            0% { transform: scale(1); }\n            50% { transform: scale(1.3); color: #ffff00; }\n            100% { transform: scale(1); }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"game-container\">\n        <div class=\"score-display\">\n            <div class=\"player-score\">\n                <div class=\"player-name\">PLAYER 1</div>\n                <div class=\"score-number\" id=\"player1Score\">0</div>\n            </div>\n            <div class=\"center-info\">\n                <div class=\"game-time\" id=\"gameTime\">00:00</div>\n                <div style=\"font-size: 12px;\">PING PONG</div>\n            </div>\n            <div class=\"player-score\">\n                <div class=\"player-name\">PLAYER 2</div>\n                <div class=\"score-number\" id=\"player2Score\">0</div>\n            </div>\n        </div>\n        \n        <canvas id=\"gameCanvas\" width=\"800\" height=\"400\"></canvas>\n        \n        <div class=\"controls\">\n            Player 1: W/S keys | Player 2: I/K keys | Space: Pause/Resume | R: Reset Game\n        </div>\n    </div>\n\n    <div class=\"test-panel\">\n        <strong>Score System Tests:</strong><br>\n        <button class=\"test-button\" onclick=\"testScoreSystem()\">Run All Tests</button>\n        <button class=\"test-button\" onclick=\"simulatePlayer1Score()\">Player 1 Scores</button>\n        <button class=\"test-button\" onclick=\"simulatePlayer2Score()\">Player 2 Scores</button>\n        <button class=\"test-button\" onclick=\"resetGame()\">Reset Scores</button>\n        <div id=\"testResults\" style=\"margin-top: 10px;\"></div>\n    </div>\n\n    <div class=\"game-info\" id=\"gameInfo\">\n        Ball Speed: 0<br>\n        Ball Position: (0, 0)<br>\n        Game State: Paused\n    </div>\n\n    <script>\n        const canvas = document.getElementById('gameCanvas');\n        const ctx = canvas.getContext('2d');\n        \n        // Game state\n        let gameState = {\n            running: false,\n            startTime: Date.now(),\n            scores: {\n                player1: 0,\n                player2: 0\n            }\n        };\n\n        // Ball object\n        const ball = {\n            x: canvas.width / 2,\n            y: canvas.height / 2,\n            radius: 8,\n            vx: 0,\n            vy: 0,\n            speed: 0,\n            maxSpeed: 12,\n            trail: []\n        };\n\n        // Paddle objects\n        const paddle1 = {\n            x: 20,\n            y: canvas.height / 2 - 40,\n            width: 12,\n            height: 80,\n            speed: 8,\n            moving: { up: false, down: false }\n        };\n\n        const paddle2 = {\n            x: canvas.width - 32,\n            y: canvas.height / 2 - 40,\n            width: 12,\n            height: 80,\n            speed: 8,\n            moving: { up: false, down: false }\n        };\n\n        // Input handling\n        const keys = {};\n        \n        document.addEventListener('keydown', (e) => {\n            keys[e.key.toLowerCase()] = true;\n            \n            if (e.key === ' ') {\n                e.preventDefault();\n                toggleGame();\n            }\n            \n            if (e.key.toLowerCase() === 'r') {\n                resetGame();\n            }\n        });\n        \n        document.addEventListener('keyup', (e) => {\n            keys[e.key.toLowerCase()] = false;\n        });\n\n        // Score management\n        function updateScore(player) {\n            if (player === 1) {\n                gameState.scores.player1++;\n                animateScore('player1Score');\n            } else if (player === 2) {\n                gameState.scores.player2++;\n                animateScore('player2Score');\n            }\n            \n            displayScores();\n            resetBall();\n        }\n\n        function animateScore(elementId) {\n            const element = document.getElementById(elementId);\n            element.classList.remove('score-animation');\n            setTimeout(() => {\n                element.classList.add('score-animation');\n            }, 10);\n        }\n\n        function displayScores() {\n            document.getElementById('player1Score').textContent = gameState.scores.player1;\n            document.getElementById('player2Score').textContent = gameState.scores.player2;\n        }\n\n        function resetBall() {\n            ball.x = canvas.width / 2;\n            ball.y = canvas.height / 2;\n            \n            // Random direction with moderate speed\n            const angle = (Math.random() - 0.5) * Math.PI / 3; // ±30 degrees\n            const direction = Math.random() < 0.5 ? 1 : -1;\n            const speed = 4 + Math.random() * 2; // 4-6 speed\n            \n            ball.vx = Math.cos(angle) * speed * direction;\n            ball.vy = Math.sin(angle) * speed;\n            ball.speed = speed;\n            ball.trail = [];\n        }\n\n        function updateGameTime() {\n            if (gameState.running) {\n                const elapsed = Math.floor((Date.now() - gameState.startTime) / 1000);\n                const minutes = Math.floor(elapsed / 60).toString().padStart(2, '0');\n                const seconds = (elapsed % 60).toString().padStart(2, '0');\n                document.getElementById('gameTime').textContent = `${minutes}:${seconds}`;\n            }\n        }\n\n        // Game logic\n        function updatePaddles() {\n            // Player 1 controls (W/S)\n            if (keys['w'] && paddle1.y > 0) {\n                paddle1.y -= paddle1.speed;\n            }\n            if (keys['s'] && paddle1.y + paddle1.height < canvas.height) {\n                paddle1.y += paddle1.speed;\n            }\n            \n            // Player 2 controls (I/K)\n            if (keys['i'] && paddle2.y > 0) {\n                paddle2.y -= paddle2.speed;\n            }\n            if (keys['k'] && paddle2.y + paddle2.height < canvas.height) {\n                paddle2.y += paddle2.speed;\n            }\n        }\n\n        function updateBall() {\n            if (!gameState.running) return;\n            \n            // Update position\n            ball.x += ball.vx;\n            ball.y += ball.vy;\n            \n            // Add to trail\n            ball.trail.push({ x: ball.x, y: ball.y });\n            if (ball.trail.length > 10) ball.trail.shift();\n            \n            // Wall collisions (top/bottom)\n            if (ball.y <= ball.radius || ball.y >= canvas.height - ball.radius) {\n                ball.vy = -ball.vy;\n                ball.y = Math.max(ball.radius, Math.min(canvas.height - ball.radius, ball.y));\n            }\n            \n            // Score detection (ball passes paddle)\n            if (ball.x <= 0) {\n                updateScore(2); // Player 2 scores\n                return;\n            }\n            \n            if (ball.x >= canvas.width) {\n                updateScore(1); // Player 1 scores\n                return;\n            }\n            \n            // Paddle collisions\n            checkPaddleCollision(paddle1);\n            checkPaddleCollision(paddle2);\n            \n            // Update speed\n            ball.speed = Math.sqrt(ball.vx * ball.vx + ball.vy * ball.vy);\n        }\n\n        function checkPaddleCollision(paddle) {\n            if (ball.x - ball.radius <= paddle.x + paddle.width &&\n                ball.x + ball.radius >= paddle.x &&\n                ball.y >= paddle.y &&\n                ball.y <= paddle.y + paddle.height) {\n                \n                // Calculate hit position (0 = top, 1 = bottom)\n                const hitPos = (ball.y - paddle.y) / paddle.height;\n                \n                // Reverse horizontal direction\n                ball.vx = -ball.vx;\n                \n                // Adjust vertical angle based on hit position\n                const angle = (hitPos - 0.5) * Math.PI / 3; // ±30 degrees\n                const speed = Math.min(ball.speed + 0.5, ball.maxSpeed);\n                \n                ball.vx = Math.abs(ball.vx) * (paddle === paddle1 ? 1 : -1);\n                ball.vy = Math.sin(angle) * speed;\n                \n                // Ensure ball doesn't get stuck\n                if (paddle === paddle1) {\n                    ball.x = paddle.x + paddle.width + ball.radius;\n                } else {\n                    ball.x = paddle.x - ball.radius;\n                }\n            }\n        }\n\n        function draw() {\n            // Clear canvas\n            ctx.fillStyle = '#000';\n            ctx.fillRect(0, 0, canvas.width, canvas.height);\n            \n            // Draw center line\n            ctx.strokeStyle = '#00ffff';\n            ctx.lineWidth = 2;\n            ctx.setLineDash([10, 10]);\n            ctx.beginPath();\n            ctx.moveTo(canvas.width / 2, 0);\n            ctx.lineTo(canvas.width / 2, canvas.height);\n            ctx.stroke();\n            ctx.setLineDash([]);\n            \n            // Draw center circle\n            ctx.strokeStyle = '#00ffff';\n            ctx.lineWidth = 2;\n            ctx.beginPath();\n            ctx.arc(canvas.width / 2, canvas.height / 2, 50, 0, Math.PI * 2);\n            ctx.stroke();\n            \n            // Draw paddles\n            drawPaddle(paddle1);\n            drawPaddle(paddle2);\n            \n            // Draw ball trail\n            if (ball.trail.length > 1) {\n                for (let i = 0; i < ball.trail.length - 1; i++) {\n                    const alpha = i / ball.trail.length;\n                    ctx.strokeStyle = `rgba(0, 255, 255, ${alpha * 0.3})`;\n                    ctx.lineWidth = 2;\n                    ctx.beginPath();\n                    ctx.moveTo(ball.trail[i].x, ball.trail[i].y);\n                    ctx.lineTo(ball.trail[i + 1].x, ball.trail[i + 1].y);\n                    ctx.stroke();\n                }\n            }\n            \n            // Draw ball\n            ctx.fillStyle = '#ff6b6b';\n            ctx.shadowColor = '#ff6b6b';\n            ctx.shadowBlur = 15;\n            ctx.beginPath();\n            ctx.arc(ball.x, ball.y, ball.radius, 0, Math.PI * 2);\n            ctx.fill();\n            ctx.shadowBlur = 0;\n        }\n\n        function drawPaddle(paddle) {\n            // Main paddle\n            ctx.fillStyle = '#00ffff';\n            ctx.shadowColor = '#00ffff';\n            ctx.shadowBlur = 10;\n            ctx.fillRect(paddle.x, paddle.y, paddle.width, paddle.height);\n            \n            // Grip details\n            ctx.fillStyle = '#004444';\n            for (let i = 0; i < 3; i++) {\n                const y = paddle.y + paddle.height * 0.2 + i * paddle.height * 0.2;\n                ctx.fillRect(paddle.x + 2, y, paddle.width - 4, 3);\n            }\n            \n            ctx.shadowBlur = 0;\n        }\n\n        function updateGameInfo() {\n            const info = `Ball Speed: ${ball.speed.toFixed(1)}<br>\n                         Ball Position: (${ball.x.toFixed(0)}, ${ball.y.toFixed(0)})<br>\n                         Game State: ${gameState.running ? 'Running' : 'Paused'}<br>\n                         Score: ${gameState.scores.player1} - ${gameState.scores.player2}`;\n            document.getElementById('gameInfo').innerHTML = info;\n        }\n\n        function toggleGame() {\n            gameState.running = !gameState.running;\n            if (gameState.running && (ball.vx === 0 && ball.vy === 0)) {\n                resetBall();\n                gameState.startTime = Date.now();\n            }\n        }\n\n        function resetGame() {\n            gameState.running = false;\n            gameState.startTime = Date.now();\n            gameState.scores.player1 = 0;\n            gameState.scores.player2 = 0;\n            displayScores();\n            resetBall();\n            ball.vx = 0;\n            ball.vy = 0;\n            document.getElementById('gameTime').textContent = '00:00';\n        }\n\n        function gameLoop() {\n            updatePaddles();\n            updateBall();\n            updateGameTime();\n            updateGameInfo();\n            draw();\n            requestAnimationFrame(gameLoop);\n        }\n\n        // Test functions\n        function simulatePlayer1Score() {\n            updateScore(1);\n        }\n\n        function simulatePlayer2Score() {\n            updateScore(2);\n        }\n\n        function testScoreSystem() {\n            const results = [];\n            \n            // Test 1: Initial scores should be 0\n            results.push(`✓ Initial scores: P1=${gameState.scores.player1}, P2=${gameState.scores.player2}`);\n            \n            // Test 2: Player 1 scoring\n            const p1Before = gameState.scores.player1;\n            updateScore(1);\n            const p1After = gameState.scores.player1;\n            results.push(`✓ Player 1 score increment: ${p1Before} → ${p1After}`);\n            \n            // Test 3: Player 2 scoring\n            const p2Before = gameState.scores.player2;\n            updateScore(2);\n            const p2After = gameState.scores.player2;\n            results.push(`✓ Player 2 score increment: ${p2Before} → ${p2After}`);\n            \n            // Test 4: Score display update\n            const displayedP1 = document.getElementById('player1Score').textContent;\n            const displayedP2 = document.getElementById('player2Score').textContent;\n            results.push(`✓ Display update: P1=${displayedP1}, P2=${displayedP2}`);\n            \n            // Test 5: Ball reset after score\n            results.push(`✓ Ball reset position: (${ball.x}, ${ball.y})`);\n            \n            document.getElementById('testResults').innerHTML = results.join('<br>');\n        }\n\n        // Initialize game\n        displayScores();\n        resetBall();\n        ball.vx = 0;\n        ball.vy = 0;\n        gameLoop();\n    </script>\n</body>\n</html>","4":"<!DOCTYPE html>\n<html lang=\"en\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>Enhanced Ping Pong with Visual Effects</title>\n    <style>\n        body {\n            margin: 0;\n            padding: 0;\n            background: linear-gradient(135deg, #0a0a0a, #1a1a2e, #16213e);\n            font-family: 'Courier New', monospace;\n            color: #00ffff;\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            min-height: 100vh;\n            overflow: hidden;\n        }\n        \n        .game-container {\n            position: relative;\n            border: 2px solid #00ffff;\n            border-radius: 10px;\n            box-shadow: 0 0 30px rgba(0, 255, 255, 0.5);\n            background: rgba(0, 0, 0, 0.3);\n        }\n        \n        canvas {\n            display: block;\n            background: rgba(0, 20, 40, 0.8);\n            border-radius: 8px;\n        }\n        \n        .ui-overlay {\n            position: absolute;\n            top: 0;\n            left: 0;\n            right: 0;\n            bottom: 0;\n            pointer-events: none;\n            z-index: 10;\n        }\n        \n        .score-display {\n            position: absolute;\n            top: 20px;\n            left: 50%;\n            transform: translateX(-50%);\n            font-size: 24px;\n            font-weight: bold;\n            text-shadow: 0 0 10px currentColor;\n        }\n        \n        .game-state-overlay {\n            position: absolute;\n            top: 50%;\n            left: 50%;\n            transform: translate(-50%, -50%);\n            text-align: center;\n            font-size: 32px;\n            font-weight: bold;\n            text-shadow: 0 0 20px currentColor;\n            background: rgba(0, 0, 0, 0.8);\n            padding: 20px;\n            border-radius: 10px;\n            border: 2px solid #00ffff;\n        }\n        \n        .controls {\n            position: absolute;\n            bottom: -60px;\n            left: 50%;\n            transform: translateX(-50%);\n            font-size: 12px;\n            text-align: center;\n            opacity: 0.7;\n        }\n        \n        @keyframes glow {\n            0%, 100% { text-shadow: 0 0 5px currentColor; }\n            50% { text-shadow: 0 0 20px currentColor, 0 0 30px currentColor; }\n        }\n        \n        .glow-animation {\n            animation: glow 2s ease-in-out infinite;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"game-container\">\n        <canvas id=\"gameCanvas\" width=\"800\" height=\"400\"></canvas>\n        <div class=\"ui-overlay\">\n            <div class=\"score-display\" id=\"scoreDisplay\">Player 1: 0 | Player 2: 0</div>\n            <div class=\"game-state-overlay\" id=\"gameStateOverlay\">\n                <div>PING PONG</div>\n                <div style=\"font-size: 16px; margin-top: 10px;\">Press SPACE to start</div>\n            </div>\n        </div>\n        <div class=\"controls\">\n            Player 1: W/S | Player 2: ↑/↓ | SPACE: Start/Pause | R: Restart\n        </div>\n    </div>\n\n    <script>\n        class Particle {\n            constructor(x, y, vx, vy, life, color, size = 2) {\n                this.x = x;\n                this.y = y;\n                this.vx = vx;\n                this.vy = vy;\n                this.life = life;\n                this.maxLife = life;\n                this.color = color;\n                this.size = size;\n                this.gravity = 0.1;\n            }\n            \n            update() {\n                this.x += this.vx;\n                this.y += this.vy;\n                this.vy += this.gravity;\n                this.life--;\n                this.vx *= 0.99;\n                this.vy *= 0.99;\n            }\n            \n            draw(ctx) {\n                const alpha = this.life / this.maxLife;\n                ctx.save();\n                ctx.globalAlpha = alpha;\n                ctx.fillStyle = this.color;\n                ctx.beginPath();\n                ctx.arc(this.x, this.y, this.size * alpha, 0, Math.PI * 2);\n                ctx.fill();\n                \n                // Glow effect\n                ctx.shadowBlur = 10;\n                ctx.shadowColor = this.color;\n                ctx.beginPath();\n                ctx.arc(this.x, this.y, this.size * alpha * 0.5, 0, Math.PI * 2);\n                ctx.fill();\n                ctx.restore();\n            }\n            \n            isDead() {\n                return this.life <= 0;\n            }\n        }\n        \n        class ParticleSystem {\n            constructor() {\n                this.particles = [];\n            }\n            \n            addParticle(x, y, vx, vy, life, color, size = 2) {\n                this.particles.push(new Particle(x, y, vx, vy, life, color, size));\n            }\n            \n            createExplosion(x, y, color, count = 10) {\n                for (let i = 0; i < count; i++) {\n                    const angle = (Math.PI * 2 * i) / count;\n                    const speed = 2 + Math.random() * 3;\n                    const vx = Math.cos(angle) * speed;\n                    const vy = Math.sin(angle) * speed;\n                    this.addParticle(x, y, vx, vy, 30 + Math.random() * 20, color, 2 + Math.random() * 2);\n                }\n            }\n            \n            createTrail(x, y, vx, vy, color) {\n                this.addParticle(\n                    x + (Math.random() - 0.5) * 4,\n                    y + (Math.random() - 0.5) * 4,\n                    vx * -0.1 + (Math.random() - 0.5),\n                    vy * -0.1 + (Math.random() - 0.5),\n                    15 + Math.random() * 10,\n                    color,\n                    1 + Math.random()\n                );\n            }\n            \n            update() {\n                this.particles.forEach(particle => particle.update());\n                this.particles = this.particles.filter(particle => !particle.isDead());\n            }\n            \n            draw(ctx) {\n                this.particles.forEach(particle => particle.draw(ctx));\n            }\n        }\n        \n        class PingPongGame {\n            constructor() {\n                this.canvas = document.getElementById('gameCanvas');\n                this.ctx = this.canvas.getContext('2d');\n                this.scoreDisplay = document.getElementById('scoreDisplay');\n                this.gameStateOverlay = document.getElementById('gameStateOverlay');\n                \n                this.gameState = 'menu';\n                this.score = { player1: 0, player2: 0 };\n                this.keys = {};\n                this.lastTime = 0;\n                \n                this.particles = new ParticleSystem();\n                this.ballTrail = [];\n                \n                this.initializeGame();\n                this.setupEventListeners();\n                this.gameLoop(0);\n            }\n            \n            initializeGame() {\n                this.paddles = {\n                    left: { x: 20, y: 150, width: 10, height: 100, speed: 5 },\n                    right: { x: 770, y: 150, width: 10, height: 100, speed: 5 }\n                };\n                \n                this.ball = {\n                    x: 400,\n                    y: 200,\n                    vx: 3 * (Math.random() > 0.5 ? 1 : -1),\n                    vy: 3 * (Math.random() > 0.5 ? 1 : -1),\n                    radius: 8,\n                    maxSpeed: 8\n                };\n                \n                this.ballTrail = [];\n            }\n            \n            setupEventListeners() {\n                document.addEventListener('keydown', (e) => {\n                    this.keys[e.key.toLowerCase()] = true;\n                    \n                    if (e.key === ' ') {\n                        e.preventDefault();\n                        if (this.gameState === 'menu' || this.gameState === 'gameOver') {\n                            this.startGame();\n                        } else if (this.gameState === 'playing') {\n                            this.pauseGame();\n                        } else if (this.gameState === 'paused') {\n                            this.resumeGame();\n                        }\n                    }\n                    \n                    if (e.key.toLowerCase() === 'r') {\n                        this.resetGame();\n                    }\n                });\n                \n                document.addEventListener('keyup', (e) => {\n                    this.keys[e.key.toLowerCase()] = false;\n                });\n            }\n            \n            startGame() {\n                this.gameState = 'playing';\n                this.updateUI();\n            }\n            \n            pauseGame() {\n                this.gameState = 'paused';\n                this.updateUI();\n            }\n            \n            resumeGame() {\n                this.gameState = 'playing';\n                this.updateUI();\n            }\n            \n            resetGame() {\n                this.score = { player1: 0, player2: 0 };\n                this.gameState = 'menu';\n                this.initializeGame();\n                this.particles = new ParticleSystem();\n                this.updateUI();\n            }\n            \n            updateUI() {\n                this.scoreDisplay.textContent = `Player 1: ${this.score.player1} | Player 2: ${this.score.player2}`;\n                \n                switch (this.gameState) {\n                    case 'menu':\n                        this.gameStateOverlay.innerHTML = '<div>PING PONG</div><div style=\"font-size: 16px; margin-top: 10px;\">Press SPACE to start</div>';\n                        this.gameStateOverlay.style.display = 'block';\n                        break;\n                    case 'paused':\n                        this.gameStateOverlay.innerHTML = '<div>PAUSED</div><div style=\"font-size: 16px; margin-top: 10px;\">Press SPACE to resume</div>';\n                        this.gameStateOverlay.style.display = 'block';\n                        break;\n                    case 'gameOver':\n                        const winner = this.score.player1 >= 5 ? 'Player 1' : 'Player 2';\n                        this.gameStateOverlay.innerHTML = `<div class=\"glow-animation\">${winner} Wins!</div><div style=\"font-size: 16px; margin-top: 10px;\">Press SPACE to play again</div>`;\n                        this.gameStateOverlay.style.display = 'block';\n                        break;\n                    case 'playing':\n                        this.gameStateOverlay.style.display = 'none';\n                        break;\n                }\n            }\n            \n            updatePaddles() {\n                // Player 1 controls (W/S)\n                if (this.keys['w'] && this.paddles.left.y > 0) {\n                    this.paddles.left.y -= this.paddles.left.speed;\n                }\n                if (this.keys['s'] && this.paddles.left.y < this.canvas.height - this.paddles.left.height) {\n                    this.paddles.left.y += this.paddles.left.speed;\n                }\n                \n                // Player 2 controls (Arrow keys)\n                if (this.keys['arrowup'] && this.paddles.right.y > 0) {\n                    this.paddles.right.y -= this.paddles.right.speed;\n                }\n                if (this.keys['arrowdown'] && this.paddles.right.y < this.canvas.height - this.paddles.right.height) {\n                    this.paddles.right.y += this.paddles.right.speed;\n                }\n            }\n            \n            updateBall() {\n                // Add trail particle\n                this.particles.createTrail(this.ball.x, this.ball.y, this.ball.vx, this.ball.vy, '#00ffff');\n                \n                this.ball.x += this.ball.vx;\n                this.ball.y += this.ball.vy;\n                \n                // Wall collision (top/bottom)\n                if (this.ball.y <= this.ball.radius || this.ball.y >= this.canvas.height - this.ball.radius) {\n                    this.ball.vy = -this.ball.vy;\n                    this.particles.createExplosion(this.ball.x, this.ball.y, '#ffff00', 5);\n                }\n                \n                // Paddle collision\n                this.checkPaddleCollision(this.paddles.left);\n                this.checkPaddleCollision(this.paddles.right);\n                \n                // Scoring\n                if (this.ball.x < 0) {\n                    this.score.player2++;\n                    this.particles.createExplosion(this.ball.x, this.ball.y, '#ff0066', 15);\n                    this.resetBall();\n                } else if (this.ball.x > this.canvas.width) {\n                    this.score.player1++;\n                    this.particles.createExplosion(this.ball.x, this.ball.y, '#ff0066', 15);\n                    this.resetBall();\n                }\n                \n                // Check win condition\n                if (this.score.player1 >= 5 || this.score.player2 >= 5) {\n                    this.gameState = 'gameOver';\n                    this.updateUI();\n                }\n            }\n            \n            checkPaddleCollision(paddle) {\n                if (this.ball.x - this.ball.radius < paddle.x + paddle.width &&\n                    this.ball.x + this.ball.radius > paddle.x &&\n                    this.ball.y - this.ball.radius < paddle.y + paddle.height &&\n                    this.ball.y + this.ball.radius > paddle.y) {\n                    \n                    const hitPoint = (this.ball.y - (paddle.y + paddle.height / 2)) / (paddle.height / 2);\n                    const angle = hitPoint * Math.PI / 4;\n                    const speed = Math.sqrt(this.ball.vx * this.ball.vx + this.ball.vy * this.ball.vy);\n                    \n                    this.ball.vx = -this.ball.vx;\n                    this.ball.vy = speed * Math.sin(angle);\n                    \n                    // Limit speed\n                    const currentSpeed = Math.sqrt(this.ball.vx * this.ball.vx + this.ball.vy * this.ball.vy);\n                    if (currentSpeed > this.ball.maxSpeed) {\n                        this.ball.vx = (this.ball.vx / currentSpeed) * this.ball.maxSpeed;\n                        this.ball.vy = (this.ball.vy / currentSpeed) * this.ball.maxSpeed;\n                    }\n                    \n                    // Create hit effect\n                    this.particles.createExplosion(this.ball.x, this.ball.y, '#00ff66', 8);\n                    \n                    // Move ball away from paddle to prevent sticking\n                    if (paddle === this.paddles.left) {\n                        this.ball.x = paddle.x + paddle.width + this.ball.radius;\n                    } else {\n                        this.ball.x = paddle.x - this.ball.radius;\n                    }\n                }\n            }\n            \n            resetBall() {\n                this.ball.x = this.canvas.width / 2;\n                this.ball.y = this.canvas.height / 2;\n                this.ball.vx = 3 * (Math.random() > 0.5 ? 1 : -1);\n                this.ball.vy = 3 * (Math.random() > 0.5 ? 1 : -1);\n                this.updateUI();\n            }\n            \n            draw() {\n                // Clear canvas with fade effect\n                this.ctx.fillStyle = 'rgba(0, 20, 40, 0.1)';\n                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);\n                \n                this.drawBackground();\n                this.drawPaddles();\n                this.drawBall();\n                \n                // Draw particles\n                this.particles.draw(this.ctx);\n            }\n            \n            drawBackground() {\n                this.ctx.strokeStyle = '#00ffff';\n                this.ctx.lineWidth = 2;\n                this.ctx.globalAlpha = 0.3;\n                \n                // Center line\n                this.ctx.setLineDash([10, 10]);\n                this.ctx.beginPath();\n                this.ctx.moveTo(this.canvas.width / 2, 0);\n                this.ctx.lineTo(this.canvas.width / 2, this.canvas.height);\n                this.ctx.stroke();\n                \n                // Center circle\n                this.ctx.setLineDash([]);\n                this.ctx.beginPath();\n                this.ctx.arc(this.canvas.width / 2, this.canvas.height / 2, 50, 0, Math.PI * 2);\n                this.ctx.stroke();\n                \n                this.ctx.globalAlpha = 1;\n            }\n            \n            drawPaddles() {\n                this.ctx.fillStyle = '#00ffff';\n                this.ctx.shadowBlur = 10;\n                this.ctx.shadowColor = '#00ffff';\n                \n                // Left paddle\n                this.ctx.fillRect(this.paddles.left.x, this.paddles.left.y, this.paddles.left.width, this.paddles.left.height);\n                \n                // Right paddle\n                this.ctx.fillRect(this.paddles.right.x, this.paddles.right.y, this.paddles.right.width, this.paddles.right.height);\n                \n                this.ctx.shadowBlur = 0;\n            }\n            \n            drawBall() {\n                this.ctx.fillStyle = '#ffffff';\n                this.ctx.shadowBlur = 15;\n                this.ctx.shadowColor = '#ffffff';\n                \n                this.ctx.beginPath();\n                this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius, 0, Math.PI * 2);\n                this.ctx.fill();\n                \n                // Inner glow\n                this.ctx.fillStyle = '#00ffff';\n                this.ctx.shadowBlur = 5;\n                this.ctx.shadowColor = '#00ffff';\n                this.ctx.beginPath();\n                this.ctx.arc(this.ball.x, this.ball.y, this.ball.radius * 0.6, 0, Math.PI * 2);\n                this.ctx.fill();\n                \n                this.ctx.shadowBlur = 0;\n            }\n            \n            update() {\n                if (this.gameState === 'playing') {\n                    this.updatePaddles();\n                    this.updateBall();\n                }\n                this.particles.update();\n            }\n            \n            gameLoop(currentTime) {\n                const deltaTime = currentTime - this.lastTime;\n                \n                if (deltaTime >= 16.67) { // 60 FPS\n                    this.update();\n                    this.draw();\n                    this.lastTime = currentTime;\n                }\n                \n                requestAnimationFrame((time) => this.gameLoop(time));\n            }\n            \n            // Test function to validate visual effects\n            testVisualEffects() {\n                console.log('Testing visual effects...');\n                \n                // Test particle system\n                this.particles.createExplosion(400, 200, '#ff0000', 20);\n                \n                // Test trail creation\n                for (let i = 0; i < 10; i++) {\n                    this.particles.createTrail(300 + i * 10, 150, 2, 1, '#00ff00');\n                }\n                \n                console.log('Particle count:', this.particles.particles.length);\n                \n                // Test glow effects by drawing test elements\n                this.ctx.save();\n                this.ctx.shadowBlur = 20;\n                this.ctx.shadowColor = '#ff00ff';\n                this.ctx.fillStyle = '#ff00ff';\n                this.ctx.fillRect(50, 50, 20, 20);\n                this.ctx.restore();\n                \n                console.log('Visual effects test completed');\n                return true;\n            }\n        }\n        \n        // Initialize game\n        const game = new PingPongGame();\n        \n        // Expose test function globally\n        window.testVisualEffects = () => game.testVisualEffects();\n        \n        console.log('Enhanced Ping Pong Game loaded!');\n        console.log('Controls: W/S (Player 1), ↑/↓ (Player 2), SPACE (Start/Pause), R (Restart)');\n        console.log('Run testVisualEffects() to test particle effects');\n    </script>\n</body>\n</html>"};
-window.__dn_fragments = {};
-window.__dn_jsx = ["GameBoard_tab0",null,null,"GameStateManager_tab3"];
-window.__dn_components = {0: GameBoard_tab0, 3: GameStateManager_tab3};
-</script>
-<script>
-(function() {
-  const tabsEl = document.getElementById("dn-tabs");
-  const paneEl = document.getElementById("dn-pane");
-  const tabs = window.__dn_tabs;
-  let active = 0;
+        function validateInput(input, min = 0) {
+            let value = parseFloat(input.value);
+            if (isNaN(value) || value < min) {
+                value = min;
+                input.value = value;
+            }
+            return value;
+        }
 
-  function renderTabs() {
-    tabsEl.innerHTML = "";
-    tabs.forEach(function(t, i) {
-      const b = document.createElement("button");
-      b.className = "dn-shell-tab" + (i === active ? " active" : "");
-      b.textContent = t.title;
-      b.onclick = function() { active = i; renderTabs(); renderPane(); };
-      tabsEl.appendChild(b);
-    });
-  }
+        function calculate() {
+            try {
+                let billAmount = validateInput(billAmountInput, 0);
+                let tipPercentage = validateInput(tipPercentageInput, 0);
+                let numPeople = validateInput(numPeopleInput, 1);
 
-  function renderPane() {
-    const t = tabs[active];
-    if (!t) return;
-    paneEl.innerHTML = "";
-    if (t.kind === "jsx") {
-      paneEl.classList.add("has-pad");
-      paneEl.innerHTML = "<div id=\"jsx-root\"></div>";
-      const Comp = window.__dn_components[t.idx];
-      if (Comp) {
-        ReactDOM.createRoot(document.getElementById("jsx-root")).render(React.createElement(Comp));
-      }
-    } else if (t.kind === "html_full") {
-      paneEl.classList.remove("has-pad");
-      const f = document.createElement("iframe");
-      f.className = "dn-shell-iframe";
-      f.srcdoc = window.__dn_iframes[t.idx] || "";
-      f.sandbox = "allow-scripts allow-forms allow-popups";
-      paneEl.appendChild(f);
-    } else {
-      paneEl.classList.add("has-pad");
-      paneEl.innerHTML = window.__dn_fragments[t.idx] || "";
-    }
-  }
+                // Ensure numPeople is at least 1 and an integer
+                numPeople = Math.max(1, Math.round(numPeople));
+                numPeopleInput.value = numPeople;
 
-  // Wait for Babel to finish compiling JSX before rendering
-  function start() {
-    if (typeof Babel === "undefined" || !window.__dn_components) {
-      setTimeout(start, 50);
-      return;
-    }
-    renderTabs();
-    renderPane();
-  }
-  start();
-})();
-</script>
+                // Ensure tip percentage doesn't exceed 100%
+                if (tipPercentage > 100) {
+                    tipPercentage = 100;
+                    tipPercentageInput.value = 100;
+                }
+
+                // Calculate tip and total
+                const tipAmount = billAmount * (tipPercentage / 100);
+                const totalAmount = billAmount + tipAmount;
+                const perPersonAmount = totalAmount / numPeople;
+
+                // Update displays
+                tipAmountDisplay.textContent = formatCurrency(tipAmount);
+                totalAmountDisplay.textContent = formatCurrency(totalAmount);
+                perPersonAmountDisplay.textContent = formatCurrency(perPersonAmount);
+            } catch (error) {
+                console.error('Calculation error:', error);
+                // Set default values on error
+                tipAmountDisplay.textContent = '$0.00';
+                totalAmountDisplay.textContent = '$0.00';
+                perPersonAmountDisplay.textContent = '$0.00';
+            }
+        }
+
+        function reset() {
+            billAmountInput.value = '0';
+            tipPercentageInput.value = '15';
+            numPeopleInput.value = '1';
+            calculate();
+        }
+
+        // Add event listeners for real-time calculation
+        billAmountInput.addEventListener('input', calculate);
+        tipPercentageInput.addEventListener('input', calculate);
+        numPeopleInput.addEventListener('input', calculate);
+
+        // Reset button
+        resetBtn.addEventListener('click', reset);
+
+        // Initial calculation
+        calculate();
+    </script>
 </body>
 </html>
