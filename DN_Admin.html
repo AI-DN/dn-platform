@@ -2438,8 +2438,24 @@ function bundleArtifacts(req) {
   function classify(a) {
     const lang = (a.art.language || '').toLowerCase();
     const content = a.art.content || '';
+
+    // Sniff content first — the language tag from the build agent is unreliable.
+    // JSX signature: top-level component definition + export default + JSX-in-return
+    const hasReactImport = /\bimport\s+(?:\w+|\*\s+as\s+\w+|\{[^}]*\})\s+from\s+['"]react['"]/i.test(content);
+    const hasExportDefault = /\bexport\s+default\s+\w+/.test(content);
+    const hasJsxReturn = /return\s*\(?\s*</.test(content) && /<\/?[A-Z][\w.]*[\s>/]/.test(content);
+    const hasHooks = /\b(useState|useEffect|useRef|useMemo|useCallback|useContext|useReducer)\s*\(/.test(content);
+    const looksLikeJsx = hasExportDefault || hasReactImport || (hasJsxReturn && hasHooks);
+
+    // Full HTML page signature
+    const hasDoctype = /<!DOCTYPE/i.test(content);
+    const hasHtmlTag = /<html[\s>]/i.test(content);
+    const looksLikeFullHtml = hasDoctype || hasHtmlTag;
+
+    // Decide — content sniff wins over the language tag when they disagree
+    if (looksLikeJsx) return 'jsx';
+    if (looksLikeFullHtml) return 'html_full';
     if (lang === 'jsx' || lang === 'react' || lang === 'tsx') return 'jsx';
-    if (lang === 'html' && content.indexOf('<!DOCTYPE') !== -1) return 'html_full';
     if (lang === 'html') return 'html_fragment';
     if (lang === 'js' || lang === 'javascript') return 'js';
     if (lang === 'css') return 'css';
