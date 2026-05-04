@@ -1664,6 +1664,73 @@ function renderArtifact(artifact) {
 
 function closeModal() { document.getElementById('card-modal').classList.remove('open'); activeCard = null; }
 
+
+// Robust artifact parsing — handles common LLM JSON failures
+// Strategy 1: try plain JSON.parse
+// Strategy 2: extract first {...} block and parse
+// Strategy 3: heuristic — find filename, language, content fields manually
+function parseArtifactRobust(txt) {
+  if (!txt) return null;
+  // Strategy 1: direct
+  try { return JSON.parse(txt); } catch(e) {}
+
+  // Strategy 2: first JSON object
+  const m = txt.match(/\{[\s\S]*\}/);
+  if (m) {
+    try { return JSON.parse(m[0]); } catch(e) {}
+  }
+
+  // Strategy 3: heuristic recovery — pull fields out by anchored regex.
+  // We assume format is roughly: {"filename": "...", "language": "...", "content": "...", "notes": "..."}
+  // The content field is the one that breaks. Find it by anchoring on adjacent fields.
+  function pull(field) {
+    const re = new RegExp('"' + field + '"\\s*:\\s*"((?:[^"\\\\]|\\\\.)*)"', 's');
+    const mm = txt.match(re);
+    return mm ? mm[1].replace(/\\\\n/g, '\n').replace(/\\\\"/g, '"').replace(/\\\\\\\\/g, '\\') : null;
+  }
+  const filename = pull('filename');
+  const language = pull('language');
+  const notes = pull('notes');
+
+  // For content, take everything between "content": " and the last properly-closing quote before "notes" or end.
+  // Find "content": " start
+  const contentStart = txt.search(/"content"\s*:\s*"/);
+  if (contentStart === -1) return null;
+  const startQuote = txt.indexOf('"', contentStart + 11);
+  if (startQuote === -1) return null;
+
+  // Find the end: look for ", "notes" or ", "filename" or final } on a line by itself
+  let endIdx = -1;
+  const endMarkers = [/",\s*"notes"\s*:/g, /",\s*"filename"\s*:/g, /",\s*"language"\s*:/g, /"\s*}\s*$/];
+  for (let i = 0; i < endMarkers.length; i++) {
+    const re = endMarkers[i];
+    re.lastIndex = startQuote + 1;
+    const found = re.exec(txt);
+    if (found) { endIdx = found.index; break; }
+  }
+  if (endIdx === -1) {
+    // Last resort: find the last quote before the final closing brace
+    const lastBrace = txt.lastIndexOf('}');
+    if (lastBrace > startQuote) {
+      endIdx = txt.lastIndexOf('"', lastBrace);
+    }
+  }
+  if (endIdx === -1 || endIdx <= startQuote) return null;
+
+  let content = txt.slice(startQuote + 1, endIdx);
+  // Best-effort un-escape of common JSON sequences
+  content = content.replace(/\\n/g, '\n').replace(/\\t/g, '\t').replace(/\\"/g, '"').replace(/\\\\/g, '\\');
+
+  if (!filename && !content) return null;
+  return {
+    filename: filename || 'recovered.txt',
+    language: language || 'text',
+    content: content,
+    notes: notes || 'Recovered via heuristic parser — original JSON was malformed; please review.'
+  };
+}
+
+
 async function executeStory() {
   if (!activeCard) return;
   const { story, reqId, colId, idx } = activeCard;
@@ -1703,7 +1770,9 @@ async function executeStory() {
     '- Use Tailwind classes generously for a polished, modern look.\n' +
     '- For HTTP requests use native fetch(). For state use useState. For side effects use useEffect.\n' +
     '- CRITICAL: in JSX text content, bare < and > characters MUST be escaped. A bare < inside JSX text gets parsed as the start of a tag and breaks compilation. Use HTML entities: &lt; for < and &gt; for >. So WRONG: <div>Strong Down (<-2%)</div>. RIGHT: <div>Strong Down (&lt;-2%)</div>. This applies anywhere text contains comparison operators, arrows, or angle brackets.\n' +
-    '- CRITICAL: DO NOT use localStorage, sessionStorage, document.cookie, or any browser persistent storage. The preview iframe is sandboxed without same-origin access and these APIs throw SecurityError. Use React useState for all in-memory state. If persistence is required, mention in notes that the user will need to wire it up after extracting the component.\n\n' +
+    '- CRITICAL: DO NOT use localStorage, sessionStorage, document.cookie, or any browser persistent storage. The preview iframe is sandboxed without same-origin access and these APIs throw SecurityError. Use React useState for all in-memory state. If persistence is required, mention in notes that the user will need to wire it up after extracting the component.\n' +
+    '- AVOID alert(), confirm(), prompt(). Sandboxed iframes block these and they will fail silently. Use inline UI for confirmations (e.g. a confirmation banner, a modal-like div, or a toast) instead.\n' +
+    '- JSON output rules: your entire response MUST be a single valid JSON object with keys filename, language, content, notes. Inside the content string, all newlines must be \\n (escaped), all double quotes must be \\" (escaped), and all backslashes must be \\\\. Do NOT use template literals or raw multiline strings — they break JSON. Test your JSON mentally before responding: if you cannot parse it, neither can the runtime.\n\n' +
     'CRITICAL RULES FOR HTML artifacts:\n' +
     '- Must be a complete, standalone HTML page with all CSS and JS inline.\n' +
     '- May load CDN libraries (Tailwind, alpine.js, etc.) via script/link tags.\n\n' +
@@ -1765,14 +1834,9 @@ async function executeStory() {
     const d = await resp.json();
     if (!resp.ok) throw new Error(d.error ? d.error.message : 'API error');
     const txt = d.content[0].text.replace(/^```json|```$/g,'').trim();
-    let artifact;
-    try {
-      artifact = JSON.parse(txt);
-    } catch(parseErr) {
-      // Fallback: try to find JSON in the response
-      const match = txt.match(/\{[\s\S]*\}/);
-      if (match) artifact = JSON.parse(match[0]);
-      else throw new Error('Claude returned invalid JSON');
+    let artifact = parseArtifactRobust(txt);
+    if (!artifact) {
+      throw new Error('Claude returned malformed JSON that could not be repaired. Try regenerating, or check the build prompt for issues.');
     }
     artifact.generated_at = new Date().toISOString();
 
@@ -3284,7 +3348,7 @@ async function submitAskQuestion() {
       <span class="preview-fname" id="preview-filename"></span>
       <button class="preview-close" onclick="closePreview()">Close</button>
     </div>
-    <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts"></iframe>
+    <iframe class="preview-iframe" id="preview-iframe" sandbox="allow-scripts allow-modals allow-popups allow-forms"></iframe>
   </div>
 </div>
 
