@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tic-Tac-Toe with AI</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            max-width: 600px;
+            width: 100%;
+        }
+
+        h1 {
+            text-align: center;
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 2em;
+        }
+
+        .difficulty-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .difficulty-btn {
+            padding: 10px 20px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: all 0.3s;
+        }
+
+        .difficulty-btn.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .difficulty-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+        }
+
+        .wheel-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .wheel {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+            border: 8px solid #667eea;
+            position: relative;
+            background: conic-gradient(from 0deg, #667eea 0deg 180deg, #764ba2 180deg 360deg);
+            transition: transform 3s cubic-bezier(0.25, 0.1, 0.25, 1);
+            cursor: pointer;
+        }
+
+        .wheel::before {
+            content: 'YOU';
+            position: absolute;
+            top: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .wheel::after {
+            content: 'AI';
+            position: absolute;
+            bottom: 25%;
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            font-weight: bold;
+            font-size: 20px;
+        }
+
+        .wheel-pointer {
+            width: 0;
+            height: 0;
+            border-left: 15px solid transparent;
+            border-right: 15px solid transparent;
+            border-top: 25px solid #ff6b6b;
+            position: absolute;
+            top: -15px;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .spin-btn {
+            margin-top: 15px;
+            padding: 12px 30px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .spin-btn:hover {
+            background: #764ba2;
+            transform: scale(1.05);
+        }
+
+        .spin-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: scale(1);
+        }
+
+        .game-info {
+            text-align: center;
+            margin-bottom: 20px;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            min-height: 30px;
+        }
+
+        .board {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .cell {
+            aspect-ratio: 1;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 10px;
+            font-size: 3em;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .cell:hover:not(:disabled) {
+            background: #e0e0ff;
+            transform: scale(1.05);
+        }
+
+        .cell:disabled {
+            cursor: not-allowed;
+        }
+
+        .cell.x {
+            color: #667eea;
+        }
+
+        .cell.o {
+            color: #764ba2;
+        }
+
+        .cell.winning {
+            background: #ffd700;
+            animation: pulse 0.5s ease-in-out;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f8f8;
+            border-radius: 10px;
+        }
+
+        .score-item {
+            text-align: center;
+        }
+
+        .score-label {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .score-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .controls {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .new-game-btn {
+            padding: 12px 30px;
+            background: #764ba2;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .new-game-btn:hover {
+            background: #667eea;
+            transform: scale(1.05);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 480px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .wheel {
+                width: 150px;
+                height: 150px;
+            }
+
+            .cell {
+                font-size: 2em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Tic-Tac-Toe AI</h1>
+        
+        <div class="difficulty-selector">
+            <button class="difficulty-btn" data-difficulty="easy">Easy</button>
+            <button class="difficulty-btn active" data-difficulty="medium">Medium</button>
+            <button class="difficulty-btn" data-difficulty="hard">Hard</button>
+        </div>
+
+        <div class="wheel-container" id="wheelContainer">
+            <div style="position: relative;">
+                <div class="wheel-pointer"></div>
+                <div class="wheel" id="wheel"></div>
+            </div>
+            <button class="spin-btn" id="spinBtn">Spin to Start!</button>
+        </div>
+
+        <div class="game-info" id="gameInfo">Select difficulty and spin the wheel!</div>
+
+        <div class="score-board">
+            <div class="score-item">
+                <div class="score-label">Wins</div>
+                <div class="score-value" id="wins">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Losses</div>
+                <div class="score-value" id="losses">0</div>
+            </div>
+            <div class="score-item">
+                <div class="score-label">Draws</div>
+                <div class="score-value" id="draws">0</div>
+            </div>
+        </div>
+
+        <div class="board" id="board">
+            <button class="cell" data-index="0"></button>
+            <button class="cell" data-index="1"></button>
+            <button class="cell" data-index="2"></button>
+            <button class="cell" data-index="3"></button>
+            <button class="cell" data-index="4"></button>
+            <button class="cell" data-index="5"></button>
+            <button class="cell" data-index="6"></button>
+            <button class="cell" data-index="7"></button>
+            <button class="cell" data-index="8"></button>
+        </div>
+
+        <div class="controls">
+            <button class="new-game-btn" id="newGameBtn">New Game</button>
+        </div>
+    </div>
+
+    <script>
+        const PLAYER = 'X';
+        const AI = 'O';
+        
+        let gameState = {
+            board: ['', '', '', '', '', '', '', '', ''],
+            currentPlayer: '',
+            difficulty: 'medium',
+            gameActive: false,
+            isSpinning: false,
+            scores: { wins: 0, losses: 0, draws: 0 }
+        };
+
+        const winPatterns = [
+            [0, 1, 2], [3, 4, 5], [6, 7, 8], // rows
+            [0, 3, 6], [1, 4, 7], [2, 5, 8], // columns
+            [0, 4, 8], [2, 4, 6] // diagonals
+        ];
+
+        // DOM elements
+        const cells = document.querySelectorAll('.cell');
+        const gameInfo = document.getElementById('gameInfo');
+        const spinBtn = document.getElementById('spinBtn');
+        const newGameBtn = document.getElementById('newGameBtn');
+        const wheel = document.getElementById('wheel');
+        const wheelContainer = document.getElementById('wheelContainer');
+        const difficultyBtns = document.querySelectorAll('.difficulty-btn');
+        const winsDisplay = document.getElementById('wins');
+        const lossesDisplay = document.getElementById('losses');
+        const drawsDisplay = document.getElementById('draws');
+
+        // Event listeners
+        difficultyBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+                difficultyBtns.forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                gameState.difficulty = btn.dataset.difficulty;
+            });
+        });
+
+        spinBtn.addEventListener('click', spinWheel);
+        newGameBtn.addEventListener('click', resetGame);
+        
+        cells.forEach(cell => {
+            cell.addEventListener('click', handleCellClick);
+        });
+
+        function spinWheel() {
+            if (gameState.isSpinning) return;
+            
+            gameState.isSpinning = true;
+            spinBtn.disabled = true;
+            
+            // Random rotations between 5-8 full spins plus random angle
+            const spins = 5 + Math.floor(Math.random() * 4);
+            const extraDegrees = Math.floor(Math.random() * 360);
+            const totalRotation = (spins * 360) + extraDegrees;
+            
+            wheel.style.transform = `rotate(${totalRotation}deg)`;
+            
+            setTimeout(() => {
+                // Determine who starts based on final position
+                const normalizedAngle = extraDegrees % 360;
+                const playerStarts = normalizedAngle < 180;
+                
+                gameState.currentPlayer = playerStarts ? PLAYER : AI;
+                gameState.gameActive = true;
+                gameState.isSpinning = false;
+                
+                wheelContainer.classList.add('hidden');
+                
+                if (playerStarts) {
+                    gameInfo.textContent = 'Your turn! (X)';
+                    enableBoard();
+                } else {
+                    gameInfo.textContent = 'AI goes first! (O)';
+                    disableBoard();
+                    setTimeout(makeAIMove, 500);
+                }
+            }, 3000);
+        }
+
+        function handleCellClick(e) {
+            const index = parseInt(e.target.dataset.index);
+            
+            if (!gameState.gameActive || gameState.board[index] !== '' || gameState.currentPlayer !== PLAYER) {
+                return;
+            }
+            
+            makeMove(index, PLAYER);
+            
+            if (gameState.gameActive) {
+                gameState.currentPlayer = AI;
+                gameInfo.textContent = 'AI is thinking...';
+                disableBoard();
+                setTimeout(makeAIMove, 600);
+            }
+        }
+
+        function makeMove(index, player) {
+            gameState.board[index] = player;
+            const cell = cells[index];
+            cell.textContent = player;
+            cell.classList.add(player.toLowerCase());
+            cell.disabled = true;
+            
+            checkGameEnd();
+        }
+
+        function makeAIMove() {
+            if (!gameState.gameActive) return;
+            
+            let move;
+            
+            switch(gameState.difficulty) {
+                case 'easy':
+                    move = getEasyMove();
+                    break;
+                case 'medium':
+                    move = getMediumMove();
+                    break;
+                case 'hard':
+                    move = getHardMove();
+                    break;
+            }
+            
+            if (move !== -1) {
+                makeMove(move, AI);
+                
+                if (gameState.gameActive) {
+                    gameState.currentPlayer = PLAYER;
+                    gameInfo.textContent = 'Your turn! (X)';
+                    enableBoard();
+                }
+            }
+        }
+
+        function getEasyMove() {
+            // Random move with 70% probability, otherwise use medium strategy
+            if (Math.random() < 0.7) {
+                const available = gameState.board
+                    .map((val, idx) => val === '' ? idx : null)
+                    .filter(val => val !== null);
+                return available[Math.floor(Math.random() * available.length)];
+            }
+            return getMediumMove();
+        }
+
+        function getMediumMove() {
+            // Try to win
+            let move = findWinningMove(AI);
+            if (move !== -1) return move;
+            
+            // Block player win
+            move = findWinningMove(PLAYER);
+            if (move !== -1) return move;
+            
+            // Take center if available
+            if (gameState.board[4] === '') return 4;
+            
+            // Take random corner
+            const corners = [0, 2, 6, 8].filter(i => gameState.board[i] === '');
+            if (corners.length > 0) {
+                return corners[Math.floor(Math.random() * corners.length)];
+            }
+            
+            // Take any available space
+            const available = gameState.board
+                .map((val, idx) => val === '' ? idx : null)
+                .filter(val => val !== null);
+            return available[Math.floor(Math.random() * available.length)];
+        }
+
+        function getHardMove() {
+            // Minimax algorithm for optimal play
+            return minimax(gameState.board, AI).index;
+        }
+
+        function minimax(board, player) {
+            const available = board
+                .map((val, idx) => val === '' ? idx : null)
+                .filter(val => val !== null);
+            
+            const winner = checkWinner(board);
+            if (winner === PLAYER) return { score: -10 };
+            if (winner === AI) return { score: 10 };
+            if (available.length === 0) return { score: 0 };
+            
+            const moves = [];
+            
+            for (let i = 0; i < available.length; i++) {
+                const move = {};
+                move.index = available[i];
+                
+                board[available[i]] = player;
+                
+                if (player === AI) {
+                    const result = minimax(board, PLAYER);
+                    move.score = result.score;
+                } else {
+                    const result = minimax(board, AI);
+                    move.score = result.score;
+                }
+                
+                board[available[i]] = '';
+                moves.push(move);
+            }
+            
+            let bestMove;
+            if (player === AI) {
+                let bestScore = -Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score > bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            } else {
+                let bestScore = Infinity;
+                for (let i = 0; i < moves.length; i++) {
+                    if (moves[i].score < bestScore) {
+                        bestScore = moves[i].score;
+                        bestMove = i;
+                    }
+                }
+            }
+            
+            return moves[bestMove];
+        }
+
+        function findWinningMove(player) {
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                const values = [gameState.board[a], gameState.board[b], gameState.board[c]];
+                const playerCount = values.filter(v => v === player).length;
+                const emptyCount = values.filter(v => v === '').length;
+                
+                if (playerCount === 2 && emptyCount === 1) {
+                    if (gameState.board[a] === '') return a;
+                    if (gameState.board[b] === '') return b;
+                    if (gameState.board[c] === '') return c;
+                }
+            }
+            return -1;
+        }
+
+        function checkWinner(board) {
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+                    return board[a];
+                }
+            }
+            return null;
+        }
+
+        function checkGameEnd() {
+            // Check for winner
+            for (let pattern of winPatterns) {
+                const [a, b, c] = pattern;
+                if (gameState.board[a] && 
+                    gameState.board[a] === gameState.board[b] && 
+                    gameState.board[a] === gameState.board[c]) {
+                    
+                    gameState.gameActive = false;
+                    highlightWinningCells([a, b, c]);
+                    
+                    if (gameState.board[a] === PLAYER) {
+                        gameInfo.textContent = '🎉 You win!';
+                        gameState.scores.wins++;
+                        winsDisplay.textContent = gameState.scores.wins;
+                    } else {
+                        gameInfo.textContent = '😔 AI wins!';
+                        gameState.scores.losses++;
+                        lossesDisplay.textContent = gameState.scores.losses;
+                    }
+                    
+                    disableBoard();
+                    return;
+                }
+            }
+            
+            // Check for draw
+            if (!gameState.board.includes('')) {
+                gameState.gameActive = false;
+                gameInfo.textContent = '🤝 It\'s a draw!';
+                gameState.scores.draws++;
+                drawsDisplay.textContent = gameState.scores.draws;
+                disableBoard();
+            }
+        }
+
+        function highlightWinningCells(indices) {
+            indices.forEach(index => {
+                cells[index].classList.add('winning');
+            });
+        }
+
+        function enableBoard() {
+            cells.forEach(cell => {
+                if (gameState.board[cell.dataset.index] === '') {
+                    cell.disabled = false;
+                }
+            });
+        }
+
+        function disableBoard() {
+            cells.forEach(cell => {
+                cell.disabled = true;
+            });
+        }
+
+        function resetGame() {
+            gameState.board = ['', '', '', '', '', '', '', '', ''];
+            gameState.currentPlayer = '';
+            gameState.gameActive = false;
+            
+            cells.forEach(cell => {
+                cell.textContent = '';
+                cell.disabled = true;
+                cell.classList.remove('x', 'o', 'winning');
+            });
+            
+            wheelContainer.classList.remove('hidden');
+            wheel.style.transform = 'rotate(0deg)';
+            spinBtn.disabled = false;
+            gameInfo.textContent = 'Spin the wheel to start!';
+        }
+
+        // Initialize
+        disableBoard();
+    </script>
+</body>
+</html>
