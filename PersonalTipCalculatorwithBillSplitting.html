@@ -51,7 +51,8 @@
             letter-spacing: 0.5px;
         }
 
-        input[type="number"] {
+        input[type="number"],
+        select {
             width: 100%;
             padding: 15px;
             border: 2px solid #e0e0e0;
@@ -61,7 +62,8 @@
             font-family: inherit;
         }
 
-        input[type="number"]:focus {
+        input[type="number"]:focus,
+        select:focus {
             outline: none;
             border-color: #667eea;
             box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
@@ -70,6 +72,93 @@
         input[type="number"]::-webkit-inner-spin-button,
         input[type="number"]::-webkit-outer-spin-button {
             opacity: 1;
+        }
+
+        select {
+            cursor: pointer;
+            background-color: white;
+        }
+
+        .slider-container {
+            margin-top: 15px;
+        }
+
+        .slider-label {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .slider-value {
+            font-size: 24px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        input[type="range"] {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #e0e0e0;
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.6);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.4);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 3px 12px rgba(102, 126, 234, 0.6);
+        }
+
+        input[type="range"]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: linear-gradient(to right, #e0e0e0 0%, #667eea 100%);
+        }
+
+        input[type="range"]::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #e0e0e0;
+        }
+
+        .slider-markers {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 5px;
+            font-size: 11px;
+            color: #999;
         }
 
         .results {
@@ -215,9 +304,35 @@
         </div>
 
         <div class="input-group">
-            <label for="tipPercentage">Tip Percentage</label>
-            <div class="input-prefix" data-prefix="%">
-                <input type="number" id="tipPercentage" min="0" max="100" step="1" value="15" placeholder="15">
+            <label for="location">Location (Sales Tax)</label>
+            <select id="location">
+                <option value="0">No Tax</option>
+                <option value="6.25">Massachusetts (6.25%)</option>
+                <option value="8.875">New York, NY (8.875%)</option>
+                <option value="9.5">Los Angeles, CA (9.5%)</option>
+                <option value="10.25">Chicago, IL (10.25%)</option>
+                <option value="8.25">Austin, TX (8.25%)</option>
+                <option value="6">Florida (6%)</option>
+                <option value="7">Tennessee (7%)</option>
+                <option value="6.5">Washington (6.5%)</option>
+                <option value="4.5">Hawaii (4.5%)</option>
+                <option value="0">Oregon (0%)</option>
+            </select>
+        </div>
+
+        <div class="input-group">
+            <label>Tip Percentage</label>
+            <div class="slider-container">
+                <div class="slider-label">
+                    <span>Adjust Tip:</span>
+                    <span class="slider-value" id="tipValue">15%</span>
+                </div>
+                <input type="range" id="tipSlider" min="0" max="30" step="1" value="15">
+                <div class="slider-markers">
+                    <span>0%</span>
+                    <span>15%</span>
+                    <span>30%</span>
+                </div>
             </div>
         </div>
 
@@ -227,6 +342,14 @@
         </div>
 
         <div class="results">
+            <div class="result-row">
+                <span class="result-label">Subtotal:</span>
+                <span class="result-value" id="subtotalAmount">$0.00</span>
+            </div>
+            <div class="result-row">
+                <span class="result-label">Sales Tax:</span>
+                <span class="result-value" id="taxAmount">$0.00</span>
+            </div>
             <div class="result-row">
                 <span class="result-label">Tip Amount:</span>
                 <span class="result-value" id="tipAmount">$0.00</span>
@@ -246,8 +369,12 @@
 
     <script>
         const billAmountInput = document.getElementById('billAmount');
-        const tipPercentageInput = document.getElementById('tipPercentage');
+        const locationSelect = document.getElementById('location');
+        const tipSlider = document.getElementById('tipSlider');
+        const tipValue = document.getElementById('tipValue');
         const numPeopleInput = document.getElementById('numPeople');
+        const subtotalAmountDisplay = document.getElementById('subtotalAmount');
+        const taxAmountDisplay = document.getElementById('taxAmount');
         const tipAmountDisplay = document.getElementById('tipAmount');
         const totalAmountDisplay = document.getElementById('totalAmount');
         const perPersonAmountDisplay = document.getElementById('perPersonAmount');
@@ -266,34 +393,48 @@
             return value;
         }
 
+        function updateTipValue() {
+            const tipPercentage = parseInt(tipSlider.value);
+            tipValue.textContent = tipPercentage + '%';
+        }
+
         function calculate() {
             try {
                 let billAmount = validateInput(billAmountInput, 0);
-                let tipPercentage = validateInput(tipPercentageInput, 0);
+                let taxRate = parseFloat(locationSelect.value);
+                let tipPercentage = parseInt(tipSlider.value);
                 let numPeople = validateInput(numPeopleInput, 1);
 
                 // Ensure numPeople is at least 1 and an integer
                 numPeople = Math.max(1, Math.round(numPeople));
                 numPeopleInput.value = numPeople;
 
-                // Ensure tip percentage doesn't exceed 100%
-                if (tipPercentage > 100) {
-                    tipPercentage = 100;
-                    tipPercentageInput.value = 100;
-                }
-
-                // Calculate tip and total
-                const tipAmount = billAmount * (tipPercentage / 100);
-                const totalAmount = billAmount + tipAmount;
+                // Calculate sales tax on the bill amount
+                const taxAmount = billAmount * (taxRate / 100);
+                
+                // Subtotal is bill + tax
+                const subtotal = billAmount + taxAmount;
+                
+                // Calculate tip on the subtotal (bill + tax)
+                const tipAmount = subtotal * (tipPercentage / 100);
+                
+                // Total is bill + tax + tip
+                const totalAmount = subtotal + tipAmount;
+                
+                // Per person amount
                 const perPersonAmount = totalAmount / numPeople;
 
                 // Update displays
+                subtotalAmountDisplay.textContent = formatCurrency(billAmount);
+                taxAmountDisplay.textContent = formatCurrency(taxAmount);
                 tipAmountDisplay.textContent = formatCurrency(tipAmount);
                 totalAmountDisplay.textContent = formatCurrency(totalAmount);
                 perPersonAmountDisplay.textContent = formatCurrency(perPersonAmount);
             } catch (error) {
                 console.error('Calculation error:', error);
                 // Set default values on error
+                subtotalAmountDisplay.textContent = '$0.00';
+                taxAmountDisplay.textContent = '$0.00';
                 tipAmountDisplay.textContent = '$0.00';
                 totalAmountDisplay.textContent = '$0.00';
                 perPersonAmountDisplay.textContent = '$0.00';
@@ -302,20 +443,27 @@
 
         function reset() {
             billAmountInput.value = '0';
-            tipPercentageInput.value = '15';
+            locationSelect.value = '0';
+            tipSlider.value = '15';
+            updateTipValue();
             numPeopleInput.value = '1';
             calculate();
         }
 
         // Add event listeners for real-time calculation
         billAmountInput.addEventListener('input', calculate);
-        tipPercentageInput.addEventListener('input', calculate);
+        locationSelect.addEventListener('change', calculate);
+        tipSlider.addEventListener('input', function() {
+            updateTipValue();
+            calculate();
+        });
         numPeopleInput.addEventListener('input', calculate);
 
         // Reset button
         resetBtn.addEventListener('click', reset);
 
         // Initial calculation
+        updateTipValue();
         calculate();
     </script>
 </body>
