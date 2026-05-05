@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mobile Network Site GIS Mapping Tool</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3-delaunay/6.0.2/d3-delaunay.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            height: 100vh;
+            overflow: hidden;
+        }
+        #app-container {
+            display: flex;
+            height: 100vh;
+            position: relative;
+        }
+        #sidebar {
+            width: 320px;
+            background: #2c3e50;
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.3);
+        }
+        #map {
+            flex: 1;
+            position: relative;
+        }
+        .sidebar-section {
+            padding: 20px;
+            border-bottom: 1px solid #34495e;
+        }
+        .sidebar-section h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #3498db;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+        .control-group {
+            margin-bottom: 15px;
+        }
+        .control-group label {
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            padding: 8px;
+            border-radius: 4px;
+            transition: background 0.2s;
+        }
+        .control-group label:hover {
+            background: #34495e;
+        }
+        .control-group input[type="checkbox"] {
+            margin-right: 10px;
+            width: 18px;
+            height: 18px;
+            cursor: pointer;
+        }
+        .btn {
+            padding: 10px 15px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            width: 100%;
+            transition: background 0.2s;
+            margin-bottom: 8px;
+        }
+        .btn:hover {
+            background: #2980b9;
+        }
+        .btn-secondary {
+            background: #95a5a6;
+        }
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+        .btn-danger {
+            background: #e74c3c;
+        }
+        .btn-danger:hover {
+            background: #c0392b;
+        }
+        input[type="text"], input[type="file"], select {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #34495e;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            font-size: 14px;
+            background: #34495e;
+            color: white;
+        }
+        input[type="file"] {
+            padding: 6px;
+        }
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin-bottom: 8px;
+            font-size: 13px;
+        }
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+            border-radius: 3px;
+            border: 1px solid #fff;
+        }
+        .tower-icon {
+            width: 20px;
+            height: 20px;
+            margin-right: 10px;
+        }
+        .message-box {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            max-width: 300px;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            display: none;
+        }
+        .message-box.show {
+            display: block;
+            animation: slideIn 0.3s ease-out;
+        }
+        .message-box.success {
+            border-left: 4px solid #27ae60;
+        }
+        .message-box.error {
+            border-left: 4px solid #e74c3c;
+        }
+        .message-box.info {
+            border-left: 4px solid #3498db;
+        }
+        @keyframes slideIn {
+            from {
+                transform: translateX(400px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+        .leaflet-popup-content {
+            min-width: 250px;
+        }
+        .popup-header {
+            font-size: 16px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 5px;
+        }
+        .popup-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 5px 0;
+            font-size: 13px;
+        }
+        .popup-label {
+            font-weight: bold;
+            color: #7f8c8d;
+        }
+        .sector-info {
+            background: #ecf0f1;
+            padding: 8px;
+            margin: 8px 0;
+            border-radius: 4px;
+            border-left: 3px solid #3498db;
+        }
+        .sector-info h4 {
+            font-size: 13px;
+            color: #2c3e50;
+            margin-bottom: 5px;
+        }
+        .toggle-btn {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            z-index: 1001;
+            background: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            cursor: pointer;
+            font-size: 14px;
+            border: none;
+        }
+        .filter-input {
+            background: #34495e;
+            border: 1px solid #4a5f7f;
+            color: white;
+            padding: 8px;
+            border-radius: 4px;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .filter-input::placeholder {
+            color: #95a5a6;
+        }
+        .tower-count {
+            background: #34495e;
+            padding: 10px;
+            border-radius: 4px;
+            text-align: center;
+            margin-bottom: 10px;
+            font-size: 14px;
+        }
+        .tower-count strong {
+            color: #3498db;
+            font-size: 18px;
+        }
+        @media (max-width: 768px) {
+            #sidebar {
+                width: 100%;
+                max-width: 320px;
+                position: absolute;
+                left: -100%;
+                transition: left 0.3s;
+                height: 100%;
+            }
+            #sidebar.visible {
+                left: 0;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="app-container">
+        <div id="sidebar">
+            <div class="sidebar-section">
+                <h2>🗼 Network GIS Mapping</h2>
+                <div class="tower-count">
+                    <div>Active Towers</div>
+                    <strong id="tower-count">0</strong>
+                </div>
+            </div>
+            
+            <div class="sidebar-section">
+                <h2>Map Controls</h2>
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="toggle-towers" checked>
+                        Show Cell Towers
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="toggle-coverage" checked>
+                        Show Coverage (Voronoi)
+                    </label>
+                </div>
+                <div class="control-group">
+                    <label>
+                        <input type="checkbox" id="toggle-sectors" checked>
+                        Show Sector Beams
+                    </label>
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2>Tools</h2>
+                <button class="btn" id="measure-distance">📏 Measure Distance</button>
+                <button class="btn btn-secondary" id="stop-measure">Stop Measuring</button>
+                <button class="btn" id="export-data">💾 Export Tower Data (CSV)</button>
+                <button class="btn" id="export-map">🖼️ Export Map View</button>
+            </div>
+
+            <div class="sidebar-section">
+                <h2>Search & Filter</h2>
+                <input type="text" id="search-location" placeholder="Search by location..." class="filter-input">
+                <select id="filter-sectors" class="filter-input">
+                    <option value="">All Sector Counts</option>
+                    <option value="3">3 Sectors</option>
+                    <option value="6">6 Sectors</option>
+                </select>
+            </div>
+
+            <div class="sidebar-section">
+                <h2>Upload Data</h2>
+                <input type="file" id="upload-file" accept=".csv,.xlsx,.xls">
+                <div style="font-size: 11px; color: #95a5a6; margin-top: 5px;">
+                    CSV/Excel format: name, latitude, longitude, sectors
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <h2>Legend</h2>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #e74c3c;"></div>
+                    <span>Coverage Area 1</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #3498db;"></div>
+                    <span>Coverage Area 2</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #2ecc71;"></div>
+                    <span>Coverage Area 3</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #f39c12;"></div>
+                    <span>Coverage Area 4</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #9b59b6;"></div>
+                    <span>Coverage Area 5</span>
+                </div>
+                <div class="legend-item">
+                    <div class="legend-color" style="background: #1abc9c;"></div>
+                    <span>Coverage Area 6</span>
+                </div>
+                <div class="legend-item">
+                    <svg class="tower-icon" viewBox="0 0 24 24" fill="#e74c3c">
+                        <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z"/>
+                    </svg>
+                    <span>Cell Tower</span>
+                </div>
+            </div>
+        </div>
+        
+        <div id="map"></div>
+    </div>
+
+    <div id="message-box" class="message-box"></div>
+
+    <script>
+        // Application State
+        const appState = {
+            map: null,
+            towers: [],
+            towerMarkers: [],
+            voronoiLayer: null,
+            sectorLayers: [],
+            measureMode: false,
+            measureMarkers: [],
+            measureLine: null,
+            baseLayers: {},
+            currentBaseLayer: 'street'
+        };
+
+        // Mock cell tower data for San Francisco
+        const mockTowers = [
+            { id: 1, name: 'SF-Downtown-001', lat: 37.7895, lng: -122.4012, sectors: 3, type: 'Macro', height: 45 },
+            { id: 2, name: 'SF-Mission-002', lat: 37.7599, lng: -122.4148, sectors: 3, type: 'Macro', height: 40 },
+            { id: 3, name: 'SF-Marina-003', lat: 37.8024, lng: -122.4381, sectors: 6, type: 'Macro', height: 50 },
+            { id: 4, name: 'SF-Castro-004', lat: 37.7609, lng: -122.4350, sectors: 3, type: 'Macro', height: 38 },
+            { id: 5, name: 'SF-Haight-005', lat: 37.7694, lng: -122.4484, sectors: 3, type: 'Macro', height: 42 },
+            { id: 6, name: 'SF-SOMA-006', lat: 37.7749, lng: -122.4194, sectors: 6, type: 'Macro', height: 55 },
+            { id: 7, name: 'SF-NorthBeach-007', lat: 37.8007, lng: -122.4103, sectors: 3, type: 'Macro', height: 35 },
+            { id: 8, name: 'SF-Sunset-008', lat: 37.7577, lng: -122.4788, sectors: 3, type: 'Macro', height: 40 },
+            { id: 9, name: 'SF-Richmond-009', lat: 37.7805, lng: -122.4640, sectors: 3, type: 'Macro', height: 43 },
+            { id: 10, name: 'SF-Embarcadero-010', lat: 37.7955, lng: -122.3937, sectors: 6, type: 'Macro', height: 48 },
+            { id: 11, name: 'SF-FinancialDist-011', lat: 37.7946, lng: -122.4015, sectors: 3, type: 'Micro', height: 25 },
+            { id: 12, name: 'SF-Potrero-012', lat: 37.7587, lng: -122.4014, sectors: 3, type: 'Macro', height: 41 },
+            { id: 13, name: 'SF-Presidio-013', lat: 37.7989, lng: -122.4662, sectors: 3, type: 'Macro', height: 38 },
+            { id: 14, name: 'SF-TwinPeaks-014', lat: 37.7544, lng: -122.4477, sectors: 6, type: 'Macro', height: 60 },
+            { id: 15, name: 'SF-Bayview-015', lat: 37.7351, lng: -122.3965, sectors: 3, type: 'Macro', height: 39 }
+        ];
+
+        // Generate sector data for each tower
+        function generateSectorData(tower) {
+            const sectors = [];
+            const sectorCount = tower.sectors;
+            const angleStep = 360 / sectorCount;
+            const coverageDistance = tower.type === 'Macro' ? 0.015 : 0.008; // in degrees (~1.5km or 0.8km)
+            
+            for (let i = 0; i < sectorCount; i++) {
+                sectors.push({
+                    id: i + 1,
+                    azimuth: i * angleStep,
+                    beamwidth: sectorCount === 3 ? 65 : 35,
+                    distance: coverageDistance,
+                    frequency: i % 2 === 0 ? '2100 MHz' : '1800 MHz',
+                    power: Math.floor(Math.random() * 10) + 40 + ' dBm'
+                });
+            }
+            return sectors;
+        }
+
+        // Initialize towers with sector data
+        appState.towers = mockTowers.map(tower => ({
+            ...tower,
+            sectors: generateSectorData(tower)
+        }));
+
+        // Utility: Show message
+        function showMessage(message, type = 'info') {
+            const messageBox = document.getElementById('message-box');
+            messageBox.textContent = message;
+            messageBox.className = `message-box show ${type}`;
+            setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3000);
+        }
+
+        // Initialize map
+        function initMap() {
+            appState.map = L.map('map').setView([37.7749, -122.4194], 12);
+
+            // Base layers
+            const streetLayer = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                attribution: '© OpenStreetMap contributors',
+                maxZoom: 19
+            });
+
+            const satelliteLayer = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+                attribution: 'Esri, DigitalGlobe, GeoEye, Earthstar Geographics, CNES/Airbus DS, USDA, USGS, AeroGRID, IGN, and the GIS User Community',
+                maxZoom: 19
+            });
+
+            appState.baseLayers = {
+                street: streetLayer,
+                satellite: satelliteLayer
+            };
+
+            streetLayer.addTo(appState.map);
+
+            // Add layer control
+            L.control.layers({
+                'Street View': streetLayer,
+                'Satellite View': satelliteLayer
+            }, {}, { position: 'topright' }).addTo(appState.map);
+
+            renderTowers();
+            renderVoronoi();
+            updateTowerCount();
+        }
+
+        // Render towers on map
+        function renderTowers() {
+            // Clear existing markers
+            appState.towerMarkers.forEach(marker => appState.map.removeLayer(marker));
+            appState.towerMarkers = [];
+
+            const filteredTowers = getFilteredTowers();
+
+            filteredTowers.forEach(tower => {
+                const icon = L.divIcon({
+                    html: `<svg width="30" height="30" viewBox="0 0 24 24" fill="#e74c3c">
+                            <path d="M12 2L4 7v10l8 5 8-5V7l-8-5z"/>
+                            <circle cx="12" cy="12" r="2" fill="white"/>
+                           </svg>`,
+                    className: 'tower-marker',
+                    iconSize: [30, 30],
+                    iconAnchor: [15, 15]
+                });
+
+                const marker = L.marker([tower.lat, tower.lng], { icon });
+                
+                const popupContent = `
+                    <div class="popup-header">${tower.name}</div>
+                    <div class="popup-row">
+                        <span class="popup-label">Type:</span>
+                        <span>${tower.type}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">Height:</span>
+                        <span>${tower.height}m</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">Location:</span>
+                        <span>${tower.lat.toFixed(4)}, ${tower.lng.toFixed(4)}</span>
+                    </div>
+                    <div class="popup-row">
+                        <span class="popup-label">Sectors:</span>
+                        <span>${tower.sectors.length}</span>
+                    </div>
+                    ${tower.sectors.map((sector, idx) => `
+                        <div class="sector-info">
+                            <h4>Sector ${sector.id}</h4>
+                            <div class="popup-row">
+                                <span class="popup-label">Azimuth:</span>
+                                <span>${sector.azimuth}°</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Beamwidth:</span>
+                                <span>${sector.beamwidth}°</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Frequency:</span>
+                                <span>${sector.frequency}</span>
+                            </div>
+                            <div class="popup-row">
+                                <span class="popup-label">Power:</span>
+                                <span>${sector.power}</span>
+                            </div>
+                        </div>
+                    `).join('')}
+                `;
+
+                marker.bindPopup(popupContent);
+                marker.addTo(appState.map);
+                appState.towerMarkers.push(marker);
+            });
+
+            renderSectors();
+        }
+
+        // Render sector beams
+        function renderSectors() {
+            // Clear existing sector layers
+            appState.sectorLayers.forEach(layer => appState.map.removeLayer(layer));
+            appState.sectorLayers = [];
+
+            const filteredTowers = getFilteredTowers();
+
+            filteredTowers.forEach(tower => {
+                tower.sectors.forEach(sector => {
+                    const startAngle = sector.azimuth - sector.beamwidth / 2;
+                    const endAngle = sector.azimuth + sector.beamwidth / 2;
+                    const points = [];
+                    
+                    points.push([tower.lat, tower.lng]);
+                    
+                    for (let angle = startAngle; angle <= endAngle; angle += 5) {
+                        const rad = angle * Math.PI / 180;
+                        const lat = tower.lat + sector.distance * Math.cos(rad);
+                        const lng = tower.lng + sector.distance * Math.sin(rad) / Math.cos(tower.lat * Math.PI / 180);
+                        points.push([lat, lng]);
+                    }
+                    
+                    points.push([tower.lat, tower.lng]);
+
+                    const polygon = L.polygon(points, {
+                        color: '#3498db',
+                        fillColor: '#3498db',
+                        fillOpacity: 0.15,
+                        weight: 1
+                    });
+
+                    polygon.addTo(appState.map);
+                    appState.sectorLayers.push(polygon);
+                });
+            });
+        }
+
+        // Calculate Voronoi polygons using D3 Delaunay
+        function calculateVoronoi(towers) {
+            if (towers.length === 0) return [];
+
+            const bounds = appState.map.getBounds();
+            const bbox = [
+                bounds.getWest() - 0.1,
+                bounds.getSouth() - 0.1,
+                bounds.getEast() + 0.1,
+                bounds.getNorth() + 0.1
+            ];
+
+            // Prepare points for each sector
+            const sectorPoints = [];
+            const sectorData = [];
+            
+            towers.forEach((tower, towerIdx) => {
+                tower.sectors.forEach((sector, sectorIdx) => {
+                    // Calculate sector center point
+                    const rad = sector.azimuth * Math.PI / 180;
+                    const distance = sector.distance / 3; // Center of sector range
+                    const lat = tower.lat + distance * Math.cos(rad);
+                    const lng = tower.lng + distance * Math.sin(rad) / Math.cos(tower.lat * Math.PI / 180);
+                    
+                    sectorPoints.push([lng, lat]);
+                    sectorData.push({
+                        tower: tower,
+                        sector: sector,
+                        towerIdx: towerIdx,
+                        sectorIdx: sectorIdx
+                    });
+                });
+            });
+
+            if (sectorPoints.length < 3) return [];
+
+            try {
+                // Create Delaunay triangulation
+                const delaunay = d3.Delaunay.from(sectorPoints);
+                
+                // Create Voronoi diagram with bounds
+                const voronoi = delaunay.voronoi([bbox[0], bbox[1], bbox[2], bbox[3]]);
+                
+                const polygons = [];
+                const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#95a5a6', '#34495e', '#16a085', '#27ae60', '#2980b9'];
+
+                // Generate polygon for each sector
+                for (let i = 0; i < sectorPoints.length; i++) {
+                    const cell = voronoi.cellPolygon(i);
+                    if (cell) {
+                        // Convert from [lng, lat] to [lat, lng] for Leaflet
+                        const leafletCoords = cell.map(point => [point[1], point[0]]);
+                        
+                        polygons.push({
+                            points: leafletCoords,
+                            color: colors[i % colors.length],
+                            data: sectorData[i]
+                        });
+                    }
+                }
+
+                return polygons;
+            } catch (error) {
+                console.error('Voronoi calculation error:', error);
+                return [];
+            }
+        }
+
+        // Render Voronoi coverage
+        function renderVoronoi() {
+            if (appState.voronoiLayer) {
+                appState.map.removeLayer(appState.voronoiLayer);
+            }
+
+            const filteredTowers = getFilteredTowers();
+            const voronoiPolygons = calculateVoronoi(filteredTowers);
+            const layers = [];
+
+            voronoiPolygons.forEach(poly => {
+                if (poly.points && poly.points.length > 2) {
+                    const polygon = L.polygon(poly.points, {
+                        color: poly.color,
+                        fillColor: poly.color,
+                        fillOpacity: 0.2,
+                        weight: 2
+                    });
+                    
+                    // Add tooltip with sector info
+                    polygon.bindTooltip(
+                        `${poly.data.tower.name}<br>Sector ${poly.data.sector.id}<br>Azimuth: ${poly.data.sector.azimuth}°`,
+                        { sticky: true }
+                    );
+                    
+                    layers.push(polygon);
+                }
+            });
+
+            appState.voronoiLayer = L.layerGroup(layers);
+            appState.voronoiLayer.addTo(appState.map);
+        }
+
+        // Get filtered towers
+        function getFilteredTowers() {
+            const searchText = document.getElementById('search-location').value.toLowerCase();
+            const sectorFilter = document.getElementById('filter-sectors').value;
+
+            return appState.towers.filter(tower => {
+                const matchesSearch = !searchText || tower.name.toLowerCase().includes(searchText);
+                const matchesSectors = !sectorFilter || tower.sectors.length === parseInt(sectorFilter);
+                return matchesSearch && matchesSectors;
+            });
+        }
+
+        // Update tower count
+        function updateTowerCount() {
+            const count = getFilteredTowers().length;
+            document.getElementById('tower-count').textContent = count;
+        }
+
+        // Layer toggle handlers
+        document.getElementById('toggle-towers').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                appState.towerMarkers.forEach(m => m.addTo(appState.map));
+            } else {
+                appState.towerMarkers.forEach(m => appState.map.removeLayer(m));
+            }
+        });
+
+        document.getElementById('toggle-coverage').addEventListener('change', (e) => {
+            if (e.target.checked && appState.voronoiLayer) {
+                appState.voronoiLayer.addTo(appState.map);
+            } else if (appState.voronoiLayer) {
+                appState.map.removeLayer(appState.voronoiLayer);
+            }
+        });
+
+        document.getElementById('toggle-sectors').addEventListener('change', (e) => {
+            if (e.target.checked) {
+                appState.sectorLayers.forEach(l => l.addTo(appState.map));
+            } else {
+                appState.sectorLayers.forEach(l => appState.map.removeLayer(l));
+            }
+        });
+
+        // Distance measurement
+        document.getElementById('measure-distance').addEventListener('click', () => {
+            appState.measureMode = true;
+            appState.measureMarkers = [];
+            if (appState.measureLine) {
+                appState.map.removeLayer(appState.measureLine);
+            }
+            showMessage('Click on map to measure distance. Click twice to complete.', 'info');
+        });
+
+        document.getElementById('stop-measure').addEventListener('click', () => {
+            appState.measureMode = false;
+            appState.measureMarkers.forEach(m => appState.map.removeLayer(m));
+            appState.measureMarkers = [];
+            if (appState.measureLine) {
+                appState.map.removeLayer(appState.measureLine);
+                appState.measureLine = null;
+            }
+            showMessage('Measurement stopped', 'info');
+        });
+
+        // Map click for measurement
+        function handleMapClick(e) {
+            if (!appState.measureMode) return;
+
+            const marker = L.marker(e.latlng, {
+                icon: L.divIcon({
+                    html: '<div style="background: #e74c3c; width: 12px; height: 12px; border-radius: 50%; border: 2px solid white;"></div>',
+                    className: 'measure-marker',
+                    iconSize: [12, 12]
+                })
+            }).addTo(appState.map);
+            
+            appState.measureMarkers.push(marker);
+
+            if (appState.measureMarkers.length === 2) {
+                const latlng1 = appState.measureMarkers[0].getLatLng();
+                const latlng2 = appState.measureMarkers[1].getLatLng();
+                const distance = appState.map.distance(latlng1, latlng2);
+
+                if (appState.measureLine) {
+                    appState.map.removeLayer(appState.measureLine);
+                }
+
+                appState.measureLine = L.polyline([latlng1, latlng2], {
+                    color: '#e74c3c',
+                    weight: 3,
+                    dashArray: '10, 10'
+                }).addTo(appState.map);
+
+                const distanceKm = (distance / 1000).toFixed(2);
+                const distanceMi = (distance / 1609.34).toFixed(2);
+                
+                appState.measureLine.bindPopup(
+                    `<strong>Distance:</strong><br>${distanceKm} km<br>${distanceMi} miles`
+                ).openPopup();
+
+                showMessage(`Distance: ${distanceKm} km (${distanceMi} mi)`, 'success');
+                appState.measureMode = false;
+            }
+        }
+
+        // Export data
+        document.getElementById('export-data').addEventListener('click', () => {
+            try {
+                const filteredTowers = getFilteredTowers();
+                let csv = 'ID,Name,Latitude,Longitude,Type,Height,Sector Count\n';
+                
+                filteredTowers.forEach(tower => {
+                    csv += `${tower.id},${tower.name},${tower.lat},${tower.lng},${tower.type},${tower.height},${tower.sectors.length}\n`;
+                });
+
+                const blob = new Blob([csv], { type: 'text/csv' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'tower_data.csv';
+                a.click();
+                URL.revokeObjectURL(url);
+                
+                showMessage('Tower data exported successfully', 'success');
+            } catch (error) {
+                showMessage('Error exporting data: ' + error.message, 'error');
+            }
+        });
+
+        // Export map view
+        document.getElementById('export-map').addEventListener('click', () => {
+            showMessage('Map export feature: Use browser screenshot or print to PDF', 'info');
+        });
+
+        // Search and filter
+        document.getElementById('search-location').addEventListener('input', () => {
+            renderTowers();
+            renderVoronoi();
+            updateTowerCount();
+        });
+
+        document.getElementById('filter-sectors').addEventListener('change', () => {
+            renderTowers();
+            renderVoronoi();
+            updateTowerCount();
+        });
+
+        // File upload
+        document.getElementById('upload-file').addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            const fileName = file.name.toLowerCase();
+
+            reader.onload = (event) => {
+                try {
+                    let data = [];
+                    
+                    if (fileName.endsWith('.csv')) {
+                        const result = Papa.parse(event.target.result, { header: true });
+                        data = result.data;
+                    } else if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+                        const workbook = XLSX.read(event.target.result, { type: 'binary' });
+                        const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                        data = XLSX.utils.sheet_to_json(firstSheet);
+                    }
+
+                    const newTowers = [];
+                    let nextId = Math.max(...appState.towers.map(t => t.id)) + 1;
+
+                    data.forEach(row => {
+                        if (row.latitude && row.longitude && row.name) {
+                            const tower = {
+                                id: nextId++,
+                                name: row.name || `Tower-${nextId}`,
+                                lat: parseFloat(row.latitude),
+                                lng: parseFloat(row.longitude),
+                                sectors: parseInt(row.sectors) || 3,
+                                type: row.type || 'Macro',
+                                height: parseInt(row.height) || 40
+                            };
+                            tower.sectors = generateSectorData(tower);
+                            newTowers.push(tower);
+                        }
+                    });
+
+                    if (newTowers.length > 0) {
+                        appState.towers.push(...newTowers);
+                        renderTowers();
+                        renderVoronoi();
+                        updateTowerCount();
+                        showMessage(`Successfully imported ${newTowers.length} towers`, 'success');
+                    } else {
+                        showMessage('No valid tower data found in file', 'error');
+                    }
+                } catch (error) {
+                    showMessage('Error parsing file: ' + error.message, 'error');
+                }
+            };
+
+            if (fileName.endsWith('.csv')) {
+                reader.readAsText(file);
+            } else {
+                reader.readAsBinaryString(file);
+            }
+        });
+
+        // Initialize app
+        window.addEventListener('load', () => {
+            initMap();
+            appState.map.on('click', handleMapClick);
+        });
+    </script>
+</body>
+</html>
