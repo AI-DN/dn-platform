@@ -255,6 +255,27 @@ body::before {
 .drop-sub { font-size: 12px; color: var(--text2); line-height: 1.5; }
 .file-input { display: none; }
 .epic-wrap { padding: 0 18px 18px 46px; animation: fadeUp 0.3s ease; }
+
+/* First-run welcome card */
+.fr-welcome { margin: 12px 18px 18px 46px; padding: 24px 28px; background: linear-gradient(180deg, rgba(61,214,245,0.06), var(--navy3)); border: 1px solid rgba(61,214,245,0.25); border-radius: 14px; animation: fadeUp 0.4s ease; }
+.fr-tag { display: inline-block; background: rgba(61,214,245,0.18); color: var(--cyan); border: 1px solid rgba(61,214,245,0.4); font-size: 10px; padding: 3px 10px; border-radius: 12px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 10px; }
+.fr-title { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 24px; color: var(--text); margin-bottom: 14px; }
+.fr-body { font-size: 14px; color: var(--text2); line-height: 1.65; margin-bottom: 14px; }
+.fr-body p { margin: 0 0 10px; }
+.fr-body p:last-child { margin-bottom: 0; }
+.fr-body .fr-how { font-size: 13px; color: var(--text3); }
+.fr-body .fr-how strong { color: var(--text2); }
+.fr-sub { font-size: 12px; color: var(--text3); padding: 8px 12px; background: var(--panel2); border-radius: 6px; margin-bottom: 16px; font-style: italic; }
+.fr-cta-label { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan); margin: 16px 0 12px; }
+.fr-cta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px; }
+.fr-cta { background: var(--panel2); border: 1px solid var(--border2); border-radius: 10px; padding: 14px 16px; cursor: pointer; text-align: left; font-family: inherit; transition: all 0.18s; }
+.fr-cta:hover { background: rgba(61,214,245,0.06); border-color: var(--cyan); transform: translateY(-1px); }
+.fr-cta-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 3px; }
+.fr-cta-desc { font-size: 11px; color: var(--text3); line-height: 1.4; }
+.fr-or { text-align: center; font-size: 12px; color: var(--text3); font-style: italic; padding-top: 4px; }
+@media (max-width: 600px) {
+  .fr-cta-grid { grid-template-columns: 1fr; }
+}
 @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
 .epic-card { background: var(--navy3); border: 1px solid var(--border2); border-radius: 12px; padding: 16px 18px; }
 .epic-tag {
@@ -970,6 +991,31 @@ function findPendingQuestions() {
   allReqs.forEach(function(req) {
     if (seen[req.id]) return;
     seen[req.id] = true;
+
+    // Monolithic flow: surface needs_input as a pending question for the submitter
+    const isMonolithic = !!(req.qa_status && req.qa_status !== '');
+    if (isMonolithic) {
+      if (!req.needs_input || !req.needs_input_notes) return;
+      const target = (req.submitted_by || '').trim().toLowerCase();
+      const matches = !myName || !target || target === myName;
+      if (!matches) { skippedRouting++; return; }
+      totalCards++;
+      pendingQuestions.push({
+        reqId: req.id,
+        reqTitle: req.title,
+        storyIdx: -1,  // marker: this is a monolithic request, not a story index
+        storyTitle: req.title,
+        column: 'needs_input',
+        question: req.needs_input_notes,
+        askedBy: 'admin',
+        askedAt: null,
+        isPlanningQuestion: false,
+        isMonolithic: true
+      });
+      return;
+    }
+
+    // Legacy flow: stories array
     let stories = [];
     if (req.stories) {
       try { stories = JSON.parse(req.stories); } catch(e) {}
@@ -1013,6 +1059,46 @@ async function answerPendingQuestion(pq, answer) {
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
   if (!url || !key) return false;
+
+  // Monolithic flow: user answer doesn't auto-clear needs_input — admin still has to review
+  // and decide to resume. We append the answer to the conversation log so admin sees it.
+  if (pq.isMonolithic) {
+    try {
+      const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+      // Fetch current conversation
+      const r = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId + '&select=conversation', { headers });
+      if (!r.ok) return false;
+      const rows = await r.json();
+      if (!rows.length) return false;
+      let conv = [];
+      try { conv = JSON.parse(rows[0].conversation || '[]'); } catch(e) { conv = []; }
+      if (!Array.isArray(conv)) conv = [];
+      conv.push({
+        role: 'user',
+        content: 'Re: needs-input — ' + answer,
+        ts: new Date().toISOString(),
+        kind: 'needs_input_answer'
+      });
+
+      const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+      const p = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId, {
+        method: 'PATCH', headers: patchHeaders,
+        body: JSON.stringify({ conversation: JSON.stringify(conv) })
+      });
+      if (!p.ok) return false;
+
+      await logActivity({
+        request_id: pq.reqId,
+        actor: 'intent_user',
+        actor_name: currentUser || 'unknown',
+        action: 'needs_input_response',
+        description: 'User responded to needs-input: ' + answer.slice(0, 200)
+      });
+      return true;
+    } catch(e) { console.error('answerPendingQuestion (monolithic) failed:', e); return false; }
+  }
+
+  // Legacy story flow
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
     const r = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId + '&select=stories', { headers });
@@ -1139,7 +1225,7 @@ async function loadPlatformContext() {
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
     // Fetch all requests, then partition client-side
-    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at&order=created_at.desc&limit=50', { headers });
+    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50', { headers });
     if (!r.ok) { console.warn('Context load failed:', r.status); return; }
     const rows = await r.json();
 
@@ -1180,7 +1266,10 @@ function buildContextSection() {
   };
 
   const detailedSummary = function(req) {
-    const ver = (req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
+    const isMonolithic = !!(req.qa_status && req.qa_status !== '');
+    const ver = req.artifact_version
+      ? ' v' + req.artifact_version
+      : ((req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '');
     const lines = [];
     lines.push('### "' + (req.title || 'untitled') + '"' + ver);
     lines.push('  by ' + (req.submitted_by || '?') + ', overall status: ' + (req.status || 'unknown') + ', id:' + (req.id || '').slice(0,8));
@@ -1190,6 +1279,51 @@ function buildContextSection() {
     }
     if (req.goal) lines.push('  Goal: ' + req.goal);
 
+    if (isMonolithic) {
+      // New flow: surface qa_status, needs_input, capabilities, shipped URL
+      const qaStatusReadable = ({
+        not_built: 'not yet built — admin has not started a build',
+        building: 'currently building — admin clicked Build, generation in progress',
+        ready_for_qa: 'build complete, awaiting admin QA review',
+        qa_passed: 'QA approved, awaiting admin to ship',
+        shipped: 'SHIPPED — live and usable'
+      })[req.qa_status] || req.qa_status;
+      lines.push('  Build status: ' + qaStatusReadable);
+
+      if (req.needs_input) {
+        lines.push('  ⚠ BLOCKED ON INPUT — admin has flagged this as waiting on something:');
+        if (req.needs_input_notes) lines.push('     "' + req.needs_input_notes + '"');
+      }
+
+      if (req.qa_notes && (req.qa_status === 'not_built' || req.qa_status === 'building')) {
+        lines.push('  Last QA feedback being addressed in current rebuild: "' + req.qa_notes + '"');
+      }
+
+      // Capabilities — surface count, flag any pending (added since last build)
+      let caps = [];
+      if (Array.isArray(req.capabilities)) caps = req.capabilities;
+      else if (typeof req.capabilities === 'string') {
+        try { caps = JSON.parse(req.capabilities) || []; } catch(e) {}
+      }
+      if (caps.length > 0) {
+        const pending = caps.filter(function(c) { return c && typeof c === 'object' && c.added_after_build; });
+        lines.push('  Capabilities defined: ' + caps.length + (pending.length > 0 ? (' (' + pending.length + ' added since last build, awaiting rebuild)') : ''));
+        // List capabilities — both incorporated and pending
+        caps.forEach(function(c, i) {
+          const t = (typeof c === 'string') ? c : (c.title || '?');
+          const isPending = c && typeof c === 'object' && c.added_after_build;
+          lines.push('    ' + (i+1) + '. ' + t + (isPending ? ' [pending rebuild]' : ''));
+        });
+      }
+
+      if (req.shipped_url) {
+        lines.push('  Live URL: ' + req.shipped_url);
+      }
+
+      return lines.join('\n');
+    }
+
+    // Legacy flow: stories
     let stories = [];
     if (req.stories) {
       try { stories = JSON.parse(req.stories); } catch(e) {}
@@ -1266,12 +1400,26 @@ function buildContextSection() {
   }
 
   parts.push('## How to answer progress questions');
-  parts.push('- For requests under "' + currentUser + "'s requests with full breakdown\", you have the complete story list and which column each is in. Use it to answer specifically — do not say you lack details.");
+  parts.push('When the user asks about the status of a request, look at the per-request breakdown above and answer specifically.');
+  parts.push('');
+  parts.push('For monolithic-flow requests (most current ones), the build status is one of:');
+  parts.push('  - "not yet built" → admin has not started. If they ask "when?", say it\'s in admin\'s queue.');
+  parts.push('  - "currently building" → admin clicked Build, the AI is generating now (typically 30-60 sec).');
+  parts.push('  - "build complete, awaiting admin QA review" → built and waiting for admin to review.');
+  parts.push('  - "QA approved, awaiting admin to ship" → admin liked it, just needs to publish.');
+  parts.push('  - "SHIPPED" → live, usable, and the URL is available.');
+  parts.push('');
+  parts.push('Special cases:');
+  parts.push('  - If "BLOCKED ON INPUT" appears, admin has flagged a question or pre-requisite. Surface the note verbatim and offer to help resolve it.');
+  parts.push('  - If capabilities have "[pending rebuild]" tags, the user has requested changes that the admin has not yet rebuilt. Tell them their request is queued for the next rebuild.');
+  parts.push('  - If REJECTED, surface the admin reason verbatim and offer to help revise the request if appropriate.');
+  parts.push('');
+  parts.push('For legacy story-based requests:');
   parts.push('- Stories in "Needs user input" are waiting on the user to define something.');
   parts.push('- Stories in "Needs admin decision" are blocked on an admin choice.');
-  parts.push('- Stories in "Awaiting user answer" have a specific question for the user (also surfaced in the pending-questions section if applicable).');
+  parts.push('- Stories in "Awaiting user answer" have a specific question for the user.');
   parts.push('- Stories in "Ready to build" are queued for the build agent.');
-  parts.push('- When asked "what input do you need from me" or similar, list every story in Needs user input or Awaiting user answer and explain what each needs.');
+  parts.push('- When asked "what input do you need from me", list every story in Needs user input or Awaiting user answer and explain what each needs.');
   parts.push('');
 
   return parts.join('\n');
@@ -1483,14 +1631,12 @@ window.addEventListener('load', async () => {
   refreshGearStatus();
   if (!isValidName(currentUser)) {
     showNameRequiredOverlay();
-    if (window.location.protocol === 'file:') showFileWarning();
     return;
   }
   await loadPlatformContext();
   recentActivity = await loadRecentActivity();
   findPendingQuestions();
   startChat();
-  if (window.location.protocol === 'file:') showFileWarning();
 });
 
 function showFileWarning() {
@@ -1875,18 +2021,79 @@ function startChat() {
     chatHistory.push({ role: 'assistant', content: greeting });
     return;
   }
-  let greeting = 'Hi! I am here to help you with a new request — or to check progress on existing ones.';
-  if (platformContext.myRequests.length > 0) {
-    greeting += ' I can see you have ' + platformContext.myRequests.length + ' past request' + (platformContext.myRequests.length === 1 ? '' : 's') + ' on the platform.';
+
+  // First-run experience: brand-new user with no requests of their own
+  const isFirstRun = platformContext.myRequests.length === 0;
+  if (isFirstRun) {
+    showFirstRunWelcome();
+    return;
   }
-  if (platformContext.active.length > 0) {
-    greeting += ' There ' + (platformContext.active.length === 1 ? 'is' : 'are') + ' ' + platformContext.active.length + ' active build' + (platformContext.active.length === 1 ? '' : 's') + ' across the platform.';
+
+  // Returning user with existing requests — short status greeting
+  let greeting = 'Hi ' + (currentUser.split(/\s+/)[0] || '') + '! What can I help you with today?';
+  if (platformContext.myRequests.length > 0) {
+    greeting += ' You have ' + platformContext.myRequests.length + ' request' + (platformContext.myRequests.length === 1 ? '' : 's') + ' on the platform.';
   }
   if (platformContext.shipped.length > 0) {
-    greeting += ' There ' + (platformContext.shipped.length === 1 ? 'is' : 'are') + ' ' + platformContext.shipped.length + ' shipped tool' + (platformContext.shipped.length === 1 ? '' : 's') + ' you can use.';
+    greeting += ' There ' + (platformContext.shipped.length === 1 ? 'is' : 'are') + ' ' + platformContext.shipped.length + ' shipped tool' + (platformContext.shipped.length === 1 ? '' : 's') + ' available platform-wide.';
   }
-  greeting += ' What would you like to do?';
   addAiMsg(greeting);
+}
+
+function showFirstRunWelcome() {
+  const win = document.getElementById('chat-window');
+  const firstName = currentUser.split(/\s+/)[0] || 'there';
+  const shippedCount = platformContext.shipped.length;
+  const shippedNote = shippedCount > 0
+    ? '<div class="fr-sub">There ' + (shippedCount === 1 ? 'is 1 shipped tool' : 'are ' + shippedCount + ' shipped tools') + ' you can use right away \u2014 see "Available tools" above.</div>'
+    : '';
+
+  const card = document.createElement('div');
+  card.className = 'fr-welcome';
+  card.innerHTML =
+    '<div class="fr-tag">First time here</div>' +
+    '<div class="fr-title">Welcome, ' + esc(firstName) + ' \uD83D\uDC4B</div>' +
+    '<div class="fr-body">' +
+      '<p>DN Platform turns ideas into working web apps. You describe what you\'d like to build, I capture the requirements, and our team builds it for you. Most apps go from idea to live URL in under an hour.</p>' +
+      '<p class="fr-how"><strong>How it works:</strong> Tell me what you need \u2192 I draft an epic with a capability checklist \u2192 you approve \u2192 build runs \u2192 admin reviews \u2192 it ships to a URL you can use and share.</p>' +
+    '</div>' +
+    shippedNote +
+    '<div class="fr-cta-label">Try one of these to get started:</div>' +
+    '<div class="fr-cta-grid">' +
+      '<button class="fr-cta" onclick="firstRunQuickStart(\'a tip calculator that splits a bill among multiple people\')">' +
+        '<div class="fr-cta-title">A tip calculator</div>' +
+        '<div class="fr-cta-desc">Splits a bill among multiple people</div>' +
+      '</button>' +
+      '<button class="fr-cta" onclick="firstRunQuickStart(\'a unit converter for length, weight, and temperature\')">' +
+        '<div class="fr-cta-title">A unit converter</div>' +
+        '<div class="fr-cta-desc">Length, weight, and temperature</div>' +
+      '</button>' +
+      '<button class="fr-cta" onclick="firstRunQuickStart(\'a pomodoro timer with start, pause, and cycle tracking\')">' +
+        '<div class="fr-cta-title">A pomodoro timer</div>' +
+        '<div class="fr-cta-desc">Start, pause, cycle tracking</div>' +
+      '</button>' +
+      '<button class="fr-cta" onclick="firstRunQuickStart(\'a markdown preview tool that renders text as I type\')">' +
+        '<div class="fr-cta-title">A markdown previewer</div>' +
+        '<div class="fr-cta-desc">Renders text as you type</div>' +
+      '</button>' +
+    '</div>' +
+    '<div class="fr-or">\u2014 or just type your own idea below \u2014</div>';
+  win.appendChild(card);
+  win.scrollTop = win.scrollHeight;
+}
+
+function firstRunQuickStart(prompt) {
+  // Remove the welcome card and start the conversation with the chosen prompt
+  const win = document.getElementById('chat-window');
+  const card = win.querySelector('.fr-welcome');
+  if (card) card.remove();
+  const inp = document.getElementById('chat-input');
+  if (inp) {
+    inp.value = 'I\'d like to build ' + prompt;
+    inp.focus();
+    // Auto-send
+    if (typeof sendMessage === 'function') sendMessage();
+  }
 }
 
 function addAiMsg(text) {
