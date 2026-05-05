@@ -350,6 +350,46 @@
         .positive {
             color: #28a745;
         }
+
+        .company-export-section {
+            background: #f8f9fa;
+            border: 2px solid #667eea;
+            border-radius: 8px;
+            padding: 30px;
+            margin-bottom: 30px;
+        }
+
+        .company-export-section h3 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .select-wrapper {
+            margin-bottom: 20px;
+        }
+
+        .select-wrapper label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .select-wrapper select {
+            width: 100%;
+            max-width: 400px;
+            padding: 12px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 1em;
+            background: white;
+            cursor: pointer;
+        }
+
+        .select-wrapper select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -402,6 +442,17 @@
         </div>
 
         <div id="data-tab" class="tab-content">
+            <div class="company-export-section">
+                <h3>Export Company-Specific General Ledger Data</h3>
+                <div class="select-wrapper">
+                    <label for="companySelect">Select Company:</label>
+                    <select id="companySelect" onchange="updateExportButton()">
+                        <option value="">-- Choose a company --</option>
+                    </select>
+                </div>
+                <button class="btn btn-success" id="exportCompanyBtn" onclick="exportCompanyData()" disabled>📊 Export Company Data to Excel</button>
+            </div>
+
             <div class="search-box">
                 <input type="text" id="searchInput" placeholder="🔍 Search ledger data..." oninput="filterLedgerData()">
             </div>
@@ -439,6 +490,7 @@
 
             if (tabName === 'data') {
                 displayLedgerData();
+                updateCompanySelect();
             } else if (tabName === 'income') {
                 generateIncomeStatement();
             } else if (tabName === 'balance') {
@@ -638,6 +690,101 @@
             } else {
                 companyListSection.style.display = 'none';
             }
+        }
+
+        function updateCompanySelect() {
+            const select = document.getElementById('companySelect');
+            const currentValue = select.value;
+            
+            select.innerHTML = '<option value="">-- Choose a company --</option>';
+            
+            const sortedCompanies = Array.from(companies.keys()).sort();
+            sortedCompanies.forEach(companyId => {
+                const option = document.createElement('option');
+                option.value = companyId;
+                option.textContent = companyId;
+                select.appendChild(option);
+            });
+            
+            // Restore previous selection if still valid
+            if (currentValue && companies.has(currentValue)) {
+                select.value = currentValue;
+            }
+            
+            updateExportButton();
+        }
+
+        function updateExportButton() {
+            const select = document.getElementById('companySelect');
+            const btn = document.getElementById('exportCompanyBtn');
+            btn.disabled = !select.value;
+        }
+
+        function exportCompanyData() {
+            const companyId = document.getElementById('companySelect').value;
+            if (!companyId) return;
+
+            // Filter records for selected company
+            const companyRecords = ledgerData.filter(r => r.company === companyId);
+            
+            if (companyRecords.length === 0) {
+                return;
+            }
+
+            // Get all unique headers from the company's records
+            const headers = new Set();
+            companyRecords.forEach(record => {
+                Object.keys(record).forEach(key => {
+                    if (!['company', 'period', 'row'].includes(key)) {
+                        headers.add(key);
+                    }
+                });
+            });
+
+            // Reorder headers to put date first
+            const orderedHeaders = ['date'];
+            headers.forEach(h => {
+                if (h !== 'date') {
+                    orderedHeaders.push(h);
+                }
+            });
+
+            // Convert to array of arrays for Excel export
+            const data = [];
+            
+            // Add title rows
+            data.push([companyId]);
+            data.push([]);
+            data.push(['General Ledger Data Export']);
+            data.push([]);
+            
+            // Add headers
+            const headerRow = orderedHeaders.map(h => {
+                if (h === 'date') return 'Date';
+                return h;
+            });
+            data.push(headerRow);
+            
+            // Add data rows
+            companyRecords.forEach(record => {
+                const row = orderedHeaders.map(header => {
+                    if (header === 'date') {
+                        return formatDate(record.date);
+                    }
+                    const value = record[header];
+                    return value !== null && value !== undefined ? value : '';
+                });
+                data.push(row);
+            });
+
+            // Create workbook and worksheet
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, 'General Ledger');
+            
+            // Generate filename with company ID and date
+            const filename = `${companyId}_general_ledger_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, filename);
         }
 
         function displayLedgerData() {
