@@ -214,6 +214,12 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .kc-empty { color: var(--text3); font-size: 11px; font-style: italic; padding: 8px 4px; text-align: center; }
 .kanban-footer { margin-top: 14px; padding: 10px 14px; background: var(--navy3); border: 1px dashed var(--border2); border-radius: 8px; font-size: 11px; color: var(--text3); text-align: center; }
 
+/* Auto-refresh pill — appears when active request has remote updates */
+.refresh-pill { position: fixed; bottom: 24px; right: 24px; background: rgba(61,214,245,0.12); border: 1px solid rgba(61,214,245,0.4); color: var(--cyan); padding: 10px 14px; border-radius: 22px; font-size: 12px; font-family: 'Inter', sans-serif; display: flex; gap: 10px; align-items: center; z-index: 500; backdrop-filter: blur(8px); animation: pillIn 0.3s ease; box-shadow: 0 4px 12px rgba(0,0,0,0.3); }
+.refresh-pill button { background: var(--cyan); color: #0a1628; border: 0; padding: 5px 12px; border-radius: 14px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.refresh-pill button:hover { background: #5be1f7; }
+@keyframes pillIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
 /* Responsive: narrower screens collapse columns */
 @media (max-width: 1400px) {
   .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
@@ -1066,8 +1072,166 @@ async function loadData() {
     } else {
       showEmpty('No requests yet. Submit one via DN Intent.');
     }
+    // Auto-refresh: kick off background polling once we have an initial successful load
+    startAutoRefresh();
   } catch(e) { setDb(false, 'Error: ' + e.message); showEmpty('Could not connect. Check credentials.'); }
 }
+
+// ── AUTO-REFRESH: silent background polling with state preservation ─────────
+let autoRefreshTimer = null;
+let autoRefreshInFlight = false;
+let lastSuccessfulPoll = null;
+const AUTO_REFRESH_INTERVAL_MS = 15000;       // Poll every 15s when active
+const AUTO_REFRESH_INTERVAL_HIDDEN_MS = 60000; // 60s when tab is hidden
+
+function startAutoRefresh() {
+  if (autoRefreshTimer) return;  // Already running
+  scheduleNextPoll();
+}
+
+function scheduleNextPoll() {
+  if (autoRefreshTimer) clearTimeout(autoRefreshTimer);
+  const delay = document.hidden ? AUTO_REFRESH_INTERVAL_HIDDEN_MS : AUTO_REFRESH_INTERVAL_MS;
+  autoRefreshTimer = setTimeout(autoRefreshTick, delay);
+}
+
+function shouldSkipPoll() {
+  // Skip if a modal/overlay is open — don't disturb in-flight admin actions
+  if (document.querySelector('.modal-overlay.open')) return 'modal open';
+  if (document.getElementById('ship-mono-overlay')) return 'ship modal';
+  if (document.getElementById('sendback-overlay')) return 'send-back modal';
+  if (document.getElementById('needs-input-overlay')) return 'needs-input modal';
+  if (document.getElementById('mono-preview-overlay')) return 'preview open';
+  if (document.getElementById('reject-overlay')) return 'reject modal';
+
+  // Skip if user is typing somewhere
+  const active = document.activeElement;
+  if (active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA')) {
+    // But allow polling if it's just the search input with no text (low cost to refresh)
+    if (active.id === 'sidebar-search' && !active.value) return false;
+    return 'input focused';
+  }
+
+  // Skip if a build is actively in flight (we set qa_status='building' optimistically)
+  // and we don't want a stale fetch to clobber that intermediate state
+  if (window._buildInFlightReqId) return 'build in flight';
+
+  return false;
+}
+
+async function autoRefreshTick() {
+  if (autoRefreshInFlight) { scheduleNextPoll(); return; }
+  const skipReason = shouldSkipPoll();
+  if (skipReason) {
+    // Re-schedule but keep waiting — try again later
+    scheduleNextPoll();
+    return;
+  }
+  autoRefreshInFlight = true;
+  try {
+    const u = localStorage.getItem('dn_supa_url'), k = localStorage.getItem('dn_supa_key');
+    if (!u || !k) { autoRefreshInFlight = false; return; }
+    const r = await fetch(surl('requests?order=created_at.desc'), { headers: hdrs() });
+    if (!r.ok) throw new Error(r.status);
+    const newReqs = await r.json();
+    applyAutoRefresh(newReqs);
+    lastSuccessfulPoll = Date.now();
+    setDb(true, 'Connected');
+  } catch(e) {
+    // Quietly degrade — manual Refresh still works
+    console.warn('Auto-refresh failed:', e.message);
+  } finally {
+    autoRefreshInFlight = false;
+    scheduleNextPoll();
+  }
+}
+
+function applyAutoRefresh(newReqs) {
+  // Compute what changed at the request level
+  const oldById = {};
+  allReqs.forEach(function(r) { oldById[r.id] = r; });
+  const newById = {};
+  newReqs.forEach(function(r) { newById[r.id] = r; });
+
+  let anyChanged = false;
+  let activeReqChanged = false;
+  const newCount = newReqs.length - allReqs.length;
+
+  Object.keys(newById).forEach(function(id) {
+    const oldR = oldById[id];
+    const newR = newById[id];
+    if (!oldR) { anyChanged = true; return; }  // brand new request
+    // Diff the fields that matter
+    if (oldR.qa_status !== newR.qa_status) anyChanged = true;
+    if (oldR.artifact_version !== newR.artifact_version) anyChanged = true;
+    if (oldR.status !== newR.status) anyChanged = true;
+    if (!!oldR.needs_input !== !!newR.needs_input) anyChanged = true;
+    if ((oldR.shipped_url || '') !== (newR.shipped_url || '')) anyChanged = true;
+    // Capabilities length change (e.g. user added a capability via Intent)
+    const oldCapsLen = Array.isArray(oldR.capabilities) ? oldR.capabilities.length : 0;
+    const newCapsLen = Array.isArray(newR.capabilities) ? newR.capabilities.length : 0;
+    if (oldCapsLen !== newCapsLen) anyChanged = true;
+
+    if (id === activeId && (
+      oldR.qa_status !== newR.qa_status ||
+      oldR.artifact_version !== newR.artifact_version ||
+      oldR.status !== newR.status ||
+      !!oldR.needs_input !== !!newR.needs_input ||
+      oldCapsLen !== newCapsLen
+    )) {
+      activeReqChanged = true;
+    }
+  });
+
+  // Replace the array
+  allReqs = newReqs;
+
+  if (!anyChanged) return;
+
+  // Update sidebar list (always safe — no in-flight state)
+  renderRequestList();
+  renderTabs();
+
+  // Update main pane only if appropriate
+  if (!activeId) {
+    // Kanban view — re-render. It's all visual.
+    renderKanban();
+  } else if (activeReqChanged) {
+    // Detail view AND the active request's data changed → show subtle pill, don't auto-disrupt
+    showUpdatePill();
+  }
+}
+
+function showUpdatePill() {
+  // Already showing? leave it
+  if (document.getElementById('refresh-pill')) return;
+  const pill = document.createElement('div');
+  pill.id = 'refresh-pill';
+  pill.className = 'refresh-pill';
+  pill.innerHTML = '<span>This request has updates. </span><button onclick="applyPendingRefresh()">Refresh now</button>';
+  document.body.appendChild(pill);
+}
+
+function applyPendingRefresh() {
+  const pill = document.getElementById('refresh-pill');
+  if (pill) pill.remove();
+  if (activeId) {
+    renderRequestHeader();
+    renderEpic(activeId);
+  }
+}
+
+// Pause/resume polling on tab visibility change
+document.addEventListener('visibilitychange', function() {
+  if (!document.hidden) {
+    // Tab just became visible — poll once immediately to catch up, then resume normal cadence
+    if (autoRefreshTimer) clearTimeout(autoRefreshTimer);
+    autoRefreshTick();
+  } else {
+    // Tab hidden — cadence will slow on next schedule
+    scheduleNextPoll();
+  }
+});
 
 function setDb(ok, msg) {
   document.getElementById('db-dot').className = 'db-dot ' + (ok ? 'ok' : 'err');
@@ -2052,6 +2216,7 @@ async function buildRequest(reqId) {
 
   // Mark building
   req.qa_status = 'building';
+  window._buildInFlightReqId = reqId;
   renderMonolithicView(req);
   await patchRequest(reqId, { qa_status: 'building' });
 
@@ -2129,6 +2294,7 @@ async function buildRequest(reqId) {
     });
 
     renderMonolithicView(req);
+    window._buildInFlightReqId = null;
   } catch(e) {
     console.error('Build failed:', e);
     alert('Build failed: ' + e.message + '\n\nThe request has been reset to its previous state.');
@@ -2137,6 +2303,7 @@ async function buildRequest(reqId) {
     req.qa_status = rollbackTo;
     await patchRequest(reqId, { qa_status: rollbackTo });
     renderMonolithicView(req);
+    window._buildInFlightReqId = null;
   }
 }
 
