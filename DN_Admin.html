@@ -253,6 +253,49 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .mono-data-sub li { margin-bottom: 2px; line-height: 1.5; }
 .mono-data-schema { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 8px; font-size: 11px; color: var(--text2); margin-top: 6px; max-height: 200px; overflow: auto; white-space: pre-wrap; font-family: ui-monospace, monospace; }
 
+/* Draft spec card — interactive rebuild spec the admin agent emits */
+.spec-card-wrap { margin: 8px 0; }
+.spec-card { background: linear-gradient(180deg, rgba(139,127,245,0.08), var(--navy3)); border: 1px solid rgba(139,127,245,0.4); border-radius: 10px; padding: 14px 16px; }
+.spec-card.spec-editing { border-color: rgba(245,158,11,0.5); background: linear-gradient(180deg, rgba(245,158,11,0.06), var(--navy3)); }
+.spec-card.spec-approved { border-color: rgba(34,197,94,0.5); background: linear-gradient(180deg, rgba(34,197,94,0.06), var(--navy3)); }
+.spec-head { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 10px; }
+.spec-tag { display: inline-block; background: rgba(139,127,245,0.2); color: #a78bfa; border: 1px solid rgba(139,127,245,0.4); font-size: 10px; padding: 3px 9px; border-radius: 10px; font-weight: 700; letter-spacing: 0.04em; }
+.spec-tag-ok { background: rgba(34,197,94,0.18); color: #22c55e; border-color: rgba(34,197,94,0.4); }
+.spec-mat-badge { display: inline-block; background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.35); font-size: 10px; padding: 2px 8px; border-radius: 10px; font-weight: 600; }
+.spec-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: var(--text); }
+.spec-target { font-size: 11px; color: var(--text3); margin-left: auto; }
+.spec-section { margin-top: 10px; }
+.spec-label { font-size: 10px; color: #a78bfa; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; margin-bottom: 4px; }
+.spec-text { font-size: 12px; color: var(--text); line-height: 1.5; }
+.spec-list { margin: 0; padding-left: 18px; font-size: 12px; color: var(--text); line-height: 1.55; }
+.spec-list li { margin-bottom: 2px; }
+.spec-empty { font-size: 11px; color: var(--text3); font-style: italic; }
+.spec-schema { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 8px; font-size: 11px; color: var(--text2); margin: 4px 0 0; max-height: 180px; overflow: auto; white-space: pre-wrap; font-family: ui-monospace, monospace; }
+.spec-questions { background: rgba(245,158,11,0.06); border: 1px solid rgba(245,158,11,0.25); border-radius: 6px; padding: 10px; margin-top: 10px; }
+.spec-questions .spec-label { color: #f59e0b; }
+.spec-q-count { color: var(--text3); font-weight: normal; }
+.spec-q-item { margin-top: 8px; padding: 8px; background: var(--panel2); border-radius: 4px; }
+.spec-q-q { font-size: 12px; color: var(--text); font-weight: 600; margin-bottom: 4px; }
+.spec-q-a { font-size: 11px; color: var(--text2); font-style: italic; line-height: 1.5; }
+.spec-actions { margin-top: 14px; display: flex; gap: 8px; flex-wrap: wrap; }
+.spec-btn { border: 1px solid var(--border2); border-radius: 6px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; }
+.spec-btn-approve { background: rgba(34,197,94,0.15); color: #22c55e; border-color: rgba(34,197,94,0.4); }
+.spec-btn-approve:hover { background: rgba(34,197,94,0.25); }
+.spec-btn-edit { background: rgba(245,158,11,0.12); color: #f59e0b; border-color: rgba(245,158,11,0.35); }
+.spec-btn-edit:hover { background: rgba(245,158,11,0.22); }
+.spec-btn-cancel { background: transparent; color: var(--text3); }
+.spec-btn-cancel:hover { color: var(--text); border-color: var(--text3); }
+.spec-btn-save { background: rgba(61,214,245,0.15); color: var(--cyan); border-color: rgba(61,214,245,0.4); }
+.spec-btn-save:hover { background: rgba(61,214,245,0.25); }
+.spec-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.spec-row { margin-bottom: 10px; }
+.spec-row label { display: block; font-size: 10px; color: var(--text3); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+.spec-row textarea, .spec-row input[type="text"] { width: 100%; background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; color: var(--text); padding: 6px 8px; font-size: 12px; font-family: inherit; resize: vertical; box-sizing: border-box; }
+.spec-row textarea:focus, .spec-row input:focus { outline: none; border-color: var(--cyan); }
+.spec-q-edit { padding: 8px; background: var(--panel2); border-radius: 4px; margin-top: 6px; }
+.spec-q-edit .spec-q-text { font-size: 12px; color: var(--text); margin-bottom: 4px; }
+.spec-q-edit input { width: 100%; }
+
 /* Responsive: narrower screens collapse columns */
 @media (max-width: 1400px) {
   .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
@@ -1136,6 +1179,9 @@ function shouldSkipPoll() {
   if (document.getElementById('needs-input-overlay')) return 'needs-input modal';
   if (document.getElementById('mono-preview-overlay')) return 'preview open';
   if (document.getElementById('reject-overlay')) return 'reject modal';
+
+  // Skip if a draft spec card is pending review/approval — admin is mid-decision
+  if (document.querySelector('.spec-card-wrap')) return 'draft spec pending';
 
   // Skip if user is typing somewhere
   const active = document.activeElement;
@@ -3847,6 +3893,37 @@ const ADMIN_AGENT_SYSTEM = [
   '- The decision text should be self-contained: a future reader should understand the choice without needing the chat context.',
   '- If the admin asks an open question (e.g. "what should we do?"), DO NOT resolve — just discuss and recommend.',
   '',
+  '## Drafting rebuild specs for shipped or in-flight requests (monolithic flow)',
+  'When the admin discusses a meaningful change to a monolithic-flow request — anything beyond a small cosmetic tweak — your job is to help them shape a structured rebuild spec, NOT to immediately route to Send Back. Common signals: "rebuild this", "we need to add X", "the architecture is wrong", "we should integrate Y", "this needs to use the database", or back-and-forth where you and admin reasoned through how a change should work.',
+  '',
+  '### Protocol for draft specs',
+  '1. Discuss the change with the admin. Surface options, tradeoffs, recommendations. Reach agreement on the approach.',
+  '2. When the admin signals approval ("yes", "go with that", "let\'s do it", "rebuild it that way"), produce a structured DRAFT_SPEC. Do not just describe the change in prose — produce the structured object the frontend will render as an editable card.',
+  '3. Detect "material change" indicators: anything touching database, persistence, authentication, external APIs, schema design, encryption, networking, security, multi-user state, file storage, vendor integration. For material changes, populate `open_questions` with specific clarifications the build agent will need answered. For purely cosmetic or behavioural-only changes, leave `open_questions` empty.',
+  '4. Emit the spec as an HTML comment on a new line at the end of your message. The frontend extracts and renders it. Format:',
+  String.raw`   <!-- DRAFT_SPEC reqId="<request id>" -->JSON OBJECT HERE<!-- /DRAFT_SPEC -->`,
+  '   The JSON object must have these fields:',
+  '   {',
+  '     "scope": "one-sentence summary of the change",',
+  '     "context": "1-2 sentences of why this change is needed (admin\'s problem statement)",',
+  '     "capabilities_to_add": ["new capability 1", "new capability 2"],',
+  '     "capabilities_to_change": ["existing capability X — change to Y"],',
+  '     "integration_notes": "anything about backend/external systems/keys/schemas, or null",',
+  '     "schema": "DDL or schema description if relevant, or null",',
+  '     "behaviour_changes": ["concrete user-visible change", ...],',
+  '     "open_questions": [{"q": "specific question for the build agent", "default_answer": "what to assume if admin doesn\'t answer"}, ...],',
+  '     "preserve": "what must NOT change (existing features, layout, etc.)"',
+  '   }',
+  '5. Above the comment, write a brief plain-prose summary so admin sees what they\'re about to approve. End with: "Review the spec card below — edit, add detail, or approve to send to rebuild."',
+  '6. The frontend renders the spec as a card with Approve / Edit / Cancel buttons. Approve routes the spec into the request\'s qa_notes (formatted) and triggers the rebuild.',
+  '7. If the admin pushes back or wants to refine, drop the marker — just discuss further.',
+  '',
+  '### When NOT to emit DRAFT_SPEC',
+  '- The admin is just asking questions, not directing a change.',
+  '- The change is too vague to specify (ask for specifics first).',
+  '- The admin has not explicitly confirmed the approach.',
+  '- The conversation is about a story (legacy flow), not a monolithic-flow request — use existing card-resolution patterns instead.',
+  '',
   'Column meaning:',
   '- needs_user: stories the LLM flagged at planning time as requiring user definition (e.g. personas, preferences). The intent agent surfaces these to the user.',
   '- needs_admin: stories requiring admin-level decision before they can be built. Admin must talk through and decide.',
@@ -4706,6 +4783,30 @@ async function sendChatMsg() {
 
     let reply = data.content[0].text;
 
+    // Parse DRAFT_SPEC marker — admin agent emits a structured rebuild spec for review.
+    // Format: <!-- DRAFT_SPEC reqId="..." -->JSON<!-- /DRAFT_SPEC -->
+    const draftSpecRegex = /<!--\s*DRAFT_SPEC\s+reqId="([^"]+)"\s*-->([\s\S]*?)<!--\s*\/DRAFT_SPEC\s*-->/i;
+    const dsMatch = reply.match(draftSpecRegex);
+    let pendingDraftSpec = null;
+    if (dsMatch) {
+      const reqIdShort = dsMatch[1];
+      const jsonStr = dsMatch[2].trim();
+      try {
+        const spec = JSON.parse(jsonStr);
+        // Resolve to full id if short
+        let fullId = reqIdShort;
+        if (fullId.length < 36) {
+          const match = allReqs.find(function(r) { return (r.id || '').slice(0, fullId.length) === fullId; });
+          if (match) fullId = match.id;
+        }
+        pendingDraftSpec = { reqId: fullId, spec: spec };
+        // Strip the marker from the visible reply
+        reply = reply.replace(draftSpecRegex, '').trim();
+      } catch(e) {
+        console.warn('Could not parse DRAFT_SPEC JSON:', e, jsonStr);
+      }
+    }
+
     // Parse RESOLVE_CARD markers — could be multiple
     const markerRegex = /<!--\s*RESOLVE_CARD\s+reqId="([^"]+)"\s+storyTitle="([^"]+)"\s+decision="([^"]+)"\s*-->/gi;
     const resolutions = [];
@@ -4748,6 +4849,11 @@ async function sendChatMsg() {
     chatHistory.push({ role: 'assistant', content: reply });
     appendChatMsg('ai', reply);
 
+    // If a DRAFT_SPEC was emitted, render it as an interactive card after the reply
+    if (pendingDraftSpec) {
+      renderDraftSpecCard(pendingDraftSpec.reqId, pendingDraftSpec.spec);
+    }
+
     // Capture this turn pair to whichever request is currently in focus
     if (activeId) {
       logTurn(activeId, 'admin', 'user', text);
@@ -4759,6 +4865,272 @@ async function sendChatMsg() {
   } finally {
     sendBtn.disabled = false; sendBtn.textContent = 'Send';
   }
+}
+
+// ── DRAFT_SPEC rendering and approval ───────────────────────────────────────
+// Admin agent emits a structured rebuild spec. We render it as an interactive card
+// with editable fields and Approve/Cancel buttons. On approve, format into qa_notes
+// and trigger a rebuild via the existing buildRequest path.
+
+let _draftSpecCounter = 0;
+const _draftSpecs = {};  // id -> { reqId, spec }
+
+function renderDraftSpecCard(reqId, spec) {
+  const id = 'spec_' + (++_draftSpecCounter);
+  _draftSpecs[id] = { reqId: reqId, spec: spec };
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  const reqTitle = req ? (req.title || 'Untitled') : 'Unknown request';
+  const isMaterial = (spec.open_questions || []).length > 0;
+
+  const msgs = document.getElementById('chat-msgs');
+  const wrap = document.createElement('div');
+  wrap.className = 'spec-card-wrap';
+  wrap.id = id;
+  wrap.innerHTML = renderDraftSpecCardHtml(id, reqTitle, spec, isMaterial, false);
+  msgs.appendChild(wrap);
+  msgs.scrollTop = msgs.scrollHeight;
+}
+
+function renderDraftSpecCardHtml(id, reqTitle, spec, isMaterial, editing) {
+  const ds = _draftSpecs[id];
+  const matBadge = isMaterial ? '<span class="spec-mat-badge">Material change — questions to answer</span>' : '';
+
+  if (editing) {
+    // Editable form view
+    return '<div class="spec-card spec-editing">' +
+      '<div class="spec-head"><span class="spec-title">Editing rebuild spec</span><span class="spec-target">→ ' + esc(reqTitle) + '</span></div>' +
+      '<div class="spec-row"><label>Scope (one sentence)</label><textarea id="' + id + '_scope" rows="2">' + esc(spec.scope || '') + '</textarea></div>' +
+      '<div class="spec-row"><label>Context / why</label><textarea id="' + id + '_context" rows="2">' + esc(spec.context || '') + '</textarea></div>' +
+      '<div class="spec-row"><label>Capabilities to ADD (one per line)</label><textarea id="' + id + '_addcaps" rows="3">' + esc((spec.capabilities_to_add || []).join('\n')) + '</textarea></div>' +
+      '<div class="spec-row"><label>Capabilities to CHANGE (one per line)</label><textarea id="' + id + '_chgcaps" rows="3">' + esc((spec.capabilities_to_change || []).join('\n')) + '</textarea></div>' +
+      '<div class="spec-row"><label>Behaviour changes (one per line)</label><textarea id="' + id + '_behv" rows="2">' + esc((spec.behaviour_changes || []).join('\n')) + '</textarea></div>' +
+      '<div class="spec-row"><label>Integration notes</label><textarea id="' + id + '_int" rows="2">' + esc(spec.integration_notes || '') + '</textarea></div>' +
+      '<div class="spec-row"><label>Schema (DDL or description)</label><textarea id="' + id + '_schema" rows="4">' + esc(spec.schema || '') + '</textarea></div>' +
+      '<div class="spec-row"><label>Preserve (what must NOT change)</label><textarea id="' + id + '_pres" rows="2">' + esc(spec.preserve || '') + '</textarea></div>' +
+      ((spec.open_questions || []).length > 0 ?
+        '<div class="spec-row spec-questions-edit"><label>Open questions — answer or edit defaults</label>' +
+          (spec.open_questions || []).map(function(q, i) {
+            return '<div class="spec-q-edit">' +
+              '<div class="spec-q-text">' + esc(q.q) + '</div>' +
+              '<input type="text" id="' + id + '_qa_' + i + '" value="' + esc(q.answer || q.default_answer || '') + '" placeholder="Your answer">' +
+              '</div>';
+          }).join('') +
+        '</div>' : '') +
+      '<div class="spec-actions">' +
+        '<button class="spec-btn spec-btn-save" onclick="saveDraftSpecEdits(\'' + id + '\')">Save edits</button>' +
+        '<button class="spec-btn spec-btn-cancel" onclick="cancelDraftSpecEdit(\'' + id + '\')">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  }
+
+  // Read-only view
+  const list = function(arr) {
+    if (!arr || arr.length === 0) return '<div class="spec-empty">none</div>';
+    return '<ul class="spec-list">' + arr.map(function(x) { return '<li>' + esc(x) + '</li>'; }).join('') + '</ul>';
+  };
+  const text = function(t) {
+    if (!t) return '<div class="spec-empty">none</div>';
+    return '<div class="spec-text">' + esc(t) + '</div>';
+  };
+  const questionsHtml = (spec.open_questions || []).length > 0
+    ? '<div class="spec-section spec-questions"><div class="spec-label">Questions for build agent <span class="spec-q-count">(' + spec.open_questions.length + ')</span></div>' +
+        spec.open_questions.map(function(q) {
+          const ans = q.answer || q.default_answer || '<em>no default — admin must answer</em>';
+          return '<div class="spec-q-item"><div class="spec-q-q">' + esc(q.q) + '</div><div class="spec-q-a">' + esc(ans) + '</div></div>';
+        }).join('') +
+      '</div>'
+    : '';
+
+  return '<div class="spec-card">' +
+    '<div class="spec-head">' +
+      '<span class="spec-tag">📋 Draft rebuild spec</span>' +
+      matBadge +
+      '<span class="spec-target">→ ' + esc(reqTitle) + '</span>' +
+    '</div>' +
+    '<div class="spec-section"><div class="spec-label">Scope</div>' + text(spec.scope) + '</div>' +
+    (spec.context ? '<div class="spec-section"><div class="spec-label">Why</div>' + text(spec.context) + '</div>' : '') +
+    '<div class="spec-section"><div class="spec-label">Capabilities to add</div>' + list(spec.capabilities_to_add) + '</div>' +
+    ((spec.capabilities_to_change || []).length > 0 ? '<div class="spec-section"><div class="spec-label">Capabilities to change</div>' + list(spec.capabilities_to_change) + '</div>' : '') +
+    ((spec.behaviour_changes || []).length > 0 ? '<div class="spec-section"><div class="spec-label">Behaviour changes</div>' + list(spec.behaviour_changes) + '</div>' : '') +
+    (spec.integration_notes ? '<div class="spec-section"><div class="spec-label">Integration</div>' + text(spec.integration_notes) + '</div>' : '') +
+    (spec.schema ? '<div class="spec-section"><div class="spec-label">Schema</div><pre class="spec-schema">' + esc(spec.schema) + '</pre></div>' : '') +
+    (spec.preserve ? '<div class="spec-section"><div class="spec-label">Preserve</div>' + text(spec.preserve) + '</div>' : '') +
+    questionsHtml +
+    '<div class="spec-actions">' +
+      '<button class="spec-btn spec-btn-approve" onclick="approveDraftSpec(\'' + id + '\')">Approve & send to rebuild</button>' +
+      '<button class="spec-btn spec-btn-edit" onclick="editDraftSpec(\'' + id + '\')">Edit</button>' +
+      '<button class="spec-btn spec-btn-cancel" onclick="cancelDraftSpec(\'' + id + '\')">Cancel</button>' +
+    '</div>' +
+  '</div>';
+}
+
+function editDraftSpec(id) {
+  const ds = _draftSpecs[id];
+  if (!ds) return;
+  const req = allReqs.find(function(r) { return r.id === ds.reqId; });
+  const reqTitle = req ? (req.title || 'Untitled') : 'Unknown';
+  const isMaterial = (ds.spec.open_questions || []).length > 0;
+  document.getElementById(id).innerHTML = renderDraftSpecCardHtml(id, reqTitle, ds.spec, isMaterial, true);
+}
+
+function cancelDraftSpecEdit(id) {
+  const ds = _draftSpecs[id];
+  if (!ds) return;
+  const req = allReqs.find(function(r) { return r.id === ds.reqId; });
+  const reqTitle = req ? (req.title || 'Untitled') : 'Unknown';
+  const isMaterial = (ds.spec.open_questions || []).length > 0;
+  document.getElementById(id).innerHTML = renderDraftSpecCardHtml(id, reqTitle, ds.spec, isMaterial, false);
+}
+
+function saveDraftSpecEdits(id) {
+  const ds = _draftSpecs[id];
+  if (!ds) return;
+  const get = function(k) { const el = document.getElementById(id + '_' + k); return el ? el.value.trim() : ''; };
+  const lines = function(s) { return s.split('\n').map(function(x) { return x.trim(); }).filter(Boolean); };
+  const updated = {
+    scope: get('scope'),
+    context: get('context'),
+    capabilities_to_add: lines(get('addcaps')),
+    capabilities_to_change: lines(get('chgcaps')),
+    behaviour_changes: lines(get('behv')),
+    integration_notes: get('int') || null,
+    schema: get('schema') || null,
+    preserve: get('pres') || null,
+    open_questions: (ds.spec.open_questions || []).map(function(q, i) {
+      const a = document.getElementById(id + '_qa_' + i);
+      return { q: q.q, default_answer: q.default_answer || null, answer: a ? a.value.trim() : null };
+    })
+  };
+  _draftSpecs[id].spec = updated;
+  cancelDraftSpecEdit(id);  // re-renders read-only with new values
+}
+
+function cancelDraftSpec(id) {
+  const card = document.getElementById(id);
+  if (card) card.remove();
+  delete _draftSpecs[id];
+}
+
+async function approveDraftSpec(id) {
+  const ds = _draftSpecs[id];
+  if (!ds) return;
+  const spec = ds.spec;
+  const req = allReqs.find(function(r) { return r.id === ds.reqId; });
+  if (!req) { alert('Request not found.'); return; }
+
+  // Material change: enforce that all open questions have an answer (or explicit default)
+  const unansweredQs = (spec.open_questions || []).filter(function(q) {
+    return !q.answer && !q.default_answer;
+  });
+  if (unansweredQs.length > 0) {
+    if (!confirm('There are ' + unansweredQs.length + ' open questions without answers. Edit the spec to provide answers, or click OK to proceed and let the build agent make assumptions.')) return;
+  }
+
+  // Format the spec as structured qa_notes the build prompt can render
+  const formattedNotes = formatSpecAsNotes(spec);
+
+  // Disable buttons
+  const card = document.getElementById(id);
+  if (card) {
+    const btns = card.querySelectorAll('.spec-btn');
+    btns.forEach(function(b) { b.disabled = true; });
+    const approveBtn = card.querySelector('.spec-btn-approve');
+    if (approveBtn) approveBtn.textContent = 'Sending to rebuild...';
+  }
+
+  try {
+    // Set qa_notes and qa_status and trigger rebuild
+    await patchRequest(ds.reqId, {
+      qa_notes: formattedNotes,
+      qa_status: 'not_built'
+    });
+    req.qa_notes = formattedNotes;
+    req.qa_status = 'not_built';
+
+    await logActivity({
+      request_id: ds.reqId,
+      actor: 'admin',
+      actor_name: 'admin',
+      action: 'draft_spec_approved',
+      description: 'Approved draft spec from admin agent: ' + (spec.scope || '').slice(0, 200)
+    });
+
+    // Replace the card with a confirmation
+    if (card) {
+      card.innerHTML = '<div class="spec-card spec-approved">' +
+        '<div class="spec-head"><span class="spec-tag spec-tag-ok">✓ Approved</span><span class="spec-target">→ ' + esc(req.title || 'Untitled') + '</span></div>' +
+        '<div class="spec-section"><div class="spec-text">Spec sent to rebuild. Build is starting now.</div></div>' +
+      '</div>';
+    }
+
+    // Trigger the build
+    if (typeof buildRequest === 'function') {
+      // Make sure admin sees the request in focus
+      activeId = ds.reqId;
+      renderRequestList();
+      renderRequestHeader();
+      buildRequest(ds.reqId);
+    }
+    delete _draftSpecs[id];
+  } catch(e) {
+    console.error('approveDraftSpec failed:', e);
+    alert('Could not send spec to rebuild: ' + e.message);
+    if (card) {
+      const btns = card.querySelectorAll('.spec-btn');
+      btns.forEach(function(b) { b.disabled = false; });
+      const approveBtn = card.querySelector('.spec-btn-approve');
+      if (approveBtn) approveBtn.textContent = 'Approve & send to rebuild';
+    }
+  }
+}
+
+function formatSpecAsNotes(spec) {
+  // Produces a structured plain-text version that's both human-readable AND rich
+  // enough that the build prompt can pass it through verbatim.
+  const lines = [];
+  lines.push('REBUILD SPEC (drafted by admin agent, approved by admin)');
+  lines.push('');
+  if (spec.scope) lines.push('SCOPE: ' + spec.scope);
+  if (spec.context) lines.push('CONTEXT: ' + spec.context);
+  lines.push('');
+  if ((spec.capabilities_to_add || []).length > 0) {
+    lines.push('CAPABILITIES TO ADD:');
+    spec.capabilities_to_add.forEach(function(c) { lines.push('  - ' + c); });
+    lines.push('');
+  }
+  if ((spec.capabilities_to_change || []).length > 0) {
+    lines.push('CAPABILITIES TO CHANGE:');
+    spec.capabilities_to_change.forEach(function(c) { lines.push('  - ' + c); });
+    lines.push('');
+  }
+  if ((spec.behaviour_changes || []).length > 0) {
+    lines.push('BEHAVIOUR CHANGES:');
+    spec.behaviour_changes.forEach(function(c) { lines.push('  - ' + c); });
+    lines.push('');
+  }
+  if (spec.integration_notes) {
+    lines.push('INTEGRATION NOTES:');
+    lines.push('  ' + spec.integration_notes);
+    lines.push('');
+  }
+  if (spec.schema) {
+    lines.push('SCHEMA:');
+    spec.schema.split('\n').forEach(function(l) { lines.push('  ' + l); });
+    lines.push('');
+  }
+  if ((spec.open_questions || []).length > 0) {
+    lines.push('CLARIFICATIONS (admin-provided answers to ambiguities):');
+    spec.open_questions.forEach(function(q) {
+      const ans = q.answer || q.default_answer || '(no answer — use your best judgement)';
+      lines.push('  Q: ' + q.q);
+      lines.push('  A: ' + ans);
+    });
+    lines.push('');
+  }
+  if (spec.preserve) {
+    lines.push('MUST PRESERVE: ' + spec.preserve);
+  }
+  return lines.join('\n');
 }
 
 function appendChatMsg(role, text) {
