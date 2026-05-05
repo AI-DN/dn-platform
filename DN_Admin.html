@@ -240,6 +240,19 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .mono-attachments { border-color: rgba(61,214,245,0.25); }
 .mono-attachments .mono-section-title { color: var(--cyan); }
 
+.mono-data-ctx { border-color: rgba(31,216,164,0.3); background: linear-gradient(180deg, rgba(31,216,164,0.04), var(--navy3)); }
+.mono-data-ctx .mono-section-title { color: var(--green); }
+.mono-data-files { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; }
+.mono-data-file { font-size: 12px; color: var(--green); background: rgba(31,216,164,0.1); border: 1px solid rgba(31,216,164,0.3); padding: 3px 9px; border-radius: 4px; }
+.mono-data-summary { font-size: 13px; color: var(--text); line-height: 1.55; margin-bottom: 8px; }
+.mono-data-meta { font-size: 11px; color: var(--text3); margin-bottom: 8px; }
+.mono-data-meta code { background: var(--panel2); padding: 1px 6px; border-radius: 3px; color: var(--text2); }
+.mono-data-sub { font-size: 12px; color: var(--text2); margin-top: 8px; }
+.mono-data-sub strong { color: var(--text); display: block; margin-bottom: 4px; }
+.mono-data-sub ul { margin: 0; padding-left: 18px; }
+.mono-data-sub li { margin-bottom: 2px; line-height: 1.5; }
+.mono-data-schema { background: var(--panel2); border: 1px solid var(--border); border-radius: 4px; padding: 8px; font-size: 11px; color: var(--text2); margin-top: 6px; max-height: 200px; overflow: auto; white-space: pre-wrap; font-family: ui-monospace, monospace; }
+
 /* Responsive: narrower screens collapse columns */
 @media (max-width: 1400px) {
   .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
@@ -2231,6 +2244,39 @@ function renderMonolithicView(req) {
       '</div>';
   }
 
+  // Data context — file structure analysis from intent
+  let dataCtxHtml = '';
+  if (req.data_context && (req.data_context.summary || (req.data_context.files && req.data_context.files.length > 0))) {
+    const dc = req.data_context;
+    const fileBits = (dc.files || []).map(function(f) {
+      const sizeKb = f.size ? (' (' + Math.round(f.size / 1024) + ' KB)') : '';
+      return '<span class="mono-data-file">📄 ' + esc(f.name) + sizeKb + '</span>';
+    }).join('');
+    const challengesHtml = (dc.challenges && dc.challenges.length > 0)
+      ? '<div class="mono-data-sub"><strong>Parsing challenges:</strong><ul>' +
+          dc.challenges.map(function(c) { return '<li>' + esc(c) + '</li>'; }).join('') +
+        '</ul></div>'
+      : '';
+    const schemaHtml = (dc.schema_suggestion && dc.schema_suggestion.length > 0)
+      ? '<div class="mono-data-sub"><strong>Suggested schema:</strong><pre class="mono-data-schema">' +
+          esc(JSON.stringify(dc.schema_suggestion, null, 2).slice(0, 1500)) +
+        '</pre></div>'
+      : '';
+    dataCtxHtml = '<div class="mono-section mono-data-ctx">' +
+      '<div class="mono-section-title">Data context — file structure analyzed in Intent</div>' +
+      (fileBits ? '<div class="mono-data-files">' + fileBits + '</div>' : '') +
+      '<div class="mono-data-summary">' + esc(dc.summary || '') + '</div>' +
+      (dc.structure ? '<div class="mono-data-meta">Structure: <code>' + esc(dc.structure) + '</code>' +
+        (dc.row_count ? ' · ' + dc.row_count + ' rows' : '') +
+        (dc.sheet_names && dc.sheet_names.length > 1 ? ' · ' + dc.sheet_names.length + ' sheets' : '') +
+        (dc.data_sample_text ? ' · ' + Math.min(200, dc.row_count || 200) + '-row sample bundled for build' : '') +
+        '</div>' : '') +
+      challengesHtml +
+      schemaHtml +
+      '<div class="mono-caps-note">This analysis (and a 200-row data sample) is included in the build prompt as ground-truth context.</div>' +
+      '</div>';
+  }
+
   // Rejection reason
   let rejectHtml = '';
   if (isRejected && req.rejected_reason) {
@@ -2257,6 +2303,7 @@ function renderMonolithicView(req) {
       pendingHtml +
       qaNotesHtml +
       attachmentsHtml +
+      dataCtxHtml +
       '<div class="mono-section"><div class="mono-section-title">Epic</div>' +
         '<div class="mono-field"><strong>Goal:</strong> ' + esc(req.goal || '—') + '</div>' +
         '<div class="mono-field"><strong>Users:</strong> ' + esc(req.users || '—') + '</div>' +
@@ -2427,6 +2474,8 @@ function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
   }).join('\n');
 
   const isRebuild = previousHtml && previousHtml.length > 0;
+  const dc = req.data_context;
+  const hasDataContext = dc && (dc.summary || (dc.schema_suggestion && dc.schema_suggestion.length > 0) || (dc.challenges && dc.challenges.length > 0));
 
   let prompt =
 'You are an expert front-end engineer building a complete, working web application based on the following epic. ' +
@@ -2438,15 +2487,45 @@ function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
 'Scope: ' + (req.scope || '') + '\n' +
 'MVP: ' + (req.mvp || '') + '\n' +
 'Constraints: ' + (req.constraints || 'none') + '\n\n' +
-'CAPABILITY CHECKLIST — the app MUST satisfy every item below:\n' + capsList + '\n\n' +
-'HARD RULES:\n' +
+'CAPABILITY CHECKLIST — the app MUST satisfy every item below:\n' + capsList + '\n\n';
+
+  // Data context (if a file was analyzed in Intent) — give the model ground-truth structure
+  if (hasDataContext) {
+    prompt += 'DATA FILE CONTEXT — a file was uploaded and analyzed when this request was created. The app must handle this file structure correctly.\n';
+    if (dc.files && dc.files.length > 0) {
+      prompt += 'File: ' + dc.files.map(function(f) { return f.name; }).join(', ') + '\n';
+    }
+    if (dc.structure) prompt += 'Structure type: ' + dc.structure + '\n';
+    if (dc.row_count) prompt += 'Total rows: ' + dc.row_count + '\n';
+    if (dc.sheet_names && dc.sheet_names.length > 1) prompt += 'Sheets: ' + dc.sheet_names.join(', ') + '\n';
+    if (dc.summary) prompt += 'Summary: ' + dc.summary + '\n';
+    if (dc.header_row !== undefined) prompt += 'Header row: ' + dc.header_row + '\n';
+    if (dc.section_markers) prompt += 'Section markers: ' + dc.section_markers + '\n';
+    if (dc.challenges && dc.challenges.length > 0) {
+      prompt += 'PARSING CHALLENGES the code MUST handle correctly:\n';
+      dc.challenges.forEach(function(c, i) { prompt += '  ' + (i + 1) + '. ' + c + '\n'; });
+    }
+    if (dc.schema_suggestion && dc.schema_suggestion.length > 0) {
+      prompt += 'SUGGESTED DATA SCHEMA (use as starting point, refine if needed):\n' +
+        JSON.stringify(dc.schema_suggestion, null, 2) + '\n';
+    }
+    if (dc.sample_extract) prompt += 'Sample record:\n' + dc.sample_extract + '\n';
+    if (dc.data_sample_text) {
+      // Cap to ~30K chars to stay within token budget — about 200 rows of typical data
+      const sample = dc.data_sample_text.length > 30000 ? dc.data_sample_text.slice(0, 30000) + '\n... (truncated)' : dc.data_sample_text;
+      prompt += '\nACTUAL DATA SAMPLE (first 200 rows of the file as CSV — use this to write parsing/loading code):\n```\n' + sample + '\n```\n';
+    }
+    prompt += '\nIMPORTANT: Build the parsing/loading logic to match this analysis. Do NOT assume the file is a simple flat CSV with headers in row 1 — apply the analysis findings above. The user will likely upload the same file (or a similar one) at runtime via a file input — your code must accept any user-uploaded file, parse it according to this structure, and load the data correctly.\n\n';
+  }
+
+  prompt += 'HARD RULES:\n' +
 '- Output a SINGLE coherent HTML file. Do NOT produce multiple separate apps. Do NOT produce alternative implementations of the same thing. ONE app, all features integrated.\n' +
 '- Inline ALL CSS and JS. No external file references except via well-known CDNs (cdnjs.cloudflare.com, unpkg.com).\n' +
 '- Do NOT use localStorage, sessionStorage, IndexedDB, or any browser storage API. State must live in memory only — these APIs are not supported in the sandboxed iframe and will throw.\n' +
 '- Do NOT use alert(), confirm(), or prompt() — use inline UI for messages and confirmations instead.\n' +
 '- The HTML must include a complete <!DOCTYPE html> declaration and run standalone when opened in a browser.\n' +
 '- Make the app visually polished and usable — proper layout, sensible colors, readable typography, responsive.\n' +
-'- Handle errors gracefully. Validate inputs. Don\'t let runtime errors crash the page.\n\n';
+"- Handle errors gracefully. Validate inputs. Don't let runtime errors crash the page.\n\n";
 
   if (isRebuild) {
     prompt +=

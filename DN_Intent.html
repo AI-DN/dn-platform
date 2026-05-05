@@ -291,6 +291,16 @@ body::before {
 .epic-note { font-size: 11px; color: var(--text3); line-height: 1.5; font-style: italic; }
 .epic-caps { margin: 6px 0 0 0; padding-left: 18px; font-size: 12px; color: var(--text2); line-height: 1.6; }
 .epic-caps li { margin-bottom: 3px; }
+
+/* Data file analysis card in chat */
+.data-ctx-card { font-family: 'Inter', sans-serif; }
+.data-ctx-tag { display: inline-block; background: rgba(61,214,245,0.18); color: var(--cyan); border: 1px solid rgba(61,214,245,0.4); font-size: 10px; padding: 3px 10px; border-radius: 12px; font-weight: 700; letter-spacing: 0.04em; margin-bottom: 8px; }
+.data-ctx-file { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 8px; word-break: break-all; }
+.data-ctx-summary { font-size: 13px; color: var(--text); line-height: 1.55; margin-bottom: 12px; }
+.data-ctx-section { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.data-ctx-label { font-size: 11px; color: var(--cyan); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 6px; }
+.data-ctx-section ul { margin: 0; padding-left: 20px; font-size: 12px; color: var(--text2); line-height: 1.6; }
+.data-ctx-section li { margin-bottom: 3px; }
 .epic-actions { display: flex; gap: 10px; margin-top: 14px; }
 .btn-approve {
   background: var(--green2); border: 1px solid rgba(31,216,164,0.35);
@@ -693,7 +703,7 @@ body::before {
 }
 .dash-row-launch:hover { opacity: 0.9; }
 </style>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"></head>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head>
 <body>
 
 <div class="topbar">
@@ -839,7 +849,7 @@ body::before {
     <!-- Upload -->
     <div id="panel-upload" style="display:none">
       <div class="upload-panel">
-        <input type="file" id="file-input" class="file-input" accept=".pdf,.doc,.docx,.txt,.md" onchange="handleFile(this)">
+        <input type="file" id="file-input" class="file-input" accept=".pdf,.doc,.docx,.txt,.md,.csv,.xlsx,.xls" onchange="handleFile(this)">
         <div class="drop-zone" id="drop-zone"
           onclick="document.getElementById('file-input').click()"
           ondragover="event.preventDefault();this.classList.add('drag-over')"
@@ -2380,6 +2390,7 @@ async function approveEpic() {
       conversation: JSON.stringify(chatHistory),
       status: 'pending',
       mode: currentMode,
+      data_context: pendingDataContext || null,
       created_at: new Date().toISOString()
     };
     const inserted = await saveToSupabase(payload);
@@ -2401,7 +2412,10 @@ async function approveEpic() {
       approveBtn.style.borderColor = 'rgba(34,197,94,0.4)';
       approveBtn.style.color = '#22c55e';
     }
-    setTimeout(function() { showBuildView(epicData); }, 350);
+    setTimeout(function() {
+      pendingDataContext = null;  // consumed
+      showBuildView(epicData);
+    }, 350);
   } catch(e) {
     console.error('approveEpic failed:', e);
     if (approveBtn) {
@@ -2476,9 +2490,23 @@ async function processFile(file) {
   const status = document.getElementById('file-status');
   status.style.display = 'block';
   status.textContent = 'Reading ' + file.name + '...';
+
+  const ext = (file.name.split('.').pop() || '').toLowerCase();
+  // CSV/XLSX get the structured analysis path. Everything else falls through to plain text.
+  if (ext === 'csv' || ext === 'xlsx' || ext === 'xls') {
+    try {
+      await analyzeDataFile(file, ext, status);
+      return;
+    } catch(e) {
+      console.error('Data file analysis failed:', e);
+      status.textContent = 'Data analysis failed: ' + e.message + '. Falling back to text extraction.';
+      // fall through to text path below
+    }
+  }
+
   try {
     const text = await file.text();
-    if (!text) { status.textContent = 'Could not read file. Try .txt or .md'; return; }
+    if (!text) { status.textContent = 'Could not read file. Try .txt, .md, .csv, or .xlsx'; return; }
     status.textContent = 'Extracted ' + text.length + ' characters from ' + file.name + '. Generating epic...';
     document.getElementById('quick-text').value = text.slice(0, 6000);
     switchMode('quick');
@@ -2487,6 +2515,277 @@ async function processFile(file) {
     status.textContent = 'Error reading file: ' + e.message;
   }
 }
+
+// ── DATA FILE ANALYSIS — Phase 5 ────────────────────────────────────────────
+// CSV/XLSX files get parsed in-browser, sampled, and sent to Claude for a
+// structural analysis. The result becomes ground-truth context for the build.
+
+let pendingDataContext = null;  // populated after successful analysis, used at epic-approval time
+
+const DATA_FILE_MAX_SIZE = 10 * 1024 * 1024;  // 10 MB
+
+async function analyzeDataFile(file, ext, statusEl) {
+  if (file.size > DATA_FILE_MAX_SIZE) {
+    throw new Error('File is ' + (file.size / 1024 / 1024).toFixed(1) + ' MB — over the 10 MB limit.');
+  }
+  if (typeof XLSX === 'undefined') {
+    throw new Error('Spreadsheet library not loaded. Reload the page and try again.');
+  }
+
+  statusEl.textContent = 'Parsing ' + file.name + '...';
+
+  // Parse the file with SheetJS — handles both csv and xlsx via the same workbook abstraction
+  const buf = await file.arrayBuffer();
+  const wb = XLSX.read(buf, { type: 'array', codepage: 65001 /* UTF-8 */, raw: false });
+  if (!wb.SheetNames || wb.SheetNames.length === 0) {
+    throw new Error('No sheets found in file.');
+  }
+
+  // Build per-sheet structural data
+  const sheets = wb.SheetNames.map(function(name) {
+    const ws = wb.Sheets[name];
+    // sheet_to_json with header:1 gives an array of arrays (rows of cells), no header inference
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '', raw: false });
+    return { name: name, rows: rows };
+  });
+
+  const sampling = sampleRowsForAnalysis(sheets);
+  statusEl.textContent = 'Analyzing structure with Claude...';
+
+  const analysis = await callAnalysisLLM(file.name, ext, sheets, sampling);
+
+  // Convert file to base64 so we can store it on the request and pass it through to admin/build
+  const fileB64 = await fileToBase64(file);
+
+  // Build a text sample the build agent can ingest directly: first 200 rows of each sheet as CSV.
+  // This avoids the build agent needing to re-parse an xlsx blob.
+  const sampleTextLines = [];
+  sheets.forEach(function(s) {
+    if (sheets.length > 1) sampleTextLines.push('=== Sheet: ' + s.name + ' (' + s.rows.length + ' rows total) ===');
+    const cap = Math.min(200, s.rows.length);
+    for (let i = 0; i < cap; i++) {
+      const row = s.rows[i].map(function(cell) {
+        const v = String(cell == null ? '' : cell);
+        // Quote if needed (commas, quotes, newlines)
+        if (/[",\n\r]/.test(v)) {
+          return '"' + v.replace(/"/g, '""') + '"';
+        }
+        return v;
+      }).join(',');
+      sampleTextLines.push(row);
+    }
+    if (s.rows.length > cap) sampleTextLines.push('... (' + (s.rows.length - cap) + ' more rows omitted)');
+  });
+  const dataSampleText = sampleTextLines.join('\n');
+
+  pendingDataContext = {
+    files: [{
+      name: file.name,
+      mime: file.type || (ext === 'csv' ? 'text/csv' : 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'),
+      size: file.size,
+      base64: fileB64
+    }],
+    structure: analysis.structure || 'unknown',
+    header_row: analysis.header_row,
+    section_markers: analysis.section_markers || null,
+    summary: analysis.summary || '',
+    schema_suggestion: analysis.schema_suggestion || [],
+    challenges: analysis.challenges || [],
+    questions_for_user: analysis.questions_for_user || [],
+    row_count: sheets.reduce(function(sum, s) { return sum + s.rows.length; }, 0),
+    sheet_names: sheets.map(function(s) { return s.name; }),
+    sample_extract: analysis.sample_extract || '',
+    data_sample_text: dataSampleText,  // first 200 rows of each sheet, as CSV — for build agent
+    analyzed_at: new Date().toISOString()
+  };
+
+  statusEl.style.display = 'none';
+
+  // Switch to guided mode so the agent can ask the clarifying questions inline
+  switchMode('guided');
+  // Inject an opening message that captures what was found and asks the questions
+  presentDataAnalysisInChat(file.name, pendingDataContext);
+}
+
+function sampleRowsForAnalysis(sheets) {
+  // Return a representative slice per sheet: first 50, last 20, plus 30 random middle.
+  // Aim is ~100 rows per sheet, capped if smaller.
+  const result = [];
+  sheets.forEach(function(sheet) {
+    const rows = sheet.rows;
+    const n = rows.length;
+    const sample = { name: sheet.name, total_rows: n };
+    if (n <= 100) {
+      sample.rows = rows;
+    } else {
+      const head = rows.slice(0, 50);
+      const tail = rows.slice(-20);
+      // Random middle: 30 distinct indices between 50 and n-20
+      const middleIdxs = new Set();
+      const lo = 50, hi = n - 20;
+      const need = Math.min(30, hi - lo);
+      while (middleIdxs.size < need) {
+        middleIdxs.add(lo + Math.floor(Math.random() * (hi - lo)));
+      }
+      const middleSorted = Array.from(middleIdxs).sort(function(a, b) { return a - b; });
+      const middle = middleSorted.map(function(i) { return rows[i]; });
+      sample.rows = head;
+      sample.middle_rows = middle;
+      sample.tail_rows = tail;
+      sample.middle_indices = middleSorted;
+    }
+    // Truncate any very long cell values for the LLM
+    function truncCells(rowArr) {
+      return rowArr.map(function(cell) {
+        const s = String(cell == null ? '' : cell);
+        return s.length > 200 ? s.slice(0, 200) + '…' : s;
+      });
+    }
+    if (sample.rows) sample.rows = sample.rows.map(truncCells);
+    if (sample.middle_rows) sample.middle_rows = sample.middle_rows.map(truncCells);
+    if (sample.tail_rows) sample.tail_rows = sample.tail_rows.map(truncCells);
+    result.push(sample);
+  });
+  return result;
+}
+
+async function callAnalysisLLM(filename, ext, sheets, sampling) {
+  const apiKey = localStorage.getItem('dn_anthropic_key');
+  if (!apiKey) throw new Error('Anthropic API key not configured. Open settings (gear icon) to add one.');
+
+  // Format the sample as readable text for the model
+  const samplingText = sampling.map(function(s) {
+    let parts = ['SHEET: "' + s.name + '" (total rows: ' + s.total_rows + ')'];
+    if (s.rows) {
+      parts.push('FIRST ROWS:');
+      s.rows.forEach(function(r, i) { parts.push('  [' + i + '] ' + JSON.stringify(r)); });
+    }
+    if (s.middle_rows) {
+      parts.push('MIDDLE SAMPLE (random rows from middle of file):');
+      s.middle_rows.forEach(function(r, i) { parts.push('  [~' + s.middle_indices[i] + '] ' + JSON.stringify(r)); });
+    }
+    if (s.tail_rows) {
+      parts.push('LAST ROWS:');
+      s.tail_rows.forEach(function(r, i) { parts.push('  [' + (s.total_rows - s.tail_rows.length + i) + '] ' + JSON.stringify(r)); });
+    }
+    return parts.join('\n');
+  }).join('\n\n');
+
+  const prompt =
+'You are analyzing a spreadsheet file the user has uploaded. Your job is to understand its structure so the engineering team can build an app that handles it correctly.\n\n' +
+'FILE: "' + filename + '" (.' + ext + ')\n' +
+(sheets.length > 1 ? 'WORKBOOK with ' + sheets.length + ' sheets.\n\n' : '\n') +
+'SAMPLE OF FILE CONTENTS:\n' +
+samplingText + '\n\n' +
+'Analyze the structure carefully. Things to look for:\n' +
+'- Is this a flat tabular file (header row + data rows), a hierarchical report (sections, subtotals, beginning balances), or a multi-sheet workbook with related tables?\n' +
+'- Where is the actual header row? It may NOT be row 1 — many real-world exports have title/preamble rows first.\n' +
+'- Are there embedded section markers (account names, group headers) that are NOT data rows?\n' +
+'- Are there summary rows (Total, Subtotal, Beginning Balance) that should be excluded from "transaction" data?\n' +
+'- What are the data types of each column? Are there number-formatting quirks (commas as thousands separators, currency prefixes, percentages, dates)?\n' +
+'- Are there hidden gotchas (BOM characters, mixed encodings, blank rows used as separators)?\n' +
+'- What schema would best represent this in a database? One table or multiple?\n\n' +
+'Respond with a JSON object (no markdown fences, no prose, just the object):\n' +
+'{\n' +
+'  "structure": "tabular_flat" | "tabular_hierarchical" | "report_with_sections" | "multi_sheet_workbook" | "ambiguous",\n' +
+'  "header_row": <integer row index where headers actually are, or "none" if no headers>,\n' +
+'  "section_markers": "<plain English description of section structure if hierarchical, or null>",\n' +
+'  "summary": "<2-4 sentences in plain English describing what this file is and how it is organized — written for a non-technical user>",\n' +
+'  "schema_suggestion": [{"table": "<name>", "columns": [{"name":"<col>","type":"<type>","notes":"<optional>"}]}],\n' +
+'  "challenges": ["<short string per parsing/loading challenge>"],\n' +
+'  "questions_for_user": ["<2-5 clarifying questions to ask before building, written conversationally>"],\n' +
+'  "sample_extract": "<a short example showing what one transaction/record looks like in plain text>"\n' +
+'}\n\n' +
+'Be thorough on challenges and schema_suggestion — these are how the build agent will know what to handle. Be conversational on questions_for_user — these go to the end user, not a developer.';
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true',
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4000,
+      messages: [{ role: 'user', content: prompt }]
+    })
+  });
+
+  if (!resp.ok) {
+    const errText = await resp.text();
+    throw new Error('Analysis API error (' + resp.status + '): ' + errText.slice(0, 200));
+  }
+  const data = await resp.json();
+  const reply = data.content[0].text || '';
+  // Strip code fences if present, then parse
+  let cleaned = reply.trim().replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch(e) {
+    // Try to find a JSON object inside the reply
+    const m = cleaned.match(/\{[\s\S]*\}/);
+    if (m) {
+      try { return JSON.parse(m[0]); } catch(e2) {}
+    }
+    throw new Error('Could not parse analysis response. Got: ' + reply.slice(0, 300));
+  }
+}
+
+function fileToBase64(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function() {
+      const result = reader.result || '';
+      const idx = String(result).indexOf(',');
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = function() { reject(new Error('Failed to read file as base64')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function presentDataAnalysisInChat(filename, ctx) {
+  const win = document.getElementById('chat-window');
+  // Render an analysis-card message
+  const card = document.createElement('div');
+  card.className = 'msg';
+  card.innerHTML =
+    '<div class="av ai">DN</div>' +
+    '<div class="bubble ai">' +
+      '<div class="data-ctx-card">' +
+        '<div class="data-ctx-tag">📊 File analyzed</div>' +
+        '<div class="data-ctx-file">' + esc(filename) + '</div>' +
+        '<div class="data-ctx-summary">' + esc(ctx.summary) + '</div>' +
+        (ctx.challenges && ctx.challenges.length > 0 ?
+          '<div class="data-ctx-section">' +
+            '<div class="data-ctx-label">Things the build agent will need to handle:</div>' +
+            '<ul>' + ctx.challenges.map(function(c) { return '<li>' + esc(c) + '</li>'; }).join('') + '</ul>' +
+          '</div>' : '') +
+        (ctx.questions_for_user && ctx.questions_for_user.length > 0 ?
+          '<div class="data-ctx-section">' +
+            '<div class="data-ctx-label">Before I build a spec, can you confirm:</div>' +
+            '<ul>' + ctx.questions_for_user.map(function(q) { return '<li>' + esc(q) + '</li>'; }).join('') + '</ul>' +
+          '</div>' : '') +
+      '</div>' +
+    '</div>';
+  win.appendChild(card);
+  win.scrollTop = win.scrollHeight;
+
+  // Also seed the conversation history so the agent knows the file is already understood
+  const summaryForAgent =
+    'Data file "' + filename + '" was uploaded and analyzed. Structure: ' + ctx.structure + '. ' +
+    ctx.summary +
+    (ctx.challenges.length > 0 ? ' Challenges identified: ' + ctx.challenges.join('; ') + '.' : '') +
+    (ctx.schema_suggestion.length > 0 ? ' Suggested schema: ' + JSON.stringify(ctx.schema_suggestion).slice(0, 400) : '');
+  chatHistory.push({
+    role: 'assistant',
+    content: summaryForAgent + '\n\nI asked the user: ' + (ctx.questions_for_user || []).join(' | ')
+  });
+}
+
+// ── END DATA FILE ANALYSIS ──────────────────────────────────────────────────
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function setStage(n) {
