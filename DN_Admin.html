@@ -181,6 +181,46 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .mono-notes-body { font-size: 13px; color: var(--text2); line-height: 1.6; white-space: pre-wrap; }
 .mono-building { display: flex; align-items: center; gap: 10px; color: var(--text2); font-size: 13px; }
 .mono-spinner { width: 14px; height: 14px; border: 2px solid var(--border2); border-top-color: var(--cyan); border-radius: 50%; animation: spin 0.8s linear infinite; }
+.mono-spinner-small { width: 10px; height: 10px; border-width: 1.5px; display: inline-block; margin-right: 4px; vertical-align: -1px; }
+.mono-needs-input { border-color: rgba(245,158,11,0.5); background: linear-gradient(180deg, rgba(245,158,11,0.06), var(--navy3)); }
+.mono-needs-input .mono-section-title { color: #f59e0b; }
+
+/* ── Kanban board view ─────────────────────────────────────────────── */
+.kanban-view { padding: 18px 24px 28px; animation: fadeUp 0.3s ease; }
+.kanban-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
+.kanban-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--text); letter-spacing: 0.02em; }
+.kanban-summary { font-size: 12px; color: var(--text3); }
+.kanban-grid { display: grid; grid-template-columns: repeat(6, minmax(220px, 1fr)); gap: 12px; align-items: start; }
+.kc-col { background: var(--navy3); border: 1px solid var(--border2); border-radius: 10px; min-height: 200px; display: flex; flex-direction: column; }
+.kc-col-header { padding: 12px 14px 10px; border-bottom: 1px solid var(--border2); }
+.kc-col-title-row { display: flex; align-items: center; gap: 8px; }
+.kc-col-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+.kc-col-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--text); flex: 1; }
+.kc-col-count { font-size: 11px; color: var(--text3); background: var(--panel); padding: 1px 7px; border-radius: 10px; min-width: 18px; text-align: center; }
+.kc-col-desc { font-size: 11px; color: var(--text3); margin-top: 4px; line-height: 1.4; }
+.kc-col-body { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-height: 60px; }
+.kc-card { background: var(--panel); border: 1px solid var(--border); border-radius: 8px; padding: 10px 12px; cursor: pointer; transition: all 0.18s; position: relative; }
+.kc-card:hover { border-color: var(--cyan); transform: translateY(-1px); box-shadow: 0 2px 12px rgba(61,214,245,0.08); }
+.kc-title { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.35; margin-bottom: 4px; }
+.kc-meta { font-size: 11px; color: var(--text3); }
+.kc-badges { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 8px; }
+.kc-badge { display: inline-flex; align-items: center; font-size: 10px; padding: 2px 7px; border-radius: 10px; font-weight: 600; }
+.kc-badge-version { background: rgba(139,127,245,0.12); color: var(--purple); border: 1px solid rgba(139,127,245,0.3); }
+.kc-badge-pending { background: rgba(139,127,245,0.18); color: var(--purple); border: 1px solid rgba(139,127,245,0.4); }
+.kc-badge-building { background: rgba(245,158,11,0.12); color: #f59e0b; border: 1px solid rgba(245,158,11,0.3); }
+.kc-needs-input { font-size: 11px; color: #f59e0b; margin-top: 6px; line-height: 1.4; padding: 6px 8px; background: rgba(245,158,11,0.08); border-radius: 5px; border-left: 2px solid #f59e0b; }
+.kc-shipped-link { display: inline-block; margin-top: 6px; font-size: 11px; color: var(--cyan); text-decoration: none; }
+.kc-shipped-link:hover { text-decoration: underline; }
+.kc-empty { color: var(--text3); font-size: 11px; font-style: italic; padding: 8px 4px; text-align: center; }
+.kanban-footer { margin-top: 14px; padding: 10px 14px; background: var(--navy3); border: 1px dashed var(--border2); border-radius: 8px; font-size: 11px; color: var(--text3); text-align: center; }
+
+/* Responsive: narrower screens collapse columns */
+@media (max-width: 1400px) {
+  .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
+}
+@media (max-width: 900px) {
+  .kanban-grid { grid-template-columns: 1fr; }
+}
 @keyframes spin { to { transform: rotate(360deg); } }
 .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 999; padding: 24px; }
 .modal-overlay.open { display: flex; }
@@ -1016,9 +1056,13 @@ async function loadData() {
     setDb(true, 'Connected');
     renderTabs();
     if (allReqs.length > 0) {
-      if (!activeId) activeId = allReqs[0].id;
-      renderEpic(activeId);
-      renderRequestHeader();
+      // Default landing view: show the kanban dashboard. Click a card to drill in.
+      if (activeId) {
+        renderEpic(activeId);
+        renderRequestHeader();
+      } else {
+        showKanbanView();
+      }
     } else {
       showEmpty('No requests yet. Submit one via DN Intent.');
     }
@@ -1253,6 +1297,7 @@ function renderRequestHeader() {
   if (storyCount > 0) metaParts.push(storyCount + ' stories' + ver);
 
   let actionsHtml = '';
+  actionsHtml += '<button class="req-action-btn" onclick="showKanbanView()" title="Back to pipeline overview">← Board</button>';
   actionsHtml += '<button class="req-action-btn" onclick="openDetails()">Details</button>';
   if (status === 'rejected') {
     actionsHtml += '<button class="req-action-btn un-reject" onclick="unRejectRequest()">Un-reject</button>';
@@ -1603,12 +1648,254 @@ function statusDotColor(qaStatus) {
   })[qaStatus] || '#6c7280';
 }
 
+// ── PHASE 3: KANBAN BOARD VIEW ─────────────────────────────────────────────
+// A column-based dashboard showing all monolithic requests grouped by state.
+// Each request appears as one card in exactly one column.
+
+const KANBAN_COLUMNS = [
+  { id: 'inbox',         title: 'Inbox',          desc: 'New, never built',          color: '#3DD6F5' },
+  { id: 'needs_input',   title: 'Needs input',    desc: 'Waiting on clarification',  color: '#f59e0b' },
+  { id: 'in_progress',   title: 'In progress',    desc: 'Building or rebuild pending', color: '#8b7ff5' },
+  { id: 'ready_qa',      title: 'Ready for QA',   desc: 'Build complete, review',    color: '#3DD6F5' },
+  { id: 'qa_passed',     title: 'QA passed',      desc: 'Approved, ready to ship',   color: '#22c55e' },
+  { id: 'shipped',       title: 'Shipped',        desc: 'Live in production',        color: '#a78bfa' }
+];
+
+function getKanbanColumn(req) {
+  // Returns the column id this request belongs in, or null if it shouldn't appear on the board.
+  if (!isMonolithicRequest(req)) return null;
+  if (req.status === 'rejected') return null;  // Rejected lives in the filter, not on the board
+  if (req.needs_input) return 'needs_input';
+  const status = req.qa_status || 'not_built';
+  const hasArtifact = !!(req.artifact_html && req.artifact_html.length > 0);
+  if (status === 'building') return 'in_progress';
+  if (status === 'not_built') return hasArtifact ? 'in_progress' : 'inbox';
+  if (status === 'ready_for_qa') return 'ready_qa';
+  if (status === 'qa_passed') return 'qa_passed';
+  if (status === 'shipped') return 'shipped';
+  return 'inbox';
+}
+
+function timeAgoShort(iso) {
+  if (!iso) return '';
+  try {
+    const ms = Date.now() - new Date(iso).getTime();
+    const sec = Math.floor(ms / 1000);
+    if (sec < 60) return sec + 's ago';
+    const min = Math.floor(sec / 60);
+    if (min < 60) return min + 'm ago';
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return hr + 'h ago';
+    const day = Math.floor(hr / 24);
+    if (day < 30) return day + 'd ago';
+    return Math.floor(day / 30) + 'mo ago';
+  } catch(e) { return ''; }
+}
+
+function getCardActivityTimestamp(req) {
+  // Use the most relevant timestamp for "time in current state"
+  if (req.shipped_at) return req.shipped_at;
+  if (req.rejected_at) return req.rejected_at;
+  return req.created_at;
+}
+
+function renderKanbanCard(req) {
+  const caps = getCapabilities(req);
+  const pendingCount = caps.filter(function(c) { return c && typeof c === 'object' && c.added_after_build; }).length;
+  const version = req.artifact_version || 0;
+  const ts = getCardActivityTimestamp(req);
+  const ago = timeAgoShort(ts);
+  const submitter = req.submitted_by || '?';
+
+  let badges = '';
+  if (version > 0) badges += '<span class="kc-badge kc-badge-version">v' + version + '</span>';
+  if (pendingCount > 0) badges += '<span class="kc-badge kc-badge-pending">' + pendingCount + ' new</span>';
+  if (req.qa_status === 'building') badges += '<span class="kc-badge kc-badge-building"><span class="mono-spinner mono-spinner-small"></span> building</span>';
+
+  let needsInputHint = '';
+  if (req.needs_input && req.needs_input_notes) {
+    const notesPreview = req.needs_input_notes.length > 80 ? req.needs_input_notes.slice(0, 80) + '…' : req.needs_input_notes;
+    needsInputHint = '<div class="kc-needs-input">' + esc(notesPreview) + '</div>';
+  }
+
+  let shippedLink = '';
+  if (req.qa_status === 'shipped' && req.shipped_url) {
+    shippedLink = '<a class="kc-shipped-link" href="' + esc(req.shipped_url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation();">Open ↗</a>';
+  }
+
+  return '<div class="kc-card" onclick="openRequestFromBoard(\'' + req.id + '\')" data-id="' + esc(req.id) + '">' +
+    '<div class="kc-title">' + esc(req.title || 'Untitled') + '</div>' +
+    '<div class="kc-meta">' + esc(submitter) + (ago ? ' · ' + ago : '') + '</div>' +
+    (badges ? '<div class="kc-badges">' + badges + '</div>' : '') +
+    needsInputHint +
+    shippedLink +
+    '</div>';
+}
+
+function renderKanban() {
+  const wrap = document.getElementById('board-wrap');
+  if (!wrap) return;
+
+  // Bucket requests
+  const buckets = {};
+  KANBAN_COLUMNS.forEach(function(col) { buckets[col.id] = []; });
+  let rejectedCount = 0;
+  let legacyCount = 0;
+
+  allReqs.forEach(function(req) {
+    if (req.status === 'rejected') { rejectedCount++; return; }
+    if (!isMonolithicRequest(req)) { legacyCount++; return; }
+    const col = getKanbanColumn(req);
+    if (col && buckets[col]) buckets[col].push(req);
+  });
+
+  // Sort each bucket: most-recent activity first
+  Object.keys(buckets).forEach(function(k) {
+    buckets[k].sort(function(a, b) {
+      const ta = new Date(getCardActivityTimestamp(a) || 0).getTime();
+      const tb = new Date(getCardActivityTimestamp(b) || 0).getTime();
+      return tb - ta;
+    });
+  });
+
+  const totalActive = KANBAN_COLUMNS.reduce(function(sum, col) { return sum + buckets[col.id].length; }, 0);
+
+  let columnsHtml = KANBAN_COLUMNS.map(function(col) {
+    const cards = buckets[col.id];
+    const cardsHtml = cards.length > 0
+      ? cards.map(renderKanbanCard).join('')
+      : '<div class="kc-empty">No requests</div>';
+    return '<div class="kc-col" data-col="' + col.id + '">' +
+      '<div class="kc-col-header">' +
+        '<div class="kc-col-title-row">' +
+          '<span class="kc-col-dot" style="background:' + col.color + '"></span>' +
+          '<span class="kc-col-title">' + esc(col.title) + '</span>' +
+          '<span class="kc-col-count">' + cards.length + '</span>' +
+        '</div>' +
+        '<div class="kc-col-desc">' + esc(col.desc) + '</div>' +
+      '</div>' +
+      '<div class="kc-col-body">' + cardsHtml + '</div>' +
+    '</div>';
+  }).join('');
+
+  let footerHtml = '';
+  if (rejectedCount > 0 || legacyCount > 0) {
+    const parts = [];
+    if (rejectedCount > 0) parts.push(rejectedCount + ' rejected');
+    if (legacyCount > 0) parts.push(legacyCount + ' on legacy flow');
+    footerHtml = '<div class="kanban-footer">Not shown on board: ' + parts.join(' · ') + ' (use the sidebar list to find them)</div>';
+  }
+
+  wrap.innerHTML =
+    '<div class="kanban-view">' +
+      '<div class="kanban-header">' +
+        '<div class="kanban-title">Pipeline overview</div>' +
+        '<div class="kanban-summary">' + totalActive + ' active request' + (totalActive === 1 ? '' : 's') + ' across ' + KANBAN_COLUMNS.length + ' stages</div>' +
+      '</div>' +
+      '<div class="kanban-grid">' + columnsHtml + '</div>' +
+      footerHtml +
+    '</div>';
+
+  document.getElementById('stats-bar').style.display = 'none';
+}
+
+function showKanbanView() {
+  activeId = null;
+  renderRequestList();
+  renderRequestHeader();
+  renderKanban();
+}
+
+function openRequestFromBoard(id) {
+  activeId = id;
+  renderRequestList();
+  renderRequestHeader();
+  renderEpic(id);
+}
+
+// ── NEEDS INPUT mechanic — admin can flag a request as blocked on input ─────
+function openNeedsInputModal() {
+  if (!activeId) return;
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) return;
+
+  const overlay = document.createElement('div');
+  overlay.id = 'needs-input-overlay';
+  overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
+  overlay.innerHTML =
+    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:560px;max-width:92vw;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
+      '<h3 style="margin:0 0 8px 0;color:#f59e0b;font-size:16px;">Mark as needs input</h3>' +
+      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Flag this request as blocked on input — clarification, design decision, backend setup, etc. The card will move to the "Needs input" column on the board until you resume it.</p>' +
+      '<textarea id="needs-input-notes" rows="5" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="e.g. Waiting on user to confirm whether they need real-time data or can use cached snapshots. Also need to set up the Supabase table for portfolio holdings before build.">' + esc(req.needs_input_notes || '') + '</textarea>' +
+      '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
+        '<button onclick="closeNeedsInputModal()" style="background:transparent;color:#9ca3af;border:1px solid #1f2937;padding:8px 14px;border-radius:6px;cursor:pointer;">Cancel</button>' +
+        '<button onclick="confirmNeedsInput()" style="background:#f59e0b;color:#0a1628;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;">Mark as blocked</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(overlay);
+  setTimeout(function() {
+    const ta = document.getElementById('needs-input-notes');
+    if (ta) ta.focus();
+  }, 50);
+}
+
+function closeNeedsInputModal() {
+  const o = document.getElementById('needs-input-overlay');
+  if (o) o.remove();
+}
+
+async function confirmNeedsInput() {
+  const ta = document.getElementById('needs-input-notes');
+  const notes = (ta ? ta.value : '').trim();
+  if (!notes) { alert('Please describe what needs input.'); return; }
+  if (!activeId) return;
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) return;
+
+  await patchRequest(activeId, { needs_input: true, needs_input_notes: notes });
+  req.needs_input = true;
+  req.needs_input_notes = notes;
+
+  await logActivity({
+    request_id: activeId,
+    actor: 'admin',
+    actor_name: 'admin',
+    action: 'flagged_needs_input',
+    description: 'Flagged as needs input: ' + notes.slice(0, 200)
+  });
+
+  closeNeedsInputModal();
+  renderMonolithicView(req);
+}
+
+async function clearNeedsInput() {
+  if (!activeId) return;
+  const req = allReqs.find(function(r) { return r.id === activeId; });
+  if (!req) return;
+
+  await patchRequest(activeId, { needs_input: false, needs_input_notes: null });
+  req.needs_input = false;
+  req.needs_input_notes = null;
+
+  await logActivity({
+    request_id: activeId,
+    actor: 'admin',
+    actor_name: 'admin',
+    action: 'resumed',
+    description: 'Resumed from needs-input state'
+  });
+
+  renderMonolithicView(req);
+}
+
+// ── END KANBAN ──────────────────────────────────────────────────────────────
+
 function renderMonolithicView(req) {
   const wrap = document.getElementById('board-wrap');
   const caps = getCapabilities(req);
   const status = req.qa_status || 'not_built';
   const isRejected = req.status === 'rejected';
-  const dotColor = isRejected ? '#ef4444' : statusDotColor(status);
+  const dotColor = isRejected ? '#ef4444' : (req.needs_input ? '#f59e0b' : statusDotColor(status));
   const hasPriorArtifact = !!(req.artifact_html && req.artifact_html.length > 0);
   const pendingCaps = caps.filter(function(c) { return c && typeof c === 'object' && c.added_after_build; });
   const hasPendingChanges = pendingCaps.length > 0;
@@ -1617,11 +1904,20 @@ function renderMonolithicView(req) {
   if (!isRejected && status === 'not_built' && hasPriorArtifact) {
     label = hasPendingChanges ? ('Changes pending (' + pendingCaps.length + ')') : 'Ready to rebuild';
   }
+  // Needs input overrides everything else as the visible status
+  const needsInput = !!req.needs_input;
+  if (needsInput && !isRejected) {
+    label = 'Needs input';
+  }
 
   // Build action button row based on state
   let actions = '';
   if (isRejected) {
     actions = '<button class="mono-btn mono-btn-secondary" onclick="unRejectRequest()">Un-reject</button>';
+  } else if (needsInput) {
+    actions = '<button class="mono-btn mono-btn-primary" onclick="clearNeedsInput()">Resume — input received</button>' +
+              '<button class="mono-btn mono-btn-secondary" onclick="openNeedsInputModal()">Edit notes</button>' +
+              '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'not_built') {
     const buildLabel = hasPriorArtifact ? (hasPendingChanges ? 'Rebuild with changes →' : 'Rebuild with Claude →') : 'Build with Claude →';
     actions = '<button class="mono-btn mono-btn-primary" onclick="buildRequest(\'' + req.id + '\')">' + buildLabel + '</button>';
@@ -1631,6 +1927,7 @@ function renderMonolithicView(req) {
         actions += '<a class="mono-btn mono-btn-secondary" href="' + esc(req.shipped_url) + '" target="_blank" rel="noopener">Open live ↗</a>';
       }
     }
+    actions += '<button class="mono-btn mono-btn-warning" onclick="openNeedsInputModal()">Mark as needs input</button>';
     actions += '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'building') {
     actions = '<div class="mono-building"><span class="mono-spinner"></span>Building... this may take 30-60 seconds</div>';
@@ -1638,6 +1935,7 @@ function renderMonolithicView(req) {
     actions = '<button class="mono-btn mono-btn-primary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview</button>' +
               '<button class="mono-btn mono-btn-success" onclick="approveQa_mono(\'' + req.id + '\')">Approve</button>' +
               '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>' +
+              '<button class="mono-btn mono-btn-warning" onclick="openNeedsInputModal()">Mark as needs input</button>' +
               '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'qa_passed') {
     actions = '<button class="mono-btn mono-btn-primary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview</button>' +
@@ -1651,6 +1949,13 @@ function renderMonolithicView(req) {
     actions += '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview source</button>' +
                '<button class="mono-btn mono-btn-secondary" onclick="openShipModalMono(\'' + req.id + '\')">Re-ship</button>' +
                '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>';
+  }
+
+  // Needs input notes panel
+  let needsInputHtml = '';
+  if (needsInput && req.needs_input_notes) {
+    needsInputHtml = '<div class="mono-section mono-needs-input"><div class="mono-section-title">Blocked on input</div>' +
+      '<div class="mono-notes-body">' + esc(req.needs_input_notes) + '</div></div>';
   }
 
   // Pending-changes panel — highlights what's new since the last build
@@ -1716,6 +2021,7 @@ function renderMonolithicView(req) {
         '<div class="mono-actions">' + actions + '</div>' +
       '</div>' +
       rejectHtml +
+      needsInputHtml +
       pendingHtml +
       qaNotesHtml +
       '<div class="mono-section"><div class="mono-section-title">Epic</div>' +
@@ -2129,8 +2435,18 @@ async function executeShipMono(reqId) {
 
   statusEl.style.color = '#22c55e';
   statusEl.innerHTML = 'Shipped! Live at: <a href="' + esc(result.pagesUrl) + '" target="_blank" style="color:#3DD6F5;">' + esc(result.pagesUrl) + '</a><br>(Pages may take 30-60s to update)';
+  btn.disabled = false;
   btn.textContent = 'Done';
-  btn.onclick = function() { closeShipModalMono(); renderMonolithicView(req); };
+  // Replace inline onclick (from the original markup) with a fresh handler that just closes
+  btn.onclick = null;
+  btn.removeAttribute('onclick');
+  btn.addEventListener('click', function onceClose() {
+    closeShipModalMono();
+    renderMonolithicView(req);
+  });
+  // After success, the Cancel button is misleading — hide it
+  const cancelBtn = btn.parentElement && btn.parentElement.querySelector('button[onclick*="closeShipModalMono"]');
+  if (cancelBtn) cancelBtn.style.display = 'none';
 }
 
 // ── END MONOLITHIC FLOW ─────────────────────────────────────────────────
