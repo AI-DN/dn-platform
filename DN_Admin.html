@@ -2352,7 +2352,7 @@ async function buildRequest(reqId) {
       },
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 16000,
+        max_tokens: 32000,
         messages: [{ role: 'user', content: userContent }]
       })
     });
@@ -2364,6 +2364,11 @@ async function buildRequest(reqId) {
 
     const data = await resp.json();
     const reply = data.content[0].text;
+
+    // Detect truncation explicitly — model hit the token cap before finishing
+    if (data.stop_reason === 'max_tokens') {
+      throw new Error('Build output was truncated — the app exceeded the token budget (32K tokens, ~120 KB of HTML). The request may be too ambitious for one monolithic file. Consider narrowing the MVP scope (fewer features in v1) and adding the rest as capabilities to rebuild later. Partial output started: ' + reply.slice(0, 200));
+    }
 
     // Parse the JSON response — expects { "html": "..." }
     const html = parseMonolithicReply(reply);
