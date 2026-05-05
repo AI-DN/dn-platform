@@ -1,0 +1,1192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financial Intelligence Dashboard</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        header h1 {
+            font-size: 2em;
+            margin-bottom: 10px;
+        }
+
+        header p {
+            opacity: 0.9;
+            font-size: 1.1em;
+        }
+
+        .tabs {
+            display: flex;
+            background: #f8f9fa;
+            border-bottom: 2px solid #dee2e6;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 15px 20px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            color: #6c757d;
+            transition: all 0.3s;
+            position: relative;
+        }
+
+        .tab:hover {
+            background: #e9ecef;
+            color: #495057;
+        }
+
+        .tab.active {
+            color: #667eea;
+            background: white;
+        }
+
+        .tab.active::after {
+            content: '';
+            position: absolute;
+            bottom: -2px;
+            left: 0;
+            right: 0;
+            height: 2px;
+            background: #667eea;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 30px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            padding: 40px;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .upload-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+        }
+
+        .file-input-wrapper {
+            display: inline-block;
+            position: relative;
+            overflow: hidden;
+            margin: 10px;
+        }
+
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 12px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            font-weight: 600;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            margin-left: 10px;
+        }
+
+        .btn-secondary:hover {
+            box-shadow: 0 4px 12px rgba(108, 117, 125, 0.4);
+        }
+
+        .btn-success {
+            background: #28a745;
+        }
+
+        .btn-success:hover {
+            box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .message {
+            padding: 15px 20px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+            font-weight: 500;
+        }
+
+        .message.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .message.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .message.info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+
+        .search-box {
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 20px;
+            border: 2px solid #dee2e6;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+
+        .search-box input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .table-wrapper {
+            overflow-x: auto;
+            margin-bottom: 20px;
+            border: 1px solid #dee2e6;
+            border-radius: 6px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        thead {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+
+        th {
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85em;
+            letter-spacing: 0.5px;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 25px;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+        }
+
+        .stat-card h3 {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            opacity: 0.9;
+            margin-bottom: 10px;
+            letter-spacing: 1px;
+        }
+
+        .stat-card .value {
+            font-size: 2em;
+            font-weight: bold;
+        }
+
+        .company-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+        }
+
+        .company-chip {
+            background: #e9ecef;
+            padding: 8px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: 500;
+            color: #495057;
+        }
+
+        .report-section {
+            margin-bottom: 40px;
+        }
+
+        .report-section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        .report-total {
+            font-weight: bold;
+            background: #f8f9fa;
+            font-size: 1.1em;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #6c757d;
+        }
+
+        .empty-state svg {
+            width: 100px;
+            height: 100px;
+            margin-bottom: 20px;
+            opacity: 0.5;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5em;
+            margin-bottom: 10px;
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(255,255,255,.3);
+            border-radius: 50%;
+            border-top-color: white;
+            animation: spin 1s ease-in-out infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .export-buttons {
+            margin-bottom: 20px;
+        }
+
+        .number-cell {
+            text-align: right;
+            font-family: 'Courier New', monospace;
+        }
+
+        .negative {
+            color: #dc3545;
+        }
+
+        .positive {
+            color: #28a745;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>📊 Financial Intelligence Dashboard</h1>
+            <p>General Ledger Analysis & Consolidated Reporting</p>
+        </header>
+
+        <div class="tabs">
+            <button class="tab active" onclick="switchTab('import')">Import Data</button>
+            <button class="tab" onclick="switchTab('data')">Ledger Data</button>
+            <button class="tab" onclick="switchTab('income')">Income Statement</button>
+            <button class="tab" onclick="switchTab('balance')">Balance Sheet</button>
+        </div>
+
+        <div id="import-tab" class="tab-content active">
+            <div class="upload-section">
+                <h2>Upload General Ledger Excel File</h2>
+                <p style="margin-bottom: 20px; color: #6c757d;">Expected format: Company ID in A1, Headers in Row 4, Data with dates in Column A</p>
+                <div class="file-input-wrapper">
+                    <label class="btn" for="fileInput">
+                        📁 Choose Excel File
+                    </label>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileUpload(event)">
+                </div>
+            </div>
+
+            <div id="import-messages"></div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Companies Loaded</h3>
+                    <div class="value" id="company-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Records</h3>
+                    <div class="value" id="record-count">0</div>
+                </div>
+                <div class="stat-card">
+                    <h3>Reporting Periods</h3>
+                    <div class="value" id="period-count">0</div>
+                </div>
+            </div>
+
+            <div id="company-list-section" style="display: none;">
+                <h3 style="margin-bottom: 15px; color: #495057;">Loaded Companies:</h3>
+                <div class="company-list" id="company-list"></div>
+            </div>
+        </div>
+
+        <div id="data-tab" class="tab-content">
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Search ledger data..." oninput="filterLedgerData()">
+            </div>
+            <div id="ledger-data-content"></div>
+        </div>
+
+        <div id="income-tab" class="tab-content">
+            <div class="export-buttons">
+                <button class="btn btn-success" onclick="exportReport('income', 'excel')">📊 Export to Excel</button>
+                <button class="btn btn-secondary" onclick="exportReport('income', 'pdf')">📄 Export to PDF</button>
+            </div>
+            <div id="income-report-content"></div>
+        </div>
+
+        <div id="balance-tab" class="tab-content">
+            <div class="export-buttons">
+                <button class="btn btn-success" onclick="exportReport('balance', 'excel')">📊 Export to Excel</button>
+                <button class="btn btn-secondary" onclick="exportReport('balance', 'pdf')">📄 Export to PDF</button>
+            </div>
+            <div id="balance-report-content"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let ledgerData = [];
+        let companies = new Map();
+
+        function switchTab(tabName) {
+            document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabName + '-tab').classList.add('active');
+
+            if (tabName === 'data') {
+                displayLedgerData();
+            } else if (tabName === 'income') {
+                generateIncomeStatement();
+            } else if (tabName === 'balance') {
+                generateBalanceSheet();
+            }
+        }
+
+        function showMessage(message, type) {
+            const messagesDiv = document.getElementById('import-messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            messageDiv.textContent = message;
+            messagesDiv.appendChild(messageDiv);
+            setTimeout(() => messageDiv.remove(), 5000);
+        }
+
+        function isValidDate(value) {
+            if (!value) return false;
+            
+            // Try parsing as Excel serial date
+            if (typeof value === 'number') {
+                const date = XLSX.SSF.parse_date_code(value);
+                return date && date.y > 1900 && date.y < 2100;
+            }
+            
+            // Try parsing as string date
+            if (typeof value === 'string') {
+                const date = new Date(value);
+                return date instanceof Date && !isNaN(date) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
+            }
+            
+            return false;
+        }
+
+        function parseDate(value) {
+            if (typeof value === 'number') {
+                const date = XLSX.SSF.parse_date_code(value);
+                return new Date(date.y, date.m - 1, date.d);
+            }
+            return new Date(value);
+        }
+
+        function formatDate(date) {
+            const d = new Date(date);
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        function getPeriod(date) {
+            const d = new Date(date);
+            return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        }
+
+        function handleFileUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, { type: 'array' });
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    
+                    // Extract company ID from A1
+                    const companyCell = firstSheet['A1'];
+                    if (!companyCell || !companyCell.v) {
+                        showMessage('Error: Company identifier not found in cell A1', 'error');
+                        return;
+                    }
+                    const companyId = String(companyCell.v).trim();
+
+                    // Extract headers from row 4
+                    const headers = [];
+                    let col = 0;
+                    while (true) {
+                        const cellAddress = XLSX.utils.encode_cell({ r: 3, c: col });
+                        const cell = firstSheet[cellAddress];
+                        if (!cell || !cell.v) break;
+                        headers.push(String(cell.v).trim());
+                        col++;
+                    }
+
+                    if (headers.length === 0) {
+                        showMessage('Error: No headers found in row 4', 'error');
+                        return;
+                    }
+
+                    // Read data rows (starting from row 5)
+                    const newRecords = [];
+                    let row = 4;
+                    let validRows = 0;
+                    let skippedRows = 0;
+
+                    while (true) {
+                        const dateCell = firstSheet[XLSX.utils.encode_cell({ r: row, c: 0 })];
+                        
+                        // Stop if we encounter too many empty rows
+                        if (!dateCell) {
+                            if (row > 100 && validRows === 0) break;
+                            if (row - validRows > 10 && validRows > 0) break;
+                            row++;
+                            continue;
+                        }
+
+                        // Validate date in column A
+                        if (isValidDate(dateCell.v)) {
+                            const record = {
+                                company: companyId,
+                                date: parseDate(dateCell.v),
+                                period: getPeriod(parseDate(dateCell.v)),
+                                row: row + 1
+                            };
+
+                            // Extract all columns for this row
+                            for (let c = 0; c < headers.length; c++) {
+                                const cellAddress = XLSX.utils.encode_cell({ r: row, c: c });
+                                const cell = firstSheet[cellAddress];
+                                const headerName = headers[c];
+                                record[headerName] = cell ? cell.v : null;
+                            }
+
+                            newRecords.push(record);
+                            validRows++;
+                        } else {
+                            skippedRows++;
+                        }
+                        
+                        row++;
+                        if (row > 10000) break; // Safety limit
+                    }
+
+                    if (newRecords.length === 0) {
+                        showMessage('Error: No valid data rows found with dates in column A', 'error');
+                        return;
+                    }
+
+                    // Get unique periods from new records
+                    const newPeriods = [...new Set(newRecords.map(r => r.period))];
+
+                    // Remove existing records for same company and periods
+                    ledgerData = ledgerData.filter(record => 
+                        record.company !== companyId || !newPeriods.includes(record.period)
+                    );
+
+                    // Add new records
+                    ledgerData.push(...newRecords);
+
+                    // Update companies map
+                    if (!companies.has(companyId)) {
+                        companies.set(companyId, {
+                            name: companyId,
+                            periods: new Set()
+                        });
+                    }
+                    newPeriods.forEach(period => companies.get(companyId).periods.add(period));
+
+                    showMessage(`✓ Successfully imported ${newRecords.length} records from ${companyId}. Skipped ${skippedRows} rows without valid dates.`, 'success');
+                    updateStats();
+                    
+                    // Reset file input
+                    event.target.value = '';
+
+                } catch (error) {
+                    showMessage(`Error processing file: ${error.message}`, 'error');
+                    console.error(error);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        }
+
+        function updateStats() {
+            document.getElementById('company-count').textContent = companies.size;
+            document.getElementById('record-count').textContent = ledgerData.length;
+            
+            const allPeriods = new Set();
+            companies.forEach(company => {
+                company.periods.forEach(period => allPeriods.add(period));
+            });
+            document.getElementById('period-count').textContent = allPeriods.size;
+
+            // Update company list
+            const companyListSection = document.getElementById('company-list-section');
+            const companyList = document.getElementById('company-list');
+            
+            if (companies.size > 0) {
+                companyListSection.style.display = 'block';
+                companyList.innerHTML = '';
+                companies.forEach((data, companyId) => {
+                    const chip = document.createElement('div');
+                    chip.className = 'company-chip';
+                    chip.textContent = `${companyId} (${data.periods.size} periods)`;
+                    companyList.appendChild(chip);
+                });
+            } else {
+                companyListSection.style.display = 'none';
+            }
+        }
+
+        function displayLedgerData() {
+            const content = document.getElementById('ledger-data-content');
+            
+            if (ledgerData.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                        </svg>
+                        <h3>No Data Imported</h3>
+                        <p>Upload an Excel file to view ledger data</p>
+                    </div>
+                `;
+                return;
+            }
+
+            filterLedgerData();
+        }
+
+        function filterLedgerData() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const content = document.getElementById('ledger-data-content');
+            
+            let filteredData = ledgerData;
+            if (searchTerm) {
+                filteredData = ledgerData.filter(record => {
+                    return Object.values(record).some(value => 
+                        String(value).toLowerCase().includes(searchTerm)
+                    );
+                });
+            }
+
+            if (filteredData.length === 0) {
+                content.innerHTML = '<div class="message info">No records match your search.</div>';
+                return;
+            }
+
+            // Get all unique headers
+            const headers = new Set();
+            filteredData.forEach(record => {
+                Object.keys(record).forEach(key => {
+                    if (!['company', 'date', 'period', 'row'].includes(key)) {
+                        headers.add(key);
+                    }
+                });
+            });
+            const headerArray = ['Company', 'Date', 'Period', ...Array.from(headers)];
+
+            let html = '<div class="table-wrapper"><table><thead><tr>';
+            headerArray.forEach(header => {
+                html += `<th>${header}</th>`;
+            });
+            html += '</tr></thead><tbody>';
+
+            const displayLimit = 1000;
+            const recordsToDisplay = filteredData.slice(0, displayLimit);
+            
+            recordsToDisplay.forEach(record => {
+                html += '<tr>';
+                html += `<td>${record.company}</td>`;
+                html += `<td>${formatDate(record.date)}</td>`;
+                html += `<td>${record.period}</td>`;
+                
+                Array.from(headers).forEach(header => {
+                    const value = record[header];
+                    if (typeof value === 'number') {
+                        html += `<td class="number-cell">${value.toLocaleString()}</td>`;
+                    } else {
+                        html += `<td>${value !== null && value !== undefined ? value : ''}</td>`;
+                    }
+                });
+                html += '</tr>';
+            });
+
+            html += '</tbody></table></div>';
+            
+            if (filteredData.length > displayLimit) {
+                html += `<div class="message info">Showing ${displayLimit} of ${filteredData.length} records</div>`;
+            } else {
+                html += `<div class="message info">Showing ${filteredData.length} records</div>`;
+            }
+
+            content.innerHTML = html;
+        }
+
+        function generateIncomeStatement() {
+            const content = document.getElementById('income-report-content');
+            
+            if (ledgerData.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path>
+                        </svg>
+                        <h3>No Data Available</h3>
+                        <p>Upload ledger data to generate income statement</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Aggregate data by account
+            const accounts = new Map();
+            
+            ledgerData.forEach(record => {
+                // Look for common account and amount column names
+                const accountField = findField(record, ['account', 'account name', 'gl account', 'account_name']);
+                const amountField = findField(record, ['amount', 'debit', 'credit', 'balance', 'value']);
+                
+                if (accountField && amountField !== null) {
+                    const accountName = String(accountField).trim();
+                    const amount = parseFloat(amountField) || 0;
+                    
+                    // Income statement typically includes revenue and expense accounts
+                    const isIncomeAccount = /revenue|income|sales|fees earned/i.test(accountName) ||
+                                          /^[4-5]/.test(accountName);
+                    const isExpenseAccount = /expense|cost|depreciation|interest|tax/i.test(accountName) ||
+                                           /^[6-7]/.test(accountName);
+                    
+                    if (isIncomeAccount || isExpenseAccount) {
+                        if (!accounts.has(accountName)) {
+                            accounts.set(accountName, {
+                                name: accountName,
+                                total: 0,
+                                isIncome: isIncomeAccount
+                            });
+                        }
+                        accounts.get(accountName).total += amount;
+                    }
+                }
+            });
+
+            if (accounts.size === 0) {
+                content.innerHTML = '<div class="message info">No income or expense accounts found in the data. Ensure your data contains account names and amounts.</div>';
+                return;
+            }
+
+            // Separate revenue and expenses
+            const revenue = [];
+            const expenses = [];
+            
+            accounts.forEach(account => {
+                if (account.isIncome) {
+                    revenue.push(account);
+                } else {
+                    expenses.push(account);
+                }
+            });
+
+            revenue.sort((a, b) => b.total - a.total);
+            expenses.sort((a, b) => b.total - a.total);
+
+            const totalRevenue = revenue.reduce((sum, acc) => sum + acc.total, 0);
+            const totalExpenses = expenses.reduce((sum, acc) => sum + acc.total, 0);
+            const netIncome = totalRevenue - totalExpenses;
+
+            let html = '<div class="report-section">';
+            html += '<h2>Consolidated Income Statement</h2>';
+            html += '<p style="color: #6c757d; margin-bottom: 20px;">All Companies Combined</p>';
+            
+            html += '<div class="table-wrapper"><table>';
+            
+            // Revenue Section
+            html += '<thead><tr><th colspan="2" style="background: #28a745;">REVENUE</th></tr></thead>';
+            html += '<tbody>';
+            revenue.forEach(acc => {
+                html += `<tr><td>${acc.name}</td><td class="number-cell">${formatCurrency(acc.total)}</td></tr>`;
+            });
+            html += `<tr class="report-total"><td>Total Revenue</td><td class="number-cell">${formatCurrency(totalRevenue)}</td></tr>`;
+            html += '</tbody>';
+            
+            // Expenses Section
+            html += '<thead><tr><th colspan="2" style="background: #dc3545;">EXPENSES</th></tr></thead>';
+            html += '<tbody>';
+            expenses.forEach(acc => {
+                html += `<tr><td>${acc.name}</td><td class="number-cell">${formatCurrency(acc.total)}</td></tr>`;
+            });
+            html += `<tr class="report-total"><td>Total Expenses</td><td class="number-cell">${formatCurrency(totalExpenses)}</td></tr>`;
+            html += '</tbody>';
+            
+            // Net Income
+            html += '<thead><tr><th colspan="2" style="background: #667eea;">NET INCOME</th></tr></thead>';
+            html += '<tbody>';
+            html += `<tr class="report-total"><td>Net Income</td><td class="number-cell ${netIncome >= 0 ? 'positive' : 'negative'}">${formatCurrency(netIncome)}</td></tr>`;
+            html += '</tbody>';
+            
+            html += '</table></div></div>';
+            
+            content.innerHTML = html;
+        }
+
+        function generateBalanceSheet() {
+            const content = document.getElementById('balance-report-content');
+            
+            if (ledgerData.length === 0) {
+                content.innerHTML = `
+                    <div class="empty-state">
+                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"></path>
+                        </svg>
+                        <h3>No Data Available</h3>
+                        <p>Upload ledger data to generate balance sheet</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Aggregate data by account
+            const accounts = new Map();
+            
+            ledgerData.forEach(record => {
+                const accountField = findField(record, ['account', 'account name', 'gl account', 'account_name']);
+                const amountField = findField(record, ['amount', 'debit', 'credit', 'balance', 'value']);
+                
+                if (accountField && amountField !== null) {
+                    const accountName = String(accountField).trim();
+                    const amount = parseFloat(amountField) || 0;
+                    
+                    // Balance sheet includes assets, liabilities, and equity
+                    const isAsset = /asset|cash|account receivable|inventory|equipment|property/i.test(accountName) ||
+                                  /^1/.test(accountName);
+                    const isLiability = /liability|payable|loan|debt|note payable/i.test(accountName) ||
+                                      /^2/.test(accountName);
+                    const isEquity = /equity|capital|retained earnings|stock/i.test(accountName) ||
+                                   /^3/.test(accountName);
+                    
+                    if (isAsset || isLiability || isEquity) {
+                        if (!accounts.has(accountName)) {
+                            accounts.set(accountName, {
+                                name: accountName,
+                                total: 0,
+                                type: isAsset ? 'asset' : (isLiability ? 'liability' : 'equity')
+                            });
+                        }
+                        accounts.get(accountName).total += amount;
+                    }
+                }
+            });
+
+            if (accounts.size === 0) {
+                content.innerHTML = '<div class="message info">No balance sheet accounts found in the data. Ensure your data contains account names and amounts.</div>';
+                return;
+            }
+
+            // Separate by type
+            const assets = [];
+            const liabilities = [];
+            const equity = [];
+            
+            accounts.forEach(account => {
+                if (account.type === 'asset') {
+                    assets.push(account);
+                } else if (account.type === 'liability') {
+                    liabilities.push(account);
+                } else {
+                    equity.push(account);
+                }
+            });
+
+            assets.sort((a, b) => b.total - a.total);
+            liabilities.sort((a, b) => b.total - a.total);
+            equity.sort((a, b) => b.total - a.total);
+
+            const totalAssets = assets.reduce((sum, acc) => sum + acc.total, 0);
+            const totalLiabilities = liabilities.reduce((sum, acc) => sum + acc.total, 0);
+            const totalEquity = equity.reduce((sum, acc) => sum + acc.total, 0);
+            const totalLiabilitiesEquity = totalLiabilities + totalEquity;
+
+            let html = '<div class="report-section">';
+            html += '<h2>Consolidated Balance Sheet</h2>';
+            html += '<p style="color: #6c757d; margin-bottom: 20px;">All Companies Combined</p>';
+            
+            html += '<div class="table-wrapper"><table>';
+            
+            // Assets Section
+            html += '<thead><tr><th colspan="2" style="background: #28a745;">ASSETS</th></tr></thead>';
+            html += '<tbody>';
+            assets.forEach(acc => {
+                html += `<tr><td>${acc.name}</td><td class="number-cell">${formatCurrency(acc.total)}</td></tr>`;
+            });
+            html += `<tr class="report-total"><td>Total Assets</td><td class="number-cell">${formatCurrency(totalAssets)}</td></tr>`;
+            html += '</tbody>';
+            
+            // Liabilities Section
+            html += '<thead><tr><th colspan="2" style="background: #dc3545;">LIABILITIES</th></tr></thead>';
+            html += '<tbody>';
+            liabilities.forEach(acc => {
+                html += `<tr><td>${acc.name}</td><td class="number-cell">${formatCurrency(acc.total)}</td></tr>`;
+            });
+            html += `<tr class="report-total"><td>Total Liabilities</td><td class="number-cell">${formatCurrency(totalLiabilities)}</td></tr>`;
+            html += '</tbody>';
+            
+            // Equity Section
+            html += '<thead><tr><th colspan="2" style="background: #667eea;">EQUITY</th></tr></thead>';
+            html += '<tbody>';
+            equity.forEach(acc => {
+                html += `<tr><td>${acc.name}</td><td class="number-cell">${formatCurrency(acc.total)}</td></tr>`;
+            });
+            html += `<tr class="report-total"><td>Total Equity</td><td class="number-cell">${formatCurrency(totalEquity)}</td></tr>`;
+            html += '</tbody>';
+            
+            // Total Liabilities & Equity
+            html += '<thead><tr><th colspan="2" style="background: #6c757d;">TOTAL LIABILITIES & EQUITY</th></tr></thead>';
+            html += '<tbody>';
+            html += `<tr class="report-total"><td>Total Liabilities & Equity</td><td class="number-cell">${formatCurrency(totalLiabilitiesEquity)}</td></tr>`;
+            html += '</tbody>';
+            
+            html += '</table></div>';
+            
+            // Balance check
+            const difference = Math.abs(totalAssets - totalLiabilitiesEquity);
+            if (difference > 0.01) {
+                html += `<div class="message error">⚠️ Balance Sheet does not balance! Difference: ${formatCurrency(difference)}</div>`;
+            } else {
+                html += '<div class="message success">✓ Balance Sheet is balanced</div>';
+            }
+            
+            html += '</div>';
+            
+            content.innerHTML = html;
+        }
+
+        function findField(record, possibleNames) {
+            for (const name of possibleNames) {
+                for (const key in record) {
+                    if (key.toLowerCase() === name.toLowerCase()) {
+                        return record[key];
+                    }
+                }
+            }
+            return null;
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function exportReport(reportType, format) {
+            if (ledgerData.length === 0) {
+                return;
+            }
+
+            if (format === 'excel') {
+                exportToExcel(reportType);
+            } else if (format === 'pdf') {
+                exportToPDF(reportType);
+            }
+        }
+
+        function exportToExcel(reportType) {
+            const data = [];
+            
+            if (reportType === 'income') {
+                data.push(['Consolidated Income Statement']);
+                data.push(['All Companies Combined']);
+                data.push([]);
+                
+                // Collect accounts
+                const accounts = collectAccounts(true);
+                const revenue = accounts.filter(a => a.isIncome);
+                const expenses = accounts.filter(a => !a.isIncome);
+                
+                data.push(['REVENUE']);
+                revenue.forEach(acc => {
+                    data.push([acc.name, acc.total]);
+                });
+                const totalRevenue = revenue.reduce((sum, acc) => sum + acc.total, 0);
+                data.push(['Total Revenue', totalRevenue]);
+                data.push([]);
+                
+                data.push(['EXPENSES']);
+                expenses.forEach(acc => {
+                    data.push([acc.name, acc.total]);
+                });
+                const totalExpenses = expenses.reduce((sum, acc) => sum + acc.total, 0);
+                data.push(['Total Expenses', totalExpenses]);
+                data.push([]);
+                
+                data.push(['NET INCOME', totalRevenue - totalExpenses]);
+                
+            } else if (reportType === 'balance') {
+                data.push(['Consolidated Balance Sheet']);
+                data.push(['All Companies Combined']);
+                data.push([]);
+                
+                const accounts = collectAccounts(false);
+                const assets = accounts.filter(a => a.type === 'asset');
+                const liabilities = accounts.filter(a => a.type === 'liability');
+                const equity = accounts.filter(a => a.type === 'equity');
+                
+                data.push(['ASSETS']);
+                assets.forEach(acc => {
+                    data.push([acc.name, acc.total]);
+                });
+                const totalAssets = assets.reduce((sum, acc) => sum + acc.total, 0);
+                data.push(['Total Assets', totalAssets]);
+                data.push([]);
+                
+                data.push(['LIABILITIES']);
+                liabilities.forEach(acc => {
+                    data.push([acc.name, acc.total]);
+                });
+                const totalLiabilities = liabilities.reduce((sum, acc) => sum + acc.total, 0);
+                data.push(['Total Liabilities', totalLiabilities]);
+                data.push([]);
+                
+                data.push(['EQUITY']);
+                equity.forEach(acc => {
+                    data.push([acc.name, acc.total]);
+                });
+                const totalEquity = equity.reduce((sum, acc) => sum + acc.total, 0);
+                data.push(['Total Equity', totalEquity]);
+                data.push([]);
+                
+                data.push(['Total Liabilities & Equity', totalLiabilities + totalEquity]);
+            }
+
+            const ws = XLSX.utils.aoa_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, reportType === 'income' ? 'Income Statement' : 'Balance Sheet');
+            XLSX.writeFile(wb, `${reportType}_statement_${new Date().toISOString().split('T')[0]}.xlsx`);
+        }
+
+        function exportToPDF(reportType) {
+            const { jsPDF } = window.jspdf;
+            const doc = new jsPDF();
+            
+            const title = reportType === 'income' ? 'Consolidated Income Statement' : 'Consolidated Balance Sheet';
+            doc.setFontSize(16);
+            doc.text(title, 14, 20);
+            doc.setFontSize(10);
+            doc.text('All Companies Combined', 14, 28);
+            
+            const data = [];
+            
+            if (reportType === 'income') {
+                const accounts = collectAccounts(true);
+                const revenue = accounts.filter(a => a.isIncome);
+                const expenses = accounts.filter(a => !a.isIncome);
+                
+                data.push([{ content: 'REVENUE', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [40, 167, 69] } }]);
+                revenue.forEach(acc => {
+                    data.push([acc.name, formatCurrency(acc.total)]);
+                });
+                const totalRevenue = revenue.reduce((sum, acc) => sum + acc.total, 0);
+                data.push([{ content: 'Total Revenue', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalRevenue), styles: { fontStyle: 'bold' } }]);
+                
+                data.push([{ content: 'EXPENSES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [220, 53, 69] } }]);
+                expenses.forEach(acc => {
+                    data.push([acc.name, formatCurrency(acc.total)]);
+                });
+                const totalExpenses = expenses.reduce((sum, acc) => sum + acc.total, 0);
+                data.push([{ content: 'Total Expenses', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalExpenses), styles: { fontStyle: 'bold' } }]);
+                
+                data.push([{ content: 'NET INCOME', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [102, 126, 234] } }]);
+                data.push([{ content: 'Net Income', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalRevenue - totalExpenses), styles: { fontStyle: 'bold' } }]);
+                
+            } else if (reportType === 'balance') {
+                const accounts = collectAccounts(false);
+                const assets = accounts.filter(a => a.type === 'asset');
+                const liabilities = accounts.filter(a => a.type === 'liability');
+                const equity = accounts.filter(a => a.type === 'equity');
+                
+                data.push([{ content: 'ASSETS', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [40, 167, 69] } }]);
+                assets.forEach(acc => {
+                    data.push([acc.name, formatCurrency(acc.total)]);
+                });
+                const totalAssets = assets.reduce((sum, acc) => sum + acc.total, 0);
+                data.push([{ content: 'Total Assets', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalAssets), styles: { fontStyle: 'bold' } }]);
+                
+                data.push([{ content: 'LIABILITIES', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [220, 53, 69] } }]);
+                liabilities.forEach(acc => {
+                    data.push([acc.name, formatCurrency(acc.total)]);
+                });
+                const totalLiabilities = liabilities.reduce((sum, acc) => sum + acc.total, 0);
+                data.push([{ content: 'Total Liabilities', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalLiabilities), styles: { fontStyle: 'bold' } }]);
+                
+                data.push([{ content: 'EQUITY', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [102, 126, 234] } }]);
+                equity.forEach(acc => {
+                    data.push([acc.name, formatCurrency(acc.total)]);
+                });
+                const totalEquity = equity.reduce((sum, acc) => sum + acc.total, 0);
+                data.push([{ content: 'Total Equity', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalEquity), styles: { fontStyle: 'bold' } }]);
+                
+                data.push([{ content: 'TOTAL LIABILITIES & EQUITY', colSpan: 2, styles: { fontStyle: 'bold', fillColor: [108, 117, 125] } }]);
+                data.push([{ content: 'Total Liabilities & Equity', styles: { fontStyle: 'bold' } }, { content: formatCurrency(totalLiabilities + totalEquity), styles: { fontStyle: 'bold' } }]);
+            }
+
+            doc.autoTable({
+                startY: 35,
+                head: [['Account', 'Amount']],
+                body: data,
+                theme: 'striped',
+                headStyles: { fillColor: [102, 126, 234] },
+                styles: { halign: 'left' },
+                columnStyles: { 1: { halign: 'right' } }
+            });
+            
+            doc.save(`${reportType}_statement_${new Date().toISOString().split('T')[0]}.pdf`);
+        }
+
+        function collectAccounts(forIncomeStatement) {
+            const accounts = new Map();
+            
+            ledgerData.forEach(record => {
+                const accountField = findField(record, ['account', 'account name', 'gl account', 'account_name']);
+                const amountField = findField(record, ['amount', 'debit', 'credit', 'balance', 'value']);
+                
+                if (accountField && amountField !== null) {
+                    const accountName = String(accountField).trim();
+                    const amount = parseFloat(amountField) || 0;
+                    
+                    if (forIncomeStatement) {
+                        const isIncomeAccount = /revenue|income|sales|fees earned/i.test(accountName) || /^[4-5]/.test(accountName);
+                        const isExpenseAccount = /expense|cost|depreciation|interest|tax/i.test(accountName) || /^[6-7]/.test(accountName);
+                        
+                        if (isIncomeAccount || isExpenseAccount) {
+                            if (!accounts.has(accountName)) {
+                                accounts.set(accountName, { name: accountName, total: 0, isIncome: isIncomeAccount });
+                            }
+                            accounts.get(accountName).total += amount;
+                        }
+                    } else {
+                        const isAsset = /asset|cash|account receivable|inventory|equipment|property/i.test(accountName) || /^1/.test(accountName);
+                        const isLiability = /liability|payable|loan|debt|note payable/i.test(accountName) || /^2/.test(accountName);
+                        const isEquity = /equity|capital|retained earnings|stock/i.test(accountName) || /^3/.test(accountName);
+                        
+                        if (isAsset || isLiability || isEquity) {
+                            if (!accounts.has(accountName)) {
+                                accounts.set(accountName, { 
+                                    name: accountName, 
+                                    total: 0, 
+                                    type: isAsset ? 'asset' : (isLiability ? 'liability' : 'equity') 
+                                });
+                            }
+                            accounts.get(accountName).total += amount;
+                        }
+                    }
+                }
+            });
+
+            return Array.from(accounts.values());
+        }
+    </script>
+</body>
+</html>
