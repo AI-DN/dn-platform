@@ -7,6 +7,7 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         * {
             margin: 0;
@@ -143,6 +144,12 @@
             transform: translateY(0);
         }
 
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+        }
+
         .btn-secondary {
             background: #6c757d;
             margin-left: 10px;
@@ -158,6 +165,23 @@
 
         .btn-success:hover {
             box-shadow: 0 4px 12px rgba(40, 167, 69, 0.4);
+        }
+
+        .btn-danger {
+            background: #dc3545;
+        }
+
+        .btn-danger:hover {
+            box-shadow: 0 4px 12px rgba(220, 53, 69, 0.4);
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #000;
+        }
+
+        .btn-warning:hover {
+            box-shadow: 0 4px 12px rgba(255, 193, 7, 0.4);
         }
 
         .message {
@@ -183,6 +207,12 @@
             background: #d1ecf1;
             color: #0c5460;
             border: 1px solid #bee5eb;
+        }
+
+        .message.warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
         }
 
         .search-box {
@@ -390,6 +420,89 @@
             outline: none;
             border-color: #667eea;
         }
+
+        .config-section {
+            background: #fff3cd;
+            border: 2px solid #ffc107;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .config-section h3 {
+            color: #856404;
+            margin-bottom: 15px;
+        }
+
+        .config-section input {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            font-family: monospace;
+        }
+
+        .import-history {
+            margin-top: 30px;
+        }
+
+        .import-history h3 {
+            color: #495057;
+            margin-bottom: 15px;
+        }
+
+        .history-item {
+            background: #f8f9fa;
+            border-left: 4px solid #667eea;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 4px;
+        }
+
+        .history-item .date {
+            font-weight: 600;
+            color: #495057;
+        }
+
+        .history-item .details {
+            color: #6c757d;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+
+        .history-item.success {
+            border-left-color: #28a745;
+        }
+
+        .history-item.partial {
+            border-left-color: #ffc107;
+        }
+
+        .history-item.failed {
+            border-left-color: #dc3545;
+        }
+
+        .import-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-top: 10px;
+            font-size: 0.9em;
+        }
+
+        .import-stats .stat {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .import-stats .stat strong {
+            display: block;
+            font-size: 1.2em;
+            margin-bottom: 3px;
+        }
     </style>
 </head>
 <body>
@@ -404,9 +517,18 @@
             <button class="tab" onclick="switchTab('data')">Ledger Data</button>
             <button class="tab" onclick="switchTab('income')">Income Statement</button>
             <button class="tab" onclick="switchTab('balance')">Balance Sheet</button>
+            <button class="tab" onclick="switchTab('history')">Import History</button>
         </div>
 
         <div id="import-tab" class="tab-content active">
+            <div class="config-section" id="config-section">
+                <h3>⚙️ Supabase Configuration Required</h3>
+                <p style="margin-bottom: 15px; color: #856404;">Enter your Supabase credentials to enable persistent storage:</p>
+                <input type="text" id="supabaseUrl" placeholder="Supabase URL (e.g., https://xxxxx.supabase.co)">
+                <input type="password" id="supabaseKey" placeholder="Supabase Anon Key">
+                <button class="btn btn-success" onclick="initSupabase()">Connect to Database</button>
+            </div>
+
             <div class="upload-section">
                 <h2>Upload General Ledger Excel File</h2>
                 <p style="margin-bottom: 20px; color: #6c757d;">Expected format: Company ID in A1, Headers in Row 4, Data with dates in Column A</p>
@@ -474,12 +596,107 @@
             </div>
             <div id="balance-report-content"></div>
         </div>
+
+        <div id="history-tab" class="tab-content">
+            <div class="import-history">
+                <h3>📋 Import History</h3>
+                <div id="history-content"></div>
+            </div>
+        </div>
     </div>
 
     <script>
-        // Global state
+        let supabase = null;
         let ledgerData = [];
         let companies = new Map();
+
+        async function initSupabase() {
+            const url = document.getElementById('supabaseUrl').value.trim();
+            const key = document.getElementById('supabaseKey').value.trim();
+
+            if (!url || !key) {
+                showMessage('Please enter both Supabase URL and Key', 'error');
+                return;
+            }
+
+            try {
+                supabase = window.supabase.createClient(url, key);
+                
+                const { data, error } = await supabase.from('companies').select('id').limit(1);
+                
+                if (error) {
+                    console.error('Supabase connection error:', error);
+                    showMessage('Connection failed: ' + error.message + '. Please check your credentials.', 'error');
+                    supabase = null;
+                    return;
+                }
+
+                document.getElementById('config-section').style.display = 'none';
+                showMessage('✓ Connected to Supabase successfully!', 'success');
+                await loadDataFromSupabase();
+            } catch (error) {
+                console.error('Error initializing Supabase:', error);
+                showMessage('Error: ' + error.message, 'error');
+                supabase = null;
+            }
+        }
+
+        async function loadDataFromSupabase() {
+            if (!supabase) return;
+
+            try {
+                const { data: companiesData, error: companiesError } = await supabase
+                    .from('companies')
+                    .select('*');
+                
+                if (companiesError) throw companiesError;
+
+                companies = new Map();
+                companiesData.forEach(company => {
+                    companies.set(company.name, {
+                        id: company.id,
+                        name: company.name,
+                        periods: new Set()
+                    });
+                });
+
+                const { data: entriesData, error: entriesError } = await supabase
+                    .from('gl_entries')
+                    .select('*');
+                
+                if (entriesError) throw entriesError;
+
+                ledgerData = entriesData.map(entry => {
+                    const companyName = companiesData.find(c => c.id === entry.company_id)?.name || 'Unknown';
+                    const entryDate = new Date(entry.entry_date);
+                    return {
+                        id: entry.id,
+                        company: companyName,
+                        companyId: entry.company_id,
+                        date: entryDate,
+                        period: entry.period || getPeriod(entryDate),
+                        account: entry.account,
+                        description: entry.description,
+                        debit: parseFloat(entry.debit) || 0,
+                        credit: parseFloat(entry.credit) || 0,
+                        amount: (parseFloat(entry.debit) || 0) - (parseFloat(entry.credit) || 0),
+                        sourceFilename: entry.source_filename
+                    };
+                });
+
+                ledgerData.forEach(entry => {
+                    if (companies.has(entry.company)) {
+                        companies.get(entry.company).periods.add(entry.period);
+                    }
+                });
+
+                updateStats();
+                console.log(`Loaded ${companiesData.length} companies and ${entriesData.length} entries from Supabase`);
+            } catch (error) {
+                console.error('Error loading data from Supabase:', error);
+                showMessage('Error loading data: ' + error.message, 'error');
+            }
+        }
 
         function switchTab(tabName) {
             document.querySelectorAll('.tab').forEach(tab => tab.classList.remove('active'));
@@ -495,6 +712,8 @@
                 generateIncomeStatement();
             } else if (tabName === 'balance') {
                 generateBalanceSheet();
+            } else if (tabName === 'history') {
+                loadImportHistory();
             }
         }
 
@@ -510,13 +729,11 @@
         function isValidDate(value) {
             if (!value) return false;
             
-            // Try parsing as Excel serial date
             if (typeof value === 'number') {
                 const date = XLSX.SSF.parse_date_code(value);
                 return date && date.y > 1900 && date.y < 2100;
             }
             
-            // Try parsing as string date
             if (typeof value === 'string') {
                 const date = new Date(value);
                 return date instanceof Date && !isNaN(date) && date.getFullYear() > 1900 && date.getFullYear() < 2100;
@@ -546,26 +763,30 @@
             return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
         }
 
-        function handleFileUpload(event) {
+        async function handleFileUpload(event) {
             const file = event.target.files[0];
             if (!file) return;
 
+            if (!supabase) {
+                showMessage('Please connect to Supabase first', 'warning');
+                event.target.value = '';
+                return;
+            }
+
             const reader = new FileReader();
-            reader.onload = function(e) {
+            reader.onload = async function(e) {
                 try {
                     const data = new Uint8Array(e.target.result);
                     const workbook = XLSX.read(data, { type: 'array' });
                     const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
                     
-                    // Extract company ID from A1
                     const companyCell = firstSheet['A1'];
                     if (!companyCell || !companyCell.v) {
                         showMessage('Error: Company identifier not found in cell A1', 'error');
                         return;
                     }
-                    const companyId = String(companyCell.v).trim();
+                    const companyName = String(companyCell.v).trim();
 
-                    // Extract headers from row 4
                     const headers = [];
                     let col = 0;
                     while (true) {
@@ -581,7 +802,6 @@
                         return;
                     }
 
-                    // Read data rows (starting from row 5)
                     const newRecords = [];
                     let row = 4;
                     let validRows = 0;
@@ -590,7 +810,6 @@
                     while (true) {
                         const dateCell = firstSheet[XLSX.utils.encode_cell({ r: row, c: 0 })];
                         
-                        // Stop if we encounter too many empty rows
                         if (!dateCell) {
                             if (row > 100 && validRows === 0) break;
                             if (row - validRows > 10 && validRows > 0) break;
@@ -598,22 +817,34 @@
                             continue;
                         }
 
-                        // Validate date in column A
                         if (isValidDate(dateCell.v)) {
                             const record = {
-                                company: companyId,
+                                company: companyName,
                                 date: parseDate(dateCell.v),
                                 period: getPeriod(parseDate(dateCell.v)),
-                                row: row + 1
+                                row: row + 1,
+                                headers: {},
+                                filename: file.name
                             };
 
-                            // Extract all columns for this row
                             for (let c = 0; c < headers.length; c++) {
                                 const cellAddress = XLSX.utils.encode_cell({ r: row, c: c });
                                 const cell = firstSheet[cellAddress];
                                 const headerName = headers[c];
-                                record[headerName] = cell ? cell.v : null;
+                                record.headers[headerName] = cell ? cell.v : null;
                             }
+
+                            const accountField = findFieldInHeaders(record.headers, ['account', 'account name', 'gl account', 'account_name']);
+                            const descriptionField = findFieldInHeaders(record.headers, ['description', 'memo', 'notes', 'particulars']);
+                            const debitField = findFieldInHeaders(record.headers, ['debit', 'dr']);
+                            const creditField = findFieldInHeaders(record.headers, ['credit', 'cr']);
+                            const amountField = findFieldInHeaders(record.headers, ['amount', 'value', 'balance']);
+
+                            record.account = accountField || '';
+                            record.description = descriptionField || '';
+                            record.debit = parseFloat(debitField) || 0;
+                            record.credit = parseFloat(creditField) || 0;
+                            record.amount = amountField ? parseFloat(amountField) : (record.debit - record.credit);
 
                             newRecords.push(record);
                             validRows++;
@@ -622,7 +853,7 @@
                         }
                         
                         row++;
-                        if (row > 10000) break; // Safety limit
+                        if (row > 10000) break;
                     }
 
                     if (newRecords.length === 0) {
@@ -630,30 +861,8 @@
                         return;
                     }
 
-                    // Get unique periods from new records
-                    const newPeriods = [...new Set(newRecords.map(r => r.period))];
-
-                    // Remove existing records for same company and periods
-                    ledgerData = ledgerData.filter(record => 
-                        record.company !== companyId || !newPeriods.includes(record.period)
-                    );
-
-                    // Add new records
-                    ledgerData.push(...newRecords);
-
-                    // Update companies map
-                    if (!companies.has(companyId)) {
-                        companies.set(companyId, {
-                            name: companyId,
-                            periods: new Set()
-                        });
-                    }
-                    newPeriods.forEach(period => companies.get(companyId).periods.add(period));
-
-                    showMessage(`✓ Successfully imported ${newRecords.length} records from ${companyId}. Skipped ${skippedRows} rows without valid dates.`, 'success');
-                    updateStats();
+                    await commitImport(companyName, newRecords, file.name, skippedRows);
                     
-                    // Reset file input
                     event.target.value = '';
 
                 } catch (error) {
@@ -662,6 +871,145 @@
                 }
             };
             reader.readAsArrayBuffer(file);
+        }
+
+        function findFieldInHeaders(headers, possibleNames) {
+            for (const name of possibleNames) {
+                for (const key in headers) {
+                    if (key.toLowerCase() === name.toLowerCase()) {
+                        return headers[key];
+                    }
+                }
+            }
+            return null;
+        }
+
+        async function commitImport(companyName, records, filename, skippedRows) {
+            if (!supabase) return;
+
+            try {
+                let companyId;
+                const { data: existingCompany, error: companyCheckError } = await supabase
+                    .from('companies')
+                    .select('id')
+                    .eq('name', companyName)
+                    .single();
+
+                if (!existingCompany) {
+                    const { data: newCompany, error: companyInsertError } = await supabase
+                        .from('companies')
+                        .insert([{ name: companyName }])
+                        .select()
+                        .single();
+                    
+                    if (companyInsertError) throw companyInsertError;
+                    companyId = newCompany.id;
+                } else {
+                    companyId = existingCompany.id;
+                }
+
+                let entriesProcessed = 0;
+                let entriesAdded = 0;
+                let entriesSkipped = 0;
+
+                for (const record of records) {
+                    entriesProcessed++;
+
+                    const { data: duplicateCheck, error: duplicateError } = await supabase
+                        .from('gl_entries')
+                        .select('id')
+                        .eq('company_id', companyId)
+                        .eq('entry_date', formatDate(record.date))
+                        .eq('account', record.account)
+                        .eq('description', record.description)
+                        .eq('debit', record.debit)
+                        .eq('credit', record.credit);
+
+                    if (duplicateError) {
+                        console.error('Error checking for duplicates:', duplicateError);
+                        continue;
+                    }
+
+                    if (duplicateCheck && duplicateCheck.length > 0) {
+                        entriesSkipped++;
+                        continue;
+                    }
+
+                    const entry = {
+                        company_id: companyId,
+                        entry_date: formatDate(record.date),
+                        account: record.account,
+                        description: record.description,
+                        debit: record.debit,
+                        credit: record.credit,
+                        period: record.period,
+                        source_filename: filename
+                    };
+
+                    const { error: insertError } = await supabase
+                        .from('gl_entries')
+                        .insert([entry]);
+                    
+                    if (insertError) {
+                        console.error('Error inserting entry:', insertError);
+                        continue;
+                    }
+
+                    entriesAdded++;
+                }
+
+                const importStatus = entriesAdded === entriesProcessed ? 'success' : (entriesAdded > 0 ? 'partial' : 'failed');
+                const errorMessage = entriesAdded === 0 && entriesProcessed > 0 ? 'All entries were duplicates or failed to insert' : null;
+
+                const { error: logError } = await supabase
+                    .from('import_logs')
+                    .insert([{
+                        company_id: companyId,
+                        filename: filename,
+                        entries_processed: entriesProcessed,
+                        entries_added: entriesAdded,
+                        entries_skipped: entriesSkipped,
+                        import_status: importStatus,
+                        error_message: errorMessage
+                    }]);
+
+                if (logError) {
+                    console.error('Error logging import:', logError);
+                }
+
+                const messageText = `✓ Import complete for ${companyName}: ${entriesProcessed} processed, ${entriesAdded} added, ${entriesSkipped} duplicates skipped. Invalid rows skipped: ${skippedRows}`;
+                showMessage(messageText, importStatus === 'success' ? 'success' : (importStatus === 'partial' ? 'warning' : 'error'));
+                
+                await loadDataFromSupabase();
+
+            } catch (error) {
+                showMessage(`Error importing data: ${error.message}`, 'error');
+                console.error(error);
+
+                try {
+                    const { data: companyData } = await supabase
+                        .from('companies')
+                        .select('id')
+                        .eq('name', companyName)
+                        .single();
+
+                    if (companyData) {
+                        await supabase
+                            .from('import_logs')
+                            .insert([{
+                                company_id: companyData.id,
+                                filename: filename,
+                                entries_processed: records.length,
+                                entries_added: 0,
+                                entries_skipped: 0,
+                                import_status: 'failed',
+                                error_message: error.message
+                            }]);
+                    }
+                } catch (logError) {
+                    console.error('Error logging failed import:', logError);
+                }
+            }
         }
 
         function updateStats() {
@@ -674,17 +1022,16 @@
             });
             document.getElementById('period-count').textContent = allPeriods.size;
 
-            // Update company list
             const companyListSection = document.getElementById('company-list-section');
             const companyList = document.getElementById('company-list');
             
             if (companies.size > 0) {
                 companyListSection.style.display = 'block';
                 companyList.innerHTML = '';
-                companies.forEach((data, companyId) => {
+                companies.forEach((data, companyName) => {
                     const chip = document.createElement('div');
                     chip.className = 'company-chip';
-                    chip.textContent = `${companyId} (${data.periods.size} periods)`;
+                    chip.textContent = `${companyName} (${data.periods.size} periods)`;
                     companyList.appendChild(chip);
                 });
             } else {
@@ -699,14 +1046,13 @@
             select.innerHTML = '<option value="">-- Choose a company --</option>';
             
             const sortedCompanies = Array.from(companies.keys()).sort();
-            sortedCompanies.forEach(companyId => {
+            sortedCompanies.forEach(companyName => {
                 const option = document.createElement('option');
-                option.value = companyId;
-                option.textContent = companyId;
+                option.value = companyName;
+                option.textContent = companyName;
                 select.appendChild(option);
             });
             
-            // Restore previous selection if still valid
             if (currentValue && companies.has(currentValue)) {
                 select.value = currentValue;
             }
@@ -721,69 +1067,38 @@
         }
 
         function exportCompanyData() {
-            const companyId = document.getElementById('companySelect').value;
-            if (!companyId) return;
+            const companyName = document.getElementById('companySelect').value;
+            if (!companyName) return;
 
-            // Filter records for selected company
-            const companyRecords = ledgerData.filter(r => r.company === companyId);
+            const companyRecords = ledgerData.filter(r => r.company === companyName);
             
             if (companyRecords.length === 0) {
                 return;
             }
 
-            // Get all unique headers from the company's records
-            const headers = new Set();
-            companyRecords.forEach(record => {
-                Object.keys(record).forEach(key => {
-                    if (!['company', 'period', 'row'].includes(key)) {
-                        headers.add(key);
-                    }
-                });
-            });
-
-            // Reorder headers to put date first
-            const orderedHeaders = ['date'];
-            headers.forEach(h => {
-                if (h !== 'date') {
-                    orderedHeaders.push(h);
-                }
-            });
-
-            // Convert to array of arrays for Excel export
             const data = [];
-            
-            // Add title rows
-            data.push([companyId]);
+            data.push([companyName]);
             data.push([]);
             data.push(['General Ledger Data Export']);
             data.push([]);
+            data.push(['Date', 'Account', 'Description', 'Debit', 'Credit', 'Amount']);
             
-            // Add headers
-            const headerRow = orderedHeaders.map(h => {
-                if (h === 'date') return 'Date';
-                return h;
-            });
-            data.push(headerRow);
-            
-            // Add data rows
             companyRecords.forEach(record => {
-                const row = orderedHeaders.map(header => {
-                    if (header === 'date') {
-                        return formatDate(record.date);
-                    }
-                    const value = record[header];
-                    return value !== null && value !== undefined ? value : '';
-                });
-                data.push(row);
+                data.push([
+                    formatDate(record.date),
+                    record.account,
+                    record.description,
+                    record.debit,
+                    record.credit,
+                    record.amount
+                ]);
             });
 
-            // Create workbook and worksheet
             const ws = XLSX.utils.aoa_to_sheet(data);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, 'General Ledger');
             
-            // Generate filename with company ID and date
-            const filename = `${companyId}_general_ledger_${new Date().toISOString().split('T')[0]}.xlsx`;
+            const filename = `${companyName}_general_ledger_${new Date().toISOString().split('T')[0]}.xlsx`;
             XLSX.writeFile(wb, filename);
         }
 
@@ -824,21 +1139,8 @@
                 return;
             }
 
-            // Get all unique headers
-            const headers = new Set();
-            filteredData.forEach(record => {
-                Object.keys(record).forEach(key => {
-                    if (!['company', 'date', 'period', 'row'].includes(key)) {
-                        headers.add(key);
-                    }
-                });
-            });
-            const headerArray = ['Company', 'Date', 'Period', ...Array.from(headers)];
-
             let html = '<div class="table-wrapper"><table><thead><tr>';
-            headerArray.forEach(header => {
-                html += `<th>${header}</th>`;
-            });
+            html += '<th>Company</th><th>Date</th><th>Period</th><th>Account</th><th>Description</th><th>Debit</th><th>Credit</th><th>Amount</th>';
             html += '</tr></thead><tbody>';
 
             const displayLimit = 1000;
@@ -849,15 +1151,11 @@
                 html += `<td>${record.company}</td>`;
                 html += `<td>${formatDate(record.date)}</td>`;
                 html += `<td>${record.period}</td>`;
-                
-                Array.from(headers).forEach(header => {
-                    const value = record[header];
-                    if (typeof value === 'number') {
-                        html += `<td class="number-cell">${value.toLocaleString()}</td>`;
-                    } else {
-                        html += `<td>${value !== null && value !== undefined ? value : ''}</td>`;
-                    }
-                });
+                html += `<td>${record.account}</td>`;
+                html += `<td>${record.description}</td>`;
+                html += `<td class="number-cell">${formatCurrency(record.debit)}</td>`;
+                html += `<td class="number-cell">${formatCurrency(record.credit)}</td>`;
+                html += `<td class="number-cell">${formatCurrency(record.amount)}</td>`;
                 html += '</tr>';
             });
 
@@ -888,23 +1186,15 @@
                 return;
             }
 
-            // Aggregate data by account
             const accounts = new Map();
             
             ledgerData.forEach(record => {
-                // Look for common account and amount column names
-                const accountField = findField(record, ['account', 'account name', 'gl account', 'account_name']);
-                const amountField = findField(record, ['amount', 'debit', 'credit', 'balance', 'value']);
+                const accountName = record.account;
+                const amount = record.amount;
                 
-                if (accountField && amountField !== null) {
-                    const accountName = String(accountField).trim();
-                    const amount = parseFloat(amountField) || 0;
-                    
-                    // Income statement typically includes revenue and expense accounts
-                    const isIncomeAccount = /revenue|income|sales|fees earned/i.test(accountName) ||
-                                          /^[4-5]/.test(accountName);
-                    const isExpenseAccount = /expense|cost|depreciation|interest|tax/i.test(accountName) ||
-                                           /^[6-7]/.test(accountName);
+                if (accountName) {
+                    const isIncomeAccount = /revenue|income|sales|fees earned/i.test(accountName) || /^[4-5]/.test(accountName);
+                    const isExpenseAccount = /expense|cost|depreciation|interest|tax/i.test(accountName) || /^[6-7]/.test(accountName);
                     
                     if (isIncomeAccount || isExpenseAccount) {
                         if (!accounts.has(accountName)) {
@@ -920,11 +1210,10 @@
             });
 
             if (accounts.size === 0) {
-                content.innerHTML = '<div class="message info">No income or expense accounts found in the data. Ensure your data contains account names and amounts.</div>';
+                content.innerHTML = '<div class="message info">No income or expense accounts found in the data.</div>';
                 return;
             }
 
-            // Separate revenue and expenses
             const revenue = [];
             const expenses = [];
             
@@ -948,8 +1237,6 @@
             html += '<p style="color: #6c757d; margin-bottom: 20px;">All Companies Combined</p>';
             
             html += '<div class="table-wrapper"><table>';
-            
-            // Revenue Section
             html += '<thead><tr><th colspan="2" style="background: #28a745;">REVENUE</th></tr></thead>';
             html += '<tbody>';
             revenue.forEach(acc => {
@@ -958,7 +1245,6 @@
             html += `<tr class="report-total"><td>Total Revenue</td><td class="number-cell">${formatCurrency(totalRevenue)}</td></tr>`;
             html += '</tbody>';
             
-            // Expenses Section
             html += '<thead><tr><th colspan="2" style="background: #dc3545;">EXPENSES</th></tr></thead>';
             html += '<tbody>';
             expenses.forEach(acc => {
@@ -967,7 +1253,6 @@
             html += `<tr class="report-total"><td>Total Expenses</td><td class="number-cell">${formatCurrency(totalExpenses)}</td></tr>`;
             html += '</tbody>';
             
-            // Net Income
             html += '<thead><tr><th colspan="2" style="background: #667eea;">NET INCOME</th></tr></thead>';
             html += '<tbody>';
             html += `<tr class="report-total"><td>Net Income</td><td class="number-cell ${netIncome >= 0 ? 'positive' : 'negative'}">${formatCurrency(netIncome)}</td></tr>`;
@@ -994,24 +1279,16 @@
                 return;
             }
 
-            // Aggregate data by account
             const accounts = new Map();
             
             ledgerData.forEach(record => {
-                const accountField = findField(record, ['account', 'account name', 'gl account', 'account_name']);
-                const amountField = findField(record, ['amount', 'debit', 'credit', 'balance', 'value']);
+                const accountName = record.account;
+                const amount = record.amount;
                 
-                if (accountField && amountField !== null) {
-                    const accountName = String(accountField).trim();
-                    const amount = parseFloat(amountField) || 0;
-                    
-                    // Balance sheet includes assets, liabilities, and equity
-                    const isAsset = /asset|cash|account receivable|inventory|equipment|property/i.test(accountName) ||
-                                  /^1/.test(accountName);
-                    const isLiability = /liability|payable|loan|debt|note payable/i.test(accountName) ||
-                                      /^2/.test(accountName);
-                    const isEquity = /equity|capital|retained earnings|stock/i.test(accountName) ||
-                                   /^3/.test(accountName);
+                if (accountName) {
+                    const isAsset = /asset|cash|account receivable|inventory|equipment|property/i.test(accountName) || /^1/.test(accountName);
+                    const isLiability = /liability|payable|loan|debt|note payable/i.test(accountName) || /^2/.test(accountName);
+                    const isEquity = /equity|capital|retained earnings|stock/i.test(accountName) || /^3/.test(accountName);
                     
                     if (isAsset || isLiability || isEquity) {
                         if (!accounts.has(accountName)) {
@@ -1027,11 +1304,10 @@
             });
 
             if (accounts.size === 0) {
-                content.innerHTML = '<div class="message info">No balance sheet accounts found in the data. Ensure your data contains account names and amounts.</div>';
+                content.innerHTML = '<div class="message info">No balance sheet accounts found in the data.</div>';
                 return;
             }
 
-            // Separate by type
             const assets = [];
             const liabilities = [];
             const equity = [];
@@ -1060,8 +1336,6 @@
             html += '<p style="color: #6c757d; margin-bottom: 20px;">All Companies Combined</p>';
             
             html += '<div class="table-wrapper"><table>';
-            
-            // Assets Section
             html += '<thead><tr><th colspan="2" style="background: #28a745;">ASSETS</th></tr></thead>';
             html += '<tbody>';
             assets.forEach(acc => {
@@ -1070,7 +1344,6 @@
             html += `<tr class="report-total"><td>Total Assets</td><td class="number-cell">${formatCurrency(totalAssets)}</td></tr>`;
             html += '</tbody>';
             
-            // Liabilities Section
             html += '<thead><tr><th colspan="2" style="background: #dc3545;">LIABILITIES</th></tr></thead>';
             html += '<tbody>';
             liabilities.forEach(acc => {
@@ -1079,7 +1352,6 @@
             html += `<tr class="report-total"><td>Total Liabilities</td><td class="number-cell">${formatCurrency(totalLiabilities)}</td></tr>`;
             html += '</tbody>';
             
-            // Equity Section
             html += '<thead><tr><th colspan="2" style="background: #667eea;">EQUITY</th></tr></thead>';
             html += '<tbody>';
             equity.forEach(acc => {
@@ -1088,7 +1360,6 @@
             html += `<tr class="report-total"><td>Total Equity</td><td class="number-cell">${formatCurrency(totalEquity)}</td></tr>`;
             html += '</tbody>';
             
-            // Total Liabilities & Equity
             html += '<thead><tr><th colspan="2" style="background: #6c757d;">TOTAL LIABILITIES & EQUITY</th></tr></thead>';
             html += '<tbody>';
             html += `<tr class="report-total"><td>Total Liabilities & Equity</td><td class="number-cell">${formatCurrency(totalLiabilitiesEquity)}</td></tr>`;
@@ -1096,7 +1367,6 @@
             
             html += '</table></div>';
             
-            // Balance check
             const difference = Math.abs(totalAssets - totalLiabilitiesEquity);
             if (difference > 0.01) {
                 html += `<div class="message error">⚠️ Balance Sheet does not balance! Difference: ${formatCurrency(difference)}</div>`;
@@ -1109,15 +1379,67 @@
             content.innerHTML = html;
         }
 
-        function findField(record, possibleNames) {
-            for (const name of possibleNames) {
-                for (const key in record) {
-                    if (key.toLowerCase() === name.toLowerCase()) {
-                        return record[key];
-                    }
-                }
+        async function loadImportHistory() {
+            const content = document.getElementById('history-content');
+
+            if (!supabase) {
+                content.innerHTML = '<div class="message warning">Connect to Supabase to view import history</div>';
+                return;
             }
-            return null;
+
+            try {
+                const { data: logs, error } = await supabase
+                    .from('import_logs')
+                    .select(`
+                        *,
+                        companies (name)
+                    `)
+                    .order('imported_at', { ascending: false });
+
+                if (error) throw error;
+
+                if (logs.length === 0) {
+                    content.innerHTML = '<div class="message info">No import history yet</div>';
+                    return;
+                }
+
+                let html = '';
+                logs.forEach(log => {
+                    const date = new Date(log.imported_at).toLocaleString();
+                    const companyName = log.companies?.name || 'Unknown';
+                    const statusClass = log.import_status;
+                    
+                    html += `
+                        <div class="history-item ${statusClass}">
+                            <div class="date">${date}</div>
+                            <div class="details">
+                                Company: ${companyName}<br>
+                                File: ${log.filename}<br>
+                                Status: ${log.import_status.toUpperCase()}
+                                ${log.error_message ? '<br>Error: ' + log.error_message : ''}
+                            </div>
+                            <div class="import-stats">
+                                <div class="stat">
+                                    <strong>${log.entries_processed}</strong>
+                                    Processed
+                                </div>
+                                <div class="stat">
+                                    <strong>${log.entries_added}</strong>
+                                    Added
+                                </div>
+                                <div class="stat">
+                                    <strong>${log.entries_skipped}</strong>
+                                    Skipped
+                                </div>
+                            </div>
+                        </div>
+                    `;
+                });
+
+                content.innerHTML = html;
+            } catch (error) {
+                content.innerHTML = `<div class="message error">Error loading history: ${error.message}</div>`;
+            }
         }
 
         function formatCurrency(amount) {
@@ -1129,9 +1451,7 @@
         }
 
         function exportReport(reportType, format) {
-            if (ledgerData.length === 0) {
-                return;
-            }
+            if (ledgerData.length === 0) return;
 
             if (format === 'excel') {
                 exportToExcel(reportType);
@@ -1148,7 +1468,6 @@
                 data.push(['All Companies Combined']);
                 data.push([]);
                 
-                // Collect accounts
                 const accounts = collectAccounts(true);
                 const revenue = accounts.filter(a => a.isIncome);
                 const expenses = accounts.filter(a => !a.isIncome);
@@ -1296,13 +1615,10 @@
             const accounts = new Map();
             
             ledgerData.forEach(record => {
-                const accountField = findField(record, ['account', 'account name', 'gl account', 'account_name']);
-                const amountField = findField(record, ['amount', 'debit', 'credit', 'balance', 'value']);
+                const accountName = record.account;
+                const amount = record.amount;
                 
-                if (accountField && amountField !== null) {
-                    const accountName = String(accountField).trim();
-                    const amount = parseFloat(amountField) || 0;
-                    
+                if (accountName) {
                     if (forIncomeStatement) {
                         const isIncomeAccount = /revenue|income|sales|fees earned/i.test(accountName) || /^[4-5]/.test(accountName);
                         const isExpenseAccount = /expense|cost|depreciation|interest|tax/i.test(accountName) || /^[6-7]/.test(accountName);
