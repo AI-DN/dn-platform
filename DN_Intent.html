@@ -298,6 +298,10 @@ body::before {
   font-family: 'Syne', sans-serif; font-weight: 700; font-size: 12px; cursor: pointer; transition: all 0.2s;
 }
 .btn-approve:hover { background: rgba(31,216,164,0.2); }
+.btn-approve:disabled, .btn-revise:disabled { opacity: 0.7; cursor: not-allowed; }
+.btn-approve:disabled:hover { background: var(--green2); }
+.ep-spinner { display: inline-block; width: 11px; height: 11px; border: 1.5px solid rgba(31,216,164,0.3); border-top-color: var(--green); border-radius: 50%; animation: epSpin 0.7s linear infinite; vertical-align: -1px; margin-right: 4px; }
+@keyframes epSpin { to { transform: rotate(360deg); } }
 .btn-revise {
   background: transparent; border: 1px solid var(--border2);
   border-radius: 8px; padding: 9px 20px; color: var(--text2); font-size: 12px; cursor: pointer; transition: all 0.2s;
@@ -2346,26 +2350,42 @@ function renderEpicCard() {
 async function approveEpic() {
   if (!ensureValidName()) return;
   if (!epicData) return;
-  const caps = (epicData.Capabilities || []).map(function(c) { return { title: c, description: '' }; });
-  const payload = {
-    submitted_by: currentUser,
-    title: epicData['Title'] || 'Untitled',
-    goal: epicData['Goal'] || '',
-    users: epicData['Users'] || '',
-    scope: epicData['Scope'] || '',
-    constraints: epicData['Constraints'] || '',
-    mvp: epicData['MVP'] || '',
-    summary: epicData['Summary'] || '',
-    capabilities: caps,
-    qa_status: 'not_built',
-    artifact_version: 0,
-    conversation: JSON.stringify(chatHistory),
-    status: 'pending',
-    mode: currentMode,
-    created_at: new Date().toISOString()
-  };
-  const inserted = await saveToSupabase(payload);
-  if (inserted && inserted.id) {
+
+  // Find the buttons in the epic card and lock them so user can't double-submit
+  const wrap = document.getElementById('epic-card-wrap');
+  const approveBtn = wrap ? wrap.querySelector('.btn-approve') : null;
+  const reviseBtn = wrap ? wrap.querySelector('.btn-revise') : null;
+  if (approveBtn) {
+    if (approveBtn.dataset.busy === '1') return;  // already in flight, ignore extra clicks
+    approveBtn.dataset.busy = '1';
+    approveBtn.disabled = true;
+    approveBtn.innerHTML = '<span class="ep-spinner"></span> Submitting...';
+  }
+  if (reviseBtn) reviseBtn.disabled = true;
+
+  try {
+    const caps = (epicData.Capabilities || []).map(function(c) { return { title: c, description: '' }; });
+    const payload = {
+      submitted_by: currentUser,
+      title: epicData['Title'] || 'Untitled',
+      goal: epicData['Goal'] || '',
+      users: epicData['Users'] || '',
+      scope: epicData['Scope'] || '',
+      constraints: epicData['Constraints'] || '',
+      mvp: epicData['MVP'] || '',
+      summary: epicData['Summary'] || '',
+      capabilities: caps,
+      qa_status: 'not_built',
+      artifact_version: 0,
+      conversation: JSON.stringify(chatHistory),
+      status: 'pending',
+      mode: currentMode,
+      created_at: new Date().toISOString()
+    };
+    const inserted = await saveToSupabase(payload);
+    if (!inserted || !inserted.id) {
+      throw new Error('Save returned no record. Check your connection in settings (gear icon).');
+    }
     epicData._reqId = inserted.id;
     await logActivity({
       request_id: inserted.id,
@@ -2374,9 +2394,24 @@ async function approveEpic() {
       action: 'epic_approved',
       description: 'Epic "' + (epicData.Title || 'Untitled') + '" approved with ' + caps.length + ' capabilities'
     });
+    // Brief success cue before transitioning into the build view
+    if (approveBtn) {
+      approveBtn.innerHTML = '\u2713 Submitted';
+      approveBtn.style.background = 'rgba(34,197,94,0.18)';
+      approveBtn.style.borderColor = 'rgba(34,197,94,0.4)';
+      approveBtn.style.color = '#22c55e';
+    }
+    setTimeout(function() { showBuildView(epicData); }, 350);
+  } catch(e) {
+    console.error('approveEpic failed:', e);
+    if (approveBtn) {
+      approveBtn.disabled = false;
+      approveBtn.dataset.busy = '';
+      approveBtn.innerHTML = 'Approve and submit';
+    }
+    if (reviseBtn) reviseBtn.disabled = false;
+    alert('Could not submit the epic: ' + e.message + '\n\nYour epic is still here — try again, or check the gear icon for connection settings.');
   }
-  // Instead of showing success state, take the user straight into the live build view
-  showBuildView(epicData);
 }
 
 function reviseEpic() {
