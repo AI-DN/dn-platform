@@ -296,6 +296,41 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .spec-q-edit .spec-q-text { font-size: 12px; color: var(--text); margin-bottom: 4px; }
 .spec-q-edit input { width: 100%; }
 
+/* Database setup panel — appears on spec card when schema is present */
+.spec-db-setup { margin-top: 14px; padding: 12px 14px; background: rgba(245,158,11,0.08); border: 1px solid rgba(245,158,11,0.4); border-radius: 8px; }
+.spec-db-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.spec-db-icon { font-size: 16px; }
+.spec-db-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 13px; color: #f59e0b; letter-spacing: 0.02em; }
+.spec-db-body { font-size: 12px; color: var(--text2); line-height: 1.5; margin-bottom: 8px; }
+.spec-db-sql { background: #0a1628; border: 1px solid #1f2937; border-radius: 4px; padding: 10px; font-size: 11px; color: #e6ecf5; margin: 0 0 8px 0; max-height: 240px; overflow: auto; white-space: pre-wrap; font-family: ui-monospace, 'SF Mono', Menlo, monospace; line-height: 1.5; }
+.spec-db-actions { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+.spec-db-btn { background: rgba(245,158,11,0.15); color: #f59e0b; border: 1px solid rgba(245,158,11,0.4); padding: 5px 12px; border-radius: 5px; font-size: 11px; font-weight: 600; cursor: pointer; font-family: inherit; transition: all 0.18s; }
+.spec-db-btn:hover { background: rgba(245,158,11,0.25); }
+.spec-db-btn.spec-db-btn-ok { background: rgba(34,197,94,0.18); color: #22c55e; border-color: rgba(34,197,94,0.4); }
+.spec-db-open { font-size: 11px; color: var(--cyan); text-decoration: none; padding: 5px 10px; border: 1px solid rgba(61,214,245,0.35); border-radius: 5px; transition: all 0.18s; }
+.spec-db-open:hover { background: rgba(61,214,245,0.1); }
+.spec-db-no-link { font-size: 11px; color: var(--text3); font-style: italic; }
+.spec-db-confirm { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text); cursor: pointer; padding: 6px 8px; background: rgba(0,0,0,0.2); border-radius: 5px; user-select: none; }
+.spec-db-confirm input[type="checkbox"] { width: 14px; height: 14px; cursor: pointer; accent-color: #22c55e; }
+.spec-db-confirm:has(input:checked) { background: rgba(34,197,94,0.1); color: #22c55e; }
+
+/* Prose alert variant — schema field has content but isn't DDL */
+.spec-db-prose { background: rgba(239,68,68,0.06); border-color: rgba(239,68,68,0.4); }
+.spec-db-prose .spec-db-title { color: #ef4444; }
+.spec-db-prose .spec-db-body code { background: var(--panel2); padding: 1px 6px; border-radius: 3px; font-size: 11px; color: var(--text2); }
+.spec-db-prose-preview { margin: 8px 0 10px 0; }
+.spec-db-prose-label { display: block; font-size: 10px; color: var(--text3); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; margin-bottom: 4px; }
+.spec-db-prose-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 8px; }
+.spec-db-btn-prose-ask { background: rgba(61,214,245,0.15); color: var(--cyan); border-color: rgba(61,214,245,0.4); }
+.spec-db-btn-prose-ask:hover { background: rgba(61,214,245,0.25); }
+.spec-db-btn-prose-edit { background: transparent; color: var(--text2); border-color: var(--border2); }
+.spec-db-btn-prose-edit:hover { color: var(--text); }
+.spec-db-prose-hint { font-size: 11px; color: var(--text3); font-style: italic; }
+
+/* Placeholder while agent is redrafting after "ask to convert" */
+.spec-card.spec-redrafting { border-color: rgba(61,214,245,0.4); background: linear-gradient(180deg, rgba(61,214,245,0.06), var(--navy3)); }
+.spec-card.spec-redrafting .spec-tag { background: rgba(61,214,245,0.18); color: var(--cyan); border-color: rgba(61,214,245,0.4); }
+
 /* Responsive: narrower screens collapse columns */
 @media (max-width: 1400px) {
   .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
@@ -3909,12 +3944,41 @@ const ADMIN_AGENT_SYSTEM = [
   '     "capabilities_to_add": ["new capability 1", "new capability 2"],',
   '     "capabilities_to_change": ["existing capability X — change to Y"],',
   '     "integration_notes": "anything about backend/external systems/keys/schemas, or null",',
-  '     "schema": "DDL or schema description if relevant, or null",',
+  '     "schema": "Runnable Postgres DDL using IF NOT EXISTS clauses, or null. See Schema rules below.",',
   '     "behaviour_changes": ["concrete user-visible change", ...],',
   '     "open_questions": [{"q": "specific question for the build agent", "default_answer": "what to assume if admin doesn\'t answer"}, ...],',
   '     "preserve": "what must NOT change (existing features, layout, etc.)"',
   '   }',
   '5. Above the comment, write a brief plain-prose summary so admin sees what they\'re about to approve. End with: "Review the spec card below — edit, add detail, or approve to send to rebuild."',
+  '',
+  '### Schema rules (when the rebuild touches the database) — CRITICAL',
+  'The `schema` field is COPIED VERBATIM into Supabase\'s SQL Editor by the admin. If it is not runnable SQL, nothing works. This rule is more important than any other formatting concern.',
+  '',
+  '**BAD — never write schema like this:**',
+  String.raw`    "schema": "Need to define tables for: companies (id, name, metadata), gl_entries (id, company_id, date, account, description, debit, credit, period), import_logs (timestamp, filename, entries_added)"`,
+  'That is a description, not SQL. The admin cannot run it. The build will fail.',
+  '',
+  '**GOOD — always write schema like this:**',
+  String.raw`    "schema": "create table if not exists companies (\n  id uuid primary key default gen_random_uuid(),\n  name text not null,\n  metadata jsonb,\n  created_at timestamptz default now()\n);\n\ncreate table if not exists gl_entries (\n  id uuid primary key default gen_random_uuid(),\n  company_id uuid references companies(id) on delete cascade,\n  entry_date date not null,\n  account text not null,\n  description text,\n  debit numeric(18,2),\n  credit numeric(18,2),\n  period text,\n  created_at timestamptz default now()\n);\n\ncreate index if not exists gl_entries_company_period_idx on gl_entries (company_id, period);"`,
+  'That is runnable Postgres DDL. The admin pastes it, runs it, tables exist, build succeeds.',
+  '',
+  'Required patterns:',
+  '- Every new table starts with `create table if not exists <name> (`',
+  '- Every column gets a Postgres type: `text`, `uuid`, `timestamptz`, `date`, `numeric(p,s)` for money, `jsonb`, `boolean`, `int`',
+  '- Every table has `id uuid primary key default gen_random_uuid()` unless there\'s a strong reason for a natural key',
+  '- Foreign keys use `references <table>(id) on delete cascade` (or `set null` / `restrict` if cascade is wrong)',
+  '- Money columns use `numeric(18,2)` — never `float` or `real`',
+  '- Add `created_at timestamptz default now()` to every table',
+  '- Add indexes with `create index if not exists` for any column you\'ll filter or join on commonly',
+  '- The whole schema must be idempotent — safe to run multiple times',
+  '',
+  '### When the admin\'s answers to open questions describe schema',
+  'If admin says something like "use companies with auto-increment id, gl_entries with company_id foreign key" — that is admin telling you the design. Your job is to TRANSLATE their description into runnable DDL and put the DDL in the `schema` field. Do not propagate their prose into `schema`.',
+  '',
+  '### When schema is genuinely not needed',
+  '- If the rebuild does NOT need new tables or columns, set `schema` to null. Do NOT populate schema with descriptions of what already exists.',
+  '- If existing tables suffice and only new code is needed, leave `schema` null and explain in `integration_notes` which existing tables the code will use.',
+  '',
   '6. The frontend renders the spec as a card with Approve / Edit / Cancel buttons. Approve routes the spec into the request\'s qa_notes (formatted) and triggers the rebuild.',
   '7. If the admin pushes back or wants to refine, drop the marker — just discuss further.',
   '',
@@ -4956,12 +5020,168 @@ function renderDraftSpecCardHtml(id, reqTitle, spec, isMaterial, editing) {
     (spec.schema ? '<div class="spec-section"><div class="spec-label">Schema</div><pre class="spec-schema">' + esc(spec.schema) + '</pre></div>' : '') +
     (spec.preserve ? '<div class="spec-section"><div class="spec-label">Preserve</div>' + text(spec.preserve) + '</div>' : '') +
     questionsHtml +
+    (spec.schema ? buildDbSetupPanel(id, spec.schema, ds && ds.dbConfirmed) : '') +
     '<div class="spec-actions">' +
-      '<button class="spec-btn spec-btn-approve" onclick="approveDraftSpec(\'' + id + '\')">Approve & send to rebuild</button>' +
+      (function() {
+        if (!spec.schema) {
+          return '<button class="spec-btn spec-btn-approve" onclick="approveDraftSpec(\'' + id + '\')">Approve & send to rebuild</button>';
+        }
+        if (!schemaLooksLikeDDL(spec.schema)) {
+          return '<button class="spec-btn spec-btn-approve" disabled title="The schema field is prose, not runnable SQL. Use the buttons above to fix it.">Schema is not runnable SQL</button>';
+        }
+        if (!(ds && ds.dbConfirmed)) {
+          return '<button class="spec-btn spec-btn-approve" disabled title="Tick the database setup checkbox first">Tables not created yet</button>';
+        }
+        return '<button class="spec-btn spec-btn-approve" onclick="approveDraftSpec(\'' + id + '\')">Approve & send to rebuild</button>';
+      })() +
       '<button class="spec-btn spec-btn-edit" onclick="editDraftSpec(\'' + id + '\')">Edit</button>' +
       '<button class="spec-btn spec-btn-cancel" onclick="cancelDraftSpec(\'' + id + '\')">Cancel</button>' +
     '</div>' +
   '</div>';
+}
+
+function schemaLooksLikeDDL(schema) {
+  // Cheap heuristic: does the schema text contain at least one DDL keyword?
+  // Whole-word match, case-insensitive. Empty/null returns false (caller decides).
+  if (!schema || typeof schema !== 'string') return false;
+  return /\b(create\s+table|alter\s+table|create\s+index|create\s+extension)\b/i.test(schema);
+}
+
+function buildDbSetupPanel(id, schema, confirmed) {
+  // If schema is non-empty but doesn't look like DDL, render a prose alert instead
+  // of the normal "run this SQL" panel. Forces the agent or admin to fix it before
+  // the checkbox can even be presented.
+  if (schema && !schemaLooksLikeDDL(schema)) {
+    return buildDbSetupProseAlert(id, schema);
+  }
+
+  // Try to derive Supabase SQL editor URL from the configured Supabase URL
+  const supaUrl = localStorage.getItem('dn_supa_url') || '';
+  let sqlEditorUrl = '';
+  // Match https://<ref>.supabase.co
+  const m = supaUrl.match(/https?:\/\/([a-z0-9]+)\.supabase\.co/i);
+  if (m && m[1]) {
+    sqlEditorUrl = 'https://supabase.com/dashboard/project/' + m[1] + '/sql/new';
+  }
+  const openLink = sqlEditorUrl
+    ? '<a class="spec-db-open" href="' + esc(sqlEditorUrl) + '" target="_blank" rel="noopener">Open Supabase SQL Editor ↗</a>'
+    : '<span class="spec-db-no-link">(could not derive Supabase project URL — open it manually)</span>';
+  const checkedAttr = confirmed ? ' checked' : '';
+
+  return '<div class="spec-db-setup">' +
+    '<div class="spec-db-head">' +
+      '<span class="spec-db-icon">⚠</span>' +
+      '<span class="spec-db-title">Database setup required</span>' +
+    '</div>' +
+    '<div class="spec-db-body">This rebuild expects new tables or columns. Run this SQL in Supabase before approving — the code shipped will fail if the schema is missing.</div>' +
+    '<pre class="spec-db-sql">' + esc(schema) + '</pre>' +
+    '<div class="spec-db-actions">' +
+      '<button class="spec-db-btn" onclick="copyDbSql(\'' + id + '\')">📋 Copy SQL</button>' +
+      openLink +
+    '</div>' +
+    '<label class="spec-db-confirm">' +
+      '<input type="checkbox" onchange="confirmDbSetup(\'' + id + '\', this.checked)"' + checkedAttr + '> ' +
+      "I've run this in Supabase" +
+    '</label>' +
+  '</div>';
+}
+
+function buildDbSetupProseAlert(id, schema) {
+  // Schema field has content but it's prose, not DDL. Refuse to render the standard
+  // panel; show a recovery UI instead.
+  return '<div class="spec-db-setup spec-db-prose">' +
+    '<div class="spec-db-head">' +
+      '<span class="spec-db-icon">⚠</span>' +
+      '<span class="spec-db-title">Schema looks like a description, not runnable SQL</span>' +
+    '</div>' +
+    '<div class="spec-db-body">The agent put text in the schema field, but it doesn\'t contain runnable DDL (no <code>create table</code>, <code>alter table</code>, etc.). Pasting this into Supabase will fail. Pick one:</div>' +
+    '<div class="spec-db-prose-preview"><span class="spec-db-prose-label">Current schema text:</span><pre class="spec-db-sql">' + esc(schema) + '</pre></div>' +
+    '<div class="spec-db-prose-actions">' +
+      '<button class="spec-db-btn spec-db-btn-prose-ask" onclick="askAgentToDraftDDL(\'' + id + '\')">🔁 Ask agent to draft proper DDL</button>' +
+      '<button class="spec-db-btn spec-db-btn-prose-edit" onclick="editDraftSpec(\'' + id + '\')">✏️ Edit schema myself</button>' +
+    '</div>' +
+    '<div class="spec-db-prose-hint">Approve is locked until the schema is runnable SQL.</div>' +
+  '</div>';
+}
+
+function askAgentToDraftDDL(id) {
+  const ds = _draftSpecs[id];
+  if (!ds) return;
+  const proseSchema = ds.spec.schema || '';
+  // Compose a structured follow-up message that re-engages the agent on this specific spec
+  const followUp =
+    "The schema field in your last DRAFT_SPEC is prose, not runnable DDL. Re-emit the spec with the schema field containing actual Postgres DDL — `create table if not exists ...` statements with proper Postgres column types, primary keys (`id uuid primary key default gen_random_uuid()`), foreign keys with `on delete cascade`, `created_at timestamptz default now()`, and indexes for commonly-queried columns. Use the structure described in the prose below as your blueprint, but render it as runnable SQL.\n\n" +
+    "Current schema (prose, not acceptable):\n```\n" + proseSchema + "\n```\n\n" +
+    "Please re-issue the full DRAFT_SPEC with all fields preserved, only with `schema` rewritten as runnable DDL. Use `numeric(18,2)` for money columns.";
+
+  // Remove the existing card so the new one will land cleanly when the agent re-emits
+  const card = document.getElementById(id);
+  if (card) {
+    card.innerHTML = '<div class="spec-card spec-redrafting">' +
+      '<div class="spec-head"><span class="spec-tag">🔁 Redrafting</span><span class="spec-target">Asking agent to convert schema prose to DDL...</span></div>' +
+    '</div>';
+  }
+  delete _draftSpecs[id];
+
+  // Inject the message into the chat input and send
+  const input = document.getElementById('chat-drawer-input');
+  if (!input) return;
+  input.value = followUp;
+  if (typeof sendChatMsg === 'function') {
+    sendChatMsg();
+  }
+}
+
+function copyDbSql(id) {
+  const ds = _draftSpecs[id];
+  if (!ds || !ds.spec.schema) return;
+  const sql = ds.spec.schema;
+  // Use the Clipboard API; fall back to execCommand if needed
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(sql).then(function() {
+      _flashCopyConfirmation(id);
+    }).catch(function() {
+      _fallbackCopy(sql, id);
+    });
+  } else {
+    _fallbackCopy(sql, id);
+  }
+}
+
+function _fallbackCopy(text, id) {
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed';
+  ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try { document.execCommand('copy'); _flashCopyConfirmation(id); } catch(e) {}
+  document.body.removeChild(ta);
+}
+
+function _flashCopyConfirmation(id) {
+  const card = document.getElementById(id);
+  if (!card) return;
+  const btn = card.querySelector('.spec-db-btn');
+  if (!btn) return;
+  const original = btn.innerHTML;
+  btn.innerHTML = '✓ Copied';
+  btn.classList.add('spec-db-btn-ok');
+  setTimeout(function() {
+    btn.innerHTML = original;
+    btn.classList.remove('spec-db-btn-ok');
+  }, 1500);
+}
+
+function confirmDbSetup(id, checked) {
+  const ds = _draftSpecs[id];
+  if (!ds) return;
+  ds.dbConfirmed = !!checked;
+  // Re-render to update the Approve button state — preserves any other state on the card
+  const req = allReqs.find(function(r) { return r.id === ds.reqId; });
+  const reqTitle = req ? (req.title || 'Untitled') : 'Unknown';
+  const isMaterial = (ds.spec.open_questions || []).length > 0;
+  document.getElementById(id).innerHTML = renderDraftSpecCardHtml(id, reqTitle, ds.spec, isMaterial, false);
 }
 
 function editDraftSpec(id) {
@@ -5017,6 +5237,17 @@ async function approveDraftSpec(id) {
   const spec = ds.spec;
   const req = allReqs.find(function(r) { return r.id === ds.reqId; });
   if (!req) { alert('Request not found.'); return; }
+
+  // Defense in depth: the Approve button should already be disabled when schema exists
+  // and dbConfirmed is false, but enforce here as well in case of a stray click path.
+  if (spec.schema && !schemaLooksLikeDDL(spec.schema)) {
+    alert('The schema field is not runnable SQL. Click "Ask agent to draft proper DDL" or edit the schema yourself before approving.');
+    return;
+  }
+  if (spec.schema && !ds.dbConfirmed) {
+    alert('Run the SQL in Supabase first, then tick the "I\'ve run this in Supabase" checkbox before approving.');
+    return;
+  }
 
   // Material change: enforce that all open questions have an answer (or explicit default)
   const unansweredQs = (spec.open_questions || []).filter(function(q) {
