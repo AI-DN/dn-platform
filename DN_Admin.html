@@ -220,6 +220,26 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .refresh-pill button:hover { background: #5be1f7; }
 @keyframes pillIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
+/* Attachments — modal staging area + detail-view static display */
+.att-block { margin-top: 14px; padding: 12px; background: rgba(0,0,0,0.18); border: 1px dashed #1f2937; border-radius: 8px; }
+.att-attach-btn { background: rgba(61,214,245,0.12); color: var(--cyan); border: 1px solid rgba(61,214,245,0.4); padding: 7px 14px; border-radius: 6px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: inherit; }
+.att-attach-btn:hover { background: rgba(61,214,245,0.22); }
+.att-hint { font-size: 11px; color: #6c7280; margin-left: 10px; }
+.att-list { display: flex; flex-direction: column; gap: 6px; margin-top: 10px; }
+.att-list:empty { display: none; }
+.att-chip { display: flex; align-items: center; gap: 8px; padding: 7px 10px; background: #0a1628; border: 1px solid #1f2937; border-radius: 6px; font-size: 12px; }
+.att-chip .att-icon { font-size: 14px; flex-shrink: 0; }
+.att-chip .att-name { flex: 1; color: #e6ecf5; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.att-chip .att-size { font-size: 11px; color: #6c7280; flex-shrink: 0; }
+.att-chip .att-remove { background: transparent; border: 0; color: #6c7280; font-size: 18px; line-height: 1; cursor: pointer; padding: 0 6px; flex-shrink: 0; }
+.att-chip .att-remove:hover { color: #ef4444; }
+.att-err { font-size: 11px; color: #ef4444; margin-top: 6px; min-height: 14px; }
+
+.att-list-static { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.att-chip-static { background: rgba(0,0,0,0.2); border: 1px solid var(--border); padding: 5px 10px; cursor: default; }
+.mono-attachments { border-color: rgba(61,214,245,0.25); }
+.mono-attachments .mono-section-title { color: var(--cyan); }
+
 /* Responsive: narrower screens collapse columns */
 @media (max-width: 1400px) {
   .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
@@ -1171,13 +1191,18 @@ function applyAutoRefresh(newReqs) {
     const oldCapsLen = Array.isArray(oldR.capabilities) ? oldR.capabilities.length : 0;
     const newCapsLen = Array.isArray(newR.capabilities) ? newR.capabilities.length : 0;
     if (oldCapsLen !== newCapsLen) anyChanged = true;
+    // Attachments — admin in another tab might attach files
+    const oldAttachLen = Array.isArray(oldR.qa_attachments) ? oldR.qa_attachments.length : 0;
+    const newAttachLen = Array.isArray(newR.qa_attachments) ? newR.qa_attachments.length : 0;
+    if (oldAttachLen !== newAttachLen) anyChanged = true;
 
     if (id === activeId && (
       oldR.qa_status !== newR.qa_status ||
       oldR.artifact_version !== newR.artifact_version ||
       oldR.status !== newR.status ||
       !!oldR.needs_input !== !!newR.needs_input ||
-      oldCapsLen !== newCapsLen
+      oldCapsLen !== newCapsLen ||
+      oldAttachLen !== newAttachLen
     )) {
       activeReqChanged = true;
     }
@@ -1983,27 +2008,48 @@ function openNeedsInputModal() {
   const req = allReqs.find(function(r) { return r.id === activeId; });
   if (!req) return;
 
+  // Pre-load existing attachments into staging so admin can see and modify them
+  clearStaging('needsinput');
+  if (Array.isArray(req.qa_attachments)) {
+    const staging = getStaging('needsinput');
+    req.qa_attachments.forEach(function(a) { staging.push(a); });
+  }
+
   const overlay = document.createElement('div');
   overlay.id = 'needs-input-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML =
-    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:560px;max-width:92vw;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
+    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:620px;max-width:92vw;max-height:92vh;overflow-y:auto;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
       '<h3 style="margin:0 0 8px 0;color:#f59e0b;font-size:16px;">Mark as needs input</h3>' +
-      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Flag this request as blocked on input — clarification, design decision, backend setup, etc. The card will move to the "Needs input" column on the board until you resume it.</p>' +
+      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Flag this request as blocked on input — clarification, design decision, backend setup, etc. The card will move to the "Needs input" column on the board until you resume it. Attach files (designs, schemas, examples) that the build agent should use once you Resume.</p>' +
       '<textarea id="needs-input-notes" rows="5" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="e.g. Waiting on user to confirm whether they need real-time data or can use cached snapshots. Also need to set up the Supabase table for portfolio holdings before build.">' + esc(req.needs_input_notes || '') + '</textarea>' +
+      buildAttachUiHtml('needsinput', 'image/*,application/pdf,text/*,.md,.csv,.json,.log') +
       '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
         '<button onclick="closeNeedsInputModal()" style="background:transparent;color:#9ca3af;border:1px solid #1f2937;padding:8px 14px;border-radius:6px;cursor:pointer;">Cancel</button>' +
         '<button onclick="confirmNeedsInput()" style="background:#f59e0b;color:#0a1628;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;">Mark as blocked</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(overlay);
+
+  // Drag-and-drop
+  overlay.addEventListener('dragover', function(e) { e.preventDefault(); });
+  overlay.addEventListener('drop', function(e) {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleAttachmentInput('needsinput', e.dataTransfer.files, 'att-list-needsinput', 'att-err-needsinput');
+    }
+  });
+
   setTimeout(function() {
     const ta = document.getElementById('needs-input-notes');
     if (ta) ta.focus();
+    // Render any pre-loaded attachments
+    renderAttachmentList('needsinput', 'att-list-needsinput');
   }, 50);
 }
 
 function closeNeedsInputModal() {
+  clearStaging('needsinput');
   const o = document.getElementById('needs-input-overlay');
   if (o) o.remove();
 }
@@ -2016,16 +2062,21 @@ async function confirmNeedsInput() {
   const req = allReqs.find(function(r) { return r.id === activeId; });
   if (!req) return;
 
-  await patchRequest(activeId, { needs_input: true, needs_input_notes: notes });
-  req.needs_input = true;
-  req.needs_input_notes = notes;
+  const attachments = getStaging('needsinput').slice();
+  const update = {
+    needs_input: true,
+    needs_input_notes: notes,
+    qa_attachments: attachments.length > 0 ? attachments : null
+  };
+  await patchRequest(activeId, update);
+  Object.assign(req, update);
 
   await logActivity({
     request_id: activeId,
     actor: 'admin',
     actor_name: 'admin',
     action: 'flagged_needs_input',
-    description: 'Flagged as needs input: ' + notes.slice(0, 200)
+    description: 'Flagged as needs input' + (attachments.length > 0 ? (' (with ' + attachments.length + ' attachment' + (attachments.length === 1 ? '' : 's') + ')') : '') + ': ' + notes.slice(0, 200)
   });
 
   closeNeedsInputModal();
@@ -2163,6 +2214,23 @@ function renderMonolithicView(req) {
       '<div class="mono-notes-body">' + esc(req.qa_notes) + '</div></div>';
   }
 
+  // Attachments queued for next build
+  let attachmentsHtml = '';
+  if (Array.isArray(req.qa_attachments) && req.qa_attachments.length > 0) {
+    const items = req.qa_attachments.map(function(a) {
+      const icon = a.kind === 'image' ? '🖼' : a.kind === 'document' ? '📄' : '📝';
+      return '<span class="att-chip att-chip-static">' +
+        '<span class="att-icon">' + icon + '</span>' +
+        '<span class="att-name">' + esc(a.name) + '</span>' +
+        '<span class="att-size">' + formatFileSize(a.size || 0) + '</span>' +
+      '</span>';
+    }).join('');
+    attachmentsHtml = '<div class="mono-section mono-attachments"><div class="mono-section-title">Attachments queued for next build (' + req.qa_attachments.length + ')</div>' +
+      '<div class="att-list-static">' + items + '</div>' +
+      '<div class="mono-caps-note">These files will be included in the next build agent call as reference material.</div>' +
+      '</div>';
+  }
+
   // Rejection reason
   let rejectHtml = '';
   if (isRejected && req.rejected_reason) {
@@ -2188,6 +2256,7 @@ function renderMonolithicView(req) {
       needsInputHtml +
       pendingHtml +
       qaNotesHtml +
+      attachmentsHtml +
       '<div class="mono-section"><div class="mono-section-title">Epic</div>' +
         '<div class="mono-field"><strong>Goal:</strong> ' + esc(req.goal || '—') + '</div>' +
         '<div class="mono-field"><strong>Users:</strong> ' + esc(req.users || '—') + '</div>' +
@@ -2232,8 +2301,46 @@ async function buildRequest(reqId) {
     const previousHtml = req.artifact_html || '';
     const qaNotes = req.qa_notes || '';
     const isRebuild = previousHtml.length > 0;
+    const attachments = Array.isArray(req.qa_attachments) ? req.qa_attachments : [];
 
-    const prompt = buildMonolithicPrompt(req, caps, previousHtml, qaNotes);
+    // Inline text attachments into the prompt itself; image/PDF go as separate content blocks
+    let attachmentsTextSection = '';
+    const mediaBlocks = [];
+    if (attachments.length > 0) {
+      const textAttachments = attachments.filter(function(a) { return a.kind === 'text'; });
+      const mediaAttachments = attachments.filter(function(a) { return a.kind === 'image' || a.kind === 'document'; });
+
+      if (textAttachments.length > 0) {
+        attachmentsTextSection = '\n\nADMIN ATTACHED TEXT FILES (use as reference for the changes requested):\n';
+        textAttachments.forEach(function(a) {
+          attachmentsTextSection += '\n--- ' + a.name + ' ---\n' + (a.text || '') + '\n--- end ' + a.name + ' ---\n';
+        });
+      }
+
+      if (mediaAttachments.length > 0) {
+        mediaAttachments.forEach(function(a) {
+          if (a.kind === 'image' && a.data) {
+            mediaBlocks.push({
+              type: 'image',
+              source: { type: 'base64', media_type: a.media_type, data: a.data }
+            });
+          } else if (a.kind === 'document' && a.data) {
+            mediaBlocks.push({
+              type: 'document',
+              source: { type: 'base64', media_type: a.media_type, data: a.data }
+            });
+          }
+        });
+        attachmentsTextSection += '\n\nADMIN ATTACHED MEDIA FILES (' + mediaAttachments.length + ' image' + (mediaAttachments.length === 1 ? '' : 's') + '/document' + (mediaAttachments.length === 1 ? '' : 's') + '): These appear as additional content blocks alongside this prompt — review them carefully and apply what they show. Filenames: ' + mediaAttachments.map(function(a) { return a.name; }).join(', ') + '.\n';
+      }
+    }
+
+    const prompt = buildMonolithicPrompt(req, caps, previousHtml, qaNotes) + attachmentsTextSection;
+
+    // Build content array: text prompt + any media blocks
+    const userContent = mediaBlocks.length > 0
+      ? [{ type: 'text', text: prompt }].concat(mediaBlocks)
+      : prompt;
 
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -2246,7 +2353,7 @@ async function buildRequest(reqId) {
       body: JSON.stringify({
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 16000,
-        messages: [{ role: 'user', content: prompt }]
+        messages: [{ role: 'user', content: userContent }]
       })
     });
 
@@ -2280,6 +2387,7 @@ async function buildRequest(reqId) {
       artifact_version: newVersion,
       qa_status: 'ready_for_qa',
       qa_notes: '',  // clear old QA notes on successful rebuild
+      qa_attachments: null,  // clear attachments — they've been consumed
       capabilities: clearedCaps
     };
     await patchRequest(reqId, update);
@@ -2467,24 +2575,181 @@ async function approveQa_mono(reqId) {
 }
 
 // ── QA Send-back: open notes modal ──────────────────────────────────────
+// ── ADMIN ATTACHMENTS — Phase 4 ─────────────────────────────────────────────
+// Admin can attach files (images, PDFs, text) to Send Back / Needs Input.
+// Files are stored as base64 on the request and consumed by the next build call.
+// Limits: 3 files, 5MB each.
+
+const ATTACH_MAX_FILES = 3;
+const ATTACH_MAX_SIZE = 5 * 1024 * 1024;
+
+const ATTACH_MIME_IMAGE = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp', 'image/gif'];
+const ATTACH_MIME_DOC   = ['application/pdf'];
+const ATTACH_MIME_TEXT  = ['text/plain', 'text/markdown', 'text/csv', 'application/json', 'text/html', 'text/x-log'];
+
+function attachKindForMime(mime) {
+  if (!mime) return null;
+  const m = mime.toLowerCase();
+  if (ATTACH_MIME_IMAGE.indexOf(m) !== -1) return 'image';
+  if (ATTACH_MIME_DOC.indexOf(m) !== -1) return 'document';
+  if (ATTACH_MIME_TEXT.indexOf(m) !== -1 || m.indexOf('text/') === 0) return 'text';
+  return null;
+}
+
+function formatFileSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+// In-memory staging area while the modal is open. Keyed by modal id so we can
+// support send-back and needs-input independently. Cleared when modal closes.
+const _attachStaging = {};
+
+function getStaging(key) {
+  if (!_attachStaging[key]) _attachStaging[key] = [];
+  return _attachStaging[key];
+}
+
+function clearStaging(key) {
+  delete _attachStaging[key];
+}
+
+function readFileAsBase64(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function() {
+      // result is "data:image/png;base64,iVBOR..."  — strip the prefix
+      const result = reader.result || '';
+      const idx = String(result).indexOf(',');
+      resolve(idx >= 0 ? result.slice(idx + 1) : result);
+    };
+    reader.onerror = function() { reject(new Error('Failed to read file')); };
+    reader.readAsDataURL(file);
+  });
+}
+
+function readFileAsText(file) {
+  return new Promise(function(resolve, reject) {
+    const reader = new FileReader();
+    reader.onload = function() { resolve(reader.result || ''); };
+    reader.onerror = function() { reject(new Error('Failed to read file')); };
+    reader.readAsText(file);
+  });
+}
+
+async function processAttachmentFile(file) {
+  // Validate
+  if (file.size > ATTACH_MAX_SIZE) {
+    throw new Error('"' + file.name + '" is ' + formatFileSize(file.size) + ' — too large (max 5 MB).');
+  }
+  const kind = attachKindForMime(file.type);
+  if (!kind) {
+    throw new Error('"' + file.name + '" — unsupported file type (' + (file.type || 'unknown') + '). Use images, PDFs, or text files.');
+  }
+  if (kind === 'text') {
+    const text = await readFileAsText(file);
+    return { name: file.name, media_type: file.type || 'text/plain', size: file.size, kind: 'text', text: text };
+  } else {
+    const data = await readFileAsBase64(file);
+    return { name: file.name, media_type: file.type, size: file.size, kind: kind, data: data };
+  }
+}
+
+async function handleAttachmentInput(stagingKey, fileList, listElId, errorElId) {
+  const staging = getStaging(stagingKey);
+  const errEl = document.getElementById(errorElId);
+  if (errEl) errEl.textContent = '';
+
+  for (let i = 0; i < fileList.length; i++) {
+    if (staging.length >= ATTACH_MAX_FILES) {
+      if (errEl) errEl.textContent = 'Maximum ' + ATTACH_MAX_FILES + ' files. Remove one to add another.';
+      break;
+    }
+    try {
+      const att = await processAttachmentFile(fileList[i]);
+      staging.push(att);
+    } catch(e) {
+      if (errEl) errEl.textContent = e.message;
+    }
+  }
+  renderAttachmentList(stagingKey, listElId);
+}
+
+function removeAttachment(stagingKey, idx, listElId) {
+  const staging = getStaging(stagingKey);
+  staging.splice(idx, 1);
+  renderAttachmentList(stagingKey, listElId);
+}
+
+function renderAttachmentList(stagingKey, listElId) {
+  const el = document.getElementById(listElId);
+  if (!el) return;
+  const staging = getStaging(stagingKey);
+  if (staging.length === 0) { el.innerHTML = ''; return; }
+
+  el.innerHTML = staging.map(function(att, i) {
+    const icon = att.kind === 'image' ? '🖼' : att.kind === 'document' ? '📄' : '📝';
+    return '<div class="att-chip">' +
+      '<span class="att-icon">' + icon + '</span>' +
+      '<span class="att-name">' + esc(att.name) + '</span>' +
+      '<span class="att-size">' + formatFileSize(att.size) + '</span>' +
+      '<button class="att-remove" onclick="removeAttachment(\'' + stagingKey + '\', ' + i + ', \'' + listElId + '\')" title="Remove">×</button>' +
+    '</div>';
+  }).join('');
+}
+
+// Build the attach UI block (label + hidden file input + button + list + error line)
+function buildAttachUiHtml(stagingKey, accept) {
+  const inputId = 'att-input-' + stagingKey;
+  const listId = 'att-list-' + stagingKey;
+  const errId = 'att-err-' + stagingKey;
+  return '<div class="att-block">' +
+    '<input id="' + inputId + '" type="file" multiple accept="' + accept + '" style="display:none;" ' +
+      'onchange="handleAttachmentInput(\'' + stagingKey + '\', this.files, \'' + listId + '\', \'' + errId + '\'); this.value=\'\';" />' +
+    '<button type="button" class="att-attach-btn" onclick="document.getElementById(\'' + inputId + '\').click()">' +
+      '📎 Attach files' +
+    '</button>' +
+    '<span class="att-hint">Images, PDFs, or text files. Max 3 files, 5 MB each.</span>' +
+    '<div class="att-list" id="' + listId + '"></div>' +
+    '<div class="att-err" id="' + errId + '"></div>' +
+  '</div>';
+}
+
+// ── END ATTACHMENTS HELPERS ─────────────────────────────────────────────────
+
 function openSendBackModal(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
+
+  // Clear any previous staging for this modal
+  clearStaging('sendback');
 
   const overlay = document.createElement('div');
   overlay.id = 'sendback-overlay';
   overlay.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:1000;display:flex;align-items:center;justify-content:center;';
   overlay.innerHTML =
-    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:560px;max-width:92vw;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
+    '<div style="background:#101828;border:1px solid #1f2937;border-radius:12px;padding:20px;width:620px;max-width:92vw;max-height:92vh;overflow-y:auto;color:#e6ecf5;font-family:Inter,system-ui,sans-serif;">' +
       '<h3 style="margin:0 0 8px 0;color:#3DD6F5;font-size:16px;">Send back for changes</h3>' +
-      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Describe what needs to change. Be specific — your notes are passed to the build agent and used to regenerate the app while preserving what works.</p>' +
+      '<p style="margin:0 0 14px 0;font-size:13px;color:#9ca3af;line-height:1.5;">Describe what needs to change. Be specific — your notes are passed to the build agent and used to regenerate the app while preserving what works. You can attach screenshots, design mockups, or reference docs.</p>' +
       '<textarea id="sendback-notes" rows="6" style="width:100%;background:#0a1628;border:1px solid #1f2937;border-radius:6px;color:#e6ecf5;padding:10px;font-size:13px;font-family:inherit;resize:vertical;box-sizing:border-box;" placeholder="e.g. The AI difficulty levels do not actually behave differently. Difficulty 3 should be noticeably harder than difficulty 1. Also the score does not reset when R is pressed."></textarea>' +
+      buildAttachUiHtml('sendback', 'image/*,application/pdf,text/*,.md,.csv,.json,.log') +
       '<div style="margin-top:14px;display:flex;justify-content:flex-end;gap:8px;">' +
         '<button onclick="closeSendBackModal()" style="background:transparent;color:#9ca3af;border:1px solid #1f2937;padding:8px 14px;border-radius:6px;cursor:pointer;">Cancel</button>' +
         '<button onclick="confirmSendBack(\'' + reqId + '\')" style="background:#f59e0b;color:#0a1628;border:0;padding:8px 14px;border-radius:6px;cursor:pointer;font-weight:600;">Send back &amp; rebuild</button>' +
       '</div>' +
     '</div>';
   document.body.appendChild(overlay);
+
+  // Drag-and-drop support
+  overlay.addEventListener('dragover', function(e) { e.preventDefault(); });
+  overlay.addEventListener('drop', function(e) {
+    e.preventDefault();
+    if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+      handleAttachmentInput('sendback', e.dataTransfer.files, 'att-list-sendback', 'att-err-sendback');
+    }
+  });
+
   setTimeout(function() {
     const ta = document.getElementById('sendback-notes');
     if (ta) ta.focus();
@@ -2492,6 +2757,7 @@ function openSendBackModal(reqId) {
 }
 
 function closeSendBackModal() {
+  clearStaging('sendback');
   const o = document.getElementById('sendback-overlay');
   if (o) o.remove();
 }
@@ -2504,16 +2770,20 @@ async function confirmSendBack(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
 
-  await patchRequest(reqId, { qa_notes: notes, qa_status: 'not_built' });
-  req.qa_notes = notes;
-  req.qa_status = 'not_built';
+  const attachments = getStaging('sendback').slice();  // copy
+
+  const update = { qa_notes: notes, qa_status: 'not_built', qa_attachments: attachments.length > 0 ? attachments : null };
+  await patchRequest(reqId, update);
+  Object.assign(req, update);
 
   await logActivity({
     request_id: reqId,
     actor: 'admin',
     actor_name: 'admin',
     action: 'qa_send_back',
-    description: 'Sent back v' + (req.artifact_version || 0) + ' for changes: ' + notes.slice(0, 120) + (notes.length > 120 ? '...' : '')
+    description: 'Sent back v' + (req.artifact_version || 0) + ' for changes' +
+      (attachments.length > 0 ? ' (with ' + attachments.length + ' attachment' + (attachments.length === 1 ? '' : 's') + ')' : '') +
+      ': ' + notes.slice(0, 120) + (notes.length > 120 ? '...' : '')
   });
 
   closeSendBackModal();
