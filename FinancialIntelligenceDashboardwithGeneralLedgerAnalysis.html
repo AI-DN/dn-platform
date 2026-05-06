@@ -1016,6 +1016,7 @@
             <button class="tab" data-tab="ledger">Ledger Data</button>
             <button class="tab" data-tab="income">Income Statement</button>
             <button class="tab" data-tab="balance">Balance Sheet</button>
+            <button class="tab" data-tab="master-chart">Master Chart</button>
             <button class="tab" data-tab="history">Import History</button>
         </div>
 
@@ -1108,6 +1109,10 @@
             <div id="balance-content"></div>
         </div>
 
+        <div id="master-chart-tab" class="tab-content">
+            <div id="master-chart-content"></div>
+        </div>
+
         <div id="history-tab" class="tab-content">
             <div id="history-content"></div>
         </div>
@@ -1121,7 +1126,9 @@
                 companies: [],
                 imports: [],
                 entries: [],
-                accounts: []
+                accounts: [],
+                masterAccounts: [],
+                accountMappings: []
             };
 
             const ALL_COLUMNS = [
@@ -1347,6 +1354,9 @@
                 }
             }
 
+            // Master chart management
+            let pendingMappings = [];
+
             // Load all data
             async function loadAllEntries() {
                 const allRows = [];
@@ -1373,15 +1383,19 @@
                 if (!supabaseClient) return;
                 showLoading('Loading data from database...', '');
                 try {
-                    const [companiesRes, importsRes, accountsRes] = await Promise.all([
+                    const [companiesRes, importsRes, accountsRes, masterAccountsRes, mappingsRes] = await Promise.all([
                         supabaseClient.from('companies').select('*'),
                         supabaseClient.from('imports').select('*').order('period_start', { ascending: false }),
-                        supabaseClient.from('accounts').select('*')
+                        supabaseClient.from('accounts').select('*'),
+                        supabaseClient.from('master_accounts').select('*').order('category, name'),
+                        supabaseClient.from('account_mappings').select('*')
                     ]);
                     const entriesData = await loadAllEntries();
                     if (companiesRes.error) throw companiesRes.error;
                     if (importsRes.error) throw importsRes.error;
                     if (accountsRes.error) throw accountsRes.error;
+                    if (masterAccountsRes.error) throw masterAccountsRes.error;
+                    if (mappingsRes.error) throw mappingsRes.error;
                     appState.companies = companiesRes.data;
                     appState.imports = importsRes.data;
                     appState.entries = entriesData.map(function(e) {
@@ -1393,6 +1407,8 @@
                     });
                     console.log('Loaded ' + appState.entries.length + ' GL entries from database (via paginated fetch)');
                     appState.accounts = accountsRes.data;
+                    appState.masterAccounts = masterAccountsRes.data || [];
+                    appState.accountMappings = mappingsRes.data || [];
                     updateKPIs();
                     hideLoading();
                 } catch (error) {
@@ -1600,6 +1616,8 @@
                     }
                     showLoading('Resolving accounts...', accountCodes.size + ' unique accounts found');
                     const accountMap = {};
+                    pendingMappings = [];
+                    
                     for (const code of accountCodes) {
                         let account = appState.accounts.find(function(a) { return a.company_id === companyId && a.code === code; });
                         if (!account) {
@@ -1616,7 +1634,20 @@
                                 appState.accounts.push(account);
                             }
                         }
-                        if (account) accountMap[code] = account.id;
+                        if (account) {
+                            accountMap[code] = account.id;
+                            const existingMapping = appState.accountMappings.find(function(m) {
+                                return m.company_account_id === account.id;
+                            });
+                            if (!existingMapping && appState.masterAccounts.length > 0) {
+                                pendingMappings.push({
+                                    companyId: companyId,
+                                    accountId: account.id,
+                                    code: code,
+                                    accountType: accountType
+                                });
+                            }
+                        }
                     }
                     showLoading('Inserting entries...', 'Preparing ' + records.length + ' entries');
                     await bulkInsertEntries(importId, companyId, records, accountMap);
@@ -1629,8 +1660,13 @@
                         rows_failed: 0,
                         completed_at: new Date().toISOString()
                     }).eq('id', importId);
+                    hideLoading();
                     showToast('Import Complete', 'Imported ' + records.length + ' entries from ' + filename, 'success');
                     await loadAllData();
+                    
+                    if (pendingMappings.length > 0) {
+                        showMappingModal(companyName, pendingMappings);
+                    }
                 } catch (error) {
                     hideLoading();
                     showToast('Import Error', error.message, 'error');
@@ -1937,6 +1973,7 @@
                 if (tabName === 'ledger') renderLedgerData();
                 else if (tabName === 'income') renderIncomeStatement();
                 else if (tabName === 'balance') renderBalanceSheet();
+                else if (tabName === 'master-chart') renderMasterChart();
                 else if (tabName === 'history') renderImportHistory();
             }
 
@@ -2429,6 +2466,57 @@
                 content.innerHTML = html;
             }
 
+            // Master chart rendering
+            function renderMasterChart() {
+                const content = document.getElementById('master-chart-content');
+                if (!supabaseClient) {
+                    content.innerHTML = '<div class="empty-state"><h3>Not Connected</h3><p>Connect to Supabase to manage master chart of accounts</p></div>';
+                    return;
+                }
+                
+                let html = '<div style="margin-bottom: 24px;">';
+                html += '<h2 style="font-size: 20px; font-weight: 600; margin-bottom: 12px;">Master Chart of Accounts</h2>';
+                html += '<p style="color: var(--text-muted); margin-bottom: 16px;">Define standardized account names to map company-specific accounts during imports.</p>';
+                html += '<button class="btn btn-primary" onclick="window.masterChartActions.addAccount()">+ Add Master Account</button>';
+                html += '</div>';
+                
+                const categories = ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense', 'COGS', 'Tax'];
+                
+                if (appState.masterAccounts.length === 0) {
+                    html += '<div class="empty-state"><h3>No Master Accounts</h3><p>Add your first master account to begin standardizing your chart of accounts</p></div>';
+                } else {
+                    categories.forEach(function(category) {
+                        const accounts = appState.masterAccounts.filter(function(a) { return a.category === category; });
+                        if (accounts.length === 0) return;
+                        
+                        html += '<div class="company-section"><h3>' + category + '</h3>';
+                        html += '<div class="table-wrapper"><table><thead><tr>';
+                        html += '<th>Account Name</th><th>Description</th><th>Mapped Companies</th><th style="width: 120px;">Actions</th>';
+                        html += '</tr></thead><tbody>';
+                        
+                        accounts.forEach(function(account) {
+                            const mappedCount = appState.accountMappings.filter(function(m) {
+                                return m.master_account_id === account.id;
+                            }).length;
+                            
+                            html += '<tr>';
+                            html += '<td>' + account.name + '</td>';
+                            html += '<td style="color: var(--text-muted); font-size: 13px;">' + (account.description || '—') + '</td>';
+                            html += '<td><span class="badge badge-info">' + mappedCount + ' companies</span></td>';
+                            html += '<td>';
+                            html += '<button class="btn btn-ghost" style="padding: 4px 8px; font-size: 12px;" onclick="window.masterChartActions.viewMappings(' + account.id + ')">View</button> ';
+                            html += '<button class="btn btn-ghost" style="padding: 4px 8px; font-size: 12px;" onclick="window.masterChartActions.editAccount(' + account.id + ')">Edit</button> ';
+                            html += '<button class="btn btn-ghost" style="padding: 4px 8px; font-size: 12px; color: var(--danger);" onclick="window.masterChartActions.deleteAccount(' + account.id + ')">Delete</button>';
+                            html += '</td></tr>';
+                        });
+                        
+                        html += '</tbody></table></div></div>';
+                    });
+                }
+                
+                content.innerHTML = html;
+            }
+
             // Import history rendering
             function renderImportHistory() {
                 const content = document.getElementById('history-content');
@@ -2488,6 +2576,361 @@
                 });
                 content.innerHTML = html;
             }
+
+            // Master chart actions
+            window.masterChartActions = {
+                addAccount: function() {
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-backdrop';
+                    modal.id = 'add-master-account-modal';
+                    
+                    let html = '<div class="modal">';
+                    html += '<h3>Add Master Account</h3>';
+                    html += '<div class="field-group"><label class="field-label">Account Name</label>';
+                    html += '<input type="text" id="master-account-name" class="input" placeholder="e.g., Cash and Cash Equivalents"></div>';
+                    html += '<div class="field-group"><label class="field-label">Category</label>';
+                    html += '<select id="master-account-category" class="input">';
+                    html += '<option value="Asset">Asset</option>';
+                    html += '<option value="Liability">Liability</option>';
+                    html += '<option value="Equity">Equity</option>';
+                    html += '<option value="Revenue">Revenue</option>';
+                    html += '<option value="Expense">Expense</option>';
+                    html += '<option value="COGS">COGS</option>';
+                    html += '<option value="Tax">Tax</option>';
+                    html += '</select></div>';
+                    html += '<div class="field-group"><label class="field-label">Description (optional)</label>';
+                    html += '<input type="text" id="master-account-desc" class="input" placeholder="Additional details"></div>';
+                    html += '<div class="modal-actions">';
+                    html += '<button class="btn btn-secondary" onclick="document.getElementById(\'add-master-account-modal\').remove()">Cancel</button>';
+                    html += '<button class="btn btn-primary" onclick="window.masterChartActions.saveNewAccount()">Add Account</button>';
+                    html += '</div></div>';
+                    
+                    modal.innerHTML = html;
+                    document.getElementById('modal-container').appendChild(modal);
+                },
+                
+                saveNewAccount: async function() {
+                    const name = document.getElementById('master-account-name').value.trim();
+                    const category = document.getElementById('master-account-category').value;
+                    const description = document.getElementById('master-account-desc').value.trim();
+                    
+                    if (!name) {
+                        showToast('Validation Error', 'Account name is required', 'error');
+                        return;
+                    }
+                    
+                    const existing = appState.masterAccounts.find(function(a) {
+                        return a.name.toLowerCase() === name.toLowerCase() && a.category === category;
+                    });
+                    
+                    if (existing) {
+                        showToast('Duplicate Account', 'This account already exists in ' + category, 'error');
+                        return;
+                    }
+                    
+                    showLoading('Creating master account...', '');
+                    const res = await supabaseClient.from('master_accounts').insert([{
+                        name: name,
+                        category: category,
+                        description: description || null
+                    }]).select().single();
+                    
+                    hideLoading();
+                    
+                    if (res.error) {
+                        showToast('Error', res.error.message, 'error');
+                        return;
+                    }
+                    
+                    appState.masterAccounts.push(res.data);
+                    document.getElementById('add-master-account-modal').remove();
+                    showToast('Account Added', name + ' added to master chart', 'success');
+                    renderMasterChart();
+                },
+                
+                editAccount: function(accountId) {
+                    const account = appState.masterAccounts.find(function(a) { return a.id === accountId; });
+                    if (!account) return;
+                    
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-backdrop';
+                    modal.id = 'edit-master-account-modal';
+                    
+                    let html = '<div class="modal">';
+                    html += '<h3>Edit Master Account</h3>';
+                    html += '<div class="field-group"><label class="field-label">Account Name</label>';
+                    html += '<input type="text" id="edit-account-name" class="input" value="' + account.name + '"></div>';
+                    html += '<div class="field-group"><label class="field-label">Category</label>';
+                    html += '<select id="edit-account-category" class="input">';
+                    ['Asset', 'Liability', 'Equity', 'Revenue', 'Expense', 'COGS', 'Tax'].forEach(function(cat) {
+                        const selected = cat === account.category ? 'selected' : '';
+                        html += '<option value="' + cat + '" ' + selected + '>' + cat + '</option>';
+                    });
+                    html += '</select></div>';
+                    html += '<div class="field-group"><label class="field-label">Description (optional)</label>';
+                    html += '<input type="text" id="edit-account-desc" class="input" value="' + (account.description || '') + '"></div>';
+                    html += '<div class="modal-actions">';
+                    html += '<button class="btn btn-secondary" onclick="document.getElementById(\'edit-master-account-modal\').remove()">Cancel</button>';
+                    html += '<button class="btn btn-primary" onclick="window.masterChartActions.saveEditAccount(' + accountId + ')">Save Changes</button>';
+                    html += '</div></div>';
+                    
+                    modal.innerHTML = html;
+                    document.getElementById('modal-container').appendChild(modal);
+                },
+                
+                saveEditAccount: async function(accountId) {
+                    const name = document.getElementById('edit-account-name').value.trim();
+                    const category = document.getElementById('edit-account-category').value;
+                    const description = document.getElementById('edit-account-desc').value.trim();
+                    
+                    if (!name) {
+                        showToast('Validation Error', 'Account name is required', 'error');
+                        return;
+                    }
+                    
+                    showLoading('Updating account...', '');
+                    const res = await supabaseClient.from('master_accounts').update({
+                        name: name,
+                        category: category,
+                        description: description || null
+                    }).eq('id', accountId).select().single();
+                    
+                    hideLoading();
+                    
+                    if (res.error) {
+                        showToast('Error', res.error.message, 'error');
+                        return;
+                    }
+                    
+                    const idx = appState.masterAccounts.findIndex(function(a) { return a.id === accountId; });
+                    if (idx !== -1) appState.masterAccounts[idx] = res.data;
+                    
+                    document.getElementById('edit-master-account-modal').remove();
+                    showToast('Account Updated', 'Changes saved', 'success');
+                    renderMasterChart();
+                },
+                
+                deleteAccount: async function(accountId) {
+                    const account = appState.masterAccounts.find(function(a) { return a.id === accountId; });
+                    if (!account) return;
+                    
+                    const mappedCount = appState.accountMappings.filter(function(m) {
+                        return m.master_account_id === accountId;
+                    }).length;
+                    
+                    const message = mappedCount > 0 
+                        ? 'This account is mapped to ' + mappedCount + ' company accounts. Deleting will remove all mappings. Continue?'
+                        : 'Delete master account "' + account.name + '"?';
+                    
+                    const action = await showModal('Delete Master Account', message, [
+                        { label: 'Cancel', value: 'cancel', primary: false },
+                        { label: 'Delete', value: 'confirm', primary: true }
+                    ]);
+                    
+                    if (action !== 'confirm') return;
+                    
+                    showLoading('Deleting account...', '');
+                    
+                    if (mappedCount > 0) {
+                        await supabaseClient.from('account_mappings').delete().eq('master_account_id', accountId);
+                    }
+                    
+                    const res = await supabaseClient.from('master_accounts').delete().eq('id', accountId);
+                    hideLoading();
+                    
+                    if (res.error) {
+                        showToast('Error', res.error.message, 'error');
+                        return;
+                    }
+                    
+                    appState.masterAccounts = appState.masterAccounts.filter(function(a) { return a.id !== accountId; });
+                    appState.accountMappings = appState.accountMappings.filter(function(m) { return m.master_account_id !== accountId; });
+                    
+                    showToast('Account Deleted', account.name + ' removed from master chart', 'success');
+                    renderMasterChart();
+                },
+                
+                viewMappings: function(masterAccountId) {
+                    const account = appState.masterAccounts.find(function(a) { return a.id === masterAccountId; });
+                    if (!account) return;
+                    
+                    const mappings = appState.accountMappings.filter(function(m) {
+                        return m.master_account_id === masterAccountId;
+                    });
+                    
+                    const modal = document.createElement('div');
+                    modal.className = 'modal-backdrop';
+                    modal.id = 'view-mappings-modal';
+                    
+                    let html = '<div class="modal" style="max-width: 720px;">';
+                    html += '<h3>Mappings for "' + account.name + '"</h3>';
+                    html += '<p style="color: var(--text-muted); margin-bottom: 16px;">' + mappings.length + ' company accounts mapped to this master account</p>';
+                    
+                    if (mappings.length === 0) {
+                        html += '<div class="empty-state" style="padding: 40px 20px;"><p>No mappings yet</p></div>';
+                    } else {
+                        html += '<div class="table-wrapper"><table><thead><tr>';
+                        html += '<th>Company</th><th>Account Code</th><th>Actions</th>';
+                        html += '</tr></thead><tbody>';
+                        
+                        mappings.forEach(function(mapping) {
+                            const companyAccount = appState.accounts.find(function(a) { return a.id === mapping.company_account_id; });
+                            if (!companyAccount) return;
+                            const company = appState.companies.find(function(c) { return c.id === companyAccount.company_id; });
+                            
+                            html += '<tr>';
+                            html += '<td>' + (company ? company.name : '—') + '</td>';
+                            html += '<td>' + companyAccount.code + '</td>';
+                            html += '<td><button class="btn btn-ghost" style="padding: 4px 8px; font-size: 12px; color: var(--danger);" onclick="window.masterChartActions.deleteMapping(' + mapping.id + ', ' + masterAccountId + ')">Remove</button></td>';
+                            html += '</tr>';
+                        });
+                        
+                        html += '</tbody></table></div>';
+                    }
+                    
+                    html += '<div class="modal-actions">';
+                    html += '<button class="btn btn-secondary" onclick="document.getElementById(\'view-mappings-modal\').remove()">Close</button>';
+                    html += '</div></div>';
+                    
+                    modal.innerHTML = html;
+                    document.getElementById('modal-container').appendChild(modal);
+                },
+                
+                deleteMapping: async function(mappingId, masterAccountId) {
+                    showLoading('Removing mapping...', '');
+                    const res = await supabaseClient.from('account_mappings').delete().eq('id', mappingId);
+                    hideLoading();
+                    
+                    if (res.error) {
+                        showToast('Error', res.error.message, 'error');
+                        return;
+                    }
+                    
+                    appState.accountMappings = appState.accountMappings.filter(function(m) { return m.id !== mappingId; });
+                    showToast('Mapping Removed', 'Account mapping deleted', 'success');
+                    document.getElementById('view-mappings-modal').remove();
+                    window.masterChartActions.viewMappings(masterAccountId);
+                    renderMasterChart();
+                }
+            };
+
+            function showMappingModal(companyName, pendingMappings) {
+                const modal = document.createElement('div');
+                modal.className = 'modal-backdrop';
+                modal.id = 'mapping-modal';
+                
+                let html = '<div class="modal" style="max-width: 820px; max-height: 80vh; overflow-y: auto;">';
+                html += '<h3>Map Company Accounts to Master Chart</h3>';
+                html += '<p style="color: var(--text-muted); margin-bottom: 16px;">' + pendingMappings.length + ' unmapped accounts found in ' + companyName + '</p>';
+                html += '<div class="table-wrapper"><table><thead><tr>';
+                html += '<th>Company Account</th><th>Type</th><th>Map To Master Account</th>';
+                html += '</tr></thead><tbody id="mapping-table-body">';
+                
+                pendingMappings.forEach(function(pending, idx) {
+                    const suggestions = appState.masterAccounts.filter(function(ma) {
+                        return ma.category === pending.accountType || 
+                            ma.name.toLowerCase().indexOf(pending.code.toLowerCase()) !== -1 ||
+                            pending.code.toLowerCase().indexOf(ma.name.toLowerCase()) !== -1;
+                    }).slice(0, 5);
+                    
+                    html += '<tr>';
+                    html += '<td style="font-weight: 500;">' + pending.code + '</td>';
+                    html += '<td><span class="badge badge-neutral">' + (pending.accountType || 'Unknown') + '</span></td>';
+                    html += '<td><select class="input" id="mapping-select-' + idx + '" style="width: 100%;">';
+                    html += '<option value="new">+ Create New Master Account</option>';
+                    html += '<option value="skip">Skip (map later)</option>';
+                    
+                    if (suggestions.length > 0) {
+                        html += '<option disabled>── Suggested ──</option>';
+                        suggestions.forEach(function(ma) {
+                            html += '<option value="' + ma.id + '">' + ma.name + ' (' + ma.category + ')</option>';
+                        });
+                    }
+                    
+                    const otherAccounts = appState.masterAccounts.filter(function(ma) {
+                        return suggestions.indexOf(ma) === -1;
+                    });
+                    
+                    if (otherAccounts.length > 0) {
+                        html += '<option disabled>── All Accounts ──</option>';
+                        otherAccounts.forEach(function(ma) {
+                            html += '<option value="' + ma.id + '">' + ma.name + ' (' + ma.category + ')</option>';
+                        });
+                    }
+                    
+                    html += '</select></td></tr>';
+                });
+                
+                html += '</tbody></table></div>';
+                html += '<div class="modal-actions">';
+                html += '<button class="btn btn-secondary" onclick="document.getElementById(\'mapping-modal\').remove()">Skip All</button>';
+                html += '<button class="btn btn-primary" onclick="window.saveMappings()">Save Mappings</button>';
+                html += '</div></div>';
+                
+                modal.innerHTML = html;
+                document.getElementById('modal-container').appendChild(modal);
+            }
+
+            window.saveMappings = async function() {
+                const newMappings = [];
+                const newMasterAccounts = [];
+                
+                for (let i = 0; i < pendingMappings.length; i++) {
+                    const select = document.getElementById('mapping-select-' + i);
+                    const value = select.value;
+                    const pending = pendingMappings[i];
+                    
+                    if (value === 'skip') continue;
+                    
+                    if (value === 'new') {
+                        newMasterAccounts.push({
+                            name: pending.code,
+                            category: pending.accountType || 'Asset',
+                            companyAccountId: pending.accountId
+                        });
+                    } else {
+                        newMappings.push({
+                            company_account_id: pending.accountId,
+                            master_account_id: parseInt(value)
+                        });
+                    }
+                }
+                
+                showLoading('Saving mappings...', '');
+                
+                try {
+                    for (let i = 0; i < newMasterAccounts.length; i++) {
+                        const newMaster = newMasterAccounts[i];
+                        const res = await supabaseClient.from('master_accounts').insert([{
+                            name: newMaster.name,
+                            category: newMaster.category,
+                            description: 'Auto-created from company account'
+                        }]).select().single();
+                        
+                        if (res.error) throw res.error;
+                        
+                        appState.masterAccounts.push(res.data);
+                        newMappings.push({
+                            company_account_id: newMaster.companyAccountId,
+                            master_account_id: res.data.id
+                        });
+                    }
+                    
+                    if (newMappings.length > 0) {
+                        const res = await supabaseClient.from('account_mappings').insert(newMappings).select();
+                        if (res.error) throw res.error;
+                        appState.accountMappings.push(...res.data);
+                    }
+                    
+                    hideLoading();
+                    document.getElementById('mapping-modal').remove();
+                    showToast('Mappings Saved', 'Created ' + newMasterAccounts.length + ' master accounts and ' + newMappings.length + ' mappings', 'success');
+                    pendingMappings = [];
+                } catch (error) {
+                    hideLoading();
+                    showToast('Error Saving Mappings', error.message, 'error');
+                }
+            };
 
             // Import actions
             window.appActions = {
