@@ -3192,5 +3192,307 @@
             document.getElementById('filter-search').addEventListener('input', filterAndRenderLedger);
         })();
     </script>
+    <script>
+(function addFinMonthColumn() {
+  // Helper: convert any date-ish value to YYYYMM
+  function toFinMonth(dateValue) {
+    if (!dateValue) return '';
+    const d = new Date(dateValue);
+    if (isNaN(d.getTime())) {
+      // Try DD/MM/YYYY format which is what QB exports
+      const m = String(dateValue).match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+      if (m) {
+        const yyyy = m[3];
+        const mm = String(parseInt(m[2], 10)).padStart(2, '0');
+        return yyyy + mm;
+      }
+      return '';
+    }
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return String(yyyy) + mm;
+  }
+  
+  // Make the helper globally available
+  window.toFinMonth = toFinMonth;
+  
+  // Wait for DOM and the existing render functions to be available
+  function patchLedgerRender() {
+    // Wrap renderLedgerTable / renderEntries / whatever v17 calls it
+    // We use a MutationObserver on the ledger table to add the column after render
+    const ledgerTab = document.getElementById('ledger-tab') || document.querySelector('[data-tab-content="ledger"]');
+    if (!ledgerTab) {
+      setTimeout(patchLedgerRender, 500);
+      return;
+    }
+    
+    const observer = new MutationObserver(() => {
+      const tables = ledgerTab.querySelectorAll('table');
+      tables.forEach(table => {
+        if (table.dataset.finMonthAdded === 'true') return;
+        
+        // Add header
+        const headerRow = table.querySelector('thead tr');
+        if (headerRow && !headerRow.querySelector('th[data-fin-month]')) {
+          const th = document.createElement('th');
+          th.textContent = 'Fin Month';
+          th.dataset.finMonth = 'true';
+          th.style.cursor = 'pointer';
+          th.onclick = () => sortByFinMonth(table);
+          headerRow.appendChild(th);
+        }
+        
+        // Add cells per row
+        const rows = table.querySelectorAll('tbody tr');
+        rows.forEach(row => {
+          if (row.querySelector('td[data-fin-month]')) return;
+          // Find the date cell — assume first column is entry_date
+          const cells = row.querySelectorAll('td');
+          let dateValue = null;
+          for (const cell of cells) {
+            const text = cell.textContent.trim();
+            if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(text) || /^\d{4}-\d{2}-\d{2}/.test(text)) {
+              dateValue = text;
+              break;
+            }
+          }
+          const td = document.createElement('td');
+          td.dataset.finMonth = 'true';
+          td.textContent = dateValue ? toFinMonth(dateValue) : '';
+          row.appendChild(td);
+        });
+        
+        table.dataset.finMonthAdded = 'true';
+      });
+    });
+    
+    observer.observe(ledgerTab, { childList: true, subtree: true });
+    
+    // Run once for already-rendered content
+    observer.takeRecords();
+    const tables = ledgerTab.querySelectorAll('table');
+    tables.forEach(table => {
+      const evt = new Event('init');
+      observer.disconnect();
+      observer.observe(ledgerTab, { childList: true, subtree: true });
+    });
+  }
+  
+  function sortByFinMonth(table) {
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+    const rows = [...tbody.querySelectorAll('tr')];
+    const asc = table.dataset.finMonthSortAsc !== 'true';
+    rows.sort((a, b) => {
+      const av = a.querySelector('td[data-fin-month]')?.textContent || '';
+      const bv = b.querySelector('td[data-fin-month]')?.textContent || '';
+      return asc ? av.localeCompare(bv) : bv.localeCompare(av);
+    });
+    rows.forEach(r => tbody.appendChild(r));
+    table.dataset.finMonthSortAsc = String(asc);
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', patchLedgerRender);
+  } else {
+    patchLedgerRender();
+  }
+})();
+</script>
+    <script>
+(function addMasterCoaExcelImport() {
+  // Wait for the master chart tab DOM and Supabase client to exist
+  function init() {
+    const supaUrl = localStorage.getItem('dn_supa_url');
+    const supaKey = localStorage.getItem('dn_supa_key');
+    if (!supaUrl || !supaKey) {
+      setTimeout(init, 500);
+      return;
+    }
+    
+    // Find the master chart tab — try several common selectors
+    const masterTab = document.getElementById('master-chart-tab')
+      || document.getElementById('masterchart-tab')
+      || document.querySelector('[data-tab-content="masterchart"]')
+      || document.querySelector('[data-tab-content="master"]')
+      || [...document.querySelectorAll('[id$="-tab"]')].find(el => el.textContent.toLowerCase().includes('master'));
+    
+    if (!masterTab) {
+      // Tab not rendered yet, retry
+      setTimeout(init, 500);
+      return;
+    }
+    
+    // Don't double-add the button
+    if (masterTab.querySelector('#mc-excel-import-btn')) return;
+    
+    // Build the import button + status area
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'margin: 16px 0; padding: 16px; border: 1px solid #ccc; border-radius: 8px; background: #f8f9fa;';
+    wrapper.innerHTML = `
+      <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap;">
+        <button id="mc-excel-import-btn" style="padding: 8px 16px; background: #0f9ed5; color: white; border: none; border-radius: 4px; cursor: pointer; font-weight: 500;">
+          📁 Import Master COA from Excel
+        </button>
+        <input type="file" id="mc-excel-file" accept=".xlsx,.xls" style="display: none;">
+        <span id="mc-excel-status" style="color: #555; font-size: 0.9em;">
+          Expected columns: Company Name, Account name, DT/CT, GRLevel1-4, AFSLevel1-4
+        </span>
+      </div>
+      <div id="mc-excel-progress" style="margin-top: 12px; display: none;">
+        <div style="background: #e0e0e0; border-radius: 4px; height: 8px; overflow: hidden;">
+          <div id="mc-excel-bar" style="background: #0f9ed5; height: 100%; width: 0%; transition: width 0.2s;"></div>
+        </div>
+        <div id="mc-excel-msg" style="margin-top: 6px; font-size: 0.9em; color: #333;"></div>
+      </div>
+    `;
+    
+    // Insert at the top of the master chart tab
+    masterTab.insertBefore(wrapper, masterTab.firstChild);
+    
+    const btn = wrapper.querySelector('#mc-excel-import-btn');
+    const fileInput = wrapper.querySelector('#mc-excel-file');
+    const status = wrapper.querySelector('#mc-excel-status');
+    const progress = wrapper.querySelector('#mc-excel-progress');
+    const bar = wrapper.querySelector('#mc-excel-bar');
+    const msg = wrapper.querySelector('#mc-excel-msg');
+    
+    btn.onclick = () => fileInput.click();
+    
+    fileInput.onchange = async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      
+      btn.disabled = true;
+      btn.style.opacity = '0.6';
+      progress.style.display = 'block';
+      status.textContent = 'Reading file...';
+      
+      try {
+        // Parse Excel using XLSX (already loaded in v17)
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: 'array' });
+        const sheet = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(sheet, { defval: null });
+        
+        msg.textContent = `Parsed ${rows.length} rows from ${file.name}`;
+        
+        if (rows.length === 0) {
+          status.textContent = 'File is empty.';
+          btn.disabled = false; btn.style.opacity = '1';
+          return;
+        }
+        
+        // Validate expected columns
+        const required = ['Company Name', 'Account name'];
+        const missing = required.filter(c => !(c in rows[0]));
+        if (missing.length > 0) {
+          status.textContent = 'Missing required columns: ' + missing.join(', ');
+          btn.disabled = false; btn.style.opacity = '1';
+          return;
+        }
+        
+        // Step 1: Resolve companies — fetch existing, create any missing
+        msg.textContent = 'Loading existing companies...';
+        const coRes = await fetch(supaUrl + '/rest/v1/companies?select=id,name', {
+          headers: { apikey: supaKey, Authorization: 'Bearer ' + supaKey }
+        });
+        const existingCompanies = await coRes.json();
+        const companyMap = new Map(existingCompanies.map(c => [c.name, c.id]));
+        
+        // Find unique company names in the file
+        const fileCompanyNames = [...new Set(rows.map(r => r['Company Name']).filter(Boolean))];
+        const missingCompanies = fileCompanyNames.filter(n => !companyMap.has(n));
+        
+        if (missingCompanies.length > 0) {
+          msg.textContent = `Creating ${missingCompanies.length} new companies: ${missingCompanies.join(', ')}`;
+          const createRes = await fetch(supaUrl + '/rest/v1/companies', {
+            method: 'POST',
+            headers: {
+              apikey: supaKey,
+              Authorization: 'Bearer ' + supaKey,
+              'Content-Type': 'application/json',
+              Prefer: 'return=representation'
+            },
+            body: JSON.stringify(missingCompanies.map(name => ({ name })))
+          });
+          if (!createRes.ok) {
+            const err = await createRes.text();
+            throw new Error('Failed to create companies: ' + err);
+          }
+          const newCompanies = await createRes.json();
+          newCompanies.forEach(c => companyMap.set(c.name, c.id));
+        }
+        
+        // Step 2: Build master_accounts insert payload from all rows
+        const records = rows.map(r => ({
+          company_id: companyMap.get(r['Company Name']) || null,
+          company_name: r['Company Name'] || null,
+          name: r['Account name'] || null,
+          code: r['Account name'] || null,  // QB-style account code
+          category: r['GRLevel1'] || null,  // primary category from GR hierarchy
+          dt_ct: r['DT/CT'] || null,
+          gr_level_1: r['GRLevel1'] || null,
+          gr_level_2: r['GRLevel2'] || null,
+          gr_level_3: r['GRLevel3'] || null,
+          gr_level_4: r['GRLevel4'] || null,
+          afs_level_1: r['AFSLevel1'] || null,
+          afs_level_2: r['AFSLevel2'] || null,
+          afs_level_3: r['AFSLevel3'] || null,
+          afs_level_4: r['AFSLevel4'] || null,
+          description: null,
+          is_active: true
+        })).filter(r => r.name);  // skip rows with no account name
+        
+        // Step 3: Bulk insert in batches of 200
+        const BATCH = 200;
+        let inserted = 0;
+        for (let i = 0; i < records.length; i += BATCH) {
+          const slice = records.slice(i, i + BATCH);
+          const insRes = await fetch(supaUrl + '/rest/v1/master_accounts', {
+            method: 'POST',
+            headers: {
+              apikey: supaKey,
+              Authorization: 'Bearer ' + supaKey,
+              'Content-Type': 'application/json',
+              Prefer: 'return=minimal'
+            },
+            body: JSON.stringify(slice)
+          });
+          if (!insRes.ok) {
+            const err = await insRes.text();
+            throw new Error(`Batch insert failed at row ${i}: ${err}`);
+          }
+          inserted += slice.length;
+          const pct = Math.round((inserted / records.length) * 100);
+          bar.style.width = pct + '%';
+          msg.textContent = `Imported ${inserted} of ${records.length} accounts...`;
+        }
+        
+        bar.style.width = '100%';
+        msg.textContent = `✓ Imported ${inserted} master accounts across ${fileCompanyNames.length} companies. Reload the page to see them.`;
+        status.textContent = 'Import complete.';
+        btn.textContent = '✓ Import Complete';
+        btn.style.background = '#22c55e';
+        
+      } catch (err) {
+        console.error('Master COA import failed:', err);
+        status.textContent = 'Import failed: ' + err.message;
+        msg.textContent = err.message;
+        bar.style.background = '#ef4444';
+        btn.disabled = false;
+        btn.style.opacity = '1';
+      }
+    };
+  }
+  
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>
+    
 </body>
 </html>
