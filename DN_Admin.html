@@ -3117,7 +3117,10 @@ async function buildRequest(reqId) {
     // builds it emits full HTML. parseBuildReply distinguishes the two.
     const parsed = parseBuildReply(reply);
     if (!parsed) {
-      throw new Error('Build response could not be parsed as either full HTML or patches. First 500 chars of response: ' + reply.slice(0, 500));
+      // Save the raw reply on window for diagnosis from the console
+      window._lastFailedBuildReply = reply;
+      console.error('Build response could not be parsed. Full reply available at window._lastFailedBuildReply');
+      throw new Error('Build response could not be parsed as either full HTML or patches. Full reply saved at window._lastFailedBuildReply for inspection. First 500 chars: ' + reply.slice(0, 500));
     }
 
     let html;
@@ -3884,46 +3887,155 @@ function applyPatchesToArtifact(originalHtml, patches) {
 function parseBuildReply(reply) {
   if (!reply) return null;
   let text = reply.trim();
+  // Strip markdown code fences if the model added them
   text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
 
-  // Try JSON.parse first
-  let obj = null;
+  // Strategy 1: try standard JSON.parse
   try {
-    obj = JSON.parse(text);
-  } catch(e) {
-    // Try progressive find for the largest valid JSON in the text
-    const objStart = text.indexOf('{');
-    if (objStart !== -1) {
-      for (let end = text.length; end > objStart + 10; end--) {
-        try {
-          obj = JSON.parse(text.slice(objStart, end));
-          break;
-        } catch(e2) { /* keep looking */ }
-      }
-    }
+    const obj = JSON.parse(text);
+    if (typeof obj.html === 'string' && obj.html.length > 200) return { mode: 'full', html: obj.html };
+    if (Array.isArray(obj.patches)) return { mode: 'patches', patches: obj.patches };
+  } catch(e) { /* fall through */ }
+
+  // Strategy 2: heuristic — model often pretty-prints the JSON which puts
+  // literal newlines inside string values, making JSON.parse fail. We can
+  // tolerate this by escaping unescaped newlines and tabs inside string values.
+  try {
+    const fixed = escapeNewlinesInJsonStrings(text);
+    const obj = JSON.parse(fixed);
+    if (typeof obj.html === 'string' && obj.html.length > 200) return { mode: 'full', html: obj.html };
+    if (Array.isArray(obj.patches)) return { mode: 'patches', patches: obj.patches };
+  } catch(e) { /* fall through */ }
+
+  // Strategy 3: structural extraction for patches — walk the text manually
+  // identifying patch objects regardless of overall JSON validity. This is
+  // resilient to almost any pretty-printing or stray content the agent emits.
+  const structuralPatches = extractPatchesStructurally(text);
+  if (structuralPatches && structuralPatches.length > 0) {
+    return { mode: 'patches', patches: structuralPatches };
   }
 
-  if (!obj) {
-    // Last-resort: heuristic HTML extraction (mode: 'full')
-    const docMatch = text.match(/<!DOCTYPE[\s\S]*<\/html\s*>/i);
-    if (docMatch) {
-      const html = docMatch[0]
-        .replace(/\\n/g, '\n')
-        .replace(/\\"/g, '"')
-        .replace(/\\\\/g, '\\');
-      return { mode: 'full', html: html };
-    }
-    return null;
+  // Strategy 4: last-resort heuristic HTML extraction (mode: 'full')
+  const docMatch = text.match(/<!DOCTYPE[\s\S]*<\/html\s*>/i);
+  if (docMatch) {
+    const html = docMatch[0]
+      .replace(/\\n/g, '\n')
+      .replace(/\\"/g, '"')
+      .replace(/\\\\/g, '\\');
+    return { mode: 'full', html: html };
   }
 
-  // Got JSON. Determine which shape it is.
-  if (typeof obj.html === 'string' && obj.html.length > 200) {
-    return { mode: 'full', html: obj.html };
-  }
-  if (Array.isArray(obj.patches)) {
-    return { mode: 'patches', patches: obj.patches };
-  }
   return null;
+}
+
+// Walk a string, detecting when we're inside a JSON string value. Replace any
+// literal newlines, carriage returns, or tabs inside string values with their
+// escaped form. Preserves already-escaped sequences.
+function escapeNewlinesInJsonStrings(text) {
+  let out = '';
+  let i = 0;
+  let inString = false;
+  while (i < text.length) {
+    const c = text[i];
+    if (inString) {
+      if (c === '\\' && i + 1 < text.length) {
+        // Keep escape sequence as-is
+        out += c + text[i + 1];
+        i += 2;
+        continue;
+      }
+      if (c === '"') {
+        inString = false;
+        out += c;
+        i++;
+        continue;
+      }
+      if (c === '\n') { out += '\\n'; i++; continue; }
+      if (c === '\r') { out += '\\r'; i++; continue; }
+      if (c === '\t') { out += '\\t'; i++; continue; }
+      out += c;
+      i++;
+    } else {
+      if (c === '"') {
+        inString = true;
+      }
+      out += c;
+      i++;
+    }
+  }
+  return out;
+}
+
+// Extract patches by walking the text and looking for { "find": "...", "replace": "..." }
+// shaped objects. Tolerant of literal newlines in strings, surrounding noise,
+// trailing commas, etc.
+function extractPatchesStructurally(text) {
+  const patches = [];
+  // Find each patch object by locating "find" keys. For each "find" key we
+  // find, parse the string value that follows, then look for the "replace"
+  // key after that and parse its value.
+  let i = 0;
+  while (i < text.length) {
+    const findIdx = text.indexOf('"find"', i);
+    if (findIdx === -1) break;
+
+    // After "find" we expect : then a string. Parse the string.
+    let p = findIdx + 6;
+    while (p < text.length && (text[p] === ' ' || text[p] === '\t' || text[p] === ':')) p++;
+    if (p >= text.length || text[p] !== '"') { i = findIdx + 6; continue; }
+    const findResult = parseJsonString(text, p);
+    if (!findResult) { i = findIdx + 6; continue; }
+
+    // Now look for "replace" after the find string
+    const replaceIdx = text.indexOf('"replace"', findResult.endPos);
+    if (replaceIdx === -1) break;
+    let q = replaceIdx + 9;
+    while (q < text.length && (text[q] === ' ' || text[q] === '\t' || text[q] === ':')) q++;
+    if (q >= text.length || text[q] !== '"') { i = replaceIdx + 9; continue; }
+    const replaceResult = parseJsonString(text, q);
+    if (!replaceResult) { i = replaceIdx + 9; continue; }
+
+    patches.push({ find: findResult.value, replace: replaceResult.value });
+    i = replaceResult.endPos;
+  }
+  return patches;
+}
+
+// Parse a JSON string starting at startPos (which must point to opening ").
+// Tolerates literal newlines (treats them as if escaped). Returns
+// { value, endPos } or null on failure. endPos is the index *after* the closing ".
+function parseJsonString(text, startPos) {
+  if (text[startPos] !== '"') return null;
+  let i = startPos + 1;
+  let value = '';
+  while (i < text.length) {
+    const c = text[i];
+    if (c === '\\' && i + 1 < text.length) {
+      const next = text[i + 1];
+      if (next === 'n') value += '\n';
+      else if (next === 't') value += '\t';
+      else if (next === 'r') value += '\r';
+      else if (next === '"') value += '"';
+      else if (next === '\\') value += '\\';
+      else if (next === '/') value += '/';
+      else if (next === 'u' && i + 5 < text.length) {
+        const hex = text.slice(i + 2, i + 6);
+        value += String.fromCharCode(parseInt(hex, 16));
+        i += 6;
+        continue;
+      } else value += next;
+      i += 2;
+      continue;
+    }
+    if (c === '"') {
+      return { value: value, endPos: i + 1 };
+    }
+    // Literal newlines, tabs, etc. in a JSON string are technically invalid,
+    // but we tolerate them as if they were properly escaped.
+    value += c;
+    i++;
+  }
+  return null;  // unterminated string
 }
 
 // ── END PATCH-BASED REBUILD ─────────────────────────────────────────────────
