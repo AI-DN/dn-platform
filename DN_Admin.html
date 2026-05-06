@@ -1421,7 +1421,7 @@ function getConsultationPending(reqId) { return _consultationPending[reqId]; }
 function clearConsultationPending(reqId) { delete _consultationPending[reqId]; }
 
 async function detectAppType(req, caps) {
-  const apiKey = localStorage.getItem('dn_anthropic_key');
+  const apiKey = localStorage.getItem('dn_claude');
   if (!apiKey) throw new Error('Anthropic API key not configured.');
 
   const capsList = (caps || []).map(function(c) {
@@ -1504,7 +1504,7 @@ const DOMAIN_BRIEF_PROMPTS = {
 };
 
 async function generateDomainBrief(appType, req, caps) {
-  const apiKey = localStorage.getItem('dn_anthropic_key');
+  const apiKey = localStorage.getItem('dn_claude');
   if (!apiKey) throw new Error('Anthropic API key not configured.');
 
   const expertVoice = DOMAIN_BRIEF_PROMPTS[appType] || DOMAIN_BRIEF_PROMPTS.general;
@@ -3006,7 +3006,7 @@ async function buildRequest(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
 
-  const apiKey = localStorage.getItem('dn_anthropic_key');
+  const apiKey = localStorage.getItem('dn_claude');
   if (!apiKey) { alert('Anthropic API key not configured. Open settings (gear icon) to add one.'); return; }
 
   const caps = getCapabilities(req);
