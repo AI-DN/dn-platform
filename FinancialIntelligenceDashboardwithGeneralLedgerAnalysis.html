@@ -1125,6 +1125,7 @@
             };
 
             const ALL_COLUMNS = [
+                { key: 'company_name', label: 'Company', default: true },
                 { key: 'entry_date', label: 'Date', default: true },
                 { key: 'transaction_type', label: 'Type', default: true },
                 { key: 'account_code', label: 'Account', default: true },
@@ -1162,6 +1163,7 @@
             ];
 
             let visibleColumns = ALL_COLUMNS.filter(c => c.default).map(c => c.key);
+            window.currentFilteredEntries = [];
 
             // Theme management
             const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1980,6 +1982,192 @@
                 });
             }
 
+            function showExportModal() {
+                const modal = document.createElement('div');
+                modal.className = 'modal-backdrop';
+                modal.id = 'export-modal';
+                
+                let html = '<div class="modal" style="max-width: 720px;">';
+                html += '<h3>Export Ledger Data</h3>';
+                html += '<p style="margin-bottom: 16px;">Customize your export by selecting columns and applying filters</p>';
+                
+                html += '<div style="margin-bottom: 24px;">';
+                html += '<h4 style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text);">Select Columns</h4>';
+                html += '<div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; max-height: 200px; overflow-y: auto; padding: 12px; background: var(--surface-2); border-radius: var(--radius-sm);">';
+                ALL_COLUMNS.forEach(function(col) {
+                    const checked = visibleColumns.indexOf(col.key) !== -1 ? 'checked' : '';
+                    html += '<label style="display: flex; align-items: center; gap: 6px; font-size: 13px; cursor: pointer;">';
+                    html += '<input type="checkbox" class="export-col-check" data-col="' + col.key + '" ' + checked + '>';
+                    html += '<span>' + col.label + '</span></label>';
+                });
+                html += '</div></div>';
+                
+                html += '<div style="margin-bottom: 24px;">';
+                html += '<h4 style="font-size: 13px; font-weight: 600; margin-bottom: 12px; color: var(--text);">Filter Data</h4>';
+                html += '<div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px;">';
+                
+                html += '<div class="filter-group"><label>Date Range</label>';
+                html += '<div style="display: flex; gap: 8px;">';
+                html += '<input type="date" id="export-date-start" class="input" placeholder="Start">';
+                html += '<input type="date" id="export-date-end" class="input" placeholder="End">';
+                html += '</div></div>';
+                
+                html += '<div class="filter-group"><label>Company</label>';
+                html += '<select id="export-company" class="input" multiple style="height: 80px;">';
+                const companies = [...new Set(appState.entries.map(function(e) {
+                    return appState.companies.find(function(c) { return c.id === e.company_id; })?.name;
+                }).filter(Boolean))];
+                companies.forEach(function(c) {
+                    html += '<option value="' + c + '">' + c + '</option>';
+                });
+                html += '</select></div>';
+                
+                html += '<div class="filter-group"><label>Transaction Type</label>';
+                html += '<select id="export-type" class="input" multiple style="height: 80px;">';
+                const types = [...new Set(appState.entries.map(function(e) { return e.transaction_type; }).filter(Boolean))];
+                types.forEach(function(t) {
+                    html += '<option value="' + t + '">' + t + '</option>';
+                });
+                html += '</select></div>';
+                
+                html += '<div class="filter-group"><label>Amount Range</label>';
+                html += '<div style="display: flex; gap: 8px;">';
+                html += '<input type="number" id="export-amount-min" class="input" placeholder="Min" step="0.01">';
+                html += '<input type="number" id="export-amount-max" class="input" placeholder="Max" step="0.01">';
+                html += '</div></div>';
+                
+                html += '</div></div>';
+                
+                html += '<div class="modal-actions">';
+                html += '<button class="btn btn-secondary" id="export-cancel">Cancel</button>';
+                html += '<button class="btn btn-primary" id="export-generate">Generate Export</button>';
+                html += '</div></div>';
+                
+                modal.innerHTML = html;
+                document.getElementById('modal-container').appendChild(modal);
+                
+                document.getElementById('export-cancel').addEventListener('click', function() {
+                    modal.remove();
+                });
+                
+                document.getElementById('export-generate').addEventListener('click', function() {
+                    executeExport();
+                    modal.remove();
+                });
+            }
+            
+            function executeExport() {
+                const selectedColumns = [];
+                document.querySelectorAll('.export-col-check:checked').forEach(function(cb) {
+                    selectedColumns.push(cb.dataset.col);
+                });
+                
+                if (selectedColumns.length === 0) {
+                    showToast('No Columns Selected', 'Please select at least one column to export', 'warning');
+                    return;
+                }
+                
+                const dateStart = document.getElementById('export-date-start').value;
+                const dateEnd = document.getElementById('export-date-end').value;
+                const selectedCompanies = Array.from(document.getElementById('export-company').selectedOptions).map(function(o) { return o.value; });
+                const selectedTypes = Array.from(document.getElementById('export-type').selectedOptions).map(function(o) { return o.value; });
+                const amountMin = parseFloat(document.getElementById('export-amount-min').value) || null;
+                const amountMax = parseFloat(document.getElementById('export-amount-max').value) || null;
+                
+                let filtered = appState.entries.filter(function(e) {
+                    if (dateStart) {
+                        const startDate = new Date(dateStart);
+                        if (e.entry_date < startDate) return false;
+                    }
+                    if (dateEnd) {
+                        const endDate = new Date(dateEnd);
+                        endDate.setHours(23, 59, 59, 999);
+                        if (e.entry_date > endDate) return false;
+                    }
+                    if (selectedCompanies.length > 0) {
+                        const company = appState.companies.find(function(c) { return c.id === e.company_id; });
+                        if (!company || selectedCompanies.indexOf(company.name) === -1) return false;
+                    }
+                    if (selectedTypes.length > 0) {
+                        if (!e.transaction_type || selectedTypes.indexOf(e.transaction_type) === -1) return false;
+                    }
+                    if (amountMin !== null) {
+                        const amount = Math.abs(e.debit || e.credit || e.amount || 0);
+                        if (amount < amountMin) return false;
+                    }
+                    if (amountMax !== null) {
+                        const amount = Math.abs(e.debit || e.credit || e.amount || 0);
+                        if (amount > amountMax) return false;
+                    }
+                    return true;
+                });
+                
+                if (filtered.length === 0) {
+                    showToast('No Data', 'No ledger entries match your filters', 'warning');
+                    return;
+                }
+                
+                showLoading('Preparing export...', 'Processing ' + filtered.length + ' entries');
+                
+                setTimeout(function() {
+                    const data = [];
+                    const headers = [];
+                    ALL_COLUMNS.forEach(function(col) {
+                        if (selectedColumns.indexOf(col.key) !== -1) {
+                            headers.push(col.label);
+                        }
+                    });
+                    data.push(headers);
+                    
+                    filtered.forEach(function(e) {
+                        const row = [];
+                        ALL_COLUMNS.forEach(function(col) {
+                            if (selectedColumns.indexOf(col.key) === -1) return;
+                            
+                            let value = '';
+                            if (col.key === 'company_name') {
+                                const company = appState.companies.find(function(c) { return c.id === e.company_id; });
+                                value = company ? company.name : '';
+                            } else if (col.key === 'entry_date') {
+                                value = formatDate(e.entry_date);
+                            } else if (col.numeric) {
+                                const num = e[col.key];
+                                if (num !== null && num !== undefined && num !== '') {
+                                    value = num;
+                                }
+                            } else {
+                                value = e[col.key] || '';
+                            }
+                            row.push(value);
+                        });
+                        data.push(row);
+                    });
+                    
+                    try {
+                        const ws = XLSX.utils.aoa_to_sheet(data);
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Ledger Data');
+                        
+                        const companyLabel = selectedCompanies.length === 1 ? selectedCompanies[0].replace(/[^a-zA-Z0-9]/g, '_') : 'MultipleCompanies';
+                        const dateLabel = dateStart && dateEnd ? dateStart + '_to_' + dateEnd : new Date().toISOString().split('T')[0];
+                        const filename = 'GL_Export_' + companyLabel + '_' + dateLabel + '.xlsx';
+                        
+                        XLSX.writeFile(wb, filename);
+                        hideLoading();
+                        showToast('Export Complete', 'Exported ' + filtered.length + ' entries with ' + selectedColumns.length + ' columns', 'success');
+                    } catch (error) {
+                        hideLoading();
+                        showToast('Export Failed', error.message, 'error');
+                    }
+                }, 100);
+            }
+            
+            function exportLedgerToExcel() {
+                showExportModal();
+            }
+            
+            window.exportLedgerToExcel = exportLedgerToExcel;
+            
             function filterAndRenderLedger() {
                 const companyFilter = document.getElementById('filter-company').value;
                 const typeFilter = document.getElementById('filter-type').value;
@@ -2001,10 +2189,11 @@
                     content.innerHTML = '<div class="empty-state"><h3>No Results</h3><p>No records match your filters</p></div>';
                     return;
                 }
-                const limit = 1000;
-                const display = filtered.slice(0, limit);
+                const display = filtered;
                 
-                let html = '<div class="table-header-controls">';
+                let html = '<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">';
+                html += '<button class="btn btn-primary" onclick="window.exportLedgerToExcel()">📊 Export to Excel (Custom)</button>';
+                html += '<div class="table-header-controls" style="margin: 0;">';
                 html += '<div class="column-toggle">';
                 html += '<button class="column-toggle-btn" onclick="window.toggleColumnMenu()">⚙ Columns</button>';
                 html += '<div class="column-toggle-menu" id="column-toggle-menu">';
@@ -2015,7 +2204,7 @@
                     html += '<label for="col-' + col.key + '">' + col.label + '</label>';
                     html += '</div>';
                 });
-                html += '</div></div></div>';
+                html += '</div></div></div></div>';
                 
                 html += '<div class="table-wrapper"><table><thead><tr>';
                 ALL_COLUMNS.forEach(function(col) {
@@ -2029,7 +2218,10 @@
                     ALL_COLUMNS.forEach(function(col) {
                         if (visibleColumns.indexOf(col.key) === -1) return;
                         let value = '';
-                        if (col.key === 'entry_date') {
+                        if (col.key === 'company_name') {
+                            const company = appState.companies.find(function(c) { return c.id === e.company_id; });
+                            value = company ? company.name : '';
+                        } else if (col.key === 'entry_date') {
                             value = formatDate(e.entry_date);
                         } else if (col.numeric) {
                             const num = e[col.key];
@@ -2044,14 +2236,11 @@
                     html += '</tr>';
                 });
                 html += '</tbody></table></div>';
-                if (filtered.length > limit) {
-                    html += '<p style="color: var(--text-muted); font-size: 13px;">Showing ' + limit + ' of ' + filtered.length + ' records</p>';
-                } else {
-                    html += '<p style="color: var(--text-muted); font-size: 13px;">Showing ' + filtered.length + ' records</p>';
-                }
+
+                html += '<p style="color: var(--text-muted); font-size: 13px;">Showing ' + filtered.length + ' records</p>';
                 content.innerHTML = html;
                 
-                window.currentFilteredEntries = filtered.slice(0, limit);
+                window.currentFilteredEntries = display;
             }
 
             window.toggleColumnMenu = toggleColumnMenu;
