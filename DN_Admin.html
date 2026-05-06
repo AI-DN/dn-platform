@@ -3113,8 +3113,34 @@ async function buildRequest(reqId) {
       throw new Error('Build output was truncated — the app exceeded the token budget (32K tokens, ~120 KB of HTML). The request may be too ambitious for one monolithic file. Consider narrowing the MVP scope (fewer features in v1) and adding the rest as capabilities to rebuild later. Partial output started: ' + reply.slice(0, 200));
     }
 
-    // Parse the JSON response — expects { "html": "..." }
-    const html = parseMonolithicReply(reply);
+    // Parse the response. On rebuilds the agent should emit patches; on initial
+    // builds it emits full HTML. parseBuildReply distinguishes the two.
+    const parsed = parseBuildReply(reply);
+    if (!parsed) {
+      throw new Error('Build response could not be parsed as either full HTML or patches. First 500 chars of response: ' + reply.slice(0, 500));
+    }
+
+    let html;
+    if (parsed.mode === 'patches') {
+      // Apply patches to the previous artifact
+      if (!previousHtml || previousHtml.length === 0) {
+        throw new Error('Build returned patches but there is no previous artifact to patch against. This should not happen on an initial build — the agent should emit full HTML.');
+      }
+      console.log('Applying ' + parsed.patches.length + ' patches to previous artifact (' + Math.round(previousHtml.length / 1024) + ' KB)...');
+      const result = applyPatchesToArtifact(previousHtml, parsed.patches);
+      if (!result.ok) {
+        throw new Error(
+          'Patch application failed at patch ' + (result.failedAt + 1) + ' of ' + parsed.patches.length + '. ' + result.error +
+          '\n\nThe build agent emitted patches that did not apply cleanly. The most common cause is the find string not matching the previous HTML byte-for-byte (paraphrased instead of copied verbatim). Send Back with a note asking the agent to use exact strings from the previous artifact, or to emit a full HTML rebuild instead.'
+        );
+      }
+      html = result.html;
+      console.log('All ' + result.applied + ' patches applied. Resulting artifact: ' + Math.round(html.length / 1024) + ' KB');
+    } else {
+      // Full HTML response
+      html = parsed.html;
+    }
+
     if (!html || html.length < 200) {
       throw new Error('Build produced no HTML or output was too short. The model response was: ' + reply.slice(0, 500));
     }
@@ -3706,8 +3732,9 @@ DN_HOUSE_STYLE.trim() + '\n' +
 
   if (isRebuild) {
     prompt +=
-'THIS IS A REBUILD. The previous version of this app has been reviewed and needs changes.\n\n' +
-'PREVIOUS VERSION HTML (preserve what works, only address the changes described below):\n' +
+'THIS IS A REBUILD — patch mode.\n\n' +
+'The previous version of this app exists. Instead of re-emitting all of it (which costs 100K+ tokens of output), you will emit a list of PATCHES describing only the changes needed.\n\n' +
+'PREVIOUS VERSION HTML (read carefully — your patches will modify this):\n' +
 '```html\n' + previousHtml + '\n```\n\n';
 
     // Pending capabilities = user-requested additions since the last build
@@ -3719,19 +3746,45 @@ DN_HOUSE_STYLE.trim() + '\n' +
         return (i + 1) + '. ' + t + d;
       }).join('\n');
       prompt +=
-'NEW CAPABILITIES requested by the user (these were added AFTER the previous build — they are the primary focus of this rebuild):\n' + pendingList + '\n\n' +
-'Implement these new capabilities while preserving everything that already works in the previous HTML. Do NOT regress on capabilities that were already implemented correctly. Integrate the new capabilities cleanly into the existing app — extend the existing UI rather than replacing it.\n\n';
+'NEW CAPABILITIES requested by the user (these were added AFTER the previous build — they are the primary focus of this rebuild):\n' + pendingList + '\n\n';
     }
 
     if (qaNotes) {
       prompt +=
-'REQUESTED CHANGES from the QA reviewer:\n' + qaNotes + '\n\n' +
-'Apply these changes while preserving everything else that already works. Do NOT regress on capabilities that were already implemented correctly.\n\n';
+'REQUESTED CHANGES from the QA reviewer:\n' + qaNotes + '\n\n';
     }
-  }
 
-  prompt +=
-'OUTPUT FORMAT:\n' +
+    prompt +=
+'═══════════════════════════════════════════════════════════════════════\n' +
+'PATCH MODE — OUTPUT FORMAT (read carefully)\n' +
+'═══════════════════════════════════════════════════════════════════════\n\n' +
+'Output a JSON object with a "patches" array. Each patch has a "find" string and a "replace" string. Patches are applied in order to the previous HTML.\n\n' +
+'{\n' +
+'  "patches": [\n' +
+'    { "find": "exact unique string in previous HTML", "replace": "new string" },\n' +
+'    { "find": "...", "replace": "..." }\n' +
+'  ]\n' +
+'}\n\n' +
+'STRICT RULES — violations cause the rebuild to fail:\n\n' +
+'1. Each "find" string MUST appear EXACTLY ONCE in the previous HTML. If it appears zero times, the patch fails. If it appears multiple times, the patch fails. Choose distinctive surrounding context to make matches unique. For example, if you want to change a function body and the body is short, include the function declaration line in the find string so it\'s uniquely identifiable.\n\n' +
+'2. Find strings must match the previous HTML BYTE-FOR-BYTE — including indentation, whitespace, line endings, and quotes. Copy verbatim from the previous HTML. Do NOT paraphrase.\n\n' +
+'3. To DELETE code, set "replace" to an empty string "".\n\n' +
+'4. To ADD new code, find a unique anchor location (e.g. a function declaration, a comment marker, a closing brace of a known section) and replace it with itself plus the new code. Example: { "find": "function existingFn() {", "replace": "function existingFn() {\\n  newLine();" }\n\n' +
+'5. Patches are applied IN ORDER. After patch 1 applies, patch 2 sees the updated artifact. So if patch 1 changes line A, patch 2 cannot still match against the original line A.\n\n' +
+'6. Keep individual find/replace strings reasonably small (under 1KB each typically). For larger changes, break into multiple smaller patches rather than one giant one — easier to debug if one fails.\n\n' +
+'7. If the requested changes genuinely require restructuring most of the app, you MAY emit a full HTML rebuild instead of patches by responding with {"html": "<!DOCTYPE html>..."} — the platform accepts both formats. But this should be rare; prefer patches whenever possible.\n\n' +
+'EXAMPLES of good patches:\n\n' +
+'Replacing a constant value:\n' +
+'{ "find": "const KPI_REVENUE_LABEL = \'Revenue\';", "replace": "const KPI_REVENUE_LABEL = \'Total Revenue\';" }\n\n' +
+'Fixing a specific line in a function:\n' +
+'{ "find": "  const balance = sumDebits - sumCredits;  // OLD - wrong for liabilities", "replace": "  const balance = isLiability ? sumCredits - sumDebits : sumDebits - sumCredits;" }\n\n' +
+'Adding a new function:\n' +
+'{ "find": "// ── END FINANCIAL HELPERS ──", "replace": "function classifyAccount(code) {\\n  if (code.startsWith(\'Rev/\')) return \'revenue\';\\n  // ... etc\\n}\\n\\n// ── END FINANCIAL HELPERS ──" }\n\n' +
+'No prose, no markdown fences, no explanation. Just the JSON object with the patches array.\n\n';
+  } else {
+    // Initial build — keep the full-HTML format
+    prompt +=
+'OUTPUT FORMAT (initial build — full HTML):\n' +
 'Respond with a single JSON object containing one field "html" with the complete HTML document as the value. No prose, no markdown fences, no explanation. Just:\n' +
 '{"html":"<!DOCTYPE html>...</html>"}\n\n' +
 'JSON STRING ESCAPING — this is critical:\n' +
@@ -3740,9 +3793,140 @@ DN_HOUSE_STYLE.trim() + '\n' +
 '- Newlines in the HTML must be escaped as \\n (or you can use literal newlines — both are valid JSON when properly handled)\n' +
 '- Do NOT wrap the JSON in markdown code fences\n' +
 '- Output the JSON object and nothing else\n';
+  }
 
   return prompt;
 }
+
+// ── PATCH-BASED REBUILD ─────────────────────────────────────────────────────
+// Rebuilds emit structured patches instead of re-emitting full HTML. This
+// dramatically expands what the build agent can do within a single 32K-token
+// output budget — instead of describing every byte of the previous artifact,
+// it describes only the changes.
+//
+// Patch format:
+//   { patches: [
+//     { find: "exact unique string from previous artifact", replace: "new string" },
+//     { find: "...", replace: "..." }
+//   ]}
+//
+// Strict rules:
+// - Each `find` must match exactly once in the current artifact. If it matches
+//   zero times or multiple times, the patch fails.
+// - Patches are applied in order. After each one, the artifact is updated and
+//   subsequent patches see the updated version.
+// - All patches must apply successfully or the build is rejected.
+
+function applyPatchesToArtifact(originalHtml, patches) {
+  // Returns { ok: true, html: '...', applied: N } on full success,
+  // or { ok: false, error: '...', failedAt: index, applied: N } on any failure.
+  if (!Array.isArray(patches) || patches.length === 0) {
+    return { ok: false, error: 'No patches provided', failedAt: -1, applied: 0 };
+  }
+
+  let html = originalHtml;
+  for (let i = 0; i < patches.length; i++) {
+    const p = patches[i];
+    if (!p || typeof p.find !== 'string' || typeof p.replace !== 'string') {
+      return {
+        ok: false,
+        error: 'Patch ' + (i + 1) + ' is malformed (missing find or replace)',
+        failedAt: i,
+        applied: i
+      };
+    }
+    if (p.find.length === 0) {
+      return {
+        ok: false,
+        error: 'Patch ' + (i + 1) + ' has empty find string',
+        failedAt: i,
+        applied: i
+      };
+    }
+
+    // Count occurrences. Must be exactly one.
+    let count = 0;
+    let pos = 0;
+    while ((pos = html.indexOf(p.find, pos)) !== -1) {
+      count++;
+      if (count > 1) break;  // we know enough
+      pos += p.find.length;
+    }
+
+    if (count === 0) {
+      return {
+        ok: false,
+        error: 'Patch ' + (i + 1) + ': find string not found in artifact. First 200 chars of find: "' + p.find.slice(0, 200) + '"',
+        failedAt: i,
+        applied: i
+      };
+    }
+    if (count > 1) {
+      return {
+        ok: false,
+        error: 'Patch ' + (i + 1) + ': find string matches multiple times in artifact (must be unique). First 200 chars of find: "' + p.find.slice(0, 200) + '"',
+        failedAt: i,
+        applied: i
+      };
+    }
+
+    // Apply
+    html = html.replace(p.find, p.replace);
+  }
+
+  return { ok: true, html: html, applied: patches.length };
+}
+
+// Returns one of:
+//   { mode: 'full', html: '...' }      — agent emitted full HTML
+//   { mode: 'patches', patches: [...] } — agent emitted patches
+//   null                                 — couldn't parse
+function parseBuildReply(reply) {
+  if (!reply) return null;
+  let text = reply.trim();
+  text = text.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/, '').trim();
+
+  // Try JSON.parse first
+  let obj = null;
+  try {
+    obj = JSON.parse(text);
+  } catch(e) {
+    // Try progressive find for the largest valid JSON in the text
+    const objStart = text.indexOf('{');
+    if (objStart !== -1) {
+      for (let end = text.length; end > objStart + 10; end--) {
+        try {
+          obj = JSON.parse(text.slice(objStart, end));
+          break;
+        } catch(e2) { /* keep looking */ }
+      }
+    }
+  }
+
+  if (!obj) {
+    // Last-resort: heuristic HTML extraction (mode: 'full')
+    const docMatch = text.match(/<!DOCTYPE[\s\S]*<\/html\s*>/i);
+    if (docMatch) {
+      const html = docMatch[0]
+        .replace(/\\n/g, '\n')
+        .replace(/\\"/g, '"')
+        .replace(/\\\\/g, '\\');
+      return { mode: 'full', html: html };
+    }
+    return null;
+  }
+
+  // Got JSON. Determine which shape it is.
+  if (typeof obj.html === 'string' && obj.html.length > 200) {
+    return { mode: 'full', html: obj.html };
+  }
+  if (Array.isArray(obj.patches)) {
+    return { mode: 'patches', patches: obj.patches };
+  }
+  return null;
+}
+
+// ── END PATCH-BASED REBUILD ─────────────────────────────────────────────────
 
 function parseMonolithicReply(reply) {
   if (!reply) return null;
