@@ -3226,7 +3226,7 @@ async function openDesignConsultation(reqId) {
         '<button class="dc-skip-btn" onclick="skipDesignConsultation(\'' + reqId + '\')" style="background:transparent;color:var(--text3);border:1px solid var(--border-strong);padding:7px 14px;border-radius:5px;font-size:12px;font-family:inherit;cursor:pointer;">Skip consultation &amp; build directly</button>' +
         '<div style="display:flex;gap:8px;">' +
           '<button class="dc-cancel-btn" onclick="closeDesignConsultation()" style="background:transparent;color:var(--text2);border:1px solid var(--border-strong);padding:7px 14px;border-radius:5px;font-size:12px;font-family:inherit;cursor:pointer;">Cancel</button>' +
-          '<button id="dc-proceed-btn" disabled style="background:rgba(94,106,210,0.15);color:#7b85e3;border:1px solid rgba(94,106,210,0.4);padding:7px 14px;border-radius:5px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;opacity:0.5;">Proceed to build →</button>' +
+          '<button id="dc-proceed-btn" disabled onclick="approveConsultationAndBuild(\'' + reqId + '\')" style="background:rgba(94,106,210,0.15);color:#7b85e3;border:1px solid rgba(94,106,210,0.4);padding:7px 14px;border-radius:5px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;opacity:0.5;">Proceed to build →</button>' +
         '</div>' +
       '</div>' +
     '</div>' +
@@ -3248,11 +3248,12 @@ async function openDesignConsultation(reqId) {
     req._consultation_pending = { app_type: detected, domain_brief: brief };
 
     document.getElementById('dc-body').innerHTML = renderConsultationStage(reqId, detected, brief, false);
+    // Enable the proceed button now that the brief is ready.
+    // The onclick handler is inline so there's no attachment to lose if the DOM re-renders.
     const proceedBtn = document.getElementById('dc-proceed-btn');
     if (proceedBtn) {
       proceedBtn.disabled = false;
       proceedBtn.style.opacity = '1';
-      proceedBtn.onclick = function() { approveConsultationAndBuild(reqId); };
     }
   } catch(e) {
     console.error('Design consultation failed:', e);
@@ -3356,8 +3357,8 @@ async function onAppTypeChange(reqId, newType) {
     req._consultation_pending = { app_type: newType, domain_brief: brief };
     document.getElementById('dc-body').innerHTML = renderConsultationStage(reqId, newType, brief, false);
     if (proceedBtn) {
-      proceedBtn.disabled = false; proceedBtn.style.opacity = '1';
-      proceedBtn.onclick = function() { approveConsultationAndBuild(reqId); };
+      proceedBtn.disabled = false;
+      proceedBtn.style.opacity = '1';
     }
   } catch(e) {
     document.getElementById('dc-body').innerHTML =
