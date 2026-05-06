@@ -1410,6 +1410,16 @@ const APP_TYPES = [
   { id: 'general',    label: 'General',                 hint: 'fallback for apps that don\'t fit other categories' }
 ];
 
+// Module-level state for in-flight consultation. Keyed by reqId so this survives
+// any auto-refresh that replaces the entry in `allReqs`. Cleared on approve / cancel
+// / skip. This is intentionally NOT stored on the request object — that object can
+// be replaced wholesale by the polling loop, wiping in-flight UI state.
+const _consultationPending = {};
+const _consultationSkipped = {};
+function setConsultationPending(reqId, data) { _consultationPending[reqId] = data; }
+function getConsultationPending(reqId) { return _consultationPending[reqId]; }
+function clearConsultationPending(reqId) { delete _consultationPending[reqId]; }
+
 async function detectAppType(req, caps) {
   const apiKey = localStorage.getItem('dn_anthropic_key');
   if (!apiKey) throw new Error('Anthropic API key not configured.');
@@ -1798,6 +1808,7 @@ function shouldSkipPoll() {
   if (document.getElementById('needs-input-overlay')) return 'needs-input modal';
   if (document.getElementById('mono-preview-overlay')) return 'preview open';
   if (document.getElementById('reject-overlay')) return 'reject modal';
+  if (document.getElementById('design-consult-overlay')) return 'design consultation';
 
   // Skip if a draft spec card is pending review/approval — admin is mid-decision
   if (document.querySelector('.spec-card-wrap')) return 'draft spec pending';
@@ -3008,7 +3019,7 @@ async function buildRequest(reqId) {
   // shown the detected app type and the brief, can edit either, then approves to
   // proceed to actual build. If they've already done consultation and the brief is
   // stored on the request, we skip directly to build.
-  const consultationSkipped = req._design_consultation_skipped === true;
+  const consultationSkipped = _consultationSkipped[reqId] === true;
   const hasBrief = req.domain_brief && Object.keys(req.domain_brief).length > 0;
   if (!consultationSkipped && !hasBrief) {
     await openDesignConsultation(reqId);
@@ -3244,8 +3255,8 @@ async function openDesignConsultation(reqId) {
     document.getElementById('dc-body').innerHTML = renderConsultationStage(reqId, detected, null, true);
     const brief = await generateDomainBrief(detected, req, caps);
 
-    // Stash on the request for the proceed handler to commit
-    req._consultation_pending = { app_type: detected, domain_brief: brief };
+    // Stash in module-level map so polling can't wipe it
+    setConsultationPending(reqId, { app_type: detected, domain_brief: brief });
 
     document.getElementById('dc-body').innerHTML = renderConsultationStage(reqId, detected, brief, false);
     // Enable the proceed button now that the brief is ready.
@@ -3354,7 +3365,7 @@ async function onAppTypeChange(reqId, newType) {
   try {
     const caps = getCapabilities(req);
     const brief = await generateDomainBrief(newType, req, caps);
-    req._consultation_pending = { app_type: newType, domain_brief: brief };
+    setConsultationPending(reqId, { app_type: newType, domain_brief: brief });
     document.getElementById('dc-body').innerHTML = renderConsultationStage(reqId, newType, brief, false);
     if (proceedBtn) {
       proceedBtn.disabled = false;
@@ -3367,9 +3378,9 @@ async function onAppTypeChange(reqId, newType) {
 }
 
 function editBrief(reqId) {
-  const req = allReqs.find(function(r) { return r.id === reqId; });
-  if (!req || !req._consultation_pending) return;
-  const brief = req._consultation_pending.domain_brief;
+  const pending = getConsultationPending(reqId);
+  if (!pending) return;
+  const brief = pending.domain_brief;
   // Replace the brief view with the edit form, keeping the app type select intact
   const stageEl = document.getElementById('dc-body').querySelector('.dc-stage');
   if (!stageEl) return;
@@ -3386,8 +3397,8 @@ function editBrief(reqId) {
 }
 
 function saveBriefEdits(reqId) {
-  const req = allReqs.find(function(r) { return r.id === reqId; });
-  if (!req || !req._consultation_pending) return;
+  const pending = getConsultationPending(reqId);
+  if (!pending) return;
   const get = function(id) { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
   const lines = function(s) { return s.split('\n').map(function(x) { return x.trim(); }).filter(Boolean); };
 
@@ -3399,11 +3410,11 @@ function saveBriefEdits(reqId) {
     key_metrics_or_kpis: lines(get('dc-km')),
     anti_patterns: lines(get('dc-ap')),
     tone: get('dc-tone'),
-    app_type: req._consultation_pending.app_type,
-    generated_at: req._consultation_pending.domain_brief.generated_at,
+    app_type: pending.app_type,
+    generated_at: pending.domain_brief.generated_at,
     edited_at: new Date().toISOString()
   };
-  req._consultation_pending.domain_brief = updated;
+  pending.domain_brief = updated;
 
   // Re-render as read-only
   const stageEl = document.getElementById('dc-body').querySelector('.dc-stage');
@@ -3418,16 +3429,17 @@ function saveBriefEdits(reqId) {
 
 async function approveConsultationAndBuild(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
-  if (!req || !req._consultation_pending) return;
+  const pending = getConsultationPending(reqId);
+  if (!req || !pending) return;
 
   // Persist app_type and domain_brief to the request
   const update = {
-    app_type: req._consultation_pending.app_type,
-    domain_brief: req._consultation_pending.domain_brief
+    app_type: pending.app_type,
+    domain_brief: pending.domain_brief
   };
   await patchRequest(reqId, update);
   Object.assign(req, update);
-  delete req._consultation_pending;
+  clearConsultationPending(reqId);
 
   await logActivity({
     request_id: reqId,
@@ -3446,7 +3458,10 @@ async function approveConsultationAndBuild(reqId) {
 async function skipDesignConsultation(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
-  req._design_consultation_skipped = true;
+  // Use module-level flag to survive auto-refresh, same as consultation pending state.
+  // Mark this request as having explicitly skipped, so buildRequest won't loop back.
+  _consultationSkipped[reqId] = true;
+  clearConsultationPending(reqId);
   closeDesignConsultation();
   await logActivity({
     request_id: reqId,
@@ -3461,6 +3476,8 @@ async function skipDesignConsultation(reqId) {
 function closeDesignConsultation() {
   const o = document.getElementById('design-consult-overlay');
   if (o) o.remove();
+  // Don't clear pending state on close — Cancel button calls this directly,
+  // but so do approve/skip after they're done. Each caller decides whether to clear.
 }
 
 // ── END DESIGN CONSULTATION UI ──────────────────────────────────────────────
