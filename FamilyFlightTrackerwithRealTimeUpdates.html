@@ -1,0 +1,1286 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Family Flight Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #fafafa;
+      --surface: #ffffff;
+      --surface-2: #f5f5f5;
+      --text: #18181b;
+      --text-muted: #52525b;
+      --text-subtle: #a1a1aa;
+      --border: rgba(0, 0, 0, 0.08);
+      --border-strong: rgba(0, 0, 0, 0.16);
+      --accent: #5e6ad2;
+      --accent-hover: #4f59c4;
+      --accent-bg: rgba(94, 106, 210, 0.08);
+      --success: #16a34a;
+      --success-bg: rgba(22, 163, 74, 0.08);
+      --warning: #d97706;
+      --warning-bg: rgba(217, 119, 6, 0.08);
+      --danger: #dc2626;
+      --danger-bg: rgba(220, 38, 38, 0.08);
+      --info: #0284c7;
+      --info-bg: rgba(2, 132, 199, 0.08);
+      --radius-sm: 4px;
+      --radius-md: 6px;
+      --radius-lg: 8px;
+    }
+
+    [data-theme="dark"] {
+      --bg: #09090b;
+      --surface: #131316;
+      --surface-2: #1c1c20;
+      --text: #fafafa;
+      --text-muted: #a1a1aa;
+      --text-subtle: #71717a;
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --accent: #7b85e3;
+      --accent-hover: #8d96e8;
+      --accent-bg: rgba(123, 133, 227, 0.10);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.10);
+      --warning: #f59e0b;
+      --warning-bg: rgba(245, 158, 11, 0.10);
+      --danger: #ef4444;
+      --danger-bg: rgba(239, 68, 68, 0.10);
+      --info: #38bdf8;
+      --info-bg: rgba(56, 189, 248, 0.10);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      font-size: 14px;
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* Header */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 16px 24px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .header-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-muted);
+      border: 1px solid transparent;
+      padding: 6px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    .btn-ghost:hover {
+      background: var(--surface-2);
+      color: var(--text);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: white;
+      border: 1px solid var(--accent);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 150ms ease;
+    }
+
+    .btn-primary:hover {
+      background: var(--accent-hover);
+    }
+
+    .btn-secondary {
+      background: var(--surface);
+      color: var(--text);
+      border: 1px solid var(--border-strong);
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: background 150ms ease, border-color 150ms ease;
+    }
+
+    .btn-secondary:hover {
+      background: var(--surface-2);
+      border-color: var(--text-subtle);
+    }
+
+    /* Main Content */
+    main {
+      flex: 1;
+      padding: 24px;
+    }
+
+    .tab-bar {
+      display: flex;
+      gap: 4px;
+      margin-bottom: 24px;
+      background: var(--surface);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border);
+    }
+
+    .tab {
+      flex: 1;
+      padding: 8px 16px;
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      border-radius: var(--radius-sm);
+      transition: background 150ms ease, color 150ms ease;
+    }
+
+    .tab.active {
+      background: var(--accent-bg);
+      color: var(--accent);
+    }
+
+    .tab:hover:not(.active) {
+      background: var(--surface-2);
+    }
+
+    /* Flight Cards */
+    .flights-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .flight-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      cursor: pointer;
+      transition: border-color 150ms ease;
+      position: relative;
+    }
+
+    .flight-card:hover {
+      border-color: var(--border-strong);
+    }
+
+    .flight-card-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .traveler-avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      background: var(--accent-bg);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 14px;
+      flex-shrink: 0;
+    }
+
+    .flight-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .flight-number {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 4px;
+    }
+
+    .flight-route {
+      font-size: 13px;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .route-dot {
+      width: 4px;
+      height: 4px;
+      background: var(--text-subtle);
+      border-radius: 50%;
+    }
+
+    .flight-status {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 4px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      padding: 2px 8px;
+      border-radius: 10px;
+      font-size: 11px;
+      font-weight: 500;
+    }
+
+    .badge-ontime { background: var(--surface-2); color: var(--text-muted); }
+    .badge-boarding { background: var(--info-bg); color: var(--info); }
+    .badge-inflight { background: var(--accent-bg); color: var(--accent); }
+    .badge-delayed { background: var(--warning-bg); color: var(--warning); }
+    .badge-landed { background: var(--success-bg); color: var(--success); }
+    .badge-cancelled { background: var(--danger-bg); color: var(--danger); }
+
+    .flight-eta {
+      font-size: 12px;
+      color: var(--text-subtle);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .progress-bar {
+      height: 3px;
+      background: var(--surface-2);
+      border-radius: 2px;
+      overflow: hidden;
+      margin-top: 12px;
+    }
+
+    .progress-fill {
+      height: 100%;
+      background: var(--accent);
+      transition: width 300ms ease;
+    }
+
+    /* Empty State */
+    .empty-state {
+      text-align: center;
+      padding: 64px 24px;
+    }
+
+    .empty-icon {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      opacity: 0.12;
+    }
+
+    .empty-title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text);
+      margin-bottom: 8px;
+    }
+
+    .empty-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+    }
+
+    /* Modal */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.4);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 24px;
+    }
+
+    .modal {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 24px;
+      max-width: 520px;
+      width: 100%;
+      max-height: 90vh;
+      overflow-y: auto;
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .modal-close {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 20px;
+      padding: 4px;
+    }
+
+    .form-group {
+      margin-bottom: 16px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+    }
+
+    .input {
+      background: var(--surface-2);
+      border: 1px solid var(--border-strong);
+      color: var(--text);
+      padding: 7px 10px;
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      font-family: inherit;
+      transition: border-color 150ms ease, background 150ms ease;
+      width: 100%;
+    }
+
+    .input:focus {
+      outline: none;
+      border-color: var(--accent);
+      background: var(--surface);
+    }
+
+    .input::placeholder {
+      color: var(--text-subtle);
+    }
+
+    .traveler-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 12px;
+      background: var(--surface-2);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      font-size: 13px;
+      cursor: pointer;
+      transition: all 150ms ease;
+    }
+
+    .chip:hover {
+      border-color: var(--border-strong);
+    }
+
+    .chip.selected {
+      background: var(--accent-bg);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    .chip-avatar {
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: var(--accent-bg);
+      color: var(--accent);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 600;
+      font-size: 10px;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 8px;
+      justify-content: flex-end;
+      margin-top: 24px;
+    }
+
+    /* Flight Detail */
+    .detail-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .back-button {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px;
+      font-size: 20px;
+    }
+
+    .detail-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--text);
+    }
+
+    .detail-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      padding: 16px;
+      margin-bottom: 16px;
+    }
+
+    .section-header {
+      font-size: 12px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 12px;
+    }
+
+    .info-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 0;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .info-row:last-child {
+      border-bottom: none;
+    }
+
+    .info-label {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .info-value {
+      font-size: 13px;
+      color: var(--text);
+      font-weight: 500;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .timeline {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 16px 0;
+    }
+
+    .timeline-step {
+      flex: 1;
+      text-align: center;
+      position: relative;
+    }
+
+    .timeline-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: var(--surface-2);
+      border: 2px solid var(--border-strong);
+      margin: 0 auto 8px;
+    }
+
+    .timeline-step.active .timeline-dot {
+      background: var(--accent);
+      border-color: var(--accent);
+    }
+
+    .timeline-step.completed .timeline-dot {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .timeline-label {
+      font-size: 11px;
+      color: var(--text-subtle);
+    }
+
+    .timeline-step.active .timeline-label {
+      color: var(--accent);
+      font-weight: 500;
+    }
+
+    .map-placeholder {
+      width: 100%;
+      height: 200px;
+      background: var(--surface-2);
+      border-radius: var(--radius-sm);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-subtle);
+      font-size: 13px;
+    }
+
+    /* Toast */
+    .toast-container {
+      position: fixed;
+      top: 24px;
+      right: 24px;
+      z-index: 200;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .toast {
+      background: var(--surface);
+      border: 1px solid var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 300px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      animation: slideIn 200ms ease;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast-icon {
+      width: 20px;
+      height: 20px;
+      flex-shrink: 0;
+    }
+
+    .toast-message {
+      flex: 1;
+      font-size: 13px;
+      color: var(--text);
+    }
+
+    .toast.success .toast-icon { color: var(--success); }
+    .toast.error .toast-icon { color: var(--danger); }
+    .toast.info .toast-icon { color: var(--info); }
+
+    /* Loading */
+    .loading-spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 600ms linear infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      main {
+        padding: 16px;
+      }
+
+      header {
+        padding: 12px 16px;
+      }
+
+      .modal {
+        padding: 16px;
+      }
+
+      .toast-container {
+        left: 16px;
+        right: 16px;
+      }
+
+      .toast {
+        min-width: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-container">
+    <header>
+      <div class="header-title">Family Flight Tracker</div>
+      <div class="header-actions">
+        <button class="btn-ghost" onclick="toggleTheme()" title="Toggle theme">
+          <span id="theme-icon">◐</span>
+        </button>
+        <button class="btn-primary" onclick="openAddFlightModal()">+ Add Flight</button>
+      </div>
+    </header>
+
+    <main id="main-content">
+      <!-- Active Flights View -->
+      <div id="flights-view">
+        <div class="tab-bar">
+          <button class="tab active" onclick="switchTab('active')">Active</button>
+          <button class="tab" onclick="switchTab('upcoming')">Upcoming</button>
+          <button class="tab" onclick="switchTab('completed')">Completed</button>
+          <button class="tab" onclick="switchTab('family')">Family</button>
+        </div>
+
+        <div id="flights-list" class="flights-list"></div>
+      </div>
+
+      <!-- Flight Detail View -->
+      <div id="detail-view" style="display: none;"></div>
+    </main>
+  </div>
+
+  <!-- Toast Container -->
+  <div class="toast-container" id="toast-container"></div>
+
+  <!-- Add Flight Modal -->
+  <div id="add-flight-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Add Flight</div>
+        <button class="modal-close" onclick="closeAddFlightModal()">×</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Flight Number</label>
+        <input type="text" class="input" id="flight-number-input" placeholder="e.g. AA123, BA456" oninput="searchFlight()">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Assign to Traveler</label>
+        <div class="traveler-chips" id="traveler-chips"></div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAddFlightModal()">Cancel</button>
+        <button class="btn-primary" onclick="addFlight()" id="add-flight-btn">Add Flight</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Add Family Member Modal -->
+  <div id="add-member-modal" class="modal-backdrop" style="display: none;">
+    <div class="modal">
+      <div class="modal-header">
+        <div class="modal-title">Add Family Member</div>
+        <button class="modal-close" onclick="closeAddMemberModal()">×</button>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Name</label>
+        <input type="text" class="input" id="member-name-input" placeholder="Enter name">
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Emergency Contact (optional)</label>
+        <input type="text" class="input" id="member-contact-input" placeholder="Phone or email">
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeAddMemberModal()">Cancel</button>
+        <button class="btn-primary" onclick="addFamilyMember()">Add Member</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // State management
+    let currentTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    let currentTab = 'active';
+    let selectedTravelerId = null;
+    let currentFlightDetail = null;
+
+    // Data structures
+    let familyMembers = [
+      { id: 1, name: 'Philip Korf', initials: 'PK', contact: '' },
+      { id: 2, name: 'Sarah Korf', initials: 'SK', contact: '' },
+      { id: 3, name: 'Emma Korf', initials: 'EK', contact: '' }
+    ];
+
+    let flights = [
+      {
+        id: 1,
+        flightNumber: 'UA2341',
+        airline: 'United',
+        travelerId: 1,
+        origin: 'SFO',
+        destination: 'JFK',
+        originCity: 'San Francisco',
+        destinationCity: 'New York',
+        departureTime: new Date(Date.now() + 2 * 60 * 60 * 1000),
+        arrivalTime: new Date(Date.now() + 7 * 60 * 60 * 1000),
+        status: 'boarding',
+        gate: 'B12',
+        terminal: '3',
+        progress: 5,
+        currentPhase: 'departure'
+      },
+      {
+        id: 2,
+        flightNumber: 'AA1524',
+        airline: 'American',
+        travelerId: 2,
+        origin: 'LAX',
+        destination: 'ORD',
+        originCity: 'Los Angeles',
+        destinationCity: 'Chicago',
+        departureTime: new Date(Date.now() - 1 * 60 * 60 * 1000),
+        arrivalTime: new Date(Date.now() + 3 * 60 * 60 * 1000),
+        status: 'inflight',
+        gate: 'K7',
+        terminal: '1',
+        progress: 45,
+        currentPhase: 'cruising'
+      },
+      {
+        id: 3,
+        flightNumber: 'DL892',
+        airline: 'Delta',
+        travelerId: 3,
+        origin: 'ATL',
+        destination: 'MIA',
+        originCity: 'Atlanta',
+        destinationCity: 'Miami',
+        departureTime: new Date(Date.now() + 24 * 60 * 60 * 1000),
+        arrivalTime: new Date(Date.now() + 26 * 60 * 60 * 1000),
+        status: 'ontime',
+        gate: 'A4',
+        terminal: 'S',
+        progress: 0,
+        currentPhase: 'scheduled'
+      }
+    ];
+
+    // Initialize
+    document.documentElement.dataset.theme = currentTheme;
+    renderFlightsList();
+
+    // Theme toggle
+    function toggleTheme() {
+      currentTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.dataset.theme = currentTheme;
+    }
+
+    // Tab switching
+    function switchTab(tab) {
+      currentTab = tab;
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      event.target.classList.add('active');
+      
+      if (tab === 'family') {
+        renderFamilyView();
+      } else {
+        renderFlightsList();
+      }
+    }
+
+    // Render flights list
+    function renderFlightsList() {
+      const container = document.getElementById('flights-list');
+      const filteredFlights = flights.filter(f => {
+        if (currentTab === 'active') {
+          return f.status === 'boarding' || f.status === 'inflight';
+        } else if (currentTab === 'upcoming') {
+          return f.status === 'ontime' || f.status === 'delayed';
+        } else if (currentTab === 'completed') {
+          return f.status === 'landed';
+        }
+        return true;
+      });
+
+      if (filteredFlights.length === 0) {
+        container.innerHTML = `
+          <div class="empty-state">
+            <svg class="empty-icon" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M32 8L8 24V40L32 56L56 40V24L32 8Z" stroke="currentColor" stroke-width="2"/>
+              <path d="M32 24V56" stroke="currentColor" stroke-width="2"/>
+              <path d="M8 24L32 40L56 24" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <div class="empty-title">${getEmptyTitle()}</div>
+            <div class="empty-text">${getEmptyText()}</div>
+            <button class="btn-primary" onclick="openAddFlightModal()">Add Your First Flight</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = filteredFlights.map(flight => {
+        const traveler = familyMembers.find(m => m.id === flight.travelerId);
+        const eta = getRelativeTime(flight.arrivalTime);
+        const statusLabel = getStatusLabel(flight.status);
+        const statusClass = `badge-${flight.status}`;
+
+        return `
+          <div class="flight-card" onclick="showFlightDetail(${flight.id})">
+            <div class="flight-card-header">
+              <div class="traveler-avatar">${traveler ? traveler.initials : '?'}</div>
+              <div class="flight-info">
+                <div class="flight-number">${flight.flightNumber}</div>
+                <div class="flight-route">
+                  <span>${flight.origin}</span>
+                  <div class="route-dot"></div>
+                  <span>${flight.destination}</span>
+                </div>
+              </div>
+              <div class="flight-status">
+                <div class="badge ${statusClass}">${statusLabel}</div>
+                <div class="flight-eta">${eta}</div>
+              </div>
+            </div>
+            ${flight.status === 'inflight' || flight.status === 'boarding' ? `
+              <div class="progress-bar">
+                <div class="progress-fill" style="width: ${flight.progress}%"></div>
+              </div>
+            ` : ''}
+          </div>
+        `;
+      }).join('');
+    }
+
+    // Render family view
+    function renderFamilyView() {
+      const container = document.getElementById('flights-list');
+      container.innerHTML = `
+        <div style="margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+          <div class="section-header">Family Members</div>
+          <button class="btn-primary" onclick="openAddMemberModal()">+ Add Member</button>
+        </div>
+        ${familyMembers.map(member => {
+          const memberFlights = flights.filter(f => f.travelerId === member.id);
+          return `
+            <div class="detail-section">
+              <div style="display: flex; align-items: center; gap: 12px; margin-bottom: 12px;">
+                <div class="traveler-avatar">${member.initials}</div>
+                <div>
+                  <div style="font-size: 16px; font-weight: 600; color: var(--text);">${member.name}</div>
+                  ${member.contact ? `<div style="font-size: 13px; color: var(--text-muted);">${member.contact}</div>` : ''}
+                </div>
+              </div>
+              <div style="font-size: 13px; color: var(--text-muted);">
+                ${memberFlights.length} tracked flight${memberFlights.length !== 1 ? 's' : ''}
+              </div>
+            </div>
+          `;
+        }).join('')}
+      `;
+    }
+
+    // Show flight detail
+    function showFlightDetail(flightId) {
+      const flight = flights.find(f => f.id === flightId);
+      if (!flight) return;
+
+      currentFlightDetail = flight;
+      const traveler = familyMembers.find(m => m.id === flight.travelerId);
+      const statusLabel = getStatusLabel(flight.status);
+      const statusClass = `badge-${flight.status}`;
+
+      document.getElementById('flights-view').style.display = 'none';
+      const detailView = document.getElementById('detail-view');
+      detailView.style.display = 'block';
+      
+      detailView.innerHTML = `
+        <div class="detail-header">
+          <button class="back-button" onclick="closeFlightDetail()">←</button>
+          <div class="detail-title">${flight.flightNumber}</div>
+          <div class="badge ${statusClass}" style="margin-left: auto;">${statusLabel}</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-header">Traveler</div>
+          <div style="display: flex; align-items: center; gap: 12px;">
+            <div class="traveler-avatar">${traveler ? traveler.initials : '?'}</div>
+            <div>
+              <div style="font-size: 14px; font-weight: 500;">${traveler ? traveler.name : 'Unknown'}</div>
+              ${traveler && traveler.contact ? `<div style="font-size: 13px; color: var(--text-muted);">${traveler.contact}</div>` : ''}
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-header">Flight Progress</div>
+          <div class="timeline">
+            <div class="timeline-step ${flight.currentPhase === 'departure' || flight.currentPhase === 'scheduled' ? 'active' : 'completed'}">
+              <div class="timeline-dot"></div>
+              <div class="timeline-label">Departure</div>
+            </div>
+            <div class="timeline-step ${flight.currentPhase === 'cruising' ? 'active' : (flight.currentPhase === 'descent' || flight.currentPhase === 'landed' ? 'completed' : '')}">
+              <div class="timeline-dot"></div>
+              <div class="timeline-label">Cruising</div>
+            </div>
+            <div class="timeline-step ${flight.currentPhase === 'descent' ? 'active' : (flight.currentPhase === 'landed' ? 'completed' : '')}">
+              <div class="timeline-dot"></div>
+              <div class="timeline-label">Descent</div>
+            </div>
+            <div class="timeline-step ${flight.currentPhase === 'landed' ? 'active' : ''}">
+              <div class="timeline-dot"></div>
+              <div class="timeline-label">Landed</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-header">Location</div>
+          <div class="map-placeholder">Flight path: ${flight.origin} → ${flight.destination}</div>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-header">Schedule</div>
+          <div class="info-row">
+            <div class="info-label">Departure</div>
+            <div class="info-value">${formatDateTime(flight.departureTime)}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Arrival</div>
+            <div class="info-value">${formatDateTime(flight.arrivalTime)}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Flight Time</div>
+            <div class="info-value">${getFlightDuration(flight.departureTime, flight.arrivalTime)}</div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-header">Gates & Terminals</div>
+          <div class="info-row">
+            <div class="info-label">Departure Gate</div>
+            <div class="info-value">${flight.gate}</div>
+          </div>
+          <div class="info-row">
+            <div class="info-label">Terminal</div>
+            <div class="info-value">${flight.terminal}</div>
+          </div>
+        </div>
+
+        <div class="detail-section">
+          <div class="section-header">Weather</div>
+          <div style="display: flex; gap: 12px;">
+            <div style="flex: 1; padding: 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">${flight.originCity}</div>
+              <div style="font-size: 16px; font-weight: 600;">72°F</div>
+              <div style="font-size: 11px; color: var(--text-subtle);">Partly cloudy</div>
+            </div>
+            <div style="flex: 1; padding: 12px; background: var(--surface-2); border-radius: var(--radius-sm);">
+              <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 4px;">${flight.destinationCity}</div>
+              <div style="font-size: 16px; font-weight: 600;">68°F</div>
+              <div style="font-size: 11px; color: var(--text-subtle);">Clear</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="display: flex; gap: 8px; margin-top: 16px;">
+          <button class="btn-secondary" onclick="removeFlight(${flight.id})">Remove Flight</button>
+          <button class="btn-primary" style="flex: 1;" onclick="shareFlightStatus(${flight.id})">Share Status</button>
+        </div>
+      `;
+    }
+
+    // Close flight detail
+    function closeFlightDetail() {
+      document.getElementById('detail-view').style.display = 'none';
+      document.getElementById('flights-view').style.display = 'block';
+      currentFlightDetail = null;
+    }
+
+    // Add flight modal
+    function openAddFlightModal() {
+      selectedTravelerId = null;
+      document.getElementById('flight-number-input').value = '';
+      renderTravelerChips();
+      document.getElementById('add-flight-modal').style.display = 'flex';
+    }
+
+    function closeAddFlightModal() {
+      document.getElementById('add-flight-modal').style.display = 'none';
+    }
+
+    function renderTravelerChips() {
+      const container = document.getElementById('traveler-chips');
+      container.innerHTML = familyMembers.map(member => `
+        <div class="chip ${selectedTravelerId === member.id ? 'selected' : ''}" onclick="selectTraveler(${member.id})">
+          <div class="chip-avatar">${member.initials}</div>
+          ${member.name}
+        </div>
+      `).join('');
+    }
+
+    function selectTraveler(id) {
+      selectedTravelerId = id;
+      renderTravelerChips();
+    }
+
+    function searchFlight() {
+      // In a real app, this would search flight APIs
+      // For now, just validate input format
+      const input = document.getElementById('flight-number-input').value;
+      const btn = document.getElementById('add-flight-btn');
+      btn.disabled = input.length < 4;
+    }
+
+    function addFlight() {
+      const flightNumber = document.getElementById('flight-number-input').value.trim().toUpperCase();
+      
+      if (!flightNumber) {
+        showToast('Please enter a flight number', 'error');
+        return;
+      }
+
+      if (!selectedTravelerId) {
+        showToast('Please select a traveler', 'error');
+        return;
+      }
+
+      // Mock flight data
+      const newFlight = {
+        id: Date.now(),
+        flightNumber: flightNumber,
+        airline: 'Mock Airlines',
+        travelerId: selectedTravelerId,
+        origin: 'SFO',
+        destination: 'LAX',
+        originCity: 'San Francisco',
+        destinationCity: 'Los Angeles',
+        departureTime: new Date(Date.now() + 48 * 60 * 60 * 1000),
+        arrivalTime: new Date(Date.now() + 49.5 * 60 * 60 * 1000),
+        status: 'ontime',
+        gate: 'A1',
+        terminal: '2',
+        progress: 0,
+        currentPhase: 'scheduled'
+      };
+
+      flights.push(newFlight);
+      closeAddFlightModal();
+      showToast(`Added flight ${flightNumber}`, 'success');
+      
+      if (currentTab === 'upcoming') {
+        renderFlightsList();
+      } else {
+        switchTab('upcoming');
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab')[1].classList.add('active');
+      }
+    }
+
+    // Add family member modal
+    function openAddMemberModal() {
+      document.getElementById('member-name-input').value = '';
+      document.getElementById('member-contact-input').value = '';
+      document.getElementById('add-member-modal').style.display = 'flex';
+    }
+
+    function closeAddMemberModal() {
+      document.getElementById('add-member-modal').style.display = 'none';
+    }
+
+    function addFamilyMember() {
+      const name = document.getElementById('member-name-input').value.trim();
+      const contact = document.getElementById('member-contact-input').value.trim();
+
+      if (!name) {
+        showToast('Please enter a name', 'error');
+        return;
+      }
+
+      const initials = name.split(' ').map(n => n[0]).join('').toUpperCase().substring(0, 2);
+      const newMember = {
+        id: Date.now(),
+        name: name,
+        initials: initials,
+        contact: contact
+      };
+
+      familyMembers.push(newMember);
+      closeAddMemberModal();
+      showToast(`Added ${name} to family`, 'success');
+      renderFamilyView();
+    }
+
+    // Flight actions
+    function removeFlight(flightId) {
+      flights = flights.filter(f => f.id !== flightId);
+      showToast('Flight removed', 'success');
+      closeFlightDetail();
+      renderFlightsList();
+    }
+
+    function shareFlightStatus(flightId) {
+      const flight = flights.find(f => f.id === flightId);
+      if (!flight) return;
+      
+      showToast(`Flight ${flight.flightNumber} status shared`, 'success');
+    }
+
+    // Toast notifications
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toast-container');
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      const icon = type === 'success' ? '✓' : type === 'error' ? '✕' : 'ⓘ';
+      
+      toast.innerHTML = `
+        <div class="toast-icon">${icon}</div>
+        <div class="toast-message">${message}</div>
+      `;
+      
+      container.appendChild(toast);
+      
+      setTimeout(() => {
+        toast.style.animation = 'slideIn 200ms ease reverse';
+        setTimeout(() => toast.remove(), 200);
+      }, 4000);
+    }
+
+    // Utility functions
+    function getStatusLabel(status) {
+      const labels = {
+        ontime: 'On Time',
+        boarding: 'Boarding',
+        inflight: 'In Flight',
+        delayed: 'Delayed',
+        landed: 'Landed',
+        cancelled: 'Cancelled'
+      };
+      return labels[status] || status;
+    }
+
+    function getEmptyTitle() {
+      if (currentTab === 'active') return 'No active flights';
+      if (currentTab === 'upcoming') return 'No upcoming flights';
+      if (currentTab === 'completed') return 'No recent flights';
+      return 'No flights';
+    }
+
+    function getEmptyText() {
+      if (currentTab === 'active') return 'Flights currently boarding or in the air will appear here';
+      if (currentTab === 'upcoming') return 'Add an upcoming flight to start tracking';
+      if (currentTab === 'completed') return 'Completed flights from the last 24 hours will show here';
+      return 'Get started by adding a flight to track';
+    }
+
+    function getRelativeTime(date) {
+      const now = new Date();
+      const diff = date - now;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (diff < 0) {
+        return 'Landed';
+      } else if (hours > 24) {
+        const days = Math.floor(hours / 24);
+        return `In ${days}d ${hours % 24}h`;
+      } else if (hours > 0) {
+        return `Lands in ${hours}h ${minutes}m`;
+      } else {
+        return `Lands in ${minutes}m`;
+      }
+    }
+
+    function formatDateTime(date) {
+      const options = { 
+        month: 'short', 
+        day: 'numeric', 
+        hour: 'numeric', 
+        minute: '2-digit',
+        hour12: true 
+      };
+      return date.toLocaleString('en-US', options);
+    }
+
+    function getFlightDuration(departure, arrival) {
+      const diff = arrival - departure;
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      return `${hours}h ${minutes}m`;
+    }
+
+    // Simulate real-time updates
+    setInterval(() => {
+      flights.forEach(flight => {
+        if (flight.status === 'inflight' && flight.progress < 95) {
+          flight.progress += Math.random() * 2;
+          if (flight.progress > 30 && flight.progress < 70) {
+            flight.currentPhase = 'cruising';
+          } else if (flight.progress >= 70) {
+            flight.currentPhase = 'descent';
+          }
+        }
+      });
+      
+      if (currentFlightDetail && document.getElementById('detail-view').style.display !== 'none') {
+        showFlightDetail(currentFlightDetail.id);
+      } else if (currentTab !== 'family') {
+        renderFlightsList();
+      }
+    }, 5000);
+  </script>
+</body>
+</html>
