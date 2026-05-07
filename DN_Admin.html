@@ -3094,8 +3094,13 @@ async function buildRequest(reqId) {
         'content-type': 'application/json'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 32000,
+        // Build agent — high-stakes, low-frequency. Use Opus for best
+        // instruction-following (patches must match the previous artifact
+        // byte-for-byte; older / smaller models paraphrase, which breaks
+        // the patch system) and the largest synchronous output ceiling
+        // available. See docs.claude.com/en/docs/about-claude/models/overview.
+        model: 'claude-opus-4-7',
+        max_tokens: 128000,
         messages: [{ role: 'user', content: userContent }]
       })
     });
@@ -3108,9 +3113,14 @@ async function buildRequest(reqId) {
     const data = await resp.json();
     const reply = data.content[0].text;
 
-    // Detect truncation explicitly — model hit the token cap before finishing
+    // Detect truncation explicitly — model hit the token cap before finishing.
+    // At max_tokens=128000 (Opus 4.7's synchronous ceiling) this should fit
+    // any single-file artifact up to ~500 KB of HTML. Hitting this limit
+    // means the monolithic single-file approach has run out of room and the
+    // next step is splitting the artifact into a shell + per-tab modules
+    // (see the platform architecture roadmap), not narrowing scope.
     if (data.stop_reason === 'max_tokens') {
-      throw new Error('Build output was truncated — the app exceeded the token budget (32K tokens, ~120 KB of HTML). The request may be too ambitious for one monolithic file. Consider narrowing the MVP scope (fewer features in v1) and adding the rest as capabilities to rebuild later. Partial output started: ' + reply.slice(0, 200));
+      throw new Error('Build output was truncated — the app exceeded the 128K-token output budget (~500 KB of HTML). This single-file artifact has hit the synchronous-API ceiling. The path forward is splitting it into a shell + per-tab modules so each can be rebuilt independently. Partial output started: ' + reply.slice(0, 200));
     }
 
     // Parse the response. On rebuilds the agent should emit patches; on initial
@@ -3735,9 +3745,9 @@ DN_HOUSE_STYLE.trim() + '\n' +
 
   if (isRebuild) {
     prompt +=
-'THIS IS A REBUILD — patch mode.\n\n' +
-'The previous version of this app exists. Instead of re-emitting all of it (which costs 100K+ tokens of output), you will emit a list of PATCHES describing only the changes needed.\n\n' +
-'PREVIOUS VERSION HTML (read carefully — your patches will modify this):\n' +
+'THIS IS A REBUILD.\n\n' +
+'The previous version of this app exists below. You can respond in either of two formats — choose the one that best fits the requested change. Read the guidance carefully before deciding.\n\n' +
+'PREVIOUS VERSION HTML (read carefully — your output will modify or replace this):\n' +
 '```html\n' + previousHtml + '\n```\n\n';
 
     // Pending capabilities = user-requested additions since the last build
@@ -3775,7 +3785,20 @@ DN_HOUSE_STYLE.trim() + '\n' +
 '4. To ADD new code, find a unique anchor location (e.g. a function declaration, a comment marker, a closing brace of a known section) and replace it with itself plus the new code. Example: { "find": "function existingFn() {", "replace": "function existingFn() {\\n  newLine();" }\n\n' +
 '5. Patches are applied IN ORDER. After patch 1 applies, patch 2 sees the updated artifact. So if patch 1 changes line A, patch 2 cannot still match against the original line A.\n\n' +
 '6. Keep individual find/replace strings reasonably small (under 1KB each typically). For larger changes, break into multiple smaller patches rather than one giant one — easier to debug if one fails.\n\n' +
-'7. If the requested changes genuinely require restructuring most of the app, you MAY emit a full HTML rebuild instead of patches by responding with {"html": "<!DOCTYPE html>..."} — the platform accepts both formats. But this should be rare; prefer patches whenever possible.\n\n' +
+'7. CHOOSING PATCHES VS FULL HTML — read this carefully. Both formats are first-class. The output budget is 128K tokens, which comfortably fits any current artifact, so full HTML is NOT expensive — choose based on reliability, not cost.\n\n' +
+'   Use PATCHES when ALL of the following hold:\n' +
+'     • The change is small and surgical (a few specific lines or functions).\n' +
+'     • You can lift each find string verbatim from the previous HTML, including exact whitespace and quotes.\n' +
+'     • The find strings will be uniquely matched (one occurrence each in the previous HTML).\n' +
+'     • Patches do not depend on each other in fragile ways.\n\n' +
+'   Use FULL HTML by responding with {"html": "<!DOCTYPE html>..."} when ANY of the following hold:\n' +
+'     • The change touches many regions of the file.\n' +
+'     • You would need to paraphrase, summarize, or reconstruct find strings instead of copying them verbatim.\n' +
+'     • You are uncertain whether your find strings will match byte-for-byte.\n' +
+'     • A previous patch attempt for this same request failed.\n' +
+'     • Multiple new capabilities are being added simultaneously.\n' +
+'     • The QA reviewer explicitly asked for full HTML.\n\n' +
+'   When in doubt, prefer FULL HTML. A successful full-HTML rebuild beats a failed patch every time.\n\n' +
 'EXAMPLES of good patches:\n\n' +
 'Replacing a constant value:\n' +
 '{ "find": "const KPI_REVENUE_LABEL = \'Revenue\';", "replace": "const KPI_REVENUE_LABEL = \'Total Revenue\';" }\n\n' +
