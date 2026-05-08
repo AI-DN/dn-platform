@@ -325,6 +325,14 @@ body::before {
   font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s;
 }
 .btn-submit:hover { transform: translateY(-1px); opacity: 0.9; }
+.btn-submit:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+.btn-submit:disabled:hover { transform: none; opacity: 0.55; }
+.btn-submit-spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 2px solid currentColor; border-right-color: transparent;
+  border-radius: 50%; animation: epSpin 0.7s linear infinite;
+  margin-right: 8px; vertical-align: -2px;
+}
 .success-state { text-align: center; padding: 48px 24px; display: none; }
 .success-icon {
   width: 56px; height: 56px; border-radius: 50%;
@@ -2443,7 +2451,8 @@ async function submitQuick() {
   const key = localStorage.getItem('dn_claude');
   if (!key) { alert('Please save your Anthropic API key first.'); return; }
   const btn = document.querySelector('.btn-submit');
-  btn.textContent = 'Generating epic...'; btn.disabled = true;
+  btn.innerHTML = '<span class="btn-submit-spinner"></span>Generating epic...';
+  btn.disabled = true;
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
