@@ -1,0 +1,1857 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mathline — Grade 10 Tutor</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #a1a1aa;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.16);
+  --accent: #5e6ad2;
+  --accent-hover: #4f59c4;
+  --accent-bg: rgba(94,106,210,0.08);
+  --success: #16a34a;
+  --success-bg: rgba(22,163,74,0.08);
+  --warning: #d97706;
+  --warning-bg: rgba(217,119,6,0.08);
+  --danger: #dc2626;
+  --danger-bg: rgba(220,38,38,0.08);
+  --info: #0284c7;
+  --info-bg: rgba(2,132,199,0.08);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+[data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #131316;
+  --surface-2: #1c1c20;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --accent: #7b85e3;
+  --accent-hover: #8d96e8;
+  --accent-bg: rgba(123,133,227,0.10);
+  --success: #22c55e;
+  --success-bg: rgba(34,197,94,0.10);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245,158,11,0.10);
+  --danger: #ef4444;
+  --danger-bg: rgba(239,68,68,0.10);
+  --info: #38bdf8;
+  --info-bg: rgba(56,189,248,0.10);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  transition: background 150ms ease, color 150ms ease;
+}
+.mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; font-variant-numeric: tabular-nums; }
+.caption { font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
+
+/* Layout */
+.app {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+  font-size: 15px;
+}
+.brand-mark {
+  width: 22px; height: 22px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 13px;
+}
+.header-actions { display: flex; align-items: center; gap: 8px; }
+.streak {
+  display: flex; align-items: center; gap: 6px;
+  padding: 4px 10px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+.streak strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+.main { flex: 1; display: flex; flex-direction: column; padding-bottom: 64px; }
+
+.bottom-nav {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  display: flex;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 40;
+}
+.bottom-nav button {
+  flex: 1;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  padding: 10px;
+  cursor: pointer;
+  font-size: 12px;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  border-top: 2px solid transparent;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.bottom-nav button.active { color: var(--accent); border-top-color: var(--accent); }
+.bottom-nav button:hover { color: var(--text); }
+.bottom-nav svg { width: 18px; height: 18px; }
+
+/* Buttons */
+.btn-primary, .btn-secondary, .btn-ghost {
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: all 150ms ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary { background: var(--accent); color: white; border: 1px solid var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--text-subtle); }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid transparent; }
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn-icon {
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  width: 30px; height: 30px;
+  display: inline-flex; align-items: center; justify-content: center;
+  color: var(--text-muted); cursor: pointer;
+  transition: all 150ms ease;
+}
+.btn-icon:hover { background: var(--surface-2); color: var(--text); border-color: var(--border-strong); }
+.btn-icon svg { width: 16px; height: 16px; }
+
+/* Inputs */
+.input, textarea.input, select.input {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.input:focus, textarea.input:focus, select.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.input::placeholder { color: var(--text-subtle); }
+textarea.input { resize: vertical; min-height: 80px; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+
+/* Page sections */
+.page { padding: 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
+.page-header { margin-bottom: 24px; }
+.display { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; }
+.h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.005em; }
+.h2 { font-size: 16px; font-weight: 600; }
+.muted { color: var(--text-muted); }
+.subtle { color: var(--text-subtle); }
+
+/* Topic browser */
+.unit-section { margin-bottom: 24px; }
+.unit-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 0;
+  margin-bottom: 8px;
+}
+.unit-title { display: flex; align-items: center; gap: 10px; }
+.unit-badge {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 2px 8px;
+  background: var(--surface-2);
+  border-radius: 10px;
+}
+.topic-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 12px;
+}
+.topic-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease;
+  display: flex; flex-direction: column; gap: 10px;
+}
+.topic-card:hover { border-color: var(--border-strong); background: var(--surface); }
+.topic-card-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.topic-name { font-weight: 500; font-size: 14px; }
+.topic-meta { font-size: 12px; color: var(--text-subtle); display: flex; gap: 8px; align-items: center; }
+.ring {
+  width: 36px; height: 36px;
+  flex-shrink: 0;
+  position: relative;
+}
+.ring svg { transform: rotate(-90deg); }
+.ring-text {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Work surface */
+.tabs {
+  display: flex; gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.tab {
+  background: transparent; border: none;
+  padding: 8px 14px;
+  font-family: inherit; font-size: 13px; font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: all 150ms ease;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+
+.segmented {
+  display: inline-flex;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 2px;
+  gap: 2px;
+}
+.segmented button {
+  background: transparent;
+  border: none;
+  padding: 5px 12px;
+  font-family: inherit; font-size: 12px; font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-radius: 3px;
+  transition: all 150ms ease;
+}
+.segmented button.active { background: var(--surface); color: var(--text); }
+[data-theme="dark"] .segmented button.active { background: var(--surface); }
+.segmented button:hover:not(.active) { color: var(--text); }
+
+/* Step list */
+.steps { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.step {
+  display: flex; gap: 12px;
+  padding: 12px 14px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  animation: slideIn 200ms ease;
+}
+@keyframes slideIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.step-num {
+  width: 20px; height: 20px; flex-shrink: 0;
+  border-radius: 10px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+}
+.step-content { flex: 1; }
+.step-title { font-weight: 500; margin-bottom: 4px; font-size: 13px; }
+.step-expr {
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 4px;
+  padding: 6px 8px;
+  background: var(--surface);
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  display: inline-block;
+}
+.step-explain { color: var(--text-muted); font-size: 13px; }
+
+/* Hint card */
+.hint {
+  display: flex; gap: 10px;
+  padding: 10px 12px;
+  background: var(--info-bg);
+  border: 1px solid var(--info-bg);
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text);
+  margin-top: 12px;
+  animation: slideIn 200ms ease;
+}
+.hint .hint-label { color: var(--info); font-weight: 500; }
+
+/* Badges */
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-neutral { background: var(--surface-2); color: var(--text-muted); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+thead th {
+  text-align: left;
+  font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+}
+tbody td { padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+tbody tr { cursor: pointer; transition: background 150ms ease; }
+tbody tr:hover { background: var(--surface-2); }
+.numeric { text-align: right; font-family: 'SF Mono', Menlo, monospace; }
+
+/* Empty state */
+.empty {
+  text-align: left;
+  padding: 32px 16px;
+  display: flex; flex-direction: column; align-items: center; gap: 12px;
+  color: var(--text-muted);
+}
+.empty svg { opacity: 0.16; width: 48px; height: 48px; }
+.empty-title { font-weight: 500; color: var(--text); font-size: 14px; }
+.empty-desc { font-size: 13px; max-width: 320px; text-align: center; }
+
+/* Toasts */
+.toasts {
+  position: fixed;
+  top: 16px; right: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 200;
+  max-width: 360px;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 12px;
+  display: flex; gap: 10px; align-items: flex-start;
+  font-size: 13px;
+  animation: slideInRight 200ms ease;
+}
+@keyframes slideInRight { from { opacity: 0; transform: translateX(8px); } to { opacity: 1; transform: none; } }
+.toast-icon { width: 16px; height: 16px; flex-shrink: 0; margin-top: 1px; }
+.toast.success .toast-icon { color: var(--success); }
+.toast.error .toast-icon { color: var(--danger); }
+.toast.info .toast-icon { color: var(--info); }
+
+/* Modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  animation: fadeIn 150ms ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 20px 24px 24px;
+  max-width: 520px;
+  width: 92vw;
+  max-height: 86vh;
+  overflow: auto;
+}
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+}
+
+/* Input switcher */
+.input-switcher {
+  display: flex; gap: 4px;
+  margin-bottom: 8px;
+}
+.input-switcher button {
+  background: transparent;
+  border: 1px solid var(--border);
+  padding: 5px 10px;
+  border-radius: var(--radius-sm);
+  font-family: inherit; font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.input-switcher button.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.input-switcher button:hover:not(.active) { background: var(--surface-2); color: var(--text); }
+
+/* Drawing canvas */
+.canvas-wrap {
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  position: relative;
+  overflow: hidden;
+}
+canvas.drawing { display: block; width: 100%; height: 180px; cursor: crosshair; touch-action: none; }
+.canvas-tools { display: flex; gap: 8px; padding: 6px; border-top: 1px solid var(--border); }
+
+/* Geometry viz */
+.geo-viz {
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 16px;
+  display: flex; justify-content: center;
+}
+.geo-viz svg { max-width: 100%; }
+.scrubber-row { display: flex; align-items: center; gap: 12px; margin-top: 12px; }
+.scrubber-row input[type=range] { flex: 1; accent-color: var(--accent); }
+
+/* Heatmap */
+.heatmap { display: grid; grid-template-columns: repeat(14, 1fr); gap: 3px; }
+.heat-cell {
+  aspect-ratio: 1;
+  background: var(--surface-2);
+  border-radius: 2px;
+  border: 1px solid var(--border);
+}
+.heat-cell[data-level="1"] { background: var(--accent-bg); border-color: var(--accent-bg); }
+.heat-cell[data-level="2"] { background: rgba(94,106,210,0.25); border-color: transparent; }
+.heat-cell[data-level="3"] { background: rgba(94,106,210,0.5); border-color: transparent; }
+.heat-cell[data-level="4"] { background: var(--accent); border-color: transparent; }
+[data-theme="dark"] .heat-cell[data-level="2"] { background: rgba(123,133,227,0.3); }
+[data-theme="dark"] .heat-cell[data-level="3"] { background: rgba(123,133,227,0.55); }
+[data-theme="dark"] .heat-cell[data-level="4"] { background: var(--accent); }
+
+/* KPI row */
+.kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; }
+.kpi-label { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 6px; }
+.kpi-value { font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; letter-spacing: -0.01em; }
+.kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* Toolbar */
+.toolbar {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+.toolbar-group { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.row { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+.row-between { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+
+/* History item */
+.history-item {
+  display: flex; gap: 12px; align-items: center;
+  padding: 12px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.history-item:hover { border-color: var(--border-strong); }
+.history-thumb {
+  width: 44px; height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  font-family: ui-monospace, monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  overflow: hidden;
+  padding: 4px;
+  text-align: center;
+  line-height: 1.1;
+}
+.history-main { flex: 1; min-width: 0; }
+.history-prob { font-size: 13px; font-family: ui-monospace, monospace; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.history-meta { display: flex; gap: 8px; align-items: center; font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+/* Formula sheet */
+.formula-section { margin-bottom: 16px; }
+.formula-section h4 { font-size: 12px; font-weight: 600; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+.formula-list { display: flex; flex-direction: column; gap: 6px; }
+.formula {
+  display: flex; justify-content: space-between; gap: 12px;
+  padding: 8px 10px;
+  background: var(--surface-2);
+  border-radius: var(--radius-sm);
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+.formula-name { color: var(--text-muted); font-family: inherit; font-size: 12px; }
+
+/* Note area */
+.note-area {
+  background: var(--surface-2);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 10px;
+  font-family: inherit;
+  font-size: 13px;
+  width: 100%;
+  min-height: 60px;
+  resize: vertical;
+  color: var(--text);
+}
+.note-area:focus { outline: none; border-color: var(--accent); }
+
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+
+.answer-feedback {
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  margin-top: 12px;
+  border: 1px solid;
+  animation: slideIn 200ms ease;
+}
+.answer-feedback.correct { background: var(--success-bg); border-color: var(--success-bg); color: var(--text); }
+.answer-feedback.incorrect { background: var(--danger-bg); border-color: var(--danger-bg); color: var(--text); }
+.answer-feedback strong.correct-tag { color: var(--success); }
+.answer-feedback strong.incorrect-tag { color: var(--danger); }
+
+.breadcrumb {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.breadcrumb a { color: var(--text-muted); cursor: pointer; text-decoration: none; }
+.breadcrumb a:hover { color: var(--text); }
+.breadcrumb svg { width: 12px; height: 12px; }
+
+.bookmark-btn { color: var(--text-subtle); }
+.bookmark-btn.active { color: var(--warning); }
+
+@media (max-width: 640px) {
+  .page { padding: 16px; }
+  .header { padding: 10px 16px; }
+  .topic-grid { grid-template-columns: 1fr; }
+  .display { font-size: 22px; }
+  .kpi-value { font-size: 18px; }
+  .modal { padding: 16px; }
+  .streak { display: none; }
+}
+
+/* Focus rings */
+button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">M</div>
+      <span>Mathline</span>
+      <span class="subtle" style="font-weight:400;font-size:13px;">· Grade 10</span>
+    </div>
+    <div class="header-actions">
+      <div class="streak" title="Practice streak">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2s4 4 4 8a4 4 0 0 1-8 0c0-2 1-3 1-3s-1 5 3 5 4-3 4-3-1 6-4 9c0 0-7-1-7-7 0-5 7-9 7-9z"/></svg>
+        <strong id="streakCount">3</strong> day streak
+      </div>
+      <button class="btn-icon" id="formulaBtn" aria-label="Formula sheet" title="Formula sheet">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16v16H4z"/><path d="M8 9h8M8 13h8M8 17h5"/></svg>
+      </button>
+      <button class="btn-icon" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <main class="main" id="main"></main>
+
+  <nav class="bottom-nav" role="navigation">
+    <button data-view="browse" class="active" onclick="setView('browse')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+      Topics
+    </button>
+    <button data-view="progress" onclick="setView('progress')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg>
+      Progress
+    </button>
+    <button data-view="history" onclick="setView('history')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg>
+      History
+    </button>
+    <button data-view="profile" onclick="setView('profile')">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+      Profile
+    </button>
+  </nav>
+</div>
+
+<div class="toasts" id="toasts"></div>
+<div id="modalRoot"></div>
+
+<script>
+/* ---------- THEME ---------- */
+const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+document.getElementById('themeToggle').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+});
+
+/* ---------- DATA: CURRICULUM ---------- */
+const CURRICULUM = [
+  { unit: 'Algebra', topics: [
+    { id: 'lin-eq', name: 'Linear Equations', desc: 'Solve for x in single-variable equations' },
+    { id: 'lin-ineq', name: 'Linear Inequalities', desc: 'Solve and graph inequalities' },
+    { id: 'systems', name: 'Systems of Equations', desc: 'Substitution and elimination' },
+    { id: 'quadratic', name: 'Quadratic Equations', desc: 'Factoring, quadratic formula, completing the square' },
+    { id: 'factoring', name: 'Factoring Polynomials', desc: 'Difference of squares, trinomials' },
+    { id: 'functions', name: 'Functions & Graphs', desc: 'Domain, range, transformations' },
+    { id: 'exponents', name: 'Exponents & Radicals', desc: 'Laws of exponents, simplifying radicals' }
+  ]},
+  { unit: 'Geometry', topics: [
+    { id: 'area-perim', name: 'Area & Perimeter', desc: 'Polygons and composite shapes' },
+    { id: 'angles', name: 'Angles & Lines', desc: 'Parallel lines, transversals, angle relationships' },
+    { id: 'triangles', name: 'Triangle Theorems', desc: 'Pythagorean theorem, congruence, similarity' },
+    { id: 'circles', name: 'Circles', desc: 'Arcs, sectors, chords, tangents' },
+    { id: 'coord-geom', name: 'Coordinate Geometry', desc: 'Distance, midpoint, slope formulas' },
+    { id: 'proofs', name: 'Geometric Proofs', desc: 'Two-column proofs and reasoning' }
+  ]}
+];
+
+const TOPIC_MAP = {};
+CURRICULUM.forEach(u => u.topics.forEach(t => { TOPIC_MAP[t.id] = { ...t, unit: u.unit }; }));
+
+/* ---------- STATE ---------- */
+const state = {
+  view: 'browse',
+  currentTopic: null,
+  tab: 'practice',
+  difficulty: 'grade',
+  history: [],
+  bookmarks: new Set(),
+  progress: {}, // topicId -> { attempted, correct, lastAt }
+  streak: 3,
+  practice: null, // current practice problem
+  homework: null,
+  notes: {} // problemId -> note
+};
+
+// Seed some starter history so it's not empty-cold
+function seed() {
+  const now = Date.now();
+  const seeds = [
+    { topicId: 'lin-eq', correct: true, ago: 1*3600*1000 },
+    { topicId: 'lin-eq', correct: true, ago: 2*3600*1000 },
+    { topicId: 'lin-eq', correct: false, ago: 3*3600*1000 },
+    { topicId: 'quadratic', correct: true, ago: 24*3600*1000 },
+    { topicId: 'quadratic', correct: false, ago: 25*3600*1000 },
+    { topicId: 'triangles', correct: true, ago: 48*3600*1000 },
+    { topicId: 'angles', correct: true, ago: 50*3600*1000 },
+    { topicId: 'angles', correct: true, ago: 52*3600*1000 }
+  ];
+  seeds.forEach((s, i) => {
+    const prob = generateProblem(s.topicId, 'grade');
+    const item = {
+      id: 'h' + (now - s.ago) + '-' + i,
+      topicId: s.topicId,
+      problem: prob.problem,
+      answer: prob.answer,
+      steps: prob.steps,
+      correct: s.correct,
+      timeSpent: Math.round(60 + Math.random() * 180),
+      at: now - s.ago,
+      mode: 'practice'
+    };
+    state.history.push(item);
+    if (!state.progress[s.topicId]) state.progress[s.topicId] = { attempted: 0, correct: 0, lastAt: 0 };
+    state.progress[s.topicId].attempted++;
+    if (s.correct) state.progress[s.topicId].correct++;
+    state.progress[s.topicId].lastAt = Math.max(state.progress[s.topicId].lastAt, item.at);
+  });
+}
+seed();
+
+/* ---------- TOAST ---------- */
+function toast(msg, type = 'info') {
+  const root = document.getElementById('toasts');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = {
+    success: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>',
+    error: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    info: '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16v.5"/></svg>'
+  };
+  el.innerHTML = (icons[type] || icons.info) + '<div>' + escapeHtml(msg) + '</div>';
+  root.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; el.style.transition = 'opacity 200ms ease'; setTimeout(() => el.remove(), 200); }, 4000);
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c]));
+}
+
+/* ---------- MODAL ---------- */
+function showModal(html, onClose) {
+  const root = document.getElementById('modalRoot');
+  root.innerHTML = '<div class="modal-backdrop" id="mb"><div class="modal" role="dialog">' + html + '</div></div>';
+  document.getElementById('mb').addEventListener('click', (e) => {
+    if (e.target.id === 'mb') closeModal(onClose);
+  });
+  document.addEventListener('keydown', escClose);
+  function escClose(e) { if (e.key === 'Escape') { closeModal(onClose); document.removeEventListener('keydown', escClose); } }
+}
+function closeModal(cb) {
+  document.getElementById('modalRoot').innerHTML = '';
+  if (cb) cb();
+}
+
+/* ---------- PROBLEM GENERATORS ---------- */
+function randInt(lo, hi) { return Math.floor(Math.random() * (hi - lo + 1)) + lo; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+function nonZero(lo, hi) { let n = 0; while (n === 0) n = randInt(lo, hi); return n; }
+
+function generateProblem(topicId, difficulty) {
+  const lvl = difficulty === 'easier' ? 0 : difficulty === 'challenge' ? 2 : 1;
+  switch (topicId) {
+    case 'lin-eq': return genLinEq(lvl);
+    case 'lin-ineq': return genLinIneq(lvl);
+    case 'systems': return genSystems(lvl);
+    case 'quadratic': return genQuadratic(lvl);
+    case 'factoring': return genFactoring(lvl);
+    case 'functions': return genFunctions(lvl);
+    case 'exponents': return genExponents(lvl);
+    case 'area-perim': return genAreaPerim(lvl);
+    case 'angles': return genAngles(lvl);
+    case 'triangles': return genTriangles(lvl);
+    case 'circles': return genCircles(lvl);
+    case 'coord-geom': return genCoordGeom(lvl);
+    case 'proofs': return genProofs(lvl);
+    default: return genLinEq(lvl);
+  }
+}
+
+function genLinEq(lvl) {
+  const a = lvl === 0 ? randInt(2, 6) : nonZero(-9, 9);
+  const b = lvl === 0 ? randInt(1, 10) : nonZero(-15, 15);
+  const x = lvl === 0 ? randInt(1, 8) : nonZero(-8, 12);
+  const c = a * x + b;
+  const sign = b >= 0 ? '+ ' + b : '− ' + Math.abs(b);
+  const problem = a + 'x ' + sign + ' = ' + c;
+  return {
+    problem,
+    answer: 'x = ' + x,
+    answerValue: x,
+    steps: [
+      { title: 'Isolate the variable term', explain: 'Move the constant to the right side by ' + (b >= 0 ? 'subtracting ' + b : 'adding ' + Math.abs(b)) + ' from both sides.', expr: a + 'x = ' + (c - b) },
+      { title: 'Divide both sides by the coefficient', explain: 'Divide both sides by ' + a + ' to isolate x.', expr: 'x = ' + (c - b) + ' / ' + a },
+      { title: 'Simplify', explain: 'Compute the division to get the final answer.', expr: 'x = ' + x }
+    ],
+    hints: [
+      'What operation undoes adding ' + b + '? Apply it to BOTH sides.',
+      'Once the variable term is alone, what do you do with the coefficient ' + a + '?',
+      'Divide both sides by ' + a + ' carefully — keep track of signs.'
+    ]
+  };
+}
+
+function genLinIneq(lvl) {
+  const a = nonZero(-6, 6);
+  const b = nonZero(-10, 10);
+  const rhs = nonZero(-10, 10);
+  const sign = b >= 0 ? '+ ' + b : '− ' + Math.abs(b);
+  const problem = a + 'x ' + sign + ' > ' + rhs;
+  const thresh = (rhs - b) / a;
+  const op = a > 0 ? '>' : '<';
+  return {
+    problem,
+    answer: 'x ' + op + ' ' + thresh.toFixed(2).replace(/\.00$/,''),
+    steps: [
+      { title: 'Subtract the constant', explain: 'Subtract ' + b + ' from both sides to isolate the variable term.', expr: a + 'x ' + op + ' ' + (rhs - b) },
+      { title: 'Divide by the coefficient', explain: a < 0 ? 'Dividing by a negative number FLIPS the inequality sign.' : 'Divide both sides by ' + a + '.', expr: 'x ' + op + ' ' + ((rhs - b) / a).toFixed(2).replace(/\.00$/,'') }
+    ],
+    hints: [
+      'Treat this like an equation, but watch one special rule.',
+      'When you divide by a negative number, what happens to the inequality?',
+      'If the coefficient is negative, flip > to <.'
+    ]
+  };
+}
+
+function genSystems(lvl) {
+  const x = nonZero(-5, 5), y = nonZero(-5, 5);
+  const a = nonZero(-4, 4), b = nonZero(-4, 4);
+  const c = nonZero(-4, 4), d = nonZero(-4, 4);
+  const e = a * x + b * y, f = c * x + d * y;
+  const problem = a + 'x + ' + b + 'y = ' + e + ',  ' + c + 'x + ' + d + 'y = ' + f;
+  return {
+    problem,
+    answer: '(' + x + ', ' + y + ')',
+    steps: [
+      { title: 'Choose a method', explain: 'Elimination works well here. Multiply equations to make coefficients match.', expr: 'Eq1 × ' + c + ',  Eq2 × ' + a },
+      { title: 'Eliminate x', explain: 'Subtract one equation from the other to cancel x.', expr: 'y = ' + y },
+      { title: 'Back-substitute', explain: 'Plug y = ' + y + ' into the first equation to solve for x.', expr: 'x = ' + x },
+      { title: 'Verify', explain: 'Check both equations: (' + x + ', ' + y + ') satisfies both.', expr: '(' + x + ', ' + y + ')' }
+    ],
+    hints: [
+      'Two methods work: substitution or elimination. Pick one.',
+      'Try elimination — multiply to line up coefficients of x or y.',
+      'Once you find one variable, substitute back into either equation.'
+    ]
+  };
+}
+
+function genQuadratic(lvl) {
+  const r1 = nonZero(-6, 6), r2 = nonZero(-6, 6);
+  const b = -(r1 + r2), c = r1 * r2;
+  const bStr = b >= 0 ? '+ ' + b : '− ' + Math.abs(b);
+  const cStr = c >= 0 ? '+ ' + c : '− ' + Math.abs(c);
+  const problem = 'x² ' + bStr + 'x ' + cStr + ' = 0';
+  return {
+    problem,
+    answer: 'x = ' + r1 + ' or x = ' + r2,
+    steps: [
+      { title: 'Identify the form', explain: 'This is a standard quadratic ax² + bx + c = 0 with a=1.', expr: 'a=1, b=' + b + ', c=' + c },
+      { title: 'Factor', explain: 'Find two numbers that multiply to ' + c + ' and add to ' + b + '.', expr: '(x − ' + r1 + ')(x − ' + r2 + ') = 0' },
+      { title: 'Apply zero product property', explain: 'If a product equals zero, at least one factor must be zero.', expr: 'x − ' + r1 + ' = 0  or  x − ' + r2 + ' = 0' },
+      { title: 'Solve each factor', explain: 'Add to isolate x in each equation.', expr: 'x = ' + r1 + '  or  x = ' + r2 }
+    ],
+    hints: [
+      'Can this quadratic be factored? Look for two numbers.',
+      'You need two numbers that multiply to ' + c + ' and add to ' + b + '.',
+      'After factoring, set each factor equal to zero.'
+    ]
+  };
+}
+
+function genFactoring(lvl) {
+  const a = nonZero(1, 6), b = nonZero(1, 6);
+  const problem = 'x² + ' + (a+b) + 'x + ' + (a*b);
+  return {
+    problem: 'Factor: ' + problem,
+    answer: '(x + ' + a + ')(x + ' + b + ')',
+    steps: [
+      { title: 'Find a factor pair', explain: 'Find two numbers that multiply to ' + (a*b) + ' and add to ' + (a+b) + '.', expr: a + ' × ' + b + ' = ' + (a*b) + ',  ' + a + ' + ' + b + ' = ' + (a+b) },
+      { title: 'Write the factored form', explain: 'Use those numbers in the binomials.', expr: '(x + ' + a + ')(x + ' + b + ')' }
+    ],
+    hints: [
+      'List factor pairs of ' + (a*b) + '.',
+      'Which pair adds to ' + (a+b) + '?',
+      'Use that pair as the constants in (x + ?)(x + ?).'
+    ]
+  };
+}
+
+function genFunctions(lvl) {
+  const m = nonZero(-4, 4), b = nonZero(-6, 6);
+  const xVal = nonZero(-5, 5);
+  return {
+    problem: 'For f(x) = ' + m + 'x ' + (b >= 0 ? '+ ' + b : '− ' + Math.abs(b)) + ', find f(' + xVal + ').',
+    answer: 'f(' + xVal + ') = ' + (m * xVal + b),
+    answerValue: m * xVal + b,
+    steps: [
+      { title: 'Substitute', explain: 'Replace every x with ' + xVal + '.', expr: 'f(' + xVal + ') = ' + m + '(' + xVal + ') ' + (b >= 0 ? '+ ' + b : '− ' + Math.abs(b)) },
+      { title: 'Multiply', explain: 'Compute the product ' + m + ' × ' + xVal + '.', expr: '= ' + (m * xVal) + ' ' + (b >= 0 ? '+ ' + b : '− ' + Math.abs(b)) },
+      { title: 'Add', explain: 'Combine the terms for the final value.', expr: '= ' + (m * xVal + b) }
+    ],
+    hints: [
+      'Function evaluation means: plug in the input wherever you see x.',
+      'Substitute ' + xVal + ' for every x, then simplify.',
+      'Remember: multiplication before addition.'
+    ]
+  };
+}
+
+function genExponents(lvl) {
+  const base = randInt(2, 6);
+  const a = randInt(2, 5), b = randInt(2, 5);
+  return {
+    problem: 'Simplify: ' + base + '^' + a + ' × ' + base + '^' + b,
+    answer: base + '^' + (a + b) + ' = ' + Math.pow(base, a + b),
+    answerValue: Math.pow(base, a + b),
+    steps: [
+      { title: 'Recognize the rule', explain: 'When multiplying powers with the same base, add the exponents.', expr: 'a^m × a^n = a^(m+n)' },
+      { title: 'Apply the rule', explain: 'Add the exponents: ' + a + ' + ' + b + '.', expr: base + '^' + (a + b) },
+      { title: 'Evaluate', explain: 'Compute the final value.', expr: '= ' + Math.pow(base, a + b) }
+    ],
+    hints: [
+      'Same base, multiplied — there\'s a rule for that.',
+      'a^m × a^n = a^(m+n). Don\'t multiply bases!',
+      'Add the exponents, then evaluate.'
+    ]
+  };
+}
+
+function genAreaPerim(lvl) {
+  const shapes = ['rect', 'triangle', 'circle'];
+  const shape = pick(shapes);
+  if (shape === 'rect') {
+    const w = randInt(3, 12), h = randInt(3, 12);
+    return {
+      problem: 'Find the area of a rectangle with width ' + w + ' and height ' + h + '.',
+      answer: 'Area = ' + (w*h) + ' square units',
+      answerValue: w * h,
+      shape: { type: 'rect', w, h },
+      steps: [
+        { title: 'Recall the formula', explain: 'Area of a rectangle = width × height.', expr: 'A = w × h' },
+        { title: 'Substitute', explain: 'Plug in width = ' + w + ' and height = ' + h + '.', expr: 'A = ' + w + ' × ' + h },
+        { title: 'Multiply', explain: 'Compute the product.', expr: 'A = ' + (w*h) }
+      ],
+      hints: ['Area of a rectangle uses two dimensions.', 'A = length × width.', 'Multiply ' + w + ' by ' + h + '.']
+    };
+  } else if (shape === 'triangle') {
+    const base = randInt(4, 14), height = randInt(4, 12);
+    return {
+      problem: 'Find the area of a triangle with base ' + base + ' and height ' + height + '.',
+      answer: 'Area = ' + (base*height/2) + ' square units',
+      answerValue: base * height / 2,
+      shape: { type: 'triangle', base, height },
+      steps: [
+        { title: 'Recall the formula', explain: 'Area of a triangle = ½ × base × height.', expr: 'A = ½ × b × h' },
+        { title: 'Substitute', explain: 'Use b = ' + base + ' and h = ' + height + '.', expr: 'A = ½ × ' + base + ' × ' + height },
+        { title: 'Compute', explain: 'Multiply then halve.', expr: 'A = ' + (base*height/2) }
+      ],
+      hints: ['Triangles have a special factor in their area formula.', 'A = ½ × b × h — don\'t forget the ½.', 'Multiply base × height, then divide by 2.']
+    };
+  } else {
+    const r = randInt(3, 10);
+    return {
+      problem: 'Find the area of a circle with radius ' + r + '. (Use π ≈ 3.14)',
+      answer: 'Area ≈ ' + (3.14 * r * r).toFixed(2) + ' square units',
+      answerValue: +(3.14 * r * r).toFixed(2),
+      shape: { type: 'circle', r },
+      steps: [
+        { title: 'Recall the formula', explain: 'Area of a circle = π × r².', expr: 'A = πr²' },
+        { title: 'Square the radius', explain: r + ' squared is ' + (r*r) + '.', expr: 'r² = ' + (r*r) },
+        { title: 'Multiply by π', explain: 'Using π ≈ 3.14.', expr: 'A ≈ 3.14 × ' + (r*r) + ' = ' + (3.14 * r * r).toFixed(2) }
+      ],
+      hints: ['Circle area uses pi and the radius.', 'A = πr². Square the radius first.', 'Multiply by π (use 3.14 for approximation).']
+    };
+  }
+}
+
+function genAngles(lvl) {
+  const a = randInt(20, 70);
+  const types = [
+    { problem: 'Two angles are supplementary. One is ' + a + '°. What is the other?', answer: (180 - a) + '°', val: 180 - a,
+      steps: [
+        { title: 'Definition', explain: 'Supplementary angles sum to 180°.', expr: 'angle₁ + angle₂ = 180°' },
+        { title: 'Substitute', explain: 'Plug in the known angle.', expr: a + '° + x = 180°' },
+        { title: 'Solve', explain: 'Subtract to isolate x.', expr: 'x = ' + (180 - a) + '°' }
+      ], hints: ['What\'s the rule for supplementary angles?', 'Supplementary angles add to 180°.', 'Subtract ' + a + ' from 180.']
+    },
+    { problem: 'Two angles are complementary. One is ' + a + '°. What is the other?', answer: (90 - a) + '°', val: 90 - a,
+      steps: [
+        { title: 'Definition', explain: 'Complementary angles sum to 90°.', expr: 'angle₁ + angle₂ = 90°' },
+        { title: 'Substitute', explain: 'Plug in the known angle.', expr: a + '° + x = 90°' },
+        { title: 'Solve', explain: 'Subtract to isolate x.', expr: 'x = ' + (90 - a) + '°' }
+      ], hints: ['Complementary means they sum to a special value.', 'Complementary angles add to 90°.', 'Subtract ' + a + ' from 90.']
+    }
+  ];
+  const t = pick(types);
+  return { problem: t.problem, answer: t.answer, answerValue: t.val, steps: t.steps, hints: t.hints, angle: a };
+}
+
+function genTriangles(lvl) {
+  const legs = [[3,4],[5,12],[6,8],[8,15],[9,12]];
+  const [a, b] = pick(legs);
+  const c = Math.sqrt(a*a + b*b);
+  return {
+    problem: 'A right triangle has legs ' + a + ' and ' + b + '. Find the hypotenuse.',
+    answer: 'c = ' + c,
+    answerValue: c,
+    shape: { type: 'right-triangle', a, b },
+    steps: [
+      { title: 'Pythagorean theorem', explain: 'In a right triangle, a² + b² = c².', expr: 'a² + b² = c²' },
+      { title: 'Substitute', explain: 'Plug in the leg lengths.', expr: a + '² + ' + b + '² = c²' },
+      { title: 'Square the legs', explain: 'Compute each square.', expr: (a*a) + ' + ' + (b*b) + ' = c²' },
+      { title: 'Add', explain: 'Sum the squares.', expr: 'c² = ' + (a*a + b*b) },
+      { title: 'Take the square root', explain: '√' + (a*a + b*b) + ' = ' + c + '.', expr: 'c = ' + c }
+    ],
+    hints: ['Which theorem relates the three sides of a right triangle?', 'Use a² + b² = c² for right triangles.', 'Square each leg, add them, then take the square root.']
+  };
+}
+
+function genCircles(lvl) {
+  const r = randInt(3, 10);
+  return {
+    problem: 'Find the circumference of a circle with radius ' + r + '. (Use π ≈ 3.14)',
+    answer: 'C ≈ ' + (2 * 3.14 * r).toFixed(2),
+    answerValue: +(2 * 3.14 * r).toFixed(2),
+    shape: { type: 'circle', r },
+    steps: [
+      { title: 'Recall the formula', explain: 'Circumference = 2πr.', expr: 'C = 2πr' },
+      { title: 'Substitute', explain: 'Use r = ' + r + '.', expr: 'C = 2 × π × ' + r },
+      { title: 'Compute', explain: 'Multiply, using π ≈ 3.14.', expr: 'C ≈ ' + (2 * 3.14 * r).toFixed(2) }
+    ],
+    hints: ['Circumference is the perimeter of a circle.', 'C = 2πr. Use 3.14 for π.', 'Multiply 2 × π × ' + r + '.']
+  };
+}
+
+function genCoordGeom(lvl) {
+  const x1 = nonZero(-6, 6), y1 = nonZero(-6, 6);
+  const x2 = nonZero(-6, 6), y2 = nonZero(-6, 6);
+  const d = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
+  return {
+    problem: 'Find the distance between (' + x1 + ', ' + y1 + ') and (' + x2 + ', ' + y2 + ').',
+    answer: 'd ≈ ' + d.toFixed(2),
+    answerValue: +d.toFixed(2),
+    shape: { type: 'segment', x1, y1, x2, y2 },
+    steps: [
+      { title: 'Distance formula', explain: 'd = √((x₂−x₁)² + (y₂−y₁)²).', expr: 'd = √((x₂−x₁)² + (y₂−y₁)²)' },
+      { title: 'Find differences', explain: 'Compute x₂−x₁ and y₂−y₁.', expr: 'Δx = ' + (x2-x1) + ',  Δy = ' + (y2-y1) },
+      { title: 'Square and sum', explain: 'Square each difference and add.', expr: (x2-x1)**2 + ' + ' + (y2-y1)**2 + ' = ' + ((x2-x1)**2 + (y2-y1)**2) },
+      { title: 'Square root', explain: 'Take the square root for the distance.', expr: 'd = ' + d.toFixed(2) }
+    ],
+    hints: ['Think of distance as a hypotenuse on the coordinate plane.', 'Use d = √((x₂−x₁)² + (y₂−y₁)²).', 'Find Δx and Δy first, then square, sum, and root.']
+  };
+}
+
+function genProofs(lvl) {
+  return {
+    problem: 'Given: ∠1 and ∠2 are vertical angles. Prove: ∠1 ≅ ∠2.',
+    answer: 'Vertical angles are congruent.',
+    steps: [
+      { title: 'State the given', explain: 'Begin every proof with what you are told.', expr: '∠1 and ∠2 are vertical angles' },
+      { title: 'Linear pairs', explain: 'Vertical angles share a third angle ∠3 in linear pairs.', expr: '∠1 + ∠3 = 180°,  ∠2 + ∠3 = 180°' },
+      { title: 'Transitive property', explain: 'Both equal 180°, so they equal each other.', expr: '∠1 + ∠3 = ∠2 + ∠3' },
+      { title: 'Subtract ∠3', explain: 'Subtraction property of equality gives congruence.', expr: '∠1 ≅ ∠2  ∎' }
+    ],
+    hints: ['What angles share a side with both ∠1 and ∠2?', 'Each vertical angle forms a linear pair with a shared angle.', 'Use the fact that both linear pairs sum to 180°.']
+  };
+}
+
+/* ---------- VIEWS ---------- */
+function setView(view) {
+  state.view = view;
+  state.currentTopic = null;
+  document.querySelectorAll('.bottom-nav button').forEach(b => b.classList.toggle('active', b.dataset.view === view));
+  render();
+}
+
+function render() {
+  const main = document.getElementById('main');
+  if (state.currentTopic) { main.innerHTML = renderTopic(); attachTopicHandlers(); return; }
+  if (state.view === 'browse') main.innerHTML = renderBrowse();
+  else if (state.view === 'progress') main.innerHTML = renderProgress();
+  else if (state.view === 'history') main.innerHTML = renderHistory();
+  else if (state.view === 'profile') main.innerHTML = renderProfile();
+}
+
+function renderBrowse() {
+  let html = '<div class="page"><div class="page-header"><div class="display">Topics</div><div class="muted" style="margin-top:4px;">Choose a concept to practice, learn, or get homework help.</div></div>';
+  CURRICULUM.forEach(unit => {
+    html += '<section class="unit-section"><div class="unit-header"><div class="unit-title"><span class="h1">' + unit.unit + '</span><span class="unit-badge">' + unit.topics.length + ' topics</span></div></div>';
+    html += '<div class="topic-grid">';
+    unit.topics.forEach(t => {
+      const p = state.progress[t.id] || { attempted: 0, correct: 0, lastAt: 0 };
+      const acc = p.attempted > 0 ? Math.round(100 * p.correct / p.attempted) : 0;
+      const completion = Math.min(100, p.attempted * 10);
+      html += '<div class="topic-card" onclick="openTopic(\'' + t.id + '\')">';
+      html += '<div class="topic-card-top"><div><div class="topic-name">' + t.name + '</div><div class="muted" style="font-size:12.5px;margin-top:2px;">' + t.desc + '</div></div>';
+      html += ringHTML(completion, acc, p.attempted) + '</div>';
+      html += '<div class="topic-meta">';
+      if (p.attempted > 0) {
+        html += '<span>' + p.attempted + ' attempted</span><span>·</span><span>' + accuracyLabel(acc) + '</span>';
+      } else {
+        html += '<span>Not started</span>';
+      }
+      html += '</div></div>';
+    });
+    html += '</div></section>';
+  });
+  html += '</div>';
+  return html;
+}
+
+function ringHTML(completion, acc, attempted) {
+  const r = 14, c = 2 * Math.PI * r;
+  const offset = c * (1 - completion / 100);
+  let color = 'var(--text-subtle)';
+  if (attempted > 0) {
+    if (acc >= 80) color = 'var(--success)';
+    else if (acc >= 60) color = 'var(--warning)';
+    else color = 'var(--danger)';
+  }
+  return '<div class="ring"><svg width="36" height="36" viewBox="0 0 36 36">' +
+    '<circle cx="18" cy="18" r="' + r + '" fill="none" stroke="var(--border)" stroke-width="3"/>' +
+    '<circle cx="18" cy="18" r="' + r + '" fill="none" stroke="' + color + '" stroke-width="3" stroke-dasharray="' + c.toFixed(2) + '" stroke-dashoffset="' + offset.toFixed(2) + '" stroke-linecap="round"/></svg>' +
+    '<div class="ring-text" style="color:' + color + ';">' + (attempted > 0 ? acc + '%' : '–') + '</div></div>';
+}
+
+function accuracyLabel(acc) {
+  if (acc >= 80) return '<span class="badge badge-success">' + acc + '% accuracy</span>';
+  if (acc >= 60) return '<span class="badge badge-warning">' + acc + '% accuracy</span>';
+  return '<span class="badge badge-danger">' + acc + '% accuracy</span>';
+}
+
+function openTopic(id) {
+  state.currentTopic = id;
+  state.tab = 'practice';
+  state.practice = null;
+  state.homework = null;
+  render();
+}
+
+function renderTopic() {
+  const t = TOPIC_MAP[state.currentTopic];
+  const p = state.progress[t.id] || { attempted: 0, correct: 0 };
+  const acc = p.attempted > 0 ? Math.round(100 * p.correct / p.attempted) : 0;
+  let html = '<div class="page">';
+  html += '<div class="breadcrumb"><a onclick="backToBrowse()">Topics</a> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg> <span>' + t.unit + '</span> <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 6l6 6-6 6"/></svg> <span style="color:var(--text);">' + t.name + '</span></div>';
+  html += '<div class="row-between" style="margin-bottom:16px;"><div><div class="h1">' + t.name + '</div><div class="muted" style="margin-top:2px;">' + t.desc + '</div></div>';
+  html += '<div class="row">' + (p.attempted > 0 ? accuracyLabel(acc) : '<span class="badge badge-neutral">No attempts yet</span>') + '</div></div>';
+  html += '<div class="tabs">';
+  ['practice','learn','help'].forEach(k => {
+    const label = k === 'practice' ? 'Practice' : k === 'learn' ? 'Learn' : 'Get Help';
+    html += '<button class="tab ' + (state.tab === k ? 'active' : '') + '" onclick="setTab(\'' + k + '\')">' + label + '</button>';
+  });
+  html += '</div>';
+  if (state.tab === 'practice') html += renderPracticeTab();
+  else if (state.tab === 'learn') html += renderLearnTab();
+  else html += renderHelpTab();
+  html += '</div>';
+  return html;
+}
+
+function backToBrowse() { state.currentTopic = null; render(); }
+function setTab(tab) { state.tab = tab; if (tab === 'practice') state.practice = null; if (tab === 'help') state.homework = null; render(); }
+
+/* PRACTICE TAB */
+function renderPracticeTab() {
+  let html = '<div class="card">';
+  html += '<div class="row-between" style="margin-bottom:12px;flex-wrap:wrap;gap:12px;"><div><div class="caption">Difficulty</div></div>';
+  html += '<div class="segmented">';
+  ['easier','grade','challenge'].forEach(d => {
+    const label = d === 'easier' ? 'Easier' : d === 'grade' ? 'Grade Level' : 'Challenge';
+    html += '<button class="' + (state.difficulty === d ? 'active' : '') + '" onclick="setDifficulty(\'' + d + '\')">' + label + '</button>';
+  });
+  html += '</div></div>';
+  if (!state.practice) {
+    html += '<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4"/><circle cx="12" cy="12" r="9"/></svg>';
+    html += '<div class="empty-title">Ready to practice?</div>';
+    html += '<div class="empty-desc">Generate a problem at your selected difficulty. Try it on paper first, then check your answer.</div>';
+    html += '<button class="btn-primary" onclick="newPractice()">Generate problem</button></div>';
+  } else {
+    html += renderPracticeProblem();
+  }
+  html += '</div>';
+  return html;
+}
+
+function setDifficulty(d) { state.difficulty = d; render(); }
+
+function newPractice() {
+  const prob = generateProblem(state.currentTopic, state.difficulty);
+  state.practice = {
+    ...prob,
+    id: 'p' + Date.now(),
+    revealed: 0,
+    userAnswer: '',
+    submitted: false,
+    correct: null,
+    startedAt: Date.now()
+  };
+  render();
+}
+
+function renderPracticeProblem() {
+  const p = state.practice;
+  let html = '<div style="margin-top:8px;"><div class="caption" style="margin-bottom:6px;">Problem</div>';
+  html += '<div class="mono" style="font-size:16px;padding:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);">' + escapeHtml(p.problem) + '</div>';
+  if (p.shape) html += '<div style="margin-top:12px;">' + renderShape(p.shape) + '</div>';
+  html += '<div style="margin-top:16px;"><div class="caption" style="margin-bottom:6px;">Your Answer</div>';
+  html += '<div class="row" style="gap:8px;"><input class="input" id="practiceAns" placeholder="Type your answer (e.g. x = 5)" value="' + escapeHtml(p.userAnswer) + '" ' + (p.submitted ? 'disabled' : '') + ' style="max-width:300px;" onkeydown="if(event.key===\'Enter\')submitPractice()">';
+  if (!p.submitted) html += '<button class="btn-primary" onclick="submitPractice()">Check answer</button>';
+  html += '<button class="btn-secondary" onclick="newPractice()">New problem</button>';
+  html += '<button class="btn-ghost" onclick="toggleBookmark(\'' + p.id + '\', \'' + escapeHtml(p.problem).replace(/'/g,"\\'") + '\')"><svg width="14" height="14" viewBox="0 0 24 24" fill="' + (state.bookmarks.has(p.id) ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg> ' + (state.bookmarks.has(p.id) ? 'Bookmarked' : 'Bookmark') + '</button>';
+  html += '</div></div>';
+  if (p.submitted) {
+    if (p.correct) html += '<div class="answer-feedback correct"><strong class="correct-tag">✓ Correct.</strong> Nice work. The answer is <span class="mono">' + escapeHtml(p.answer) + '</span>.</div>';
+    else html += '<div class="answer-feedback incorrect"><strong class="incorrect-tag">Not quite.</strong> The correct answer is <span class="mono">' + escapeHtml(p.answer) + '</span>. Work through the steps below to see where it went different.</div>';
+  }
+  // Progressive solution
+  html += '<div style="margin-top:16px;"><div class="row-between" style="margin-bottom:8px;"><div class="caption">Solution</div>';
+  if (p.revealed < p.steps.length) html += '<button class="btn-secondary" onclick="revealStep()">Show ' + (p.revealed === 0 ? 'first' : 'next') + ' step</button>';
+  else html += '<span class="badge badge-success">Complete</span>';
+  html += '</div>';
+  if (p.revealed === 0) {
+    html += '<div class="empty" style="padding:20px;"><div class="empty-desc" style="text-align:center;">Try the problem first. When you\'re stuck, reveal one step at a time.</div></div>';
+  } else {
+    html += '<div class="steps">';
+    for (let i = 0; i < p.revealed; i++) {
+      html += '<div class="step"><div class="step-num">' + (i+1) + '</div><div class="step-content"><div class="step-title">' + escapeHtml(p.steps[i].title) + '</div><div class="step-explain">' + escapeHtml(p.steps[i].explain) + '</div><div class="step-expr">' + escapeHtml(p.steps[i].expr) + '</div></div></div>';
+    }
+    html += '</div>';
+  }
+  html += '</div>';
+  // Notes
+  html += '<div style="margin-top:16px;"><div class="caption" style="margin-bottom:6px;">Notes</div>';
+  html += '<textarea class="note-area" placeholder="Jot down what you learned, where you got stuck, or key formulas..." oninput="state.notes[\'' + p.id + '\']=this.value">' + escapeHtml(state.notes[p.id] || '') + '</textarea></div>';
+  html += '</div>';
+  return html;
+}
+
+function submitPractice() {
+  const p = state.practice;
+  if (!p || p.submitted) return;
+  const userAns = document.getElementById('practiceAns').value.trim();
+  p.userAnswer = userAns;
+  if (!userAns) { toast('Please enter an answer first.', 'error'); return; }
+  p.correct = checkAnswer(userAns, p.answer, p.answerValue);
+  p.submitted = true;
+  p.timeSpent = Math.round((Date.now() - p.startedAt) / 1000);
+  // Record
+  recordAttempt(state.currentTopic, p, 'practice');
+  toast(p.correct ? 'Correct — nice work.' : 'Incorrect. Walk through the steps to see why.', p.correct ? 'success' : 'error');
+  render();
+}
+
+function checkAnswer(user, correct, correctValue) {
+  const u = user.toLowerCase().replace(/\s+/g, '').replace(/[=]/g, '');
+  const c = String(correct).toLowerCase().replace(/\s+/g, '').replace(/[=]/g, '');
+  if (u === c) return true;
+  // Try numeric match
+  const nums = u.match(/-?\d+(\.\d+)?/g);
+  if (nums && correctValue !== undefined) {
+    const userNum = parseFloat(nums[nums.length - 1]);
+    if (!isNaN(userNum) && Math.abs(userNum - correctValue) < 0.05) return true;
+  }
+  // Check if user answer contains the correct answer
+  if (u.includes(c) || c.includes(u)) return true;
+  return false;
+}
+
+function revealStep() {
+  if (state.practice) { state.practice.revealed = Math.min(state.practice.steps.length, state.practice.revealed + 1); render(); }
+  else if (state.homework) { state.homework.revealed = Math.min(state.homework.steps.length, state.homework.revealed + 1); render(); }
+}
+
+function toggleBookmark(id, label) {
+  if (state.bookmarks.has(id)) { state.bookmarks.delete(id); toast('Bookmark removed.'); }
+  else { state.bookmarks.add(id); toast('Bookmarked for later.', 'success'); }
+  render();
+}
+
+function recordAttempt(topicId, p, mode) {
+  const item = {
+    id: p.id,
+    topicId,
+    problem: p.problem,
+    answer: p.answer,
+    userAnswer: p.userAnswer,
+    steps: p.steps,
+    correct: p.correct,
+    timeSpent: p.timeSpent || 0,
+    at: Date.now(),
+    mode
+  };
+  state.history.unshift(item);
+  if (!state.progress[topicId]) state.progress[topicId] = { attempted: 0, correct: 0, lastAt: 0 };
+  state.progress[topicId].attempted++;
+  if (p.correct) state.progress[topicId].correct++;
+  state.progress[topicId].lastAt = Date.now();
+}
+
+/* LEARN TAB */
+function renderLearnTab() {
+  const id = state.currentTopic;
+  const t = TOPIC_MAP[id];
+  let html = '<div class="card"><div class="h2" style="margin-bottom:8px;">Concept: ' + t.name + '</div>';
+  html += '<div class="muted" style="margin-bottom:16px;">' + lessonIntro(id) + '</div>';
+  html += '<div class="divider"></div>';
+  html += '<div class="h2" style="margin-bottom:12px;">Visualization</div>';
+  html += renderLessonViz(id);
+  html += '<div class="divider"></div>';
+  html += '<div class="h2" style="margin-bottom:12px;">Worked Example</div>';
+  const ex = generateProblem(id, 'grade');
+  html += '<div class="mono" style="padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;">' + escapeHtml(ex.problem) + '</div>';
+  html += '<div class="steps">';
+  ex.steps.forEach((s, i) => {
+    html += '<div class="step"><div class="step-num">' + (i+1) + '</div><div class="step-content"><div class="step-title">' + escapeHtml(s.title) + '</div><div class="step-explain">' + escapeHtml(s.explain) + '</div><div class="step-expr">' + escapeHtml(s.expr) + '</div></div></div>';
+  });
+  html += '</div>';
+  html += '<div class="row" style="margin-top:16px;"><button class="btn-primary" onclick="setTab(\'practice\');setTimeout(newPractice,0)">Try a problem</button>';
+  html += '<button class="btn-secondary" onclick="showFormulaSheet()">Open formula sheet</button></div>';
+  html += '</div>';
+  return html;
+}
+
+function lessonIntro(id) {
+  const intros = {
+    'lin-eq': 'A linear equation has one variable raised to the first power. To solve, isolate the variable using inverse operations on both sides.',
+    'lin-ineq': 'Inequalities behave like equations with one big exception: multiplying or dividing by a negative number flips the inequality sign.',
+    'systems': 'A system has two or more equations sharing variables. Solutions satisfy ALL equations. Two main techniques: substitution and elimination.',
+    'quadratic': 'A quadratic has the form ax² + bx + c. It can have two, one, or no real solutions. Techniques: factoring, completing the square, quadratic formula.',
+    'factoring': 'Factoring rewrites a polynomial as a product. For quadratics x² + bx + c, find two numbers that multiply to c and add to b.',
+    'functions': 'A function maps each input to exactly one output. f(x) notation means "plug x in and evaluate."',
+    'exponents': 'Exponent rules let us simplify expressions with powers. Key rule: a^m × a^n = a^(m+n).',
+    'area-perim': 'Area measures the surface inside a shape (square units). Perimeter measures the distance around it.',
+    'angles': 'Complementary angles sum to 90°. Supplementary angles sum to 180°. Vertical angles (opposite at an intersection) are congruent.',
+    'triangles': 'In a right triangle, the Pythagorean theorem says a² + b² = c², where c is the hypotenuse (opposite the right angle).',
+    'circles': 'A circle is defined by its center and radius. Circumference = 2πr. Area = πr².',
+    'coord-geom': 'On the coordinate plane: distance = √((x₂−x₁)² + (y₂−y₁)²), midpoint = ((x₁+x₂)/2, (y₁+y₂)/2), slope = (y₂−y₁)/(x₂−x₁).',
+    'proofs': 'A proof is a sequence of logical statements, each justified by a definition, postulate, or previously-proven theorem.'
+  };
+  return intros[id] || '';
+}
+
+function renderLessonViz(id) {
+  if (['area-perim','triangles','circles','angles','coord-geom'].includes(id)) {
+    if (id === 'angles') return renderAngleScrubber();
+    if (id === 'circles' || id === 'area-perim') return renderShape({ type: 'circle', r: 6 });
+    if (id === 'triangles') return renderShape({ type: 'right-triangle', a: 3, b: 4 });
+    if (id === 'coord-geom') return renderShape({ type: 'segment', x1: -3, y1: -2, x2: 4, y2: 3 });
+  }
+  if (id === 'functions' || id === 'lin-eq') return renderLineGraph();
+  if (id === 'quadratic') return renderParabola();
+  return '<div class="empty" style="padding:20px;"><div class="empty-desc">Work through the example below to see this concept in action.</div></div>';
+}
+
+function renderShape(shape) {
+  if (shape.type === 'rect') {
+    const sw = 240, sh = 160;
+    const scale = Math.min(sw / (shape.w + 4), sh / (shape.h + 4)) * 12;
+    const w = shape.w * scale, h = shape.h * scale;
+    return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '" viewBox="0 0 ' + sw + ' ' + sh + '">' +
+      '<rect x="' + ((sw-w)/2) + '" y="' + ((sh-h)/2) + '" width="' + w + '" height="' + h + '" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>' +
+      '<text x="' + (sw/2) + '" y="' + ((sh-h)/2 - 8) + '" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="monospace">' + shape.w + '</text>' +
+      '<text x="' + ((sw-w)/2 - 12) + '" y="' + (sh/2 + 4) + '" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="monospace">' + shape.h + '</text>' +
+      '</svg></div>';
+  }
+  if (shape.type === 'triangle' || shape.type === 'right-triangle') {
+    const sw = 240, sh = 180;
+    const a = shape.a || shape.base, b = shape.b || shape.height;
+    const scale = Math.min((sw - 60) / a, (sh - 60) / b);
+    const ox = 40, oy = sh - 30;
+    const x1 = ox, y1 = oy;
+    const x2 = ox + a * scale, y2 = oy;
+    const x3 = ox, y3 = oy - b * scale;
+    return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '">' +
+      '<polygon points="' + x1 + ',' + y1 + ' ' + x2 + ',' + y2 + ' ' + x3 + ',' + y3 + '" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>' +
+      (shape.type === 'right-triangle' ? '<path d="M' + (x1+10) + ',' + y1 + ' L' + (x1+10) + ',' + (y1-10) + ' L' + x1 + ',' + (y1-10) + '" fill="none" stroke="var(--accent)" stroke-width="1"/>' : '') +
+      '<text x="' + ((x1+x2)/2) + '" y="' + (y1+18) + '" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="monospace">' + a + '</text>' +
+      '<text x="' + (x1-12) + '" y="' + ((y1+y3)/2) + '" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="monospace">' + b + '</text>' +
+      '</svg></div>';
+  }
+  if (shape.type === 'circle') {
+    const sw = 240, sh = 180;
+    const r = Math.min(60, shape.r * 7);
+    return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '">' +
+      '<circle cx="' + (sw/2) + '" cy="' + (sh/2) + '" r="' + r + '" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>' +
+      '<line x1="' + (sw/2) + '" y1="' + (sh/2) + '" x2="' + (sw/2 + r) + '" y2="' + (sh/2) + '" stroke="var(--accent)" stroke-width="1" stroke-dasharray="3,3"/>' +
+      '<text x="' + (sw/2 + r/2) + '" y="' + (sh/2 - 6) + '" text-anchor="middle" fill="var(--text-muted)" font-size="12" font-family="monospace">r = ' + shape.r + '</text>' +
+      '<circle cx="' + (sw/2) + '" cy="' + (sh/2) + '" r="2" fill="var(--accent)"/>' +
+      '</svg></div>';
+  }
+  if (shape.type === 'segment') {
+    return renderCoordPlane(shape.x1, shape.y1, shape.x2, shape.y2);
+  }
+  return '';
+}
+
+function renderCoordPlane(x1, y1, x2, y2) {
+  const sw = 280, sh = 220;
+  const range = 8;
+  const cx = sw / 2, cy = sh / 2;
+  const s = (sw - 20) / (range * 2);
+  function px(x) { return cx + x * s; }
+  function py(y) { return cy - y * s; }
+  let grid = '';
+  for (let i = -range; i <= range; i++) {
+    grid += '<line x1="' + px(i) + '" y1="' + py(-range) + '" x2="' + px(i) + '" y2="' + py(range) + '" stroke="var(--border)" stroke-width="0.5"/>';
+    grid += '<line x1="' + px(-range) + '" y1="' + py(i) + '" x2="' + px(range) + '" y2="' + py(i) + '" stroke="var(--border)" stroke-width="0.5"/>';
+  }
+  return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '">' +
+    grid +
+    '<line x1="' + px(-range) + '" y1="' + cy + '" x2="' + px(range) + '" y2="' + cy + '" stroke="var(--text-subtle)" stroke-width="1"/>' +
+    '<line x1="' + cx + '" y1="' + py(-range) + '" x2="' + cx + '" y2="' + py(range) + '" stroke="var(--text-subtle)" stroke-width="1"/>' +
+    '<line x1="' + px(x1) + '" y1="' + py(y1) + '" x2="' + px(x2) + '" y2="' + py(y2) + '" stroke="var(--accent)" stroke-width="2"/>' +
+    '<circle cx="' + px(x1) + '" cy="' + py(y1) + '" r="4" fill="var(--accent)"/>' +
+    '<circle cx="' + px(x2) + '" cy="' + py(y2) + '" r="4" fill="var(--accent)"/>' +
+    '<text x="' + (px(x1) + 6) + '" y="' + (py(y1) - 6) + '" fill="var(--text)" font-size="11" font-family="monospace">(' + x1 + ',' + y1 + ')</text>' +
+    '<text x="' + (px(x2) + 6) + '" y="' + (py(y2) - 6) + '" fill="var(--text)" font-size="11" font-family="monospace">(' + x2 + ',' + y2 + ')</text>' +
+    '</svg></div>';
+}
+
+function renderLineGraph() {
+  const sw = 280, sh = 220;
+  const range = 8;
+  const cx = sw / 2, cy = sh / 2;
+  const s = (sw - 20) / (range * 2);
+  let grid = '';
+  for (let i = -range; i <= range; i++) {
+    grid += '<line x1="' + (cx + i*s) + '" y1="' + (cy - range*s) + '" x2="' + (cx + i*s) + '" y2="' + (cy + range*s) + '" stroke="var(--border)" stroke-width="0.5"/>';
+    grid += '<line x1="' + (cx - range*s) + '" y1="' + (cy + i*s) + '" x2="' + (cx + range*s) + '" y2="' + (cy + i*s) + '" stroke="var(--border)" stroke-width="0.5"/>';
+  }
+  return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '">' + grid +
+    '<line x1="0" y1="' + cy + '" x2="' + sw + '" y2="' + cy + '" stroke="var(--text-subtle)"/>' +
+    '<line x1="' + cx + '" y1="0" x2="' + cx + '" y2="' + sh + '" stroke="var(--text-subtle)"/>' +
+    '<line x1="' + (cx - 7*s) + '" y1="' + (cy + (2*7-1)*s/2) + '" x2="' + (cx + 7*s) + '" y2="' + (cy - (2*7+1)*s/2) + '" stroke="var(--accent)" stroke-width="2"/>' +
+    '<text x="' + (cx + 4*s) + '" y="' + (cy - 4*s - 6) + '" fill="var(--accent)" font-size="12" font-family="monospace">y = x</text>' +
+    '</svg></div>';
+}
+
+function renderParabola() {
+  const sw = 280, sh = 220;
+  const cx = sw / 2, cy = sh - 30;
+  let path = '';
+  for (let xi = -6; xi <= 6; xi += 0.2) {
+    const yi = xi * xi * 0.3;
+    const x = cx + xi * 18, y = cy - yi * 12;
+    path += (path ? ' L ' : 'M ') + x + ' ' + y;
+  }
+  return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '">' +
+    '<line x1="0" y1="' + cy + '" x2="' + sw + '" y2="' + cy + '" stroke="var(--text-subtle)"/>' +
+    '<line x1="' + cx + '" y1="0" x2="' + cx + '" y2="' + sh + '" stroke="var(--text-subtle)"/>' +
+    '<path d="' + path + '" stroke="var(--accent)" stroke-width="2" fill="none"/>' +
+    '<text x="' + (cx + 60) + '" y="40" fill="var(--accent)" font-size="12" font-family="monospace">y = x²</text>' +
+    '</svg></div>';
+}
+
+function renderAngleScrubber() {
+  const angle = state.lessonAngle || 45;
+  const sw = 280, sh = 200;
+  const cx = sw / 2, cy = sh / 2;
+  const len = 90;
+  const rad = angle * Math.PI / 180;
+  const x2 = cx + len * Math.cos(-rad), y2 = cy + len * Math.sin(-rad);
+  return '<div class="geo-viz"><svg width="' + sw + '" height="' + sh + '">' +
+    '<line x1="' + cx + '" y1="' + cy + '" x2="' + (cx + len) + '" y2="' + cy + '" stroke="var(--text-muted)" stroke-width="1.5"/>' +
+    '<line x1="' + cx + '" y1="' + cy + '" x2="' + x2 + '" y2="' + y2 + '" stroke="var(--accent)" stroke-width="2"/>' +
+    '<path d="M ' + (cx + 30) + ' ' + cy + ' A 30 30 0 0 ' + (angle > 0 ? 0 : 1) + ' ' + (cx + 30 * Math.cos(-rad)) + ' ' + (cy + 30 * Math.sin(-rad)) + '" fill="none" stroke="var(--accent)" stroke-width="1.5"/>' +
+    '<text x="' + (cx + 40) + '" y="' + (cy - 8) + '" fill="var(--text)" font-size="12" font-family="monospace">' + angle + '°</text>' +
+    '</svg></div>' +
+    '<div class="scrubber-row"><span class="caption">Angle</span><input type="range" min="0" max="180" value="' + angle + '" oninput="state.lessonAngle=+this.value;render()"><span class="mono">' + angle + '°</span></div>';
+}
+
+/* HELP TAB */
+function renderHelpTab() {
+  let html = '<div class="card"><div class="h2" style="margin-bottom:4px;">Homework Help</div>';
+  html += '<div class="muted" style="margin-bottom:16px;font-size:13px;">Enter the problem from your homework. You\'ll get hints first — try the problem before revealing the full solution.</div>';
+  html += '<div class="input-switcher">';
+  const mode = state.homeworkInput || 'type';
+  html += '<button class="' + (mode === 'type' ? 'active' : '') + '" onclick="setHwInput(\'type\')">Type</button>';
+  html += '<button class="' + (mode === 'photo' ? 'active' : '') + '" onclick="setHwInput(\'photo\')">Photo</button>';
+  html += '<button class="' + (mode === 'draw' ? 'active' : '') + '" onclick="setHwInput(\'draw\')">Draw</button>';
+  html += '</div>';
+  if (mode === 'type') {
+    html += '<textarea class="input" id="hwInput" placeholder="Type your problem here. Example: 2x + 5 = 13" style="font-family:ui-monospace,monospace;">' + escapeHtml(state.homeworkText || '') + '</textarea>';
+  } else if (mode === 'photo') {
+    html += '<label class="card" style="display:flex;flex-direction:column;align-items:center;gap:10px;cursor:pointer;background:var(--surface-2);border-style:dashed;padding:24px;"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="color:var(--text-subtle);"><path d="M21 19V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2z"/><circle cx="8.5" cy="10" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg><div class="muted" style="font-size:13px;">Upload a photo of your problem</div><input type="file" accept="image/*" style="display:none;" onchange="handlePhoto(event)"><span class="btn-secondary">Choose file</span></label>';
+    if (state.homeworkPhotoName) html += '<div class="muted" style="margin-top:8px;font-size:13px;">Loaded: ' + escapeHtml(state.homeworkPhotoName) + '. We\'ll use the typed text below as the parsed expression — adjust if needed.</div><textarea class="input" id="hwInput" placeholder="Parsed expression" style="margin-top:8px;font-family:ui-monospace,monospace;">' + escapeHtml(state.homeworkText || '') + '</textarea>';
+  } else {
+    html += '<div class="canvas-wrap"><canvas class="drawing" id="drawCanvas" width="600" height="180"></canvas><div class="canvas-tools"><button class="btn-ghost" onclick="clearCanvas()">Clear</button><span class="muted" style="margin-left:auto;font-size:12px;align-self:center;">Sketch your problem above</span></div></div>';
+    html += '<div class="caption" style="margin-top:12px;margin-bottom:4px;">Parsed expression</div><textarea class="input" id="hwInput" placeholder="Confirm the problem (type what you drew)" style="font-family:ui-monospace,monospace;">' + escapeHtml(state.homeworkText || '') + '</textarea>';
+  }
+  html += '<div class="row" style="margin-top:12px;"><button class="btn-primary" onclick="startHomework()">Start guided help</button>';
+  if (state.homework) html += '<button class="btn-secondary" onclick="state.homework=null;render()">Reset</button>';
+  html += '</div>';
+  if (state.homework) html += renderHomeworkSession();
+  html += '</div>';
+  return html;
+}
+
+function setHwInput(m) { state.homeworkInput = m; render(); }
+
+function handlePhoto(e) {
+  const f = e.target.files[0];
+  if (!f) return;
+  state.homeworkPhotoName = f.name;
+  toast('Photo loaded. Type or confirm the parsed expression to continue.', 'info');
+  render();
+}
+
+function clearCanvas() {
+  const c = document.getElementById('drawCanvas');
+  if (c) { const ctx = c.getContext('2d'); ctx.clearRect(0,0,c.width,c.height); }
+}
+
+function startHomework() {
+  const inp = document.getElementById('hwInput');
+  if (!inp || !inp.value.trim()) { toast('Please enter or sketch a problem first.', 'error'); return; }
+  state.homeworkText = inp.value.trim();
+  // Generate a similar problem for the current topic (uses the typed problem as the "shown" problem)
+  const base = generateProblem(state.currentTopic, 'grade');
+  state.homework = {
+    ...base,
+    id: 'hw' + Date.now(),
+    problem: state.homeworkText,
+    revealed: 0,
+    hintIndex: 0,
+    submitted: false,
+    correct: null,
+    userAnswer: '',
+    startedAt: Date.now()
+  };
+  toast('Working through your homework. Try a hint first!', 'info');
+  render();
+}
+
+function renderHomeworkSession() {
+  const h = state.homework;
+  let html = '<div class="divider"></div><div class="caption" style="margin-bottom:6px;">Your problem</div>';
+  html += '<div class="mono" style="padding:12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:12px;">' + escapeHtml(h.problem) + '</div>';
+  // Hints first
+  html += '<div class="row" style="margin-bottom:8px;">';
+  if (h.hintIndex < (h.hints?.length || 0)) html += '<button class="btn-secondary" onclick="nextHint()">Get a hint (' + h.hintIndex + '/' + h.hints.length + ' shown)</button>';
+  else html += '<span class="badge badge-neutral">All hints shown</span>';
+  if (h.hintIndex >= (h.hints?.length || 0) || h.revealed > 0) {
+    if (h.revealed < h.steps.length) html += '<button class="btn-primary" onclick="revealStep()">Show ' + (h.revealed === 0 ? 'solution step' : 'next step') + '</button>';
+  } else {
+    html += '<span class="muted" style="font-size:12px;align-self:center;">Try all hints before unlocking the solution.</span>';
+  }
+  html += '</div>';
+  if (h.hintIndex > 0 && h.hints) {
+    for (let i = 0; i < h.hintIndex; i++) {
+      html += '<div class="hint"><div><span class="hint-label">Hint ' + (i+1) + ':</span> ' + escapeHtml(h.hints[i]) + '</div></div>';
+    }
+  }
+  if (h.revealed > 0) {
+    html += '<div class="steps">';
+    for (let i = 0; i < h.revealed; i++) {
+      html += '<div class="step"><div class="step-num">' + (i+1) + '</div><div class="step-content"><div class="step-title">' + escapeHtml(h.steps[i].title) + '</div><div class="step-explain">' + escapeHtml(h.steps[i].explain) + '</div><div class="step-expr">' + escapeHtml(h.steps[i].expr) + '</div></div></div>';
+    }
+    html += '</div>';
+  }
+  // Answer & confirm understood
+  if (h.revealed === h.steps.length && !h.submitted) {
+    html += '<div style="margin-top:14px;"><div class="caption" style="margin-bottom:6px;">Final answer</div>';
+    html += '<div class="row"><div class="mono" style="padding:8px 12px;background:var(--success-bg);border-radius:var(--radius-sm);">' + escapeHtml(h.answer) + '</div>';
+    html += '<button class="btn-primary" onclick="confirmUnderstood()">I understand</button>';
+    html += '<button class="btn-ghost" onclick="exportSolution()">Export / Print</button></div></div>';
+  }
+  if (h.submitted) {
+    html += '<div class="answer-feedback correct"><strong class="correct-tag">✓ Logged.</strong> Saved to your history. Try a similar problem to lock it in.</div>';
+    html += '<div class="row" style="margin-top:8px;"><button class="btn-secondary" onclick="setTab(\'practice\');setTimeout(newPractice,0)">Try similar problem</button></div>';
+  }
+  // Notes
+  html += '<div style="margin-top:16px;"><div class="caption" style="margin-bottom:6px;">Notes</div>';
+  html += '<textarea class="note-area" placeholder="Save your thinking for later..." oninput="state.notes[\'' + h.id + '\']=this.value">' + escapeHtml(state.notes[h.id] || '') + '</textarea></div>';
+  return html;
+}
+
+function nextHint() {
+  const h = state.homework;
+  if (!h) return;
+  h.hintIndex = Math.min((h.hints || []).length, h.hintIndex + 1);
+  render();
+}
+
+function confirmUnderstood() {
+  const h = state.homework;
+  h.submitted = true;
+  h.correct = true;
+  h.timeSpent = Math.round((Date.now() - h.startedAt) / 1000);
+  recordAttempt(state.currentTopic, h, 'homework');
+  toast('Saved to history.', 'success');
+  render();
+}
+
+function exportSolution() {
+  const h = state.homework;
+  let txt = 'Problem: ' + h.problem + '\n\nSolution:\n';
+  h.steps.forEach((s, i) => { txt += (i+1) + '. ' + s.title + '\n   ' + s.explain + '\n   ' + s.expr + '\n\n'; });
+  txt += 'Final answer: ' + h.answer;
+  const w = window.open('', '_blank');
+  if (w) {
+    w.document.write('<pre style="font-family:ui-monospace,monospace;padding:24px;white-space:pre-wrap;">' + escapeHtml(txt) + '</pre>');
+    w.document.title = 'Mathline — Solution';
+    setTimeout(() => w.print(), 250);
+    toast('Opened printable solution.', 'success');
+  } else {
+    toast('Allow popups to print the solution.', 'error');
+  }
+}
+
+/* PROGRESS */
+function renderProgress() {
+  const total = state.history.length;
+  const totalCorrect = state.history.filter(h => h.correct).length;
+  const avgAcc = total > 0 ? Math.round(100 * totalCorrect / total) : 0;
+  const topicsAttempted = Object.keys(state.progress).length;
+  let html = '<div class="page"><div class="page-header"><div class="display">Progress</div><div class="muted" style="margin-top:4px;">Your learning over time. Focus on the topics that need work.</div></div>';
+  html += '<div class="kpi-row">';
+  html += '<div class="kpi"><div class="kpi-label">Topics started</div><div class="kpi-value">' + topicsAttempted + '</div><div class="kpi-sub">of 13 grade-10 topics</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Overall accuracy</div><div class="kpi-value">' + (total > 0 ? avgAcc + '%' : '—') + '</div><div class="kpi-sub">' + totalCorrect + ' of ' + total + ' correct</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Problems attempted</div><div class="kpi-value">' + total + '</div><div class="kpi-sub">all-time</div></div>';
+  html += '<div class="kpi"><div class="kpi-label">Practice streak</div><div class="kpi-value">' + state.streak + '</div><div class="kpi-sub">consecutive days</div></div>';
+  html += '</div>';
+  html += '<div class="card" style="margin-bottom:16px;"><div class="row-between" style="margin-bottom:12px;"><div class="h2">Activity heatmap</div><div class="caption">Last 14 weeks</div></div>';
+  html += renderHeatmap();
+  html += '</div>';
+  html += '<div class="toolbar"><div class="h2">Topics</div><div class="toolbar-group"><span class="caption">Sort by</span><div class="segmented">';
+  const sort = state.progressSort || 'curriculum';
+  html += '<button class="' + (sort === 'curriculum' ? 'active' : '') + '" onclick="setProgressSort(\'curriculum\')">Curriculum</button>';
+  html += '<button class="' + (sort === 'needswork' ? 'active' : '') + '" onclick="setProgressSort(\'needswork\')">Needs Work</button>';
+  html += '<button class="' + (sort === 'recent' ? 'active' : '') + '" onclick="setProgressSort(\'recent\')">Recent</button>';
+  html += '</div></div></div>';
+  if (topicsAttempted === 0) {
+    html += '<div class="card empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 3v18h18"/><path d="M7 14l4-4 4 4 5-5"/></svg><div class="empty-title">No progress yet</div><div class="empty-desc">Once you attempt problems, this dashboard will show your accuracy and mastery per topic.</div><button class="btn-primary" onclick="setView(\'browse\')">Browse topics</button></div>';
+  } else {
+    const topics = [];
+    CURRICULUM.forEach(u => u.topics.forEach(t => topics.push(t)));
+    let sorted = topics.slice();
+    if (sort === 'needswork') sorted.sort((a, b) => {
+      const pa = state.progress[a.id], pb = state.progress[b.id];
+      const aa = pa && pa.attempted > 0 ? pa.correct / pa.attempted : 2;
+      const bb = pb && pb.attempted > 0 ? pb.correct / pb.attempted : 2;
+      return aa - bb;
+    });
+    if (sort === 'recent') sorted.sort((a, b) => ((state.progress[b.id]?.lastAt || 0) - (state.progress[a.id]?.lastAt || 0)));
+    html += '<div class="topic-grid">';
+    sorted.forEach(t => {
+      const p = state.progress[t.id];
+      if (sort !== 'curriculum' && !p) return;
+      const attempted = p?.attempted || 0;
+      const acc = attempted > 0 ? Math.round(100 * p.correct / attempted) : 0;
+      const completion = Math.min(100, attempted * 10);
+      html += '<div class="topic-card" onclick="openTopic(\'' + t.id + '\')">';
+      html += '<div class="topic-card-top"><div><div class="topic-name">' + t.name + '</div><div class="muted" style="font-size:12px;margin-top:2px;">' + (p?.lastAt ? 'Last: ' + relTime(p.lastAt) : 'Not practiced yet') + '</div></div>' + ringHTML(completion, acc, attempted) + '</div>';
+      html += '<div class="topic-meta">' + (attempted > 0 ? '<span>' + attempted + ' attempts</span><span>·</span>' + accuracyLabel(acc) : '<span class="badge badge-neutral">No data</span>') + '</div></div>';
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  return html;
+}
+
+function setProgressSort(s) { state.progressSort = s; render(); }
+
+function renderHeatmap() {
+  const weeks = 14, days = 7;
+  const cells = [];
+  const now = new Date(); now.setHours(0,0,0,0);
+  const start = new Date(now.getTime() - (weeks*days-1)*86400000);
+  for (let i = 0; i < weeks*days; i++) {
+    const d = new Date(start.getTime() + i*86400000);
+    const count = state.history.filter(h => {
+      const hd = new Date(h.at); hd.setHours(0,0,0,0);
+      return hd.getTime() === d.getTime();
+    }).length;
+    const level = count === 0 ? 0 : count < 2 ? 1 : count < 4 ? 2 : count < 7 ? 3 : 4;
+    cells.push({ count, level, d });
+  }
+  let html = '<div class="heatmap">';
+  cells.forEach(c => {
+    const title = c.d.toLocaleDateString() + ' — ' + c.count + ' problem' + (c.count !== 1 ? 's' : '');
+    html += '<div class="heat-cell" data-level="' + c.level + '" title="' + title + '"></div>';
+  });
+  html += '</div>';
+  return html;
+}
+
+/* HISTORY */
+function renderHistory() {
+  let html = '<div class="page"><div class="page-header"><div class="display">History</div><div class="muted" style="margin-top:4px;">Every problem you\'ve attempted, most recent first.</div></div>';
+  html += '<div class="toolbar"><div class="toolbar-group"><input class="input" id="hSearch" placeholder="Search problems..." style="max-width:280px;" oninput="state.histQuery=this.value;render()" value="' + escapeHtml(state.histQuery || '') + '">';
+  const f = state.histFilter || 'all';
+  html += '<div class="segmented"><button class="' + (f === 'all' ? 'active' : '') + '" onclick="setHistFilter(\'all\')">All</button>';
+  html += '<button class="' + (f === 'correct' ? 'active' : '') + '" onclick="setHistFilter(\'correct\')">Correct</button>';
+  html += '<button class="' + (f === 'incorrect' ? 'active' : '') + '" onclick="setHistFilter(\'incorrect\')">Incorrect</button>';
+  html += '<button class="' + (f === 'bookmarked' ? 'active' : '') + '" onclick="setHistFilter(\'bookmarked\')">Bookmarked</button>';
+  html += '</div></div></div>';
+  let items = state.history.slice();
+  if (state.histQuery) items = items.filter(h => h.problem.toLowerCase().includes(state.histQuery.toLowerCase()));
+  if (f === 'correct') items = items.filter(h => h.correct);
+  if (f === 'incorrect') items = items.filter(h => !h.correct);
+  if (f === 'bookmarked') items = items.filter(h => state.bookmarks.has(h.id));
+  if (items.length === 0) {
+    html += '<div class="card empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg><div class="empty-title">No problems match</div><div class="empty-desc">' + (state.history.length === 0 ? 'Start practicing to build your history.' : 'Try a different filter or search term.') + '</div>' + (state.history.length === 0 ? '<button class="btn-primary" onclick="setView(\'browse\')">Browse topics</button>' : '') + '</div>';
+  } else {
+    items.forEach(h => {
+      const t = TOPIC_MAP[h.topicId];
+      html += '<div class="history-item" onclick="reopenHistory(\'' + h.id + '\')">';
+      html += '<div class="history-thumb">' + escapeHtml(h.problem.slice(0, 22)) + '</div>';
+      html += '<div class="history-main"><div class="history-prob">' + escapeHtml(h.problem) + '</div>';
+      html += '<div class="history-meta"><span class="badge badge-neutral">' + t.name + '</span><span>·</span><span>' + relTime(h.at) + '</span><span>·</span><span>' + (h.timeSpent || 0) + 's</span></div></div>';
+      html += '<div class="row">' + (h.correct ? '<span class="badge badge-success">Correct</span>' : '<span class="badge badge-danger">Incorrect</span>') + '</div></div>';
+    });
+  }
+  html += '</div>';
+  return html;
+}
+
+function setHistFilter(f) { state.histFilter = f; render(); }
+
+function reopenHistory(id) {
+  const item = state.history.find(h => h.id === id);
+  if (!item) return;
+  showModal(
+    '<div class="modal-header"><div><div class="caption">' + TOPIC_MAP[item.topicId].name + ' · ' + relTime(item.at) + '</div><div class="h1" style="margin-top:4px;">Problem review</div></div><button class="btn-icon" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+    '<div class="mono" style="padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);margin-bottom:12px;">' + escapeHtml(item.problem) + '</div>' +
+    '<div class="row" style="margin-bottom:12px;">' + (item.correct ? '<span class="badge badge-success">Correct</span>' : '<span class="badge badge-danger">Incorrect</span>') + '<span class="badge badge-neutral">' + (item.timeSpent || 0) + 's</span></div>' +
+    '<div class="caption" style="margin-bottom:6px;">Final answer</div><div class="mono" style="padding:8px 12px;background:var(--success-bg);border-radius:var(--radius-sm);margin-bottom:12px;">' + escapeHtml(item.answer) + '</div>' +
+    '<div class="caption" style="margin-bottom:6px;">Solution steps</div><div class="steps">' +
+    item.steps.map((s, i) => '<div class="step"><div class="step-num">' + (i+1) + '</div><div class="step-content"><div class="step-title">' + escapeHtml(s.title) + '</div><div class="step-explain">' + escapeHtml(s.explain) + '</div><div class="step-expr">' + escapeHtml(s.expr) + '</div></div></div>').join('') +
+    '</div>' +
+    (state.notes[item.id] ? '<div class="caption" style="margin-top:12px;margin-bottom:6px;">Your notes</div><div style="padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:13px;">' + escapeHtml(state.notes[item.id]) + '</div>' : '') +
+    '<div class="row" style="margin-top:16px;"><button class="btn-primary" onclick="retrySimilar(\'' + item.topicId + '\')">Try similar problem</button><button class="btn-secondary" onclick="openTopic(\'' + item.topicId + '\');closeModal()">Open topic</button></div>'
+  );
+}
+
+function retrySimilar(topicId) {
+  closeModal();
+  state.currentTopic = topicId;
+  state.tab = 'practice';
+  newPractice();
+}
+
+function relTime(t) {
+  const diff = Date.now() - t;
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return 'just now';
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  const d = Math.floor(h / 24);
+  if (d < 7) return d + 'd ago';
+  return new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+
+/* PROFILE */
+function renderProfile() {
+  const name = state.profileName || 'Student';
+  const grade = state.profileGrade || '10';
+  let html = '<div class="page"><div class="page-header"><div class="display">Profile</div><div class="muted" style="margin-top:4px;">Personal info and learning preferences.</div></div>';
+  html += '<div class="card" style="margin-bottom:16px;max-width:520px;">';
+  html += '<div class="caption" style="margin-bottom:6px;">Name</div><input class="input" id="profName" value="' + escapeHtml(name) + '" oninput="state.profileName=this.value" style="margin-bottom:12px;">';
+  html += '<div class="caption" style="margin-bottom:6px;">Grade</div><select class="input" id="profGrade" onchange="state.profileGrade=this.value" style="margin-bottom:12px;">';
+  ['9','10','11'].forEach(g => { html += '<option value="' + g + '" ' + (g === grade ? 'selected' : '') + '>Grade ' + g + '</option>'; });
+  html += '</select>';
+  html += '<div class="caption" style="margin-bottom:6px;">Default difficulty</div><div class="segmented" style="margin-bottom:12px;">';
+  ['easier','grade','challenge'].forEach(d => {
+    const label = d === 'easier' ? 'Easier' : d === 'grade' ? 'Grade Level' : 'Challenge';
+    html += '<button class="' + (state.difficulty === d ? 'active' : '') + '" onclick="state.difficulty=\'' + d + '\';render()">' + label + '</button>';
+  });
+  html += '</div>';
+  html += '<button class="btn-primary" onclick="saveProfile()">Save</button></div>';
+  html += '<div class="card"><div class="h2" style="margin-bottom:12px;">Saved bookmarks</div>';
+  const bookmarked = state.history.filter(h => state.bookmarks.has(h.id));
+  if (bookmarked.length === 0) html += '<div class="empty" style="padding:20px;"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg><div class="empty-title">No bookmarks yet</div><div class="empty-desc">Bookmark problems while practicing to find them here.</div></div>';
+  else bookmarked.forEach(h => {
+    html += '<div class="history-item" onclick="reopenHistory(\'' + h.id + '\')"><div class="history-thumb">' + escapeHtml(h.problem.slice(0,22)) + '</div><div class="history-main"><div class="history-prob">' + escapeHtml(h.problem) + '</div><div class="history-meta"><span class="badge badge-neutral">' + TOPIC_MAP[h.topicId].name + '</span><span>·</span><span>' + relTime(h.at) + '</span></div></div></div>';
+  });
+  html += '</div></div>';
+  return html;
+}
+
+function saveProfile() { toast('Profile saved.', 'success'); }
+
+/* FORMULA SHEET */
+function showFormulaSheet() {
+  const html = '<div class="modal-header"><div class="h1">Formula Reference</div><button class="btn-icon" onclick="closeModal()"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M18 6L6 18"/></svg></button></div>' +
+    '<div class="formula-section"><h4>Algebra</h4><div class="formula-list">' +
+    formulaRow('Quadratic formula', 'x = (−b ± √(b² − 4ac)) / 2a') +
+    formulaRow('Slope', 'm = (y₂ − y₁) / (x₂ − x₁)') +
+    formulaRow('Slope-intercept', 'y = mx + b') +
+    formulaRow('Difference of squares', 'a² − b² = (a + b)(a − b)') +
+    formulaRow('Exponent product', 'aᵐ · aⁿ = aᵐ⁺ⁿ') +
+    '</div></div>' +
+    '<div class="formula-section"><h4>Geometry</h4><div class="formula-list">' +
+    formulaRow('Pythagorean theorem', 'a² + b² = c²') +
+    formulaRow('Triangle area', 'A = ½bh') +
+    formulaRow('Circle area', 'A = πr²') +
+    formulaRow('Circle circumference', 'C = 2πr') +
+    formulaRow('Distance', 'd = √((x₂−x₁)² + (y₂−y₁)²)') +
+    formulaRow('Midpoint', '((x₁+x₂)/2, (y₁+y₂)/2)') +
+    '</div></div>';
+  showModal(html);
+}
+
+function formulaRow(name, expr) {
+  return '<div class="formula"><span class="formula-name">' + name + '</span><span>' + escapeHtml(expr) + '</span></div>';
+}
+
+document.getElementById('formulaBtn').addEventListener('click', showFormulaSheet);
+
+/* ---------- DRAWING CANVAS HANDLERS ---------- */
+function attachTopicHandlers() {
+  const c = document.getElementById('drawCanvas');
+  if (!c) return;
+  const ctx = c.getContext('2d');
+  const dpr = window.devicePixelRatio || 1;
+  const rect = c.getBoundingClientRect();
+  c.width = rect.width * dpr;
+  c.height = rect.height * dpr;
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#000';
+  ctx.lineWidth = 2;
+  ctx.lineCap = 'round';
+  let drawing = false;
+  function pos(e) {
+    const r = c.getBoundingClientRect();
+    const x = (e.touches ? e.touches[0].clientX : e.clientX) - r.left;
+    const y = (e.touches ? e.touches[0].clientY : e.clientY) - r.top;
+    return [x, y];
+  }
+  function start(e) { drawing = true; const [x,y] = pos(e); ctx.beginPath(); ctx.moveTo(x,y); e.preventDefault(); }
+  function move(e) { if (!drawing) return; const [x,y] = pos(e); ctx.lineTo(x,y); ctx.stroke(); e.preventDefault(); }
+  function end() { drawing = false; }
+  c.addEventListener('mousedown', start); c.addEventListener('mousemove', move); window.addEventListener('mouseup', end);
+  c.addEventListener('touchstart', start); c.addEventListener('touchmove', move); c.addEventListener('touchend', end);
+}
+
+/* INITIAL RENDER */
+render();
+</script>
+</body>
+</html>
