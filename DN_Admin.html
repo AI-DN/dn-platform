@@ -2,69 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<style id="dn-gate-style">html body > *:not(#dn-gate-overlay){display:none !important}body{visibility:visible !important}</style>
-<script id="dn-gate-script">
-(function() {
-  const HASH = "e28247c54630d4592f4705e2220c4d4f821004cb6e83ff9567474ee767a8d649";
-  const SESSION_KEY = "dn_gate_authed_v1";
-
-  // Already authed in this session — skip gate
-  if (sessionStorage.getItem(SESSION_KEY) === "1") {
-    document.getElementById("dn-gate-style").remove();
-    return;
-  }
-
-  function showGate() {
-    // Insert gate UI
-    const overlay = document.createElement("div");
-    overlay.id = "dn-gate-overlay";
-    overlay.style.cssText = "position:fixed;inset:0;background:#0b1220;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:-apple-system,BlinkMacSystemFont,Segoe UI,Roboto,sans-serif;";
-    overlay.innerHTML = ''
-      + '<div style="max-width:380px;width:100%;padding:32px 28px;background:#0f1729;border:1px solid #1f2937;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,0.5);">'
-      +   '<div style="font-family:Syne,system-ui,sans-serif;font-weight:800;font-size:20px;color:#3DD6F5;letter-spacing:0.04em;margin-bottom:6px;">DN Platform</div>'
-      +   '<div style="font-size:13px;color:#9ca3af;line-height:1.5;margin-bottom:20px;">This platform is access-controlled. Enter the shared password to continue.</div>'
-      +   '<input type="password" id="dn-gate-pw" placeholder="Password" autocomplete="current-password" style="width:100%;box-sizing:border-box;padding:11px 14px;font-size:14px;background:#1f2937;color:white;border:1px solid #374151;border-radius:8px;outline:none;font-family:inherit;">'
-      +   '<div id="dn-gate-msg" style="font-size:12px;color:#fca5a5;min-height:18px;margin-top:8px;"></div>'
-      +   '<button id="dn-gate-btn" style="width:100%;margin-top:8px;padding:11px;background:#3DD6F5;color:#0b1220;border:none;border-radius:8px;font-family:Syne,system-ui,sans-serif;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:0.04em;">Unlock</button>'
-      + '</div>';
-    document.body.appendChild(overlay);
-
-    const inp = document.getElementById("dn-gate-pw");
-    const btn = document.getElementById("dn-gate-btn");
-    const msg = document.getElementById("dn-gate-msg");
-    inp.focus();
-
-    async function sha256(str) {
-      const buf = new TextEncoder().encode(str);
-      const hash = await crypto.subtle.digest("SHA-256", buf);
-      return Array.from(new Uint8Array(hash)).map(b => b.toString(16).padStart(2,"0")).join("");
-    }
-
-    async function attempt() {
-      const v = inp.value;
-      if (!v) return;
-      btn.disabled = true; btn.textContent = "Checking...";
-      const h = await sha256(v);
-      if (h === HASH) {
-        sessionStorage.setItem(SESSION_KEY, "1");
-        document.getElementById("dn-gate-style").remove();
-        overlay.remove();
-      } else {
-        msg.textContent = "Incorrect password.";
-        btn.disabled = false; btn.textContent = "Unlock";
-        inp.value = ""; inp.focus();
-      }
-    }
-
-    btn.addEventListener("click", attempt);
-    inp.addEventListener("keydown", function(e) { if (e.key === "Enter") attempt(); });
-  }
-
-  // Wait for body to exist (we run early in head), then show gate
-  if (document.body) showGate();
-  else document.addEventListener("DOMContentLoaded", showGate);
-})();
-</script>
+<!-- Auth gate (was: shared SHA-256 password). Now: Supabase Auth + admin-only access check. -->
+<style id="dn-auth-style">html body > *:not(#dn-auth-overlay){display:none !important}body{visibility:visible !important}</style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DN Admin — Digitata Networks</title>
@@ -919,6 +859,11 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     </div>
     <div class="settings-panel-hint">API keys are saved in this browser only. Update at any time — changes apply immediately.</div>
 
+    <div class="settings-panel-section">Your identity</div>
+    <div class="sfield"><label>Signed in as</label><input type="text" id="inp-name" placeholder="Not signed in" readonly style="opacity:0.85;cursor:not-allowed;"></div>
+    <div class="sfield"><label>Email</label><input type="text" id="inp-email" placeholder="—" readonly style="opacity:0.85;cursor:not-allowed;"></div>
+    <div class="sfield"><button class="settings-panel-save" style="background:transparent;border:1px solid var(--border2);color:var(--text2);" onclick="signOutUser()">Sign out</button></div>
+
     <div class="settings-panel-section">AI</div>
     <div class="sfield"><label>Anthropic API key</label><input type="password" id="inp-claude" placeholder="sk-ant-..."></div>
 
@@ -1632,7 +1577,7 @@ async function loadRecentActivity(reqId) {
   const key = localStorage.getItem('dn_supa_key');
   if (!url || !key) return [];
   try {
-    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
     let endpoint = url + '/rest/v1/activity_log?order=created_at.desc&limit=30';
     if (reqId) endpoint += '&request_id=eq.' + reqId;
     const r = await fetch(endpoint, { headers });
@@ -1649,7 +1594,7 @@ async function logActivity(entry) {
     await fetch(url + '/rest/v1/activity_log', {
       method: 'POST',
       headers: {
-        'apikey': key, 'Authorization': 'Bearer ' + key,
+        'apikey': key, 'Authorization': 'Bearer ' + getJwt(key),
         'Content-Type': 'application/json', 'Prefer': 'return=minimal'
       },
       body: JSON.stringify(entry)
@@ -1673,7 +1618,148 @@ let allReqs = [], activeId = null, storyCache = {}, activeCard = null, currentSp
 let sidebarCollapsed = (localStorage.getItem('dn_sidebar_collapsed') === '1');
 let currentReqFilter = 'all';
 
-window.addEventListener('load', function() {
+// ── Auth (Supabase) ──────────────────────────────────────────────────────────
+let supaClient = null;
+let currentSession = null;
+let currentProfile = null;
+
+function getJwt(anonKey) {
+  return (currentSession && currentSession.access_token) ? currentSession.access_token : anonKey;
+}
+
+function isAdmin() { return !!(currentProfile && currentProfile.is_admin); }
+function canAccessAdmin() {
+  // Currently: admins only. When the three-tier model lands (can_access_admin column),
+  // expand to: isAdmin() || !!currentProfile.can_access_admin
+  return isAdmin();
+}
+
+async function initAuth() {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  if (!url || !key) { showSignInGate('config'); return false; }
+  if (!window.supabase || !window.supabase.createClient) { showSignInGate('sdk'); return false; }
+  supaClient = window.supabase.createClient(url, key, {
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+  });
+  const { data: { session } } = await supaClient.auth.getSession();
+  if (!session) { showSignInGate('signin'); return false; }
+  currentSession = session;
+  if (location.hash && location.hash.indexOf('access_token') !== -1) {
+    history.replaceState(null, '', location.pathname + location.search);
+  }
+  await loadProfile();
+  if (!canAccessAdmin()) { showAccessDeniedGate(); return false; }
+  supaClient.auth.onAuthStateChange(function(event, sess) {
+    if (event === 'SIGNED_OUT') { currentSession = null; currentProfile = null; location.reload(); }
+    if (sess) currentSession = sess;
+  });
+  return true;
+}
+
+async function loadProfile() {
+  if (!supaClient || !currentSession) return;
+  const { data, error } = await supaClient
+    .from('profiles')
+    .select('id,email,full_name,avatar_url,is_admin,provider')
+    .eq('id', currentSession.user.id)
+    .single();
+  if (error) {
+    console.error('Could not load profile', error);
+    currentProfile = {
+      id: currentSession.user.id,
+      email: currentSession.user.email,
+      full_name: (currentSession.user.user_metadata && (currentSession.user.user_metadata.full_name || currentSession.user.user_metadata.name)) || currentSession.user.email,
+      is_admin: false
+    };
+  } else {
+    currentProfile = data;
+  }
+}
+
+function _authStyleEnsure() {
+  if (!document.getElementById('dn-auth-style')) {
+    const s = document.createElement('style');
+    s.id = 'dn-auth-style';
+    s.textContent = 'html body > *:not(#dn-auth-overlay){display:none !important}body{visibility:visible !important}';
+    document.head.appendChild(s);
+  }
+}
+
+function showSignInGate(reason) {
+  const prior = document.getElementById('dn-auth-overlay'); if (prior) prior.remove();
+  _authStyleEnsure();
+  const o = document.createElement('div');
+  o.id = 'dn-auth-overlay';
+  o.style.cssText = 'position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:\'DM Sans\',system-ui,sans-serif;padding:24px;';
+  const needsConfig = (reason === 'config');
+  const msg = needsConfig
+    ? 'Database settings missing. Configure Supabase URL + anon key first.'
+    : 'Sign in with your Digitata Networks account to continue.';
+  o.innerHTML =
+    '<div style="max-width:400px;width:100%;padding:36px 32px;background:#0c1024;border:1px solid rgba(255,255,255,0.08);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6);">' +
+      '<div style="font-family:\'Syne\',system-ui,sans-serif;font-weight:800;font-size:22px;color:#3dd6f5;letter-spacing:0.04em;margin-bottom:6px;">DN Admin</div>' +
+      '<div style="font-size:12px;color:#7a8099;line-height:1.5;margin-bottom:24px;">' + msg + '</div>' +
+      (needsConfig
+        ? '<button id="auth-config-btn" style="width:100%;padding:12px;background:#3dd6f5;color:#07091a;border:none;border-radius:8px;font-family:\'Syne\',sans-serif;font-weight:700;font-size:13px;cursor:pointer;letter-spacing:0.04em;">Open settings</button>'
+        : '<button id="auth-ms-btn" style="display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:12px;background:#2f2f2f;color:#ffffff;border:none;border-radius:8px;font-family:\'DM Sans\',sans-serif;font-weight:600;font-size:14px;cursor:pointer;">' +
+            '<svg width="18" height="18" viewBox="0 0 23 23" xmlns="http://www.w3.org/2000/svg"><rect x="1" y="1" width="10" height="10" fill="#f25022"/><rect x="12" y="1" width="10" height="10" fill="#7fba00"/><rect x="1" y="12" width="10" height="10" fill="#00a4ef"/><rect x="12" y="12" width="10" height="10" fill="#ffb900"/></svg>' +
+            'Sign in with Microsoft</button>' +
+          '<div style="font-size:11px;color:#7a8099;line-height:1.5;margin-top:14px;text-align:center;">DN_Admin is restricted to administrators. Use your <span style="color:#e8eaf0;">@digitatanetworks.com</span> account.</div>') +
+    '</div>';
+  document.body.appendChild(o);
+  if (needsConfig) {
+    document.getElementById('auth-config-btn').addEventListener('click', function() {
+      o.remove();
+      const s = document.getElementById('dn-auth-style'); if (s) s.remove();
+      toggleSettingsPanel();
+    });
+  } else {
+    document.getElementById('auth-ms-btn').addEventListener('click', async function() {
+      const btn = document.getElementById('auth-ms-btn');
+      btn.disabled = true; btn.style.opacity = '0.6';
+      const original = btn.innerHTML;
+      btn.textContent = 'Redirecting...';
+      try {
+        await supaClient.auth.signInWithOAuth({
+          provider: 'azure',
+          options: { redirectTo: location.origin + location.pathname, scopes: 'email openid profile' }
+        });
+      } catch (e) {
+        btn.disabled = false; btn.style.opacity = '1';
+        btn.innerHTML = original;
+        alert('Microsoft sign-in failed: ' + (e.message || e));
+      }
+    });
+  }
+}
+
+function showAccessDeniedGate() {
+  const prior = document.getElementById('dn-auth-overlay'); if (prior) prior.remove();
+  _authStyleEnsure();
+  const o = document.createElement('div');
+  o.id = 'dn-auth-overlay';
+  o.style.cssText = 'position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;font-family:\'DM Sans\',system-ui,sans-serif;padding:24px;';
+  const who = (currentProfile && (currentProfile.full_name || currentProfile.email)) || 'this account';
+  o.innerHTML =
+    '<div style="max-width:440px;width:100%;padding:36px 32px;background:#0c1024;border:1px solid rgba(240,80,96,0.25);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6);">' +
+      '<div style="font-family:\'Syne\',system-ui,sans-serif;font-weight:800;font-size:22px;color:#f05060;letter-spacing:0.04em;margin-bottom:6px;">Access denied</div>' +
+      '<div style="font-size:13px;color:#e8eaf0;line-height:1.6;margin-bottom:8px;">DN Admin is restricted to administrators.</div>' +
+      '<div style="font-size:12px;color:#7a8099;line-height:1.6;margin-bottom:22px;">Signed in as <strong style="color:#e8eaf0;">' + (who + '').replace(/</g,'&lt;') + '</strong>. Contact your administrator for access, or sign out to switch accounts.</div>' +
+      '<button id="auth-signout-btn" style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-family:\'DM Sans\',sans-serif;font-weight:500;font-size:13px;cursor:pointer;">Sign out</button>' +
+    '</div>';
+  document.body.appendChild(o);
+  document.getElementById('auth-signout-btn').addEventListener('click', signOutUser);
+}
+
+async function signOutUser() {
+  if (!supaClient) { location.reload(); return; }
+  try { await supaClient.auth.signOut(); } catch(e) {}
+  currentSession = null; currentProfile = null;
+  location.reload();
+}
+
+window.addEventListener('load', async function() {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
   applySidebarCollapsedState();
   loadSettings();
@@ -1684,6 +1770,13 @@ window.addEventListener('load', function() {
     w.innerHTML = 'Open from GitHub Pages or localhost. <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#f0a030;cursor:pointer;">×</button>';
     document.body.appendChild(w);
   }
+  const authed = await initAuth();
+  if (!authed) return;  // gate (sign-in or access-denied) is showing
+  // Reveal the page (signed in + admin)
+  const s = document.getElementById('dn-auth-style'); if (s) s.remove();
+  const ov = document.getElementById('dn-auth-overlay'); if (ov) ov.remove();
+  // Refresh data now that we have a session JWT (any earlier load with anon key would have been blocked by RLS)
+  if (typeof loadData === 'function') loadData();
 });
 
 
@@ -1694,6 +1787,13 @@ function toggleSettingsPanel() {
 }
 function openSettingsPanel() {
   loadSettings();
+  // Mirror authenticated identity into the read-only fields.
+  if (currentProfile) {
+    const inpName = document.getElementById('inp-name');
+    const inpEmail = document.getElementById('inp-email');
+    if (inpName) inpName.value = currentProfile.full_name || '';
+    if (inpEmail) inpEmail.value = currentProfile.email || '';
+  }
   document.getElementById('settings-overlay').classList.add('open');
   setTimeout(function() {
     const first = document.getElementById('inp-claude');
@@ -1747,12 +1847,13 @@ function loadSettings() {
   if (ghRepo) document.getElementById('inp-gh-repo').value = ghRepo;
   if (u) document.getElementById('inp-supa-url').value = u;
   if (k) document.getElementById('inp-supa-key').value = k;
-  loadData();
+  // Only load data when authenticated (avoids RLS 500 on the pre-auth anon-key fetch).
+  if (currentSession) loadData();
 }
 
 function hdrs() {
   const k = localStorage.getItem('dn_supa_key');
-  return { 'apikey': k, 'Authorization': 'Bearer ' + k, 'Content-Type': 'application/json' };
+  return { 'apikey': k, 'Authorization': 'Bearer ' + getJwt(k), 'Content-Type': 'application/json' };
 }
 function surl(p) { return localStorage.getItem('dn_supa_url') + '/rest/v1/' + p; }
 
@@ -2292,7 +2393,7 @@ async function confirmReject() {
   const previousStatus = req.status || 'active';
 
   try {
-    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
     const r = await fetch(url + '/rest/v1/requests?id=eq.' + activeId, {
       method: 'PATCH', headers: headers,
       body: JSON.stringify({
@@ -2352,7 +2453,7 @@ async function unRejectRequest() {
   if (!url || !key) return;
 
   try {
-    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
     const r = await fetch(url + '/rest/v1/requests?id=eq.' + activeId, {
       method: 'PATCH', headers: headers,
       body: JSON.stringify({ status: restoreTo, rejected_reason: null, rejected_by: null, rejected_at: null })
@@ -5125,7 +5226,7 @@ async function verifyStoryColumn(reqId, storyTitle, expectedColumn) {
   if (!url || !key) return true;
   try {
     const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories', {
-      headers: { 'apikey': key, 'Authorization': 'Bearer ' + key }
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) }
     });
     if (!r.ok) return true;
     const rows = await r.json();
@@ -5970,7 +6071,7 @@ async function executeShip() {
     // Update Supabase: status=shipped, store URL + filename
     const url = localStorage.getItem('dn_supa_url');
     const key = localStorage.getItem('dn_supa_key');
-    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key), 'Content-Type': 'application/json', 'Prefer': 'return=minimal' };
 
     // Try the full update first (with shipped_url, shipped_filename, shipped_at)
     const fullPatch = {
@@ -6008,7 +6109,7 @@ async function executeShip() {
     }
 
     // Verify by re-reading the row
-    const verify = await fetch(url + '/rest/v1/requests?id=eq.' + req.id + '&select=status', { headers: { 'apikey': key, 'Authorization': 'Bearer ' + key } });
+    const verify = await fetch(url + '/rest/v1/requests?id=eq.' + req.id + '&select=status', { headers: { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) } });
     if (verify.ok) {
       const rows = await verify.json();
       if (rows.length && rows[0].status !== 'shipped') {
@@ -6059,7 +6160,7 @@ async function tidyResolvedAdminCards(silent) {
   if (!url || !key) return { fixed: 0 };
 
   let totalFixed = 0;
-  const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+  const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
   const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
 
   for (let i = 0; i < allReqs.length; i++) {
@@ -6124,7 +6225,7 @@ async function resolveAdminCard(reqId, storyTitle, decisionText) {
   const key = localStorage.getItem('dn_supa_key');
   if (!url || !key) return { ok: false, error: 'No DB credentials' };
   try {
-    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+    const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
     const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=stories,title', { headers });
     if (!r.ok) return { ok: false, error: 'Fetch failed' };
     const rows = await r.json();
@@ -6195,7 +6296,7 @@ async function logTurn(reqId, type, role, content) {
   const prev = _convQueue[reqId] || Promise.resolve();
   const next = prev.then(async function() {
     try {
-      const headers = { 'apikey': key, 'Authorization': 'Bearer ' + key };
+      const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
       const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=conversation', { headers });
       if (!r.ok) return;
       const rows = await r.json();
