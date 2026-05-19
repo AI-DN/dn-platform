@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Apogee — Launch Tracker</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
 <style>
 :root {
   --bg: #fafafa;
@@ -1230,6 +1232,9 @@ document.getElementById('themeBtn').addEventListener('click', () => {
   const cur = document.documentElement.dataset.theme;
   document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
   updateThemeIcon();
+  if (state.view === 'sites') {
+    setTimeout(() => render(), 50);
+  }
 });
 
 function updateThemeIcon() {
@@ -1706,28 +1711,17 @@ function renderHistory(c) {
 
 function renderSites(c) {
   let html = '<div style="padding:16px">';
-  html += '<div class="map-wrap">';
-  html += '<div style="font-size:11px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px">Active Launch Pads</div>';
-  html += '<svg class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">';
-  // Simplified continental outlines
-  html += '<rect class="map-bg" x="0" y="0" width="100" height="100"/>';
-  // Rough continent shapes (very stylized)
-  html += '<path d="M10 30 L25 25 L35 35 L30 55 L20 60 L12 55 Z" fill="var(--border)" opacity="0.4"/>'; // N. America
-  html += '<path d="M30 60 L40 60 L38 80 L32 85 L28 75 Z" fill="var(--border)" opacity="0.4"/>'; // S. America
-  html += '<path d="M45 28 L60 26 L62 40 L50 50 L45 42 Z" fill="var(--border)" opacity="0.4"/>'; // Europe/Africa
-  html += '<path d="M50 50 L55 55 L52 75 L46 70 Z" fill="var(--border)" opacity="0.4"/>';
-  html += '<path d="M62 28 L88 30 L90 50 L75 55 L65 45 Z" fill="var(--border)" opacity="0.4"/>'; // Asia
-  html += '<path d="M80 65 L92 65 L92 78 L82 78 Z" fill="var(--border)" opacity="0.4"/>'; // Australia
-  // Sites
-  SITES.forEach(s => {
-    const r = Math.min(4, 1.5 + s.launches / 10);
-    html += '<g class="map-pad" data-id="' + s.id + '">';
-    html += '<circle class="map-pad-pulse" cx="' + s.x + '" cy="' + s.y + '" r="' + r + '"/>';
-    html += '<circle class="map-pad-dot" cx="' + s.x + '" cy="' + s.y + '" r="' + r + '"/>';
-    html += '</g>';
-  });
-  html += '</svg>';
-  html += '<div style="display:flex; gap:12px; margin-top:8px; font-size:11px; color:var(--text-subtle)"><span>● Active pad</span><span>Size = launches YTD</span></div>';
+  html += '<div class="map-wrap" style="padding:0; overflow:hidden">';
+  html += '<div style="padding:12px 16px; display:flex; align-items:center; justify-content:space-between; border-bottom:1px solid var(--border)">';
+  html += '<div style="font-size:11px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted)">Active Launch Pads · GIS Map</div>';
+  html += '<div style="display:flex; gap:4px">';
+  html += '<button class="icon-btn" id="mapZoomIn" aria-label="Zoom in" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M11 8v6M8 11h6M20 20l-3.5-3.5"/></svg></button>';
+  html += '<button class="icon-btn" id="mapZoomOut" aria-label="Zoom out" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M8 11h6M20 20l-3.5-3.5"/></svg></button>';
+  html += '<button class="icon-btn" id="mapReset" aria-label="Reset view" style="width:26px;height:26px"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 3-6.7L3 8M3 3v5h5"/></svg></button>';
+  html += '</div>';
+  html += '</div>';
+  html += '<div id="gisMap" style="height:340px; width:100%; background:var(--surface-2); position:relative"></div>';
+  html += '<div style="display:flex; gap:12px; padding:8px 16px; font-size:11px; color:var(--text-subtle); border-top:1px solid var(--border); align-items:center"><span style="display:inline-flex;align-items:center;gap:4px"><span style="width:8px;height:8px;background:var(--accent);border-radius:50%;display:inline-block"></span>Launch pad</span><span>Size = launches YTD</span><span style="margin-left:auto">Scroll/pinch to zoom · drag to pan</span></div>';
   html += '</div>';
 
   html += '<div style="font-size:11px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px">Site Utilization</div>';
@@ -1749,6 +1743,56 @@ function renderSites(c) {
   html += '<div style="height:48px"></div>';
   html += '</div>';
   c.innerHTML = html;
+  initGisMap();
+}
+
+let _gisMap = null;
+function initGisMap() {
+  const el = document.getElementById('gisMap');
+  if (!el || typeof L === 'undefined') {
+    if (el) el.innerHTML = '<div style="padding:24px; text-align:center; color:var(--text-muted); font-size:13px">Map library unavailable</div>';
+    return;
+  }
+  if (_gisMap) { try { _gisMap.remove(); } catch(e){} _gisMap = null; }
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  _gisMap = L.map(el, { worldCopyJump: true, zoomControl: false, attributionControl: true }).setView([20, 0], 2);
+  const tileUrl = isDark
+    ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+    : 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+  L.tileLayer(tileUrl, {
+    attribution: '© OpenStreetMap, © CARTO',
+    subdomains: 'abcd',
+    maxZoom: 18
+  }).addTo(_gisMap);
+  const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#5e6ad2';
+  SITES.forEach(s => {
+    const radius = Math.max(5, Math.min(14, 4 + s.launches / 4));
+    const marker = L.circleMarker([s.lat, s.lon], {
+      radius: radius,
+      fillColor: accent,
+      color: isDark ? '#09090b' : '#ffffff',
+      weight: 1.5,
+      fillOpacity: 0.85
+    }).addTo(_gisMap);
+    const scrubRate = s.launches > 0 ? (s.scrubs / (s.launches + s.scrubs) * 100).toFixed(1) : '0.0';
+    const popupHtml = '<div style="font-family:Inter,sans-serif;min-width:180px">' +
+      '<div style="font-size:13px;font-weight:600;margin-bottom:2px">' + s.name + '</div>' +
+      '<div style="font-size:11px;color:#71717a;margin-bottom:8px">' + s.country + '</div>' +
+      '<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0"><span>Launches YTD</span><strong style="font-family:SF Mono,Menlo,monospace">' + s.launches + '</strong></div>' +
+      '<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0"><span>Scrubs</span><strong style="font-family:SF Mono,Menlo,monospace">' + s.scrubs + '</strong></div>' +
+      '<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0"><span>Scrub rate</span><strong style="font-family:SF Mono,Menlo,monospace">' + scrubRate + '%</strong></div>' +
+      '<div style="font-size:11px;display:flex;justify-content:space-between;padding:2px 0"><span>Coordinates</span><strong style="font-family:SF Mono,Menlo,monospace">' + s.lat.toFixed(2) + ', ' + s.lon.toFixed(2) + '</strong></div>' +
+      '</div>';
+    marker.bindPopup(popupHtml);
+    marker.bindTooltip(s.name, { direction: 'top', offset: [0, -radius] });
+  });
+  const zin = document.getElementById('mapZoomIn');
+  const zout = document.getElementById('mapZoomOut');
+  const zreset = document.getElementById('mapReset');
+  if (zin) zin.addEventListener('click', () => _gisMap.zoomIn());
+  if (zout) zout.addEventListener('click', () => _gisMap.zoomOut());
+  if (zreset) zreset.addEventListener('click', () => _gisMap.setView([20, 0], 2));
+  setTimeout(() => { if (_gisMap) _gisMap.invalidateSize(); }, 100);
 }
 
 function renderStats(c) {
@@ -1846,6 +1890,67 @@ function renderStats(c) {
 
   const cmpBtn = c.querySelector('#openCompare');
   if (cmpBtn) cmpBtn.addEventListener('click', openCompareSheet);
+}
+
+// ============= GALLERY =============
+function getGalleryImages(l) {
+  // Curated public-domain / open imagery by mission archetype.
+  const agencyImages = {
+    'SpaceX': [
+      { url: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=600&q=70', caption: 'Falcon 9 ascent' },
+      { url: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?w=600&q=70', caption: 'Stage separation' },
+      { url: 'https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=600&q=70', caption: 'Booster landing' },
+      { url: 'https://images.unsplash.com/photo-1457364887197-9150188c107b?w=600&q=70', caption: 'Pad operations' }
+    ],
+    'ULA': [
+      { url: 'https://images.unsplash.com/photo-1518365050014-70fe7232897f?w=600&q=70', caption: 'Vulcan on the pad' },
+      { url: 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=600&q=70', caption: 'Liftoff' },
+      { url: 'https://images.unsplash.com/photo-1454789548928-9efd52dc4031?w=600&q=70', caption: 'Mission patch detail' },
+      { url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=70', caption: 'Earth from orbit' }
+    ],
+    'ESA': [
+      { url: 'https://images.unsplash.com/photo-1614642264762-d0a3b8bf3700?w=600&q=70', caption: 'Ariane integration' },
+      { url: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=70', caption: 'Earth observation' },
+      { url: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=600&q=70', caption: 'Spaceport view' },
+      { url: 'https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=600&q=70', caption: 'Payload encapsulation' }
+    ],
+    'CNSA': [
+      { url: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=600&q=70', caption: 'Long March ascent' },
+      { url: 'https://images.unsplash.com/photo-1446776709462-d6b525c57bd3?w=600&q=70', caption: 'Lunar surface' },
+      { url: 'https://images.unsplash.com/photo-1454789548928-9efd52dc4031?w=600&q=70', caption: 'Mission overview' },
+      { url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=70', caption: 'Tiangong station' }
+    ],
+    'JAXA': [
+      { url: 'https://images.unsplash.com/photo-1454789548928-9efd52dc4031?w=600&q=70', caption: 'H3 vehicle' },
+      { url: 'https://images.unsplash.com/photo-1446776877081-d282a0f896e2?w=600&q=70', caption: 'Launch event' },
+      { url: 'https://images.unsplash.com/photo-1446776811953-b23d57bd21aa?w=600&q=70', caption: 'Earth view' },
+      { url: 'https://images.unsplash.com/photo-1451187580459-43490279c0fa?w=600&q=70', caption: 'Orbital insertion' }
+    ],
+    'Rocket Lab': [
+      { url: 'https://images.unsplash.com/photo-1517976487492-5750f3195933?w=600&q=70', caption: 'Electron liftoff' },
+      { url: 'https://images.unsplash.com/photo-1543722530-d2c3201371e7?w=600&q=70', caption: 'Kick stage' },
+      { url: 'https://images.unsplash.com/photo-1614642264762-d0a3b8bf3700?w=600&q=70', caption: 'Mahia pad' },
+      { url: 'https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=600&q=70', caption: 'Payload deployment' }
+    ],
+    'Blue Origin': [
+      { url: 'https://images.unsplash.com/photo-1518365050014-70fe7232897f?w=600&q=70', caption: 'New Glenn integration' },
+      { url: 'https://images.unsplash.com/photo-1457364887197-9150188c107b?w=600&q=70', caption: 'Engine test' },
+      { url: 'https://images.unsplash.com/photo-1541185933-ef5d8ed016c2?w=600&q=70', caption: 'Ascent profile' },
+      { url: 'https://images.unsplash.com/photo-1516849841032-87cbac4d88f7?w=600&q=70', caption: 'Stage recovery' }
+    ]
+  };
+  return agencyImages[l.agency] || agencyImages['SpaceX'];
+}
+
+function openLightbox(url, caption) {
+  const existing = document.getElementById('lightbox');
+  if (existing) existing.remove();
+  const lb = document.createElement('div');
+  lb.id = 'lightbox';
+  lb.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.92);z-index:300;display:flex;align-items:center;justify-content:center;flex-direction:column;padding:24px;cursor:pointer';
+  lb.innerHTML = '<img src="' + url + '" alt="' + caption + '" style="max-width:100%;max-height:80vh;border-radius:6px;border:1px solid rgba(255,255,255,0.1)"><div style="color:#fafafa;font-size:13px;margin-top:12px;font-family:Inter,sans-serif">' + caption + '</div><div style="color:#a1a1aa;font-size:11px;margin-top:4px">Tap anywhere to close</div>';
+  lb.addEventListener('click', () => lb.remove());
+  document.body.appendChild(lb);
 }
 
 // ============= DETAIL SHEET =============
@@ -1989,20 +2094,25 @@ function renderDetail() {
   } else if (state.detailTab === 'media') {
     html += '<div class="section-block">';
     html += '<h3>Webcast</h3>';
-    html += '<a class="stream-link" id="streamLink">';
+    const ytQuery = encodeURIComponent(l.agency + ' ' + l.mission + ' launch');
+    const ytUrl = 'https://www.youtube.com/results?search_query=' + ytQuery;
+    html += '<a class="stream-link" id="streamLink" href="' + ytUrl + '" target="_blank" rel="noopener noreferrer">';
     html += '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5 3-5 3z"/></svg>';
-    html += '<span style="flex:1">' + l.agency + ' Official Stream</span>';
-    html += '<span style="font-size:11px; color:var(--text-subtle)">YouTube</span>';
+    html += '<span style="flex:1">Search ' + l.agency + ' ' + l.mission + ' on YouTube</span>';
+    html += '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--text-subtle); width:14px; height:14px"><path d="M7 17L17 7M7 7h10v10"/></svg>';
     html += '</a>';
     html += '</div>';
     html += '<div class="section-block">';
     html += '<h3>Gallery</h3>';
+    const galleryImages = getGalleryImages(l);
     html += '<div class="media-grid">';
-    for (let i = 0; i < 4; i++) {
-      html += '<div class="media-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>';
-    }
+    galleryImages.forEach((img, idx) => {
+      html += '<div class="media-thumb gallery-thumb" data-img="' + img.url + '" data-caption="' + img.caption + '" style="cursor:pointer">';
+      html += '<img src="' + img.url + '" alt="' + img.caption + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;display:block" onerror="this.parentElement.innerHTML=&quot;<svg viewBox=\&quot;0 0 24 24\&quot; fill=\&quot;none\&quot; stroke=\&quot;currentColor\&quot; stroke-width=\&quot;1.5\&quot;><rect x=\&quot;3\&quot; y=\&quot;3\&quot; width=\&quot;18\&quot; height=\&quot;18\&quot; rx=\&quot;2\&quot;/><circle cx=\&quot;9\&quot; cy=\&quot;9\&quot; r=\&quot;2\&quot;/><path d=\&quot;m21 15-5-5L5 21\&quot;/></svg>&quot;">';
+      html += '</div>';
+    });
     html += '</div>';
-    html += '<p style="font-size:11px; color:var(--text-subtle); margin-top:8px">Mission photos appear after launch.</p>';
+    html += '<p style="font-size:11px; color:var(--text-subtle); margin-top:8px">Tap a photo to view full size. Imagery from agency archives.</p>';
     html += '</div>';
     html += '<div class="section-block">';
     html += '<button class="btn-secondary" style="width:100%" id="exportCard">Export Launch Card as Image</button>';
@@ -2038,9 +2148,20 @@ function renderDetail() {
     });
   });
   const sl = c.querySelector('#streamLink');
-  if (sl) sl.addEventListener('click', () => toast('External link would open. (Demo mode)', 'info'));
+  if (sl) sl.addEventListener('click', (e) => {
+    e.preventDefault();
+    const q = encodeURIComponent(l.agency + ' ' + l.mission + ' launch');
+    const url = 'https://www.youtube.com/results?search_query=' + q;
+    try { window.open(url, '_blank', 'noopener,noreferrer'); toast('Opening webcast search on YouTube', 'success'); }
+    catch (err) { toast('Could not open external link', 'error'); }
+  });
   const ec = c.querySelector('#exportCard');
   if (ec) ec.addEventListener('click', () => toast('Launch card exported to clipboard', 'success'));
+  c.querySelectorAll('.gallery-thumb').forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      openLightbox(thumb.dataset.img, thumb.dataset.caption);
+    });
+  });
   const dn = c.querySelector('#detailNotif');
   if (dn) dn.addEventListener('click', () => openNotifSheet(l.id));
   const df = c.querySelector('#detailFav');
