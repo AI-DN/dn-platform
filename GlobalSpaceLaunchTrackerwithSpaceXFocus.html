@@ -2156,7 +2156,7 @@ function renderDetail() {
     catch (err) { toast('Could not open external link', 'error'); }
   });
   const ec = c.querySelector('#exportCard');
-  if (ec) ec.addEventListener('click', () => toast('Launch card exported to clipboard', 'success'));
+  if (ec) ec.addEventListener('click', () => downloadLaunchCard(l));
   c.querySelectorAll('.gallery-thumb').forEach(thumb => {
     thumb.addEventListener('click', () => {
       openLightbox(thumb.dataset.img, thumb.dataset.caption);
@@ -2375,6 +2375,117 @@ function renderCompareSheet() {
   });
 }
 
+// ============= EXPORT LAUNCH CARD =============
+function sanitizeFilename(s) {
+  return String(s).replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
+}
+
+function downloadLaunchCard(l) {
+  try {
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    const styles = getComputedStyle(document.documentElement);
+    const bg = styles.getPropertyValue('--surface').trim() || (isDark ? '#131316' : '#ffffff');
+    const bg2 = styles.getPropertyValue('--bg').trim() || (isDark ? '#09090b' : '#fafafa');
+    const text = styles.getPropertyValue('--text').trim() || (isDark ? '#fafafa' : '#18181b');
+    const muted = styles.getPropertyValue('--text-muted').trim() || (isDark ? '#a1a1aa' : '#52525b');
+    const subtle = styles.getPropertyValue('--text-subtle').trim() || (isDark ? '#71717a' : '#a1a1aa');
+    const border = isDark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+    const accent = styles.getPropertyValue('--accent').trim() || '#5e6ad2';
+
+    const W = 1200, H = 630;
+    const cd = fmtCountdown(l.date);
+    const cdText = cd.live ? 'IN PROGRESS' : cd.text;
+    const cdColor = cd.live ? (styles.getPropertyValue('--danger').trim() || '#dc2626') : (cd.class === 'imminent' ? accent : text);
+    const statusMap = { scheduled: 'Scheduled', delayed: 'Delayed', scrubbed: 'Scrubbed', success: 'Success', failure: 'Failure', live: 'Live' };
+    const statusLabel = statusMap[l.status] || l.status;
+
+    const esc = s => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    let svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + W + '" height="' + H + '" viewBox="0 0 ' + W + ' ' + H + '">';
+    svg += '<rect width="' + W + '" height="' + H + '" fill="' + bg2 + '"/>';
+    svg += '<rect x="40" y="40" width="' + (W - 80) + '" height="' + (H - 80) + '" fill="' + bg + '" stroke="' + border + '" stroke-width="1" rx="8"/>';
+    if (l.agency === 'SpaceX') {
+      svg += '<rect x="40" y="40" width="4" height="' + (H - 80) + '" fill="' + accent + '"/>';
+    }
+    // Agency badge
+    svg += '<circle cx="96" cy="104" r="18" fill="' + (isDark ? '#1c1c20' : '#f5f5f5') + '"/>';
+    svg += '<text x="96" y="110" font-family="Inter, sans-serif" font-size="14" font-weight="700" fill="' + muted + '" text-anchor="middle">' + esc(l.agencyCode) + '</text>';
+    svg += '<text x="126" y="110" font-family="Inter, sans-serif" font-size="16" font-weight="500" fill="' + muted + '">' + esc(l.agency) + '</text>';
+    // Status badge
+    svg += '<rect x="' + (W - 200) + '" y="88" width="140" height="32" rx="16" fill="' + (isDark ? '#1c1c20' : '#f5f5f5') + '"/>';
+    svg += '<text x="' + (W - 130) + '" y="108" font-family="Inter, sans-serif" font-size="13" font-weight="500" fill="' + muted + '" text-anchor="middle">' + esc(statusLabel) + '</text>';
+    // Mission name
+    let mission = l.mission;
+    if (mission.length > 32) mission = mission.slice(0, 30) + '…';
+    svg += '<text x="96" y="200" font-family="Inter, sans-serif" font-size="56" font-weight="600" fill="' + text + '" letter-spacing="-1">' + esc(mission) + '</text>';
+    svg += '<text x="96" y="248" font-family="Inter, sans-serif" font-size="24" font-weight="400" fill="' + muted + '">' + esc(l.rocket + ' · ' + l.variant) + '</text>';
+    svg += '<text x="96" y="282" font-family="Inter, sans-serif" font-size="18" font-weight="400" fill="' + subtle + '">' + esc(l.site) + '</text>';
+    // Divider
+    svg += '<line x1="96" y1="330" x2="' + (W - 96) + '" y2="330" stroke="' + border + '" stroke-width="1"/>';
+    // Countdown label
+    svg += '<text x="96" y="370" font-family="Inter, sans-serif" font-size="12" font-weight="500" fill="' + muted + '" letter-spacing="2">' + (cd.live ? 'STATUS' : 'COUNTDOWN') + '</text>';
+    svg += '<text x="96" y="450" font-family="SF Mono, Menlo, monospace" font-size="72" font-weight="600" fill="' + cdColor + '" letter-spacing="-2">' + esc(cdText) + '</text>';
+    svg += '<text x="96" y="490" font-family="SF Mono, Menlo, monospace" font-size="18" fill="' + subtle + '">' + esc(fmtAbsTime(l.date)) + '</text>';
+    // Meta footer
+    svg += '<text x="96" y="550" font-family="Inter, sans-serif" font-size="15" fill="' + muted + '">' + esc(l.missionType + ' · ' + l.orbit) + '</text>';
+    if (l.agency === 'SpaceX' && l.booster) {
+      svg += '<text x="96" y="576" font-family="SF Mono, Menlo, monospace" font-size="13" fill="' + subtle + '">' + esc('Booster ' + l.booster + ' · Flight ' + (l.reuse + 1)) + '</text>';
+    }
+    // Brand mark
+    svg += '<rect x="' + (W - 156) + '" y="540" width="28" height="28" rx="4" fill="' + accent + '"/>';
+    svg += '<text x="' + (W - 142) + '" y="560" font-family="Inter, sans-serif" font-size="16" font-weight="700" fill="white" text-anchor="middle">A</text>';
+    svg += '<text x="' + (W - 120) + '" y="560" font-family="Inter, sans-serif" font-size="15" font-weight="600" fill="' + text + '">Apogee</text>';
+    svg += '</svg>';
+
+    const filename = sanitizeFilename(l.agency) + '-' + sanitizeFilename(l.rocket) + '-' + sanitizeFilename(l.mission) + '-launch-card.png';
+
+    // Render SVG to canvas then trigger PNG download
+    const img = new Image();
+    const svgBlob = new Blob([svg], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+    img.onload = function() {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = W; canvas.height = H;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        URL.revokeObjectURL(url);
+        canvas.toBlob(function(blob) {
+          if (!blob) { toast('Export failed: could not encode image', 'error'); return; }
+          const dlUrl = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = dlUrl;
+          a.download = filename;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+          setTimeout(() => URL.revokeObjectURL(dlUrl), 2000);
+          toast('Saved ' + filename, 'success');
+        }, 'image/png');
+      } catch (err) {
+        URL.revokeObjectURL(url);
+        toast('Export failed: ' + err.message, 'error');
+      }
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      // Fallback: download the SVG directly
+      const a = document.createElement('a');
+      const svgUrl = URL.createObjectURL(svgBlob);
+      a.href = svgUrl;
+      a.download = filename.replace(/\.png$/, '.svg');
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(svgUrl), 2000);
+      toast('Saved as SVG (PNG conversion blocked)', 'info');
+    };
+    img.src = url;
+  } catch (err) {
+    toast('Export failed: ' + err.message, 'error');
+  }
+}
+
 // ============= SHEETS =============
 function openSheet(name) {
   document.getElementById(name + 'Backdrop').classList.add('open');
@@ -2387,7 +2498,7 @@ function closeSheet(name) {
 
 document.getElementById('closeDetail').addEventListener('click', () => closeSheet('detail'));
 document.getElementById('detailBackdrop').addEventListener('click', () => closeSheet('detail'));
-document.getElementById('shareDetail').addEventListener('click', () => toast('Launch card copied to clipboard', 'success'));
+document.getElementById('shareDetail').addEventListener('click', () => { if (state.activeLaunch) downloadLaunchCard(state.activeLaunch); });
 document.getElementById('clearFilters').addEventListener('click', () => {
   state.filters.agency.clear();
   state.filters.rocket.clear();
