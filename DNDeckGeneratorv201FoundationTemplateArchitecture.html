@@ -3,11 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.1.0 #19</title>
+<title>DN Deck Generator v2.1.2 #20</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 window.__pptxReady = false;
 (function checkPptx() {
@@ -107,6 +108,10 @@ button { font-family: inherit; }
 .badge-info { background: var(--info-bg); color: var(--info); }
 .badge-accent { background: var(--accent-bg); color: var(--accent); }
 .badge-neutral { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.sync-pill { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: 500; border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); }
+.sync-pill.ok { background: var(--success-bg); color: var(--success); border-color: var(--success); }
+.sync-pill.warn { background: var(--warning-bg); color: var(--warning); border-color: var(--warning); }
+.sync-pill.err { background: var(--danger-bg); color: var(--danger); border-color: var(--danger); }
 .toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 200; pointer-events: none; }
 .toast { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; display: flex; align-items: center; gap: 10px; min-width: 280px; max-width: 440px; pointer-events: auto; animation: toast-in 200ms ease; }
 .toast-icon { width: 14px; height: 14px; flex-shrink: 0; }
@@ -226,7 +231,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.1.0 #19</div>
+      <div class="brand-version">v2.1.2 #20</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -251,6 +256,157 @@ tbody tr:hover { background: var(--surface-2); }
 <script>
 const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 document.documentElement.dataset.theme = initialTheme;
+
+// ─── SUPABASE CONFIG ──────────────────────────────────────────────────
+const SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlY3hob2hrY2x2ZWx1ZG1vcmJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwMDAwMDAsImV4cCI6MjA0NTU3NjAwMH0.PLACEHOLDER_ANON_KEY';
+const OWNER_ID = 'philip.korf@digitatanetworks.com';
+
+// SECURITY NOTE (interim): user_settings rows are not RLS-scoped.
+// All authenticated platform users with anon key can read all settings.
+// Acceptable for the internal 10-user gated platform but MUST be replaced
+// with RLS scoped to user_id when Entra/Supabase auth ships in v2.1.
+let __sbClient = null;
+function getSupabaseClient() {
+  if (__sbClient) return __sbClient;
+  if (typeof window.supabase === 'undefined' || !window.supabase.createClient) {
+    throw new Error('Supabase library not loaded');
+  }
+  __sbClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  return __sbClient;
+}
+
+// ─── SAFE STORAGE WRAPPER (srcdoc iframes have opaque origin) ─────────
+const memStore = {};
+const safeStorage = {
+  getItem(k) {
+    try { const v = localStorage.getItem(k); if (v !== null) return v; } catch (e) {}
+    return memStore[k] != null ? memStore[k] : null;
+  },
+  setItem(k, v) {
+    try { localStorage.setItem(k, v); } catch (e) {}
+    memStore[k] = v;
+  },
+  removeItem(k) {
+    try { localStorage.removeItem(k); } catch (e) {}
+    delete memStore[k];
+  }
+};
+
+const SETTING_MAP = {
+  'openai_api_key': 'dn_openai',
+  'openai_org_id': 'dn_openai_org',
+  'anthropic_api_key': 'dn_anthropic',
+  'gemini_api_key': 'dn_gemini',
+  'default_image_model': 'dn_default_model',
+  'current_image_model': 'dn_image_model',
+  'image_quality': 'dn_image_quality',
+  'slide_count_min': 'dn_slide_min',
+  'slide_count_max': 'dn_slide_max',
+  'logo_backing_enabled': 'dn_logo_backing',
+  'skip_model_picker': 'dn_skip_model_picker',
+  'is_admin': 'dn_admin',
+  'dn_logo_b64': 'dn_logo_b64'
+};
+const REVERSE_MAP = Object.fromEntries(Object.entries(SETTING_MAP).map(([k,v]) => [v,k]));
+
+const syncState = {
+  status: 'idle', // idle | syncing | ok | err
+  lastSyncedAt: null,
+  lastError: null
+};
+
+async function bootstrapSettings() {
+  try {
+    const sb = getSupabaseClient();
+    syncState.status = 'syncing';
+    const { data, error } = await sb
+      .from('user_settings')
+      .select('setting_key, setting_value')
+      .eq('owner', OWNER_ID);
+    if (error) {
+      console.warn('Could not load user_settings from Supabase:', error);
+      syncState.status = 'err'; syncState.lastError = error.message || String(error);
+      return;
+    }
+    for (const row of (data || [])) {
+      const lsKey = SETTING_MAP[row.setting_key];
+      if (lsKey && row.setting_value != null) {
+        safeStorage.setItem(lsKey, row.setting_value);
+      }
+    }
+    syncState.status = 'ok';
+    syncState.lastSyncedAt = new Date();
+    console.log(`Loaded ${(data || []).length} settings from Supabase for ${OWNER_ID}`);
+  } catch (e) {
+    console.warn('bootstrapSettings failed:', e);
+    syncState.status = 'err'; syncState.lastError = e.message || String(e);
+  }
+}
+
+async function persistSetting(localStorageKey, value) {
+  if (value == null || value === '') {
+    safeStorage.removeItem(localStorageKey);
+  } else {
+    safeStorage.setItem(localStorageKey, value);
+  }
+  const supabaseKey = REVERSE_MAP[localStorageKey];
+  if (!supabaseKey) return;
+  try {
+    syncState.status = 'syncing';
+    const sb = getSupabaseClient();
+    if (value == null || value === '') {
+      const { error } = await sb.from('user_settings').delete()
+        .eq('owner', OWNER_ID).eq('setting_key', supabaseKey);
+      if (error) throw error;
+    } else {
+      const { error } = await sb.from('user_settings').upsert({
+        owner: OWNER_ID,
+        setting_key: supabaseKey,
+        setting_value: String(value),
+        updated_at: new Date().toISOString()
+      }, { onConflict: 'owner,setting_key' });
+      if (error) throw error;
+    }
+    syncState.status = 'ok';
+    syncState.lastSyncedAt = new Date();
+    syncState.lastError = null;
+    updateSyncPill();
+  } catch (e) {
+    console.warn(`Failed to persist ${localStorageKey} to Supabase:`, e);
+    syncState.status = 'err';
+    syncState.lastError = e.message || String(e);
+    updateSyncPill();
+  }
+}
+
+async function resetAllSettings() {
+  // Clear LS canonical keys
+  Object.values(SETTING_MAP).forEach(k => safeStorage.removeItem(k));
+  // Delete from Supabase
+  try {
+    const sb = getSupabaseClient();
+    await sb.from('user_settings').delete().eq('owner', OWNER_ID);
+  } catch (e) { console.warn('reset: supabase delete failed', e); }
+}
+
+function relativeTime(d) {
+  if (!d) return 'never';
+  const sec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (sec < 5) return 'just now';
+  if (sec < 60) return sec + 's ago';
+  if (sec < 3600) return Math.floor(sec / 60) + 'm ago';
+  if (sec < 86400) return Math.floor(sec / 3600) + 'h ago';
+  return Math.floor(sec / 86400) + 'd ago';
+}
+
+function updateSyncPill() {
+  const el = document.getElementById('syncPill'); if (!el) return;
+  if (syncState.status === 'syncing') { el.className = 'sync-pill'; el.innerHTML = '<span class="spinner"></span> Syncing to Supabase…'; return; }
+  if (syncState.status === 'err') { el.className = 'sync-pill err'; el.innerHTML = '⚠ Couldn\u2019t sync to Supabase — settings saved locally only. Check connection.'; return; }
+  if (syncState.status === 'ok') { el.className = 'sync-pill ok'; el.innerHTML = '💾 Settings sync with Supabase as you save · last synced: ' + escapeHtml(relativeTime(syncState.lastSyncedAt)); return; }
+  el.className = 'sync-pill'; el.innerHTML = '💾 Settings sync with Supabase as you save';
+}
 
 const MASTER_PROMPT_FALLBACK = `Create a 16:9 widescreen enterprise presentation slide.
 
@@ -308,7 +464,6 @@ Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No p
 const DEFAULT_LOGO_URL = 'https://ai-dn.github.io/dn-platform/assets/dn-logo.png';
 const FALLBACK_IMAGE_COST = 0.10;
 
-// ─── COST TABLES (would come from Supabase; seeded locally with realistic values) ──
 const DEFAULT_IMAGE_COSTS = [
   { provider: 'openai', model: 'gpt-image-2', label: 'gpt-image-2 (high)',   size: '1536x1024', quality: 'high',   cost_per_image: 0.30, is_default: true,  is_active: true },
   { provider: 'openai', model: 'gpt-image-2', label: 'gpt-image-2 (medium)', size: '1536x1024', quality: 'medium', cost_per_image: 0.07, is_default: false, is_active: true },
@@ -324,7 +479,6 @@ const DEFAULT_ANTHROPIC_COSTS = [
 ];
 let imageCosts = DEFAULT_IMAGE_COSTS.slice();
 let anthropicCosts = DEFAULT_ANTHROPIC_COSTS.slice();
-let costTablesLoaded = true; // pre-seeded
 
 function getImageCost(provider, model, size, quality) {
   size = size || '1536x1024';
@@ -344,14 +498,13 @@ function getAnthropicCost(model, inputTokens, outputTokens) {
   return (inputTokens / 1e6) * rate.cost_per_million_input + (outputTokens / 1e6) * rate.cost_per_million_output;
 }
 
-// ─── IN-MEMORY DB ─────────────────────────────────────────────────────
 const db = { templates: [], bundles: [], versions: [], seeded: false };
 function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; const v = c==='x' ? r : (r&0x3|0x8); return v.toString(16); }); }
 function nowIso() { return new Date().toISOString(); }
 
 const deckCost = {
   polish: 0, outline: 0, image: 0, testImage: 0,
-  imageDetails: [], // {provider, model, quality, cost}
+  imageDetails: [],
   total() { return this.polish + this.outline + this.image + this.testImage; },
   reset() { this.polish = 0; this.outline = 0; this.image = 0; this.testImage = 0; this.imageDetails = []; }
 };
@@ -365,8 +518,8 @@ const state = {
   selectedBundleId: null,
   apiKeys: { openai: '', anthropic: '', gemini: '', openai_org: '' },
   imageQuality: 'high',
-  defaultModel: 'openai:gpt-image-2:high', // provider:model:quality
-  selectedModel: null, // chosen after Step 3.5; if null, falls back to defaultModel
+  defaultModel: 'openai:gpt-image-2:high',
+  selectedModel: null,
   skipModelPicker: false,
   logoB64: null,
   logoIsCustom: false,
@@ -385,10 +538,9 @@ const state = {
   expandedRefine: {},
   shownAdminHint: false,
   toastOnceKeys: {},
-  // Step 3.5 model picker
   modelPicker: {
     testSlideIdx: 0,
-    candidates: [], // [{provider, model, quality, label, status, imageB64, error}]
+    candidates: [],
     inFlight: false
   }
 };
@@ -396,6 +548,24 @@ const state = {
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
 function fmtUsd(v) { return '$' + (v || 0).toFixed(2); }
 function fmtUsd4(v) { return '$' + (v || 0).toFixed(4); }
+
+// Load state from safeStorage canonical keys
+function hydrateStateFromStorage() {
+  const get = k => safeStorage.getItem(k);
+  if (get('dn_openai')) state.apiKeys.openai = get('dn_openai');
+  if (get('dn_openai_org')) state.apiKeys.openai_org = get('dn_openai_org');
+  if (get('dn_anthropic')) state.apiKeys.anthropic = get('dn_anthropic');
+  if (get('dn_gemini')) state.apiKeys.gemini = get('dn_gemini');
+  if (get('dn_default_model')) state.defaultModel = get('dn_default_model');
+  if (get('dn_image_quality')) state.imageQuality = get('dn_image_quality');
+  const smin = get('dn_slide_min'); if (smin) state.slideMin = parseInt(smin) || 6;
+  const smax = get('dn_slide_max'); if (smax) state.slideMax = parseInt(smax) || 10;
+  if (get('dn_logo_backing')) state.logoBacking = get('dn_logo_backing') === 'true';
+  if (get('dn_skip_model_picker')) state.skipModelPicker = get('dn_skip_model_picker') === 'true';
+  if (get('dn_admin')) state.adminMode = get('dn_admin') === 'true';
+  const logo = get('dn_logo_b64');
+  if (logo) { state.logoB64 = logo; state.logoIsCustom = true; }
+}
 
 function toast(opts) {
   const c = document.getElementById('toastContainer');
@@ -421,7 +591,6 @@ function openModal(content, opts) {
 function closeModal() { document.getElementById('modalRoot').innerHTML = ''; document.removeEventListener('keydown', escClose); }
 function escClose(e) { if (e.key === 'Escape') closeModal(); }
 
-// ─── SEED DATA ─────────────────────────────────────────────────────────
 function seedIfEmpty() {
   if (db.seeded || db.templates.length > 0) return;
   const hsId = uuid(), dpTelcoId = uuid(), dpFinId = uuid(), dpGenId = uuid();
@@ -458,7 +627,6 @@ function getImageDimensions(base64) {
 }
 function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'dn-deck'; }
 
-// ─── PARSE SLIDES ──────────────────────────────────────────────────────
 function parseSlidesDetected(text) {
   if (!text || !text.trim()) return { slides: [], pattern: null };
   const lines = text.split(/\r?\n/);
@@ -516,7 +684,6 @@ function parseSlidesDetected(text) {
 function parseSlides(text) { return parseSlidesDetected(text).slides; }
 function patternLabel(p) { if (p === 'h1') return '"# heading" pattern'; if (p === 'slide_n') return '"Slide N —" pattern'; if (p === 'h2') return '"## heading" pattern'; if (p === 'hr') return '"---" separator pattern'; return null; }
 
-// ─── ANTHROPIC POLISH (with token cost capture) ────────────────────────
 async function polishWithClaude(_unused, mode) {
   const key = (state.apiKeys.anthropic || '').trim();
   if (!key) throw new Error('NO_ANTHROPIC_KEY: Set Anthropic API key in Settings.');
@@ -576,7 +743,6 @@ function polishedToSlides(polished) {
   });
 }
 
-// ─── COMPOSED PROMPT (3-layer) ────────────────────────────────────────
 function composeBundlePrompt(bundleJoined, slide) {
   const layers = [];
   if (bundleJoined && bundleJoined.house_style && bundleJoined.house_style.prompt) layers.push(bundleJoined.house_style.prompt);
@@ -588,7 +754,6 @@ function composeBundlePrompt(bundleJoined, slide) {
 }
 function composeBundlePromptPreview(bundleJoined) { return composeBundlePrompt(bundleJoined, null); }
 
-// ─── PROVIDER ABSTRACTION ─────────────────────────────────────────────
 function blobToBase64(blob) { return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); }); }
 
 async function generateImageWithProvider(providerKey, modelKey, qualityKey, fullPrompt) {
@@ -659,7 +824,6 @@ function currentEffectiveModel() {
   return parseModelSpec(state.selectedModel || state.defaultModel) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' };
 }
 
-// ─── SLIDE IMAGE GEN (uses currentEffectiveModel) ─────────────────────
 async function generateSlideImage(slide, customPromptOverride, overrideSpec) {
   const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
   const prompt = customPromptOverride || composeBundlePrompt(bundle, slide);
@@ -728,7 +892,6 @@ async function loadDefaultLogo() {
   } catch (e) { console.warn('Default logo load failed', e); return null; }
 }
 
-// ─── PPTX ASSEMBLY ─────────────────────────────────────────────────────
 async function assemblePptx() {
   if (!window.__pptxReady || typeof PptxGenJS === 'undefined') { toast({ type: 'error', message: 'PptxGenJS still loading — try again in a moment' }); return; }
   const prs = new PptxGenJS();
@@ -804,9 +967,7 @@ function showDeckReadyModal(fileName, blobSize) {
   openModal(html, { lg: true });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// COMPOSE VIEW
-// ═══════════════════════════════════════════════════════════════════════
+// ═══ COMPOSE VIEW ═══════════════════════════════════════════════════════
 function renderCompose() {
   const cont = document.getElementById('content');
   cont.innerHTML = `
@@ -872,8 +1033,8 @@ function renderStep1() {
       </div>
     </div>`;
   document.getElementById('bundleSel').onchange = e => { state.selectedBundleId = e.target.value || null; };
-  document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; } renderStep1(); };
-  document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; } renderStep1(); };
+  document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
+  document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   const custChk = document.getElementById('custLogoChk');
   custChk.onchange = e => { state.customerLogoEnabled = e.target.checked; document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none'; if (!e.target.checked) state.customerLogoB64 = null; renderStep1(); };
   const custUpload = document.getElementById('custUploadBtn'); if (custUpload) custUpload.onclick = () => document.getElementById('custLogoFile').click();
@@ -998,14 +1159,12 @@ function bindSlideEditCard(i) {
   card.querySelector('[data-act="del"]').onclick = () => { if (state.slides.length <= state.slideMin) return; state.slides.splice(i, 1); renderStep3(); };
 }
 
-// ─── STEP 3.5 — Pick model ─────────────────────────────────────────────
 function providerKeyAvailable(provider) {
   if (provider === 'openai') return !!(state.apiKeys.openai || '').trim();
   if (provider === 'google') return !!(state.apiKeys.gemini || '').trim();
   return false;
 }
 function buildModelCandidates() {
-  // One card per is_default row per provider/model — i.e. one card per visually-distinct model
   const seen = new Set();
   const list = [];
   imageCosts.filter(c => c.is_active).forEach(c => {
@@ -1028,7 +1187,6 @@ function enterStep35() {
     toast({ type: 'error', message: 'Configure at least one image provider key in Settings.' });
     return;
   }
-  // Pick default test slide — longest body, else slide 2 or 1
   let idx = 0;
   let maxLen = -1;
   state.slides.forEach((s, i) => { const len = (s.body || '').length; if (len > maxLen) { maxLen = len; idx = i; } });
@@ -1158,7 +1316,6 @@ async function runSingleTest(idx) {
 function selectModel(idx) {
   const c = state.modelPicker.candidates[idx]; if (!c) return;
   state.selectedModel = `${c.provider}:${c.model}:${c.quality}`;
-  // Discard other candidates' images (cost already sunk)
   state.modelPicker.candidates.forEach((other, i) => { if (i !== idx) other.imageB64 = null; });
   toast({ type: 'success', message: `Selected ${c.label} · proceeding to generation` });
   state.composeStep = 5; renderCompose(); generateAllImages();
@@ -1171,7 +1328,6 @@ function openImageLightbox(b64, title) {
   openModal(html, { xl: true });
 }
 
-// ─── STEP 5 (was step 4) ───────────────────────────────────────────────
 function renderStep5() {
   const el = document.getElementById('step5'); if (!el) return;
   const isFuture = state.composeStep < 5;
@@ -1256,9 +1412,7 @@ function openLightbox(i) {
   document.getElementById('saveImgBtn').onclick = () => { const a = document.createElement('a'); a.href = 'data:image/jpeg;base64,' + s.imageB64; a.download = `slide-${i+1}-${slugify(s.title)}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// BUNDLES & TEMPLATES (unchanged from #17)
-// ═══════════════════════════════════════════════════════════════════════
+// ═══ BUNDLES & TEMPLATES ═══════════════════════════════════════════════
 function renderBundles() {
   const cont = document.getElementById('content');
   const search = state.bundlesSearch.toLowerCase();
@@ -1267,7 +1421,7 @@ function renderBundles() {
     <div style="margin-bottom:20px">
       <div class="eyebrow" style="margin-bottom:8px">Library</div>
       <div class="display">Bundles</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Bundles wire one House Style + one Domain Pack + one Deck Type. Selecting a bundle in Compose composes the three prompts into the image generation request.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Bundles wire one House Style + one Domain Pack + one Deck Type.</div>
     </div>
     <div class="section-header">
       <input class="input" id="bundleSearch" placeholder="Search bundles…" value="${escapeHtml(state.bundlesSearch)}" style="max-width:320px">
@@ -1290,7 +1444,7 @@ function openBundleEditor(id, readOnlyView) {
   function buildHtml() {
     const joined = { ...draft, house_style: templateById(draft.house_style_template_id), domain_pack: templateById(draft.domain_pack_template_id), deck_type: templateById(draft.deck_type_template_id), name: draft.name || 'preview' };
     const preview = composeBundlePromptPreview(joined);
-    return `<div class="modal-header"><div><div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' bundle' : 'New bundle'}</div><div class="muted body-sm" style="margin-top:4px">${ro ? 'Read-only view.' : 'Three layers compose live below.'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
+    return `<div class="modal-header"><div><div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' bundle' : 'New bundle'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
       <div class="field"><label class="field-label">Name</label><input class="input" id="bName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div>
       <div class="field"><label class="field-label">Description</label><textarea class="textarea prose" id="bDesc" rows="2" ${ro ? 'disabled' : ''}>${escapeHtml(draft.description || '')}</textarea></div>
       <div class="field"><label class="field-label">Swatch colour</label><input class="input" type="color" id="bColor" value="${escapeHtml(draft.swatch_color)}" ${ro ? 'disabled' : ''} style="width:80px;height:32px;padding:2px"></div>
@@ -1327,7 +1481,7 @@ function openBundleEditor(id, readOnlyView) {
 }
 function deleteBundle(id) {
   const b = bundleById(id); if (!b) return;
-  openModal(`<div class="modal-header"><div><div class="h1">Delete bundle?</div><div class="muted body-sm" style="margin-top:4px">This cannot be undone.</div></div></div><div class="danger-banner"><div><strong>${escapeHtml(b.name)}</strong> will be permanently removed.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelBundle">Delete</button></div>`);
+  openModal(`<div class="modal-header"><div><div class="h1">Delete bundle?</div></div></div><div class="danger-banner"><div><strong>${escapeHtml(b.name)}</strong> will be permanently removed.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelBundle">Delete</button></div>`);
   document.getElementById('confirmDelBundle').onclick = () => { db.bundles = db.bundles.filter(x => x.id !== id); toast({ type: 'success', message: 'Bundle deleted' }); closeModal(); renderBundles(); };
 }
 
@@ -1338,10 +1492,8 @@ function renderTemplates() {
   if (filter !== 'all') items = items.filter(t => t.layer === filter);
   if (search) items = items.filter(t => t.name.toLowerCase().includes(search) || (t.description||'').toLowerCase().includes(search));
   const counts = { all: db.templates.length, house_style: db.templates.filter(t => t.layer === 'house_style').length, domain_pack: db.templates.filter(t => t.layer === 'domain_pack').length, deck_type: db.templates.filter(t => t.layer === 'deck_type').length };
-  const hint = !state.adminMode && !state.shownAdminHint ? `<div class="info-banner" style="margin-bottom:16px"><div>You're in <strong>read-only mode</strong>. Click <strong>Read-only</strong> in the header to toggle admin mode. <button class="btn-ghost" id="dismissAdminHint" style="margin-left:8px;color:var(--info);text-decoration:underline">Got it</button></div></div>` : '';
   cont.innerHTML = `
-    <div style="margin-bottom:20px"><div class="eyebrow" style="margin-bottom:8px">Layer library</div><div class="display">Templates</div><div class="muted body-sm" style="margin-top:8px;max-width:680px">House Style, Domain Pack, and Deck Type templates.</div></div>
-    ${hint}
+    <div style="margin-bottom:20px"><div class="eyebrow" style="margin-bottom:8px">Layer library</div><div class="display">Templates</div></div>
     <div class="section-header">
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1">
         <div class="filter-pills">
@@ -1354,12 +1506,11 @@ function renderTemplates() {
       </div>
       <div style="display:flex;gap:8px;align-items:center">${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}${state.adminMode ? '<button class="btn-primary" id="newTemplateBtn">+ New template</button>' : ''}</div>
     </div>
-    ${items.length === 0 ? `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">No templates match</div><div class="empty-desc">Try a different filter or search.</div></div>`
+    ${items.length === 0 ? `<div class="empty"><div class="empty-title">No templates match</div></div>`
     : `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Name</th><th>Layer</th><th>Description</th><th>Used by</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody>${items.map(t => { const usedBy = bundlesUsingTemplate(t.id).length; const layerLabel = t.layer === 'house_style' ? 'House Style' : t.layer === 'domain_pack' ? 'Domain Pack' : 'Deck Type'; return `<tr><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="layer-badge layer-${t.layer}">${layerLabel}</span></td><td class="muted" style="max-width:300px;font-size:12px">${escapeHtml((t.description||'').slice(0,100))}${(t.description||'').length>100?'…':''}</td><td class="mono" style="font-size:12px">${usedBy} bundle${usedBy===1?'':'s'}</td><td class="mono muted" style="font-size:12px">${escapeHtml((t.updated_at||'').slice(0,10))}</td><td style="text-align:right"><div style="display:inline-flex;gap:4px"><button class="btn-ghost" data-act="viewTemplate" data-id="${t.id}">View</button>${state.adminMode ? `<button class="btn-ghost" data-act="editTemplate" data-id="${t.id}">Edit</button><button class="btn-ghost" data-act="versionsTemplate" data-id="${t.id}">Versions</button><button class="btn-ghost" data-act="delTemplate" data-id="${t.id}" style="color:var(--danger)">Delete</button>` : ''}</div></td></tr>`; }).join('')}</tbody></table></div>`}`;
   document.querySelectorAll('.pill').forEach(p => p.onclick = () => { state.templatesTab = p.dataset.filter; renderTemplates(); });
   const ts = document.getElementById('tSearch'); if (ts) ts.oninput = e => { state.templatesSearch = e.target.value; renderTemplates(); };
   const nt = document.getElementById('newTemplateBtn'); if (nt) nt.onclick = () => openTemplateEditor(null);
-  const dh = document.getElementById('dismissAdminHint'); if (dh) dh.onclick = () => { state.shownAdminHint = true; renderTemplates(); };
   document.querySelectorAll('[data-act="viewTemplate"]').forEach(el => el.onclick = () => openTemplateEditor(el.dataset.id, true));
   document.querySelectorAll('[data-act="editTemplate"]').forEach(el => el.onclick = () => openTemplateEditor(el.dataset.id));
   document.querySelectorAll('[data-act="versionsTemplate"]').forEach(el => el.onclick = () => openVersions(el.dataset.id));
@@ -1371,12 +1522,12 @@ function openTemplateEditor(id, readOnlyView) {
   const ro = readOnlyView || !state.adminMode;
   const usedBy = editing ? bundlesUsingTemplate(editing.id) : [];
   const layerLocked = !!editing && usedBy.length > 0;
-  openModal(`<div class="modal-header"><div><div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' template' : 'New template'}</div><div class="muted body-sm" style="margin-top:4px">${editing ? 'Used by ' + usedBy.length + ' bundle' + (usedBy.length===1?'':'s') : 'Create a new layer fragment.'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
-    <div class="range-row"><div class="field"><label class="field-label">Name</label><input class="input" id="tName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div><div class="field"><label class="field-label">Layer ${layerLocked ? '<span class="subtle">(locked — in use)</span>' : ''}</label><select class="select" id="tLayer" ${ro || layerLocked ? 'disabled' : ''}><option value="house_style" ${draft.layer==='house_style'?'selected':''}>House Style</option><option value="domain_pack" ${draft.layer==='domain_pack'?'selected':''}>Domain Pack</option><option value="deck_type" ${draft.layer==='deck_type'?'selected':''}>Deck Type</option></select></div></div>
+  openModal(`<div class="modal-header"><div><div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' template' : 'New template'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
+    <div class="range-row"><div class="field"><label class="field-label">Name</label><input class="input" id="tName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div><div class="field"><label class="field-label">Layer</label><select class="select" id="tLayer" ${ro || layerLocked ? 'disabled' : ''}><option value="house_style" ${draft.layer==='house_style'?'selected':''}>House Style</option><option value="domain_pack" ${draft.layer==='domain_pack'?'selected':''}>Domain Pack</option><option value="deck_type" ${draft.layer==='deck_type'?'selected':''}>Deck Type</option></select></div></div>
     <div class="field"><label class="field-label">Description</label><textarea class="textarea prose" id="tDesc" rows="2" ${ro ? 'disabled' : ''}>${escapeHtml(draft.description || '')}</textarea></div>
     <div class="field"><label class="field-label">Prompt <span class="subtle" id="promptCount">${(draft.prompt||'').length} chars</span></label><textarea class="textarea" id="tPrompt" rows="14" ${ro ? 'disabled' : ''}>${escapeHtml(draft.prompt || '')}</textarea></div>
-    ${!ro && editing ? `<div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="tChangeNote" placeholder="e.g. tightened brand discipline language"></div>` : ''}
-    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>${!ro ? '<button class="btn-secondary" id="tSaveAsNew">Save as new</button><button class="btn-primary" id="tSaveBtn">Save</button>' : ''}</div>`, { lg: true });
+    ${!ro && editing ? `<div class="field"><label class="field-label">Change note</label><input class="input" id="tChangeNote" placeholder="e.g. tightened brand discipline language"></div>` : ''}
+    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>${!ro ? '<button class="btn-primary" id="tSaveBtn">Save</button>' : ''}</div>`, { lg: true });
   if (!ro) {
     document.getElementById('tName').oninput = e => { draft.name = e.target.value; };
     document.getElementById('tLayer').onchange = e => { draft.layer = e.target.value; };
@@ -1385,37 +1536,26 @@ function openTemplateEditor(id, readOnlyView) {
     document.getElementById('tSaveBtn').onclick = () => {
       if (!draft.name.trim() || !draft.prompt.trim()) { toast({ type: 'error', message: 'Name and prompt are required' }); return; }
       const now = nowIso();
-      if (editing) { Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' }); const note = (document.getElementById('tChangeNote')?.value || '').trim() || 'Edit'; db.versions.push({ id: uuid(), template_id: editing.id, version_num: nextVersionNum(editing.id), prompt: draft.prompt, change_note: note, updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Saved · new version recorded' }); }
-      else { const newId = uuid(); db.templates.push({ ...draft, id: newId, is_active: true, created_at: now, updated_at: now, updated_by: 'admin' }); db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: draft.prompt, change_note: 'Created', updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Template created' }); }
+      if (editing) { Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' }); const note = (document.getElementById('tChangeNote')?.value || '').trim() || 'Edit'; db.versions.push({ id: uuid(), template_id: editing.id, version_num: nextVersionNum(editing.id), prompt: draft.prompt, change_note: note, updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Saved' }); }
+      else { const newId = uuid(); db.templates.push({ ...draft, id: newId, is_active: true, created_at: now, updated_at: now, updated_by: 'admin' }); db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: draft.prompt, change_note: 'Created', updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Created' }); }
       closeModal(); renderTemplates();
-    };
-    document.getElementById('tSaveAsNew').onclick = () => {
-      if (!draft.name.trim() || !draft.prompt.trim()) { toast({ type: 'error', message: 'Name and prompt are required' }); return; }
-      const now = nowIso(); const newId = uuid();
-      const copy = { ...draft, id: newId, name: draft.name + ' (copy)', is_active: true, created_at: now, updated_at: now, updated_by: 'admin' };
-      db.templates.push(copy); db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: copy.prompt, change_note: 'Copied from "' + (editing ? editing.name : 'new') + '"', updated_by: 'admin', created_at: now });
-      toast({ type: 'success', message: 'Saved as new template' }); closeModal(); renderTemplates();
     };
   }
 }
 function deleteTemplate(id) {
   const t = templateById(id); if (!t) return;
   const used = bundlesUsingTemplate(id);
-  if (used.length > 0) { openModal(`<div class="modal-header"><div><div class="h1">Cannot delete</div><div class="muted body-sm" style="margin-top:4px">Template is referenced by ${used.length} bundle${used.length===1?'':'s'}.</div></div></div><div class="warning-banner"><div><strong>${escapeHtml(t.name)}</strong> is in use by:<ul style="margin:6px 0 0 18px">${used.map(b => '<li>' + escapeHtml(b.name) + '</li>').join('')}</ul></div></div><div class="modal-footer"><button class="btn-primary" onclick="closeModal()">OK</button></div>`); return; }
-  openModal(`<div class="modal-header"><div><div class="h1">Delete template?</div><div class="muted body-sm" style="margin-top:4px">Version history will also be deleted.</div></div></div><div class="danger-banner"><div><strong>${escapeHtml(t.name)}</strong> will be permanently removed.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelT">Delete</button></div>`);
-  document.getElementById('confirmDelT').onclick = () => { db.templates = db.templates.filter(x => x.id !== id); db.versions = db.versions.filter(v => v.template_id !== id); toast({ type: 'success', message: 'Template deleted' }); closeModal(); renderTemplates(); };
+  if (used.length > 0) { openModal(`<div class="modal-header"><div><div class="h1">Cannot delete</div></div></div><div class="warning-banner"><div><strong>${escapeHtml(t.name)}</strong> is in use by ${used.length} bundle${used.length===1?'':'s'}.</div></div><div class="modal-footer"><button class="btn-primary" onclick="closeModal()">OK</button></div>`); return; }
+  openModal(`<div class="modal-header"><div><div class="h1">Delete template?</div></div></div><div class="danger-banner"><div><strong>${escapeHtml(t.name)}</strong> will be removed.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelT">Delete</button></div>`);
+  document.getElementById('confirmDelT').onclick = () => { db.templates = db.templates.filter(x => x.id !== id); db.versions = db.versions.filter(v => v.template_id !== id); toast({ type: 'success', message: 'Deleted' }); closeModal(); renderTemplates(); };
 }
 function openVersions(id) {
   const t = templateById(id); if (!t) return;
   const versions = db.versions.filter(v => v.template_id === id).sort((a, b) => b.version_num - a.version_num);
-  openModal(`<div class="modal-header"><div><div class="h1">Version history</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(t.name)} · ${versions.length} version${versions.length===1?'':'s'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div><div style="max-height:520px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">${versions.map(v => `<div class="version-row"><div class="version-head"><span class="version-num">v${v.version_num}</span><span class="muted" style="font-size:12px">${escapeHtml((v.created_at||'').slice(0,16).replace('T',' '))}</span><span class="muted" style="font-size:12px">· ${escapeHtml(v.updated_by || 'unknown')}</span><span class="muted" style="font-size:12px">· ${escapeHtml(v.change_note || '')}</span><div style="margin-left:auto;display:flex;gap:4px"><button class="btn-ghost" data-act="vExpand" data-id="${v.id}">Expand</button>${state.adminMode ? `<button class="btn-secondary" data-act="vRestore" data-id="${v.id}">Restore</button>` : ''}</div></div><div id="vBody_${v.id}" style="display:none;margin-top:8px"><textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(v.prompt)}</textarea></div><div id="vPreview_${v.id}" class="muted" style="font-size:12px;font-family:var(--mono);margin-top:4px">${escapeHtml(v.prompt.slice(0, 200))}${v.prompt.length>200?'…':''}</div></div>`).join('')}</div><div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
-  document.querySelectorAll('[data-act="vExpand"]').forEach(el => el.onclick = () => { const vid = el.dataset.id; const body = document.getElementById('vBody_' + vid); const prev = document.getElementById('vPreview_' + vid); const showing = body.style.display !== 'none'; body.style.display = showing ? 'none' : 'block'; prev.style.display = showing ? 'block' : 'none'; el.textContent = showing ? 'Expand' : 'Collapse'; });
-  document.querySelectorAll('[data-act="vRestore"]').forEach(el => el.onclick = () => { const vid = el.dataset.id; const v = db.versions.find(x => x.id === vid); if (!v) return; const tpl = templateById(v.template_id); if (!tpl) return; const now = nowIso(); tpl.prompt = v.prompt; tpl.updated_at = now; tpl.updated_by = 'admin'; db.versions.push({ id: uuid(), template_id: tpl.id, version_num: nextVersionNum(tpl.id), prompt: v.prompt, change_note: 'Restored from version ' + v.version_num, updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Restored to v' + v.version_num }); closeModal(); renderTemplates(); });
+  openModal(`<div class="modal-header"><div><div class="h1">Version history</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(t.name)}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div><div style="max-height:520px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">${versions.map(v => `<div class="version-row"><div class="version-head"><span class="version-num">v${v.version_num}</span><span class="muted" style="font-size:12px">${escapeHtml((v.created_at||'').slice(0,16).replace('T',' '))}</span><span class="muted" style="font-size:12px">· ${escapeHtml(v.change_note || '')}</span></div></div>`).join('')}</div><div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// SETTINGS
-// ═══════════════════════════════════════════════════════════════════════
+// ═══ SETTINGS ═══════════════════════════════════════════════════════════
 function renderSettings() {
   const cont = document.getElementById('content');
   const oai = state.apiKeys.openai ? (state.apiKeys.openai.slice(0,7) + '…' + state.apiKeys.openai.slice(-4)) : '';
@@ -1424,72 +1564,97 @@ function renderSettings() {
   const defaultSpec = parseModelSpec(state.defaultModel) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' };
   const defaultCost = getImageCost(defaultSpec.provider, defaultSpec.model, '1536x1024', defaultSpec.quality);
   cont.innerHTML = `
-    <div style="margin-bottom:24px"><div class="eyebrow" style="margin-bottom:8px">Configuration</div><div class="display">Settings</div><div class="muted body-sm" style="margin-top:8px">API keys, models, costs, logos, admin mode. Settings live in memory only.</div></div>
+    <div style="margin-bottom:24px"><div class="eyebrow" style="margin-bottom:8px">Configuration</div><div class="display">Settings</div><div class="muted body-sm" style="margin-top:8px">API keys, models, costs, logos, admin mode.</div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Admin mode</div></div><div class="card"><div class="field"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''} style="margin:0"><span>Enable admin mode</span></label><div class="field-hint" style="margin-top:6px">When enabled: New / Edit / Delete on Templates and Bundles tabs.</div></div></div></div>
+    <div style="margin-bottom:20px"><span id="syncPill" class="sync-pill">💾 Settings sync with Supabase as you save</span> <span class="muted body-sm" style="margin-left:8px">owner: <span class="mono">${escapeHtml(OWNER_ID)}</span></span></div>
+
+    <div class="section"><div class="section-header"><div class="h1">Admin mode</div></div><div class="card"><div class="field"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''} style="margin:0"><span>Enable admin mode</span></label></div></div></div>
 
     <div class="section"><div class="section-header"><div class="h1">Image models &amp; cost</div></div><div class="card">
       <div class="field">
-        <label class="field-label">Default image model <span class="subtle">used when skipping the comparison step</span></label>
+        <label class="field-label">Default image model</label>
         <select class="select" id="defaultModelSel">${imageCosts.filter(c => c.is_active).map(c => { const val = `${c.provider}:${c.model}:${c.quality}`; const label = `${c.label}  —  ${fmtUsd(c.cost_per_image)}/image`; return `<option value="${val}" ${state.defaultModel === val ? 'selected' : ''}>${escapeHtml(label)}</option>`; }).join('')}</select>
-        <div class="field-hint" style="margin-top:6px">Cost at current selection: <strong>${fmtUsd(defaultCost)}</strong> per image · projected <strong>${fmtUsd(defaultCost * (state.slides.length || state.slideMax))}</strong> for a ${state.slides.length || state.slideMax}-slide deck.</div>
+        <div class="field-hint" style="margin-top:6px">Cost: <strong>${fmtUsd(defaultCost)}</strong> per image</div>
       </div>
       <div class="field">
-        <label class="field-label">OpenAI image quality <span class="subtle">applies to gpt-image-* models only</span></label>
+        <label class="field-label">OpenAI image quality</label>
         <select class="select" id="qualitySel"><option value="low" ${state.imageQuality === 'low' ? 'selected' : ''}>Low</option><option value="medium" ${state.imageQuality === 'medium' ? 'selected' : ''}>Medium</option><option value="high" ${state.imageQuality === 'high' ? 'selected' : ''}>High</option></select>
       </div>
       <div class="field" style="margin-bottom:0">
         <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="skipPickerChk" ${state.skipModelPicker ? 'checked' : ''} style="margin:0"><span>Skip the model comparison step</span></label>
-        <div class="field-hint" style="margin-top:6px">If checked, Compose goes straight from Edit → Generate using the default model above.</div>
       </div>
     </div></div>
 
     <div class="section"><div class="section-header"><div class="h1">Brand logo</div></div><div class="card">
       <div class="field">
-        <label class="field-label">Logo image <span class="subtle">PNG with transparent background recommended</span></label>
+        <label class="field-label">Logo image</label>
         <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="logo-preview">${state.logoB64 ? `<img src="data:image/png;base64,${state.logoB64}" alt="logo preview">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div><div style="display:flex;gap:6px"><input type="file" id="logoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="uploadLogoBtn">Upload PNG</button>${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset to default</button>' : ''}</div></div>
-        <div class="field-hint" style="margin-top:10px">${state.logoB64 ? '<span class="badge badge-success" style="margin-left:0">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:0">No logo loaded</span>'}</div>
       </div>
       <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="logoBackingChk" ${state.logoBacking ? 'checked' : ''} style="margin:0"><span>Add dark backing panel behind logos in .pptx</span></label></div>
     </div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Anthropic</div></div><div class="card"><div class="field"><label class="field-label">API key <span class="subtle">for AI polish</span></label><div class="api-key-row"><input class="input" id="anthropicKey" type="password" placeholder="sk-ant-..." value="${escapeHtml(state.apiKeys.anthropic)}" autocomplete="off"><button class="btn-secondary" id="saveAntBtn">Save</button>${state.apiKeys.anthropic ? '<button class="btn-ghost" id="clearAntBtn">Clear</button>' : ''}</div><div class="field-hint"><span class="mono">claude-sonnet-4-5</span> · ${state.apiKeys.anthropic ? 'Current: <span class="mono">' + escapeHtml(ant) + '</span>' : 'Not set.'}</div></div></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Anthropic</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="anthropicKey" type="password" placeholder="sk-ant-..." value="${escapeHtml(state.apiKeys.anthropic)}" autocomplete="off"><button class="btn-secondary" id="saveAntBtn">Save</button>${state.apiKeys.anthropic ? '<button class="btn-ghost" id="clearAntBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.anthropic ? 'Current: <span class="mono">' + escapeHtml(ant) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">OpenAI</div></div><div class="card"><div class="field"><label class="field-label">API key <span class="subtle">for gpt-image-* models</span></label><div class="api-key-row"><input class="input" id="openaiKey" type="password" placeholder="sk-..." value="${escapeHtml(state.apiKeys.openai)}" autocomplete="off"><button class="btn-secondary" id="saveKeyBtn">Save</button>${state.apiKeys.openai ? '<button class="btn-ghost" id="clearKeyBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div></div><div class="field"><label class="field-label">Organization ID <span class="subtle">optional</span></label><div class="api-key-row"><input class="input" id="openaiOrg" type="text" placeholder="org-..." value="${escapeHtml(state.apiKeys.openai_org)}" autocomplete="off"><button class="btn-secondary" id="saveOrgBtn">Save</button>${state.apiKeys.openai_org ? '<button class="btn-ghost" id="clearOrgBtn">Clear</button>' : ''}</div></div></div></div>
+    <div class="section"><div class="section-header"><div class="h1">OpenAI</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="openaiKey" type="password" placeholder="sk-..." value="${escapeHtml(state.apiKeys.openai)}" autocomplete="off"><button class="btn-secondary" id="saveKeyBtn">Save</button>${state.apiKeys.openai ? '<button class="btn-ghost" id="clearKeyBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div></div><div class="field"><label class="field-label">Organization ID</label><div class="api-key-row"><input class="input" id="openaiOrg" type="text" placeholder="org-..." value="${escapeHtml(state.apiKeys.openai_org)}" autocomplete="off"><button class="btn-secondary" id="saveOrgBtn">Save</button>${state.apiKeys.openai_org ? '<button class="btn-ghost" id="clearOrgBtn">Clear</button>' : ''}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key <span class="subtle">for Imagen 3, Imagen 4, Gemini 2.0 Flash</span></label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}" autocomplete="off"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">Get a key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--accent)">aistudio.google.com/app/apikey</a>. ${state.apiKeys.gemini ? 'Current: <span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}" autocomplete="off"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? 'Current: <span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Cost table</div></div><div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Provider</th><th>Model</th><th>Size</th><th>Quality</th><th style="text-align:right">Per image</th></tr></thead><tbody>${imageCosts.filter(c => c.is_active).map(c => `<tr><td>${escapeHtml(c.provider)}</td><td class="mono">${escapeHtml(c.model)}</td><td class="mono muted">${escapeHtml(c.size)}</td><td>${escapeHtml(c.quality)}</td><td class="mono" style="text-align:right">${fmtUsd(c.cost_per_image)}</td></tr>`).join('')}</tbody></table></div><div class="field-hint" style="margin-top:8px">Editing cost rows in-UI is out of scope for #18 — admins update Supabase directly. Costs are seeded from <span class="mono">image_model_costs</span> + <span class="mono">anthropic_token_costs</span> tables.</div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.1.2</span> (build #20 — persistent settings)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Templates</dt><dd>${db.templates.length}</dd><dt>Bundles</dt><dd>${db.bundles.length}</dd><dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd></dl></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.1.0</span> (build #18 — real cost + Gemini + model comparison)</dd><dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd><dt>Default image model</dt><dd><span class="mono">${escapeHtml(state.defaultModel)}</span></dd><dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd><dt>Templates</dt><dd>${db.templates.length} (${db.templates.filter(t=>t.layer==='house_style').length} HS · ${db.templates.filter(t=>t.layer==='domain_pack').length} DP · ${db.templates.filter(t=>t.layer==='deck_type').length} DT)</dd><dt>Bundles</dt><dd>${db.bundles.length}</dd><dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd></dl></div></div>`;
-  document.getElementById('adminChk').onchange = e => { state.adminMode = e.target.checked; updateAdminBadge(); renderSettings(); };
-  document.getElementById('defaultModelSel').onchange = e => { state.defaultModel = e.target.value; toast({ type: 'info', message: 'Default model updated' }); renderSettings(); };
-  document.getElementById('qualitySel').onchange = e => { state.imageQuality = e.target.value; toast({ type: 'info', message: 'OpenAI quality: ' + state.imageQuality }); renderSettings(); };
-  document.getElementById('skipPickerChk').onchange = e => { state.skipModelPicker = e.target.checked; toast({ type: 'info', message: e.target.checked ? 'Will skip model picker' : 'Will show model picker' }); };
-  const lbChk = document.getElementById('logoBackingChk'); if (lbChk) lbChk.onchange = e => { state.logoBacking = e.target.checked; toast({ type: 'info', message: e.target.checked ? 'Logo backing enabled' : 'Logo backing disabled' }); };
+    <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo from this browser AND from your synced account. You'll need to re-enter everything. Use when switching accounts or troubleshooting.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
+  `;
+
+  updateSyncPill();
+
+  document.getElementById('adminChk').onchange = async e => { state.adminMode = e.target.checked; await persistSetting('dn_admin', String(state.adminMode)); updateAdminBadge(); renderSettings(); };
+  document.getElementById('defaultModelSel').onchange = async e => { state.defaultModel = e.target.value; await persistSetting('dn_default_model', state.defaultModel); toast({ type: 'info', message: 'Default model updated' }); renderSettings(); };
+  document.getElementById('qualitySel').onchange = async e => { state.imageQuality = e.target.value; await persistSetting('dn_image_quality', state.imageQuality); toast({ type: 'info', message: 'OpenAI quality: ' + state.imageQuality }); renderSettings(); };
+  document.getElementById('skipPickerChk').onchange = async e => { state.skipModelPicker = e.target.checked; await persistSetting('dn_skip_model_picker', String(state.skipModelPicker)); toast({ type: 'info', message: e.target.checked ? 'Will skip model picker' : 'Will show model picker' }); };
+  const lbChk = document.getElementById('logoBackingChk'); if (lbChk) lbChk.onchange = async e => { state.logoBacking = e.target.checked; await persistSetting('dn_logo_backing', String(state.logoBacking)); toast({ type: 'info', message: e.target.checked ? 'Logo backing enabled' : 'Logo backing disabled' }); };
   document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
-  document.getElementById('logoFile').onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; toast({ type: 'success', message: 'Logo uploaded' }); renderSettings(); }; fr.readAsDataURL(file); };
-  const clrLogo = document.getElementById('clearLogoBtn'); if (clrLogo) clrLogo.onclick = async () => { state.logoIsCustom = false; state.logoB64 = await loadDefaultLogo(); toast({ type: 'info', message: 'Reset to default DN logo' }); renderSettings(); };
-  document.getElementById('saveKeyBtn').onclick = () => { const v = (document.getElementById('openaiKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } if (!v.startsWith('sk-')) { toast({ type: 'error', message: 'OpenAI key must start with sk-' }); return; } state.apiKeys.openai = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
-  const ck = document.getElementById('clearKeyBtn'); if (ck) ck.onclick = () => { state.apiKeys.openai = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-  document.getElementById('saveAntBtn').onclick = () => { const v = (document.getElementById('anthropicKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } if (!v.startsWith('sk-ant-')) { toast({ type: 'error', message: 'Anthropic key must start with sk-ant-' }); return; } state.apiKeys.anthropic = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
-  const ca = document.getElementById('clearAntBtn'); if (ca) ca.onclick = () => { state.apiKeys.anthropic = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-  document.getElementById('saveGemBtn').onclick = () => { const v = (document.getElementById('geminiKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } state.apiKeys.gemini = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
-  const cg = document.getElementById('clearGemBtn'); if (cg) cg.onclick = () => { state.apiKeys.gemini = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-  document.getElementById('saveOrgBtn').onclick = () => { state.apiKeys.openai_org = (document.getElementById('openaiOrg').value || '').trim(); toast({ type: 'success', message: 'Org saved' }); renderSettings(); };
-  const co = document.getElementById('clearOrgBtn'); if (co) co.onclick = () => { state.apiKeys.openai_org = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('logoFile').onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = async () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; await persistSetting('dn_logo_b64', state.logoB64); toast({ type: 'success', message: 'Logo uploaded · synced' }); renderSettings(); }; fr.readAsDataURL(file); };
+  const clrLogo = document.getElementById('clearLogoBtn'); if (clrLogo) clrLogo.onclick = async () => { state.logoIsCustom = false; await persistSetting('dn_logo_b64', ''); state.logoB64 = await loadDefaultLogo(); toast({ type: 'info', message: 'Reset to default DN logo' }); renderSettings(); };
+  document.getElementById('saveKeyBtn').onclick = async () => { const v = (document.getElementById('openaiKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } if (!v.startsWith('sk-')) { toast({ type: 'error', message: 'OpenAI key must start with sk-' }); return; } state.apiKeys.openai = v; await persistSetting('dn_openai', v); toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
+  const ck = document.getElementById('clearKeyBtn'); if (ck) ck.onclick = async () => { state.apiKeys.openai = ''; await persistSetting('dn_openai', ''); renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('saveAntBtn').onclick = async () => { const v = (document.getElementById('anthropicKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } if (!v.startsWith('sk-ant-')) { toast({ type: 'error', message: 'Anthropic key must start with sk-ant-' }); return; } state.apiKeys.anthropic = v; await persistSetting('dn_anthropic', v); toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
+  const ca = document.getElementById('clearAntBtn'); if (ca) ca.onclick = async () => { state.apiKeys.anthropic = ''; await persistSetting('dn_anthropic', ''); renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('saveGemBtn').onclick = async () => { const v = (document.getElementById('geminiKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } state.apiKeys.gemini = v; await persistSetting('dn_gemini', v); toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
+  const cg = document.getElementById('clearGemBtn'); if (cg) cg.onclick = async () => { state.apiKeys.gemini = ''; await persistSetting('dn_gemini', ''); renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('saveOrgBtn').onclick = async () => { const v = (document.getElementById('openaiOrg').value || '').trim(); state.apiKeys.openai_org = v; await persistSetting('dn_openai_org', v); toast({ type: 'success', message: 'Org saved' }); renderSettings(); };
+  const co = document.getElementById('clearOrgBtn'); if (co) co.onclick = async () => { state.apiKeys.openai_org = ''; await persistSetting('dn_openai_org', ''); renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+
+  document.getElementById('resetAllBtn').onclick = () => {
+    openModal(`<div class="modal-header"><div><div class="h1">Reset all settings?</div><div class="muted body-sm" style="margin-top:4px">This will permanently delete your API keys, preferences, and logo — both locally and from Supabase.</div></div></div><div class="danger-banner"><div>You will need to re-enter every API key and re-upload your logo after this.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmReset">Reset everything</button></div>`);
+    document.getElementById('confirmReset').onclick = async () => {
+      closeModal();
+      toast({ type: 'info', message: 'Resetting settings…' });
+      await resetAllSettings();
+      // Reset in-memory state
+      state.apiKeys = { openai: '', anthropic: '', gemini: '', openai_org: '' };
+      state.imageQuality = 'high';
+      state.defaultModel = 'openai:gpt-image-2:high';
+      state.skipModelPicker = false;
+      state.logoBacking = false;
+      state.adminMode = false;
+      state.slideMin = 6;
+      state.slideMax = 10;
+      state.logoB64 = null; state.logoIsCustom = false;
+      // Reload default logo
+      const b = await loadDefaultLogo(); if (b) state.logoB64 = b;
+      toast({ type: 'success', message: 'All settings cleared. Reloading.' });
+      setTimeout(() => { try { location.reload(); } catch (e) { renderSettings(); updateAdminBadge(); render(); } }, 800);
+    };
+  };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// HEADER / ROUTING
-// ═══════════════════════════════════════════════════════════════════════
+// ═══ HEADER / ROUTING ══════════════════════════════════════════════════
 function updateAdminBadge() {
   const el = document.getElementById('adminBadge'); if (!el) return;
   el.innerHTML = state.adminMode
     ? '<span class="badge badge-accent" style="cursor:pointer" id="adminBadgeBtn" title="Click to disable admin mode">Admin</span>'
     : '<span class="badge badge-neutral" style="cursor:pointer" id="adminBadgeBtn" title="Click to enable admin mode">Read-only</span>';
   const btn = document.getElementById('adminBadgeBtn');
-  if (btn) btn.onclick = () => { state.adminMode = !state.adminMode; updateAdminBadge(); toast({ type: 'info', message: state.adminMode ? 'Admin mode enabled' : 'Admin mode disabled' }); if (state.view === 'templates') renderTemplates(); else if (state.view === 'bundles') renderBundles(); else if (state.view === 'settings') renderSettings(); };
+  if (btn) btn.onclick = async () => { state.adminMode = !state.adminMode; await persistSetting('dn_admin', String(state.adminMode)); updateAdminBadge(); toast({ type: 'info', message: state.adminMode ? 'Admin mode enabled' : 'Admin mode disabled' }); if (state.view === 'templates') renderTemplates(); else if (state.view === 'bundles') renderBundles(); else if (state.view === 'settings') renderSettings(); };
 }
 function renderCostBadge() {
   const el = document.getElementById('costBadge'); if (!el) return;
@@ -1509,10 +1674,23 @@ function render() {
   renderCostBadge();
 }
 
-seedIfEmpty();
-updateAdminBadge();
-render();
-loadDefaultLogo().then(b => { if (b && !state.logoIsCustom) { state.logoB64 = b; console.log('Default DN logo loaded'); } else if (!b) { console.warn('Default logo unavailable — upload one in Settings'); } });
+async function initApp() {
+  seedIfEmpty();
+  await bootstrapSettings();
+  hydrateStateFromStorage();
+  updateAdminBadge();
+  render();
+  // Refresh sync pill timestamps periodically
+  setInterval(updateSyncPill, 30000);
+  // Load default logo only if no custom logo set
+  if (!state.logoIsCustom) {
+    const b = await loadDefaultLogo();
+    if (b) { state.logoB64 = b; console.log('Default DN logo loaded'); }
+  }
+  if (state.view === 'settings') renderSettings();
+}
+
+initApp();
 </script>
 </body>
 </html>
