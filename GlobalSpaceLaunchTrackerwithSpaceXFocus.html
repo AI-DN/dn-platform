@@ -2115,7 +2115,13 @@ function renderDetail() {
     html += '<p style="font-size:11px; color:var(--text-subtle); margin-top:8px">Tap a photo to view full size. Imagery from agency archives.</p>';
     html += '</div>';
     html += '<div class="section-block">';
-    html += '<button class="btn-secondary" style="width:100%" id="exportCard">Export Launch Card as Image</button>';
+    html += '<h3>Launch Report</h3>';
+    html += '<p style="font-size:12px; color:var(--text-muted); margin-bottom:10px">Generate a comprehensive mission briefing including overview, rocket specifications, payload details, media links, and status updates — suitable for sharing via email.</p>';
+    html += '<div style="display:flex; gap:8px; flex-direction:column">';
+    html += '<button class="btn-primary" style="width:100%" id="reportPdf">Download PDF Report</button>';
+    html += '<button class="btn-secondary" style="width:100%" id="reportLink">Generate Shareable Link</button>';
+    html += '<button class="btn-secondary" style="width:100%" id="reportEmail">Compose Email</button>';
+    html += '</div>';
     html += '</div>';
   } else if (state.detailTab === 'updates') {
     html += '<div class="section-block">';
@@ -2155,8 +2161,12 @@ function renderDetail() {
     try { window.open(url, '_blank', 'noopener,noreferrer'); toast('Opening webcast search on YouTube', 'success'); }
     catch (err) { toast('Could not open external link', 'error'); }
   });
-  const ec = c.querySelector('#exportCard');
-  if (ec) ec.addEventListener('click', () => downloadLaunchCard(l));
+  const rPdf = c.querySelector('#reportPdf');
+  if (rPdf) rPdf.addEventListener('click', () => downloadLaunchReport(l));
+  const rLink = c.querySelector('#reportLink');
+  if (rLink) rLink.addEventListener('click', () => generateShareableLink(l));
+  const rEmail = c.querySelector('#reportEmail');
+  if (rEmail) rEmail.addEventListener('click', () => composeReportEmail(l));
   c.querySelectorAll('.gallery-thumb').forEach(thumb => {
     thumb.addEventListener('click', () => {
       openLightbox(thumb.dataset.img, thumb.dataset.caption);
@@ -2375,12 +2385,274 @@ function renderCompareSheet() {
   });
 }
 
-// ============= EXPORT LAUNCH CARD =============
+// ============= LAUNCH REPORT GENERATOR =============
 function sanitizeFilename(s) {
   return String(s).replace(/[^a-zA-Z0-9-]+/g, '-').replace(/^-+|-+$/g, '').replace(/-+/g, '-');
 }
 
-function downloadLaunchCard(l) {
+function buildReportHTML(l) {
+  const rk = ROCKETS[l.rocket] || {};
+  const cd = fmtCountdown(l.date);
+  const statusMap = { scheduled: 'Scheduled', delayed: 'Delayed', scrubbed: 'Scrubbed', success: 'Success', failure: 'Failure', live: 'Live' };
+  const statusLabel = statusMap[l.status] || l.status;
+  const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const ytQuery = encodeURIComponent(l.agency + ' ' + l.mission + ' launch');
+  const ytUrl = 'https://www.youtube.com/results?search_query=' + ytQuery;
+  const generated = new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' });
+
+  let specsRows = '';
+  if (rk.height) {
+    const specs = [
+      ['Height', rk.height], ['Diameter', rk.diameter], ['Mass', rk.mass],
+      ['Stages', rk.stages], ['Thrust (T/O)', rk.thrust],
+      ['Payload LEO', rk.payloadLEO], ['Payload GTO', rk.payloadGTO],
+      ['First Flight', rk.firstFlight], ['Reusability', rk.reusable],
+      ['Success Rate', rk.successRate + '%'], ['Total Attempts', rk.attempts]
+    ];
+    specs.forEach(([k, v]) => { specsRows += '<tr><td>' + esc(k) + '</td><td>' + esc(v) + '</td></tr>'; });
+  } else {
+    specsRows = '<tr><td colspan="2" style="color:#666">Specifications not available.</td></tr>';
+  }
+
+  let updatesHTML = '';
+  const updates = l.updates && l.updates.length ? l.updates : [];
+  if (updates.length === 0) {
+    updatesHTML = '<p style="color:#666">No mission updates published yet.</p>';
+  } else {
+    updatesHTML = '<ul style="padding-left:18px; margin:0">';
+    updates.forEach(u => { updatesHTML += '<li style="margin-bottom:8px"><strong>' + esc(u.time) + '</strong> — ' + esc(u.text) + '</li>'; });
+    updatesHTML += '</ul>';
+  }
+
+  let spacexBlock = '';
+  if (l.agency === 'SpaceX' && l.booster) {
+    spacexBlock = '<div class="section"><h2>Booster Reuse</h2><table class="specs"><tr><td>Core Serial</td><td>' + esc(l.booster) + '</td></tr><tr><td>Flight Number</td><td>' + esc(l.reuse + 1) + '</td></tr><tr><td>Landing Plan</td><td>' + esc(l.landing || 'Expendable') + '</td></tr></table></div>';
+  }
+
+  let weatherBlock = '';
+  if (l.weather !== undefined && l.date.getTime() > Date.now()) {
+    weatherBlock = '<div class="section"><h2>Weather Forecast</h2><p><strong>' + l.weather + '% GO</strong> — probability of acceptable launch conditions.</p></div>';
+  }
+
+  let windowBlock = '';
+  if (l.windowStart !== undefined && l.windowEnd !== undefined) {
+    const winHours = (l.windowEnd - l.windowStart).toFixed(1);
+    windowBlock = '<tr><td>Launch Window</td><td>' + winHours + ' hours</td></tr>';
+  }
+
+  const galleryImages = getGalleryImages(l);
+  let galleryHTML = '<div class="gallery">';
+  galleryImages.forEach(img => {
+    galleryHTML += '<figure><img src="' + esc(img.url) + '" alt="' + esc(img.caption) + '"/><figcaption>' + esc(img.caption) + '</figcaption></figure>';
+  });
+  galleryHTML += '</div>';
+
+  const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>Launch Report — ' + esc(l.mission) + '</title>' +
+    '<style>' +
+    '@page { size: letter; margin: 0.6in; }' +
+    'body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif; color: #18181b; line-height: 1.55; max-width: 780px; margin: 32px auto; padding: 0 24px; }' +
+    '.header { border-bottom: 2px solid #18181b; padding-bottom: 16px; margin-bottom: 24px; display: flex; justify-content: space-between; align-items: flex-end; gap:16px; }' +
+    '.brand { font-size: 13px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #5e6ad2; }' +
+    '.meta { font-size: 11px; color: #71717a; text-align: right; }' +
+    'h1 { font-size: 28px; font-weight: 700; letter-spacing: -0.01em; margin: 4px 0 8px; }' +
+    'h2 { font-size: 14px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: #52525b; margin: 24px 0 10px; border-bottom: 1px solid #e4e4e7; padding-bottom: 6px; }' +
+    'h3 { font-size: 13px; font-weight: 600; margin: 12px 0 4px; color: #18181b; }' +
+    '.subtitle { font-size: 15px; color: #52525b; margin-bottom: 4px; }' +
+    '.agency { display: inline-block; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #5e6ad2; }' +
+    '.status { display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: #f4f4f5; color: #18181b; border: 1px solid #e4e4e7; }' +
+    '.status-success { background: rgba(22,163,74,0.1); color: #16a34a; }' +
+    '.status-failure { background: rgba(220,38,38,0.1); color: #dc2626; }' +
+    '.status-delayed { background: rgba(217,119,6,0.1); color: #d97706; }' +
+    '.hero-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 16px 0 8px; padding: 14px; background: #fafafa; border: 1px solid #e4e4e7; border-radius: 6px; }' +
+    '.hero-grid div { font-size: 12px; }' +
+    '.hero-grid strong { display: block; font-size: 11px; letter-spacing: 0.05em; text-transform: uppercase; color: #71717a; font-weight: 500; margin-bottom: 2px; }' +
+    '.hero-grid span { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 13px; color: #18181b; }' +
+    '.section { margin-bottom: 20px; page-break-inside: avoid; }' +
+    '.section p { font-size: 13px; margin: 0 0 8px; }' +
+    'table.specs { width: 100%; border-collapse: collapse; font-size: 12px; }' +
+    'table.specs td { padding: 6px 10px; border-bottom: 1px solid #e4e4e7; }' +
+    'table.specs td:first-child { color: #52525b; width: 45%; }' +
+    'table.specs td:last-child { font-family: ui-monospace, "SF Mono", Menlo, monospace; text-align: right; }' +
+    '.gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 8px; }' +
+    '.gallery figure { margin: 0; }' +
+    '.gallery img { width: 100%; height: 130px; object-fit: cover; border-radius: 4px; border: 1px solid #e4e4e7; display: block; }' +
+    '.gallery figcaption { font-size: 10px; color: #71717a; margin-top: 4px; text-align: center; }' +
+    '.links a { color: #5e6ad2; text-decoration: none; font-size: 13px; word-break: break-all; }' +
+    '.links a:hover { text-decoration: underline; }' +
+    '.footer { margin-top: 32px; padding-top: 16px; border-top: 1px solid #e4e4e7; font-size: 11px; color: #71717a; text-align: center; }' +
+    '.print-btn { position: fixed; top: 16px; right: 16px; background: #5e6ad2; color: white; border: none; padding: 8px 16px; border-radius: 4px; font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }' +
+    '@media print { .print-btn { display: none; } body { margin: 0; } }' +
+    '</style></head><body>' +
+    '<button class="print-btn" onclick="window.print()">Save as PDF</button>' +
+    '<div class="header">' +
+    '<div><div class="brand">Apogee · Launch Report</div><h1>' + esc(l.mission) + '</h1><div class="subtitle">' + esc(l.rocket) + ' · ' + esc(l.variant) + '</div><div style="margin-top:8px"><span class="agency">' + esc(l.agency) + '</span> &nbsp;·&nbsp; <span class="status status-' + esc(l.status) + '">' + esc(statusLabel) + '</span></div></div>' +
+    '<div class="meta">Generated<br/><strong>' + esc(generated) + '</strong></div>' +
+    '</div>' +
+    '<div class="hero-grid">' +
+    '<div><strong>T-Minus</strong><span>' + esc(cd.live ? 'IN PROGRESS' : cd.text) + '</span></div>' +
+    '<div><strong>Launch Time</strong><span>' + esc(fmtAbsTime(l.date)) + '</span></div>' +
+    '<div><strong>Launch Site</strong><span>' + esc(l.site) + '</span></div>' +
+    '<div><strong>Target Orbit</strong><span>' + esc(l.orbit) + '</span></div>' +
+    '</div>' +
+    '<div class="section"><h2>Mission Overview</h2><p>' + esc(l.objective) + '</p>' +
+    '<table class="specs">' +
+    '<tr><td>Mission Type</td><td>' + esc(l.missionType) + '</td></tr>' +
+    '<tr><td>Operator</td><td>' + esc(l.agency) + '</td></tr>' +
+    '<tr><td>Launch Vehicle</td><td>' + esc(l.rocket + ' (' + l.variant + ')') + '</td></tr>' +
+    '<tr><td>Launch Site</td><td>' + esc(l.site) + '</td></tr>' +
+    '<tr><td>Launch Date</td><td>' + esc(fmtDate(l.date)) + '</td></tr>' +
+    windowBlock +
+    '<tr><td>Status</td><td>' + esc(statusLabel) + '</td></tr>' +
+    '</table></div>' +
+    weatherBlock +
+    '<div class="section"><h2>Payload</h2><p>' + esc(l.payload) + '</p>' +
+    '<table class="specs">' +
+    '<tr><td>Primary Payload</td><td>' + esc(l.payload) + '</td></tr>' +
+    '<tr><td>Payload Mass</td><td>' + esc(l.payloadMass ? l.payloadMass.toLocaleString() + ' kg' : 'N/A') + '</td></tr>' +
+    '<tr><td>Target Orbit</td><td>' + esc(l.orbit) + '</td></tr>' +
+    '</table></div>' +
+    '<div class="section"><h2>Rocket Specifications — ' + esc(l.rocket) + '</h2><table class="specs">' + specsRows + '</table></div>' +
+    spacexBlock +
+    '<div class="section"><h2>Mission Updates</h2>' + updatesHTML + '</div>' +
+    '<div class="section"><h2>Media &amp; Links</h2>' +
+    '<div class="links"><h3>Webcast</h3><a href="' + ytUrl + '" target="_blank" rel="noopener">' + esc(ytUrl) + '</a></div>' +
+    '<h3 style="margin-top:14px">Imagery</h3>' + galleryHTML +
+    '</div>' +
+    '<div class="footer">Apogee Launch Tracker · This report compiled from publicly-available launch data. Times and details subject to change.</div>' +
+    '</body></html>';
+  return html;
+}
+
+function downloadLaunchReport(l) {
+  try {
+    const html = buildReportHTML(l);
+    const filename = 'launch-report-' + sanitizeFilename(l.agency) + '-' + sanitizeFilename(l.mission) + '.html';
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+    toast('Report saved · open and use "Save as PDF" to print', 'success');
+    // Also open in new tab so user can print to PDF immediately
+    setTimeout(() => {
+      try {
+        const previewUrl = URL.createObjectURL(blob);
+        const w = window.open(previewUrl, '_blank', 'noopener,noreferrer');
+        if (!w) toast('Pop-up blocked — open the downloaded file to print', 'info');
+      } catch (e) { /* ignore */ }
+    }, 300);
+  } catch (err) {
+    toast('Report generation failed: ' + err.message, 'error');
+  }
+}
+
+function generateShareableLink(l) {
+  try {
+    const html = buildReportHTML(l);
+    const blob = new Blob([html], { type: 'text/html;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    showShareLinkModal(l, url);
+  } catch (err) {
+    toast('Could not generate link: ' + err.message, 'error');
+  }
+}
+
+function showShareLinkModal(l, url) {
+  const existing = document.getElementById('shareLinkModal');
+  if (existing) existing.remove();
+  const m = document.createElement('div');
+  m.id = 'shareLinkModal';
+  m.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:300;display:flex;align-items:center;justify-content:center;padding:24px';
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  m.innerHTML = '<div style="background:var(--surface);border:1px solid var(--border-strong);border-radius:6px;padding:20px;max-width:440px;width:100%">' +
+    '<div style="font-size:14px;font-weight:600;margin-bottom:4px">Shareable Report Link</div>' +
+    '<div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">A self-contained preview of <strong>' + l.mission + '</strong>. This link is valid for the current session — for permanent sharing, use the PDF download or email options.</div>' +
+    '<input id="shareUrlInput" readonly value="' + url + '" style="width:100%;background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:8px 10px;border-radius:4px;font-size:12px;font-family:SF Mono,Menlo,monospace;margin-bottom:12px"/>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end">' +
+    '<button class="btn-secondary" id="shareCancel">Close</button>' +
+    '<button class="btn-secondary" id="shareOpen">Open Preview</button>' +
+    '<button class="btn-primary" id="shareCopy">Copy Link</button>' +
+    '</div></div>';
+  document.body.appendChild(m);
+  document.getElementById('shareCancel').onclick = () => m.remove();
+  document.getElementById('shareOpen').onclick = () => {
+    try { window.open(url, '_blank', 'noopener,noreferrer'); toast('Preview opened', 'success'); }
+    catch(e) { toast('Could not open preview', 'error'); }
+  };
+  document.getElementById('shareCopy').onclick = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast('Link copied to clipboard', 'success');
+    } catch (e) {
+      const input = document.getElementById('shareUrlInput');
+      input.select(); input.setSelectionRange(0, 99999);
+      try { document.execCommand('copy'); toast('Link copied', 'success'); }
+      catch(e2) { toast('Copy failed — select and copy manually', 'error'); }
+    }
+  };
+}
+
+function composeReportEmail(l) {
+  try {
+    const rk = ROCKETS[l.rocket] || {};
+    const statusMap = { scheduled: 'Scheduled', delayed: 'Delayed', scrubbed: 'Scrubbed', success: 'Success', failure: 'Failure', live: 'Live' };
+    const subject = 'Launch Report — ' + l.mission + ' (' + l.agency + ')';
+    let body = '';
+    body += 'LAUNCH REPORT\n';
+    body += '=============\n\n';
+    body += 'Mission: ' + l.mission + '\n';
+    body += 'Agency: ' + l.agency + '\n';
+    body += 'Vehicle: ' + l.rocket + ' (' + l.variant + ')\n';
+    body += 'Site: ' + l.site + '\n';
+    body += 'Launch Time: ' + fmtAbsTime(l.date) + '\n';
+    body += 'Status: ' + (statusMap[l.status] || l.status) + '\n\n';
+    body += 'MISSION OVERVIEW\n----------------\n' + l.objective + '\n\n';
+    body += 'PAYLOAD\n-------\n' + l.payload + '\n';
+    if (l.payloadMass) body += 'Mass: ' + l.payloadMass.toLocaleString() + ' kg\n';
+    body += 'Target Orbit: ' + l.orbit + '\n\n';
+    if (rk.height) {
+      body += 'ROCKET SPECIFICATIONS\n---------------------\n';
+      body += 'Height: ' + rk.height + '\n';
+      body += 'Mass: ' + rk.mass + '\n';
+      body += 'Thrust: ' + rk.thrust + '\n';
+      body += 'Payload to LEO: ' + rk.payloadLEO + '\n';
+      body += 'Success rate: ' + rk.successRate + '% (' + rk.attempts + ' attempts)\n\n';
+    }
+    if (l.agency === 'SpaceX' && l.booster) {
+      body += 'BOOSTER\n-------\n';
+      body += 'Core: ' + l.booster + ' (flight ' + (l.reuse + 1) + ')\n';
+      body += 'Landing: ' + (l.landing || 'Expendable') + '\n\n';
+    }
+    const updates = l.updates && l.updates.length ? l.updates : [];
+    if (updates.length) {
+      body += 'LATEST UPDATES\n--------------\n';
+      updates.forEach(u => { body += '· ' + u.time + ' — ' + u.text + '\n'; });
+      body += '\n';
+    }
+    body += 'WEBCAST\nhttps://www.youtube.com/results?search_query=' + encodeURIComponent(l.agency + ' ' + l.mission + ' launch') + '\n\n';
+    body += '— Generated by Apogee Launch Tracker';
+    const mailto = 'mailto:?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    if (mailto.length > 1900) {
+      // Some clients truncate long mailto — fall back to copying
+      navigator.clipboard.writeText(body).then(() => {
+        toast('Report copied to clipboard (too long for mailto)', 'info');
+      }).catch(() => {
+        window.location.href = mailto;
+      });
+      return;
+    }
+    window.location.href = mailto;
+    toast('Opening your email client...', 'success');
+  } catch (err) {
+    toast('Email compose failed: ' + err.message, 'error');
+  }
+}
+
+function downloadLaunchCard_unused(l) {
   try {
     const isDark = document.documentElement.dataset.theme === 'dark';
     const styles = getComputedStyle(document.documentElement);
@@ -2498,7 +2770,7 @@ function closeSheet(name) {
 
 document.getElementById('closeDetail').addEventListener('click', () => closeSheet('detail'));
 document.getElementById('detailBackdrop').addEventListener('click', () => closeSheet('detail'));
-document.getElementById('shareDetail').addEventListener('click', () => { if (state.activeLaunch) downloadLaunchCard(state.activeLaunch); });
+document.getElementById('shareDetail').addEventListener('click', () => { if (state.activeLaunch) downloadLaunchReport(state.activeLaunch); });
 document.getElementById('clearFilters').addEventListener('click', () => {
   state.filters.agency.clear();
   state.filters.rocket.clear();
