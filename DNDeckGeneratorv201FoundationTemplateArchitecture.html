@@ -1,0 +1,1474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DN Deck Generator v2.0.4</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script>
+window.__pptxReady = false;
+(function checkPptx() {
+  if (typeof PptxGenJS !== 'undefined') { window.__pptxReady = true; }
+  else { setTimeout(checkPptx, 200); }
+})();
+</script>
+<style>
+:root {
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f5f5f5;
+  --text: #18181b; --text-muted: #52525b; --text-subtle: #a1a1aa;
+  --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.16);
+  --accent: #5e6ad2; --accent-hover: #4f59c4; --accent-bg: rgba(94,106,210,0.08);
+  --success: #16a34a; --success-bg: rgba(22,163,74,0.08);
+  --warning: #d97706; --warning-bg: rgba(217,119,6,0.08);
+  --danger: #dc2626; --danger-bg: rgba(220,38,38,0.08);
+  --info: #0284c7; --info-bg: rgba(2,132,199,0.08);
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
+  --mono: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+}
+[data-theme="dark"] {
+  --bg: #09090b; --surface: #131316; --surface-2: #1c1c20;
+  --text: #fafafa; --text-muted: #a1a1aa; --text-subtle: #71717a;
+  --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.14);
+  --accent: #7b85e3; --accent-hover: #8d96e8; --accent-bg: rgba(123,133,227,0.10);
+  --success: #22c55e; --success-bg: rgba(34,197,94,0.10);
+  --warning: #f59e0b; --warning-bg: rgba(245,158,11,0.10);
+  --danger: #ef4444; --danger-bg: rgba(239,68,68,0.10);
+  --info: #38bdf8; --info-bg: rgba(56,189,248,0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; }
+body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
+button { font-family: inherit; }
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand-mark { width: 26px; height: 26px; border-radius: var(--radius-sm); background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 11px; font-family: var(--mono); letter-spacing: -0.02em; }
+.brand-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.brand-version { font-size: 11px; color: var(--text-muted); font-family: var(--mono); padding: 2px 6px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.nav { display: flex; gap: 2px; }
+.nav-btn { background: transparent; color: var(--text-muted); border: none; padding: 6px 12px; font-size: 13px; cursor: pointer; font-weight: 500; border-radius: var(--radius-sm); transition: all 150ms ease; font-family: inherit; }
+.nav-btn:hover { color: var(--text); background: var(--surface-2); }
+.nav-btn.active { color: var(--text); background: var(--surface-2); }
+.header-right { display: flex; align-items: center; gap: 6px; }
+.icon-btn { background: transparent; border: 1px solid transparent; color: var(--text-muted); width: 30px; height: 30px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 150ms ease; }
+.icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.main { flex: 1; display: flex; position: relative; }
+.content { flex: 1; padding: 28px 24px; max-width: 980px; margin: 0 auto; width: 100%; }
+.eyebrow, .caption { font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
+.display { font-size: 28px; font-weight: 600; line-height: 1.2; color: var(--text); letter-spacing: -0.01em; }
+.h1 { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
+.h2 { font-size: 16px; font-weight: 600; color: var(--text); }
+.body-sm { font-size: 13px; }
+.mono { font-family: var(--mono); font-size: 13px; }
+.muted { color: var(--text-muted); }
+.subtle { color: var(--text-subtle); }
+.btn-primary { background: var(--accent); color: white; border: 1px solid var(--accent); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; transition: background 150ms ease; font-family: inherit; }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-primary.lg { padding: 8px 16px; }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; transition: all 150ms ease; font-family: inherit; }
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--text-subtle); }
+.btn-secondary:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid transparent; padding: 6px 10px; border-radius: var(--radius-sm); font-size: 13px; cursor: pointer; font-weight: 500; transition: all 150ms ease; font-family: inherit; }
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border-strong); padding: 6px 12px; border-radius: var(--radius-sm); font-size: 13px; font-weight: 500; cursor: pointer; font-family: inherit; }
+.btn-danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+.input, .select, .textarea { background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; width: 100%; transition: all 150ms ease; }
+.input:focus, .select:focus, .textarea:focus { outline: none; border-color: var(--accent); background: var(--surface); }
+.input::placeholder, .textarea::placeholder { color: var(--text-subtle); }
+.textarea { resize: vertical; min-height: 84px; line-height: 1.55; font-family: var(--mono); font-size: 12px; }
+.textarea.prose { font-family: inherit; font-size: 13px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; }
+.step-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); margin-bottom: 12px; transition: all 150ms ease; }
+.step-card.collapsed { background: var(--surface-2); }
+.step-card.future { opacity: 0.5; }
+.step-header { padding: 14px 18px; display: flex; align-items: center; gap: 12px; border-bottom: 1px solid var(--border); }
+.step-card.collapsed .step-header { border-bottom: none; cursor: pointer; }
+.step-num { width: 22px; height: 22px; border-radius: 50%; background: var(--accent-bg); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: var(--accent); font-family: var(--mono); flex-shrink: 0; }
+.step-num.done { background: var(--success-bg); color: var(--success); }
+.step-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.step-desc { font-size: 12px; color: var(--text-muted); margin-left: auto; }
+.step-body { padding: 18px; }
+.field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+.field-label { font-size: 12px; font-weight: 500; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+.field-hint { font-size: 12px; color: var(--text-subtle); }
+.template-select { position: relative; }
+.template-select .select { cursor: pointer; padding-right: 30px; appearance: none; -webkit-appearance: none; }
+.template-select::after { content: ''; position: absolute; right: 10px; top: 50%; width: 8px; height: 8px; border-right: 1.5px solid var(--text-muted); border-bottom: 1.5px solid var(--text-muted); transform: translateY(-75%) rotate(45deg); pointer-events: none; }
+.badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; gap: 4px; }
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-accent { background: var(--accent-bg); color: var(--accent); }
+.badge-neutral { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.toast-container { position: fixed; bottom: 20px; right: 20px; display: flex; flex-direction: column; gap: 8px; z-index: 200; pointer-events: none; }
+.toast { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 10px 14px; font-size: 13px; display: flex; align-items: center; gap: 10px; min-width: 280px; max-width: 440px; pointer-events: auto; animation: toast-in 200ms ease; }
+.toast-icon { width: 14px; height: 14px; flex-shrink: 0; }
+.toast-success { border-left: 3px solid var(--success); }
+.toast-success .toast-icon { color: var(--success); }
+.toast-error { border-left: 3px solid var(--danger); }
+.toast-error .toast-icon { color: var(--danger); }
+.toast-info { border-left: 3px solid var(--info); }
+.toast-info .toast-icon { color: var(--info); }
+.toast-body { flex: 1; color: var(--text); }
+.toast-close { background: transparent; border: none; cursor: pointer; color: var(--text-subtle); padding: 0; font-size: 16px; line-height: 1; }
+@keyframes toast-in { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px; animation: fade-in 150ms ease; }
+.modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 20px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; animation: fade-in 200ms ease; }
+.modal-lg { max-width: 920px; }
+.modal-xl { max-width: 1400px; }
+.modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 16px; }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+@keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
+.empty { padding: 48px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.empty-icon { opacity: 0.14; width: 44px; height: 44px; color: var(--text); }
+.empty-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.empty-desc { font-size: 13px; color: var(--text-muted); max-width: 280px; line-height: 1.55; }
+.spinner { width: 12px; height: 12px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 700ms linear infinite; display: inline-block; }
+.spinner-lg { width: 22px; height: 22px; border-width: 2.5px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.warning-banner { padding: 10px 14px; background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius-sm); color: var(--warning); font-size: 13px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
+.info-banner { padding: 10px 14px; background: var(--info-bg); border: 1px solid var(--info); border-radius: var(--radius-sm); color: var(--info); font-size: 13px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
+.api-key-row { display: flex; gap: 8px; align-items: center; }
+.api-key-row .input { flex: 1; font-family: var(--mono); font-size: 12px; }
+.section { margin-bottom: 28px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.kv { display: grid; grid-template-columns: 160px 1fr; gap: 8px 14px; font-size: 13px; }
+.kv dt { color: var(--text-muted); font-size: 12px; }
+.kv dd { color: var(--text); word-break: break-all; }
+.slide-edit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 10px; }
+.slide-edit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+.slide-edit-num { font-family: var(--mono); font-size: 11px; color: var(--text-muted); background: var(--surface-2); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
+.slide-edit-actions { margin-left: auto; display: flex; gap: 4px; }
+.icon-btn-sm { background: transparent; border: 1px solid transparent; color: var(--text-muted); width: 24px; height: 24px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 150ms ease; }
+.icon-btn-sm:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
+.slide-img-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 12px; }
+.slide-img-head { padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.slide-img-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+.slide-img-body { display: grid; grid-template-columns: 420px 1fr; gap: 0; }
+@media (max-width: 800px) { .slide-img-body { grid-template-columns: 1fr; } }
+.slide-img-thumb { aspect-ratio: 16/10.67; background: var(--surface-2); display: flex; align-items: center; justify-content: center; cursor: pointer; overflow: hidden; position: relative; border-right: 1px solid var(--border); }
+.slide-img-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.slide-img-thumb.loading { cursor: default; }
+.slide-img-thumb .placeholder { color: var(--text-subtle); font-size: 12px; font-family: var(--mono); text-align: center; padding: 16px; }
+.slide-img-thumb .err { color: var(--danger); font-size: 12px; font-family: var(--mono); text-align: center; padding: 16px; }
+.slide-img-controls { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+.refine-section { border-top: 1px solid var(--border); padding-top: 12px; margin-top: 4px; }
+.refine-toggle { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 500; padding: 0; display: flex; align-items: center; gap: 4px; font-family: inherit; }
+.refine-toggle:hover { color: var(--text); }
+.lightbox-img { max-width: 100%; max-height: 70vh; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
+.logo-preview { width: 220px; height: 75px; background: #0a0e1a; border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: flex-start; padding: 10px 14px; overflow: hidden; }
+.logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; object-position: left center; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+thead th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
+tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+tbody tr:hover { background: var(--surface-2); }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
+.tab { padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 150ms ease; font-family: inherit; }
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); }
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.template-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; cursor: pointer; transition: all 150ms ease; }
+.template-card:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.template-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
+.template-card-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.template-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.template-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-subtle); font-family: var(--mono); }
+.swatches { display: flex; gap: 4px; }
+.swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--border); }
+.summary-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 12px; padding: 0 18px 14px; }
+.summary-grid dt { color: var(--text-muted); }
+.summary-grid dd { color: var(--text); }
+@media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">DN</div>
+      <div class="brand-name">Deck Generator</div>
+      <div class="brand-version">v2.0.4</div>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-btn active" data-view="compose">Compose</button>
+      <button class="nav-btn" data-view="bundles">Bundles</button>
+      <button class="nav-btn" data-view="templates">Templates</button>
+      <button class="nav-btn" data-view="settings">Settings</button>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
+        <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+    </div>
+  </header>
+  <div class="main">
+    <main class="content" id="content"></main>
+  </div>
+</div>
+<div id="toastContainer" class="toast-container"></div>
+<div id="modalRoot"></div>
+<script>
+const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+
+const MASTER_PROMPT = `Create a 16:9 widescreen enterprise presentation slide.
+
+OVERALL STYLE:
+Premium enterprise telecom / AI architecture presentation.
+Boardroom-ready, executive consulting quality.
+Dark navy and black gradient background.
+Electric blue as primary accent.
+Cyan, purple, green, and subtle gold as secondary accents.
+Clean, structured, high-contrast, modern.
+No cartoon style. No photorealistic people. No stock-photo look. No decorative clutter.
+
+VISUAL CONSISTENCY:
+All slides must feel like they belong to the same Digitata Networks executive deck.
+Use the same visual language across slides:
+- dark translucent panels
+- glowing thin outlines
+- rounded rectangles
+- simple line icons
+- clean directional arrows
+- structured grid alignment
+- generous margins
+- strong hierarchy
+- minimal but readable text
+
+LAYOUT RULES:
+Use a strict 16:9 widescreen slide format (1536 pixels wide x 864 pixels tall equivalent).
+The slide must fill the entire canvas edge to edge — no letterboxing, no black bars, no borders.
+Use a consistent title area at the top, but keep the TOP-LEFT CORNER (220x75px from edges) completely empty — this is the logo reserve zone.
+Keep title large, bold, and centered or starting from center-left (not far left, to avoid the logo zone).
+Use one main visual system per slide.
+Use clear spacing between content blocks.
+Avoid tiny text. Avoid overcrowding.
+Do not create more than 5 major content groups unless explicitly requested.
+Use clean infographic structure, not random decorative elements.
+
+TYPOGRAPHY RULES:
+Use modern sans-serif typography. Large title. Medium section headings. Readable body text.
+Do not invent extra paragraphs. Text must be crisp, clean, and spelled correctly.
+Use short labels only. Avoid excessive small text.
+
+BRANDING RULES — STRICTLY ENFORCED:
+Do NOT generate, draw, invent, or place any logo, wordmark, icon, badge, or brand symbol anywhere on the slide.
+Do NOT create circular emblems, tree shapes, network graphs, or any symbol that could be mistaken for a company logo.
+
+LOGO RESERVE ZONE — MANDATORY:
+Reserve a clean, dark, empty rectangular area in the EXACT TOP-LEFT CORNER of the slide.
+This zone must be: approximately 220px wide x 75px tall, positioned 20px from the left edge and 20px from the top edge.
+This zone must contain NO text, NO icons, NO decorative lines, NO gradients — only a flat dark background (matching the slide's dark background color).
+A company logo image will be composited into this exact zone after the slide is generated.
+If the slide background in that corner is not dark, add a subtle dark overlay rectangle in that zone only.
+
+ARCHITECTURE RULES:
+AI must NEVER connect directly to live network elements.
+Execution must always flow through governed systems.
+Where execution is shown, use this pattern:
+Intent → Interpreter → Decision → Mediation → Anchor Products → Network → Feedback
+
+ANCHOR PRODUCT RULES:
+When anchor products are relevant, show them as solid engineered foundation blocks:
+NetTOPO — Topology Intelligence
+NetAM — Inventory & Assets
+Flo — Workflow Orchestration
+NetCM — Safe Execution Engine
+
+COLOR DISCIPLINE:
+Use electric blue for intent and AI.
+Use gold for key messages or executive emphasis.
+Use green for safe execution / validation.
+Use purple for workflow or AI agent paths.
+Use red only for warnings such as "NO direct AI-to-network interaction."
+
+CONTENT DISCIPLINE:
+Each slide must introduce one clear idea.
+Prioritize architecture clarity over decorative visuals. Use concise wording.
+
+OUTPUT:
+Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No presenter notes.`;
+
+const DEFAULT_LOGO_URL = 'https://ai-dn.github.io/dn-platform/assets/dn-logo.png';
+
+const state = {
+  theme: initialTheme,
+  view: 'compose',
+  templates: { house_style: [], domain_pack: [], deck_type: [] },
+  bundles: [],
+  selectedBundle: null,
+  templatesTab: 'house_style',
+  apiKeys: { openai: '', anthropic: '', openai_org: '' },
+  imageModel: 'gpt-image-2',
+  imageModelFellBack: false,
+  logoB64: null,
+  logoIsCustom: false,
+  // Compose flow state
+  composeStep: 1,
+  rawText: '',
+  slides: [], // {title, body, imageB64, imagePrompt, lastPrompt, status, error, regenCount}
+  polishMode: null,
+  polishing: false,
+  generating: false,
+  expandedRefine: {} // slideIdx -> bool
+};
+
+function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function toast(opts) {
+  const c = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + (opts.type || 'info');
+  const icon = opts.type === 'success' ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>'
+    : opts.type === 'error' ? '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>'
+    : '<svg class="toast-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>';
+  el.innerHTML = icon + '<div class="toast-body">' + (opts.html || escapeHtml(opts.message || '')) + '</div><button class="toast-close" aria-label="Dismiss">×</button>';
+  el.querySelector('.toast-close').onclick = () => el.remove();
+  c.appendChild(el);
+  setTimeout(() => { if (el.parentNode) { el.style.opacity = '0'; el.style.transition = 'opacity 200ms ease'; setTimeout(() => el.remove(), 220); } }, opts.duration || 5500);
+}
+
+function openModal(content, opts) {
+  const root = document.getElementById('modalRoot');
+  const sizeClass = opts && opts.xl ? 'modal-xl' : opts && opts.lg ? 'modal-lg' : '';
+  root.innerHTML = '<div class="modal-backdrop" id="mb"><div class="modal ' + sizeClass + '" role="dialog" aria-modal="true">' + content + '</div></div>';
+  document.getElementById('mb').addEventListener('click', e => { if (e.target.id === 'mb' && !(opts && opts.persistent)) closeModal(); });
+  document.addEventListener('keydown', escClose);
+}
+function closeModal() { document.getElementById('modalRoot').innerHTML = ''; document.removeEventListener('keydown', escClose); }
+function escClose(e) { if (e.key === 'Escape') closeModal(); }
+
+function seedData() {
+  state.templates.house_style = [
+    { id: 'hs_dn_core', name: 'DN Core Brand', updated_at: '2026-01-12', version: 3,
+      description: 'Primary Digitata Networks brand. Dark navy + electric blue accent.',
+      palette: ['#1a6fff', '#080c1a', '#e8eaf0', '#47D1FF', '#f0a500'],
+      typography: 'Inter (display + body), SF Mono (figures + IDs)',
+      visual_rules: 'Dark navy gradient backgrounds, electric blue primary accent.',
+      branding_constraints: 'DN logo composited top-left at 220x75px reserve zone after generation.',
+      anti_examples: 'No cream backgrounds. No abstract floating shapes.',
+      output_format: '16:9 PPTX.',
+      image_style: 'premium enterprise telecom presentation, dark navy gradient, electric blue accent' }
+  ];
+  state.templates.domain_pack = [
+    { id: 'dp_telco_arch', name: 'Telco Network Architecture', updated_at: '2026-01-08', version: 5,
+      description: '5G core, MEC, network slicing.',
+      anchor_products: 'NetTOPO, NetAM, Flo, NetCM',
+      visual_metaphors: 'layered network planes, packet flows',
+      key_concepts: 'Control/data plane separation, intent-based networking.',
+      forbidden: 'Generic stock-photo network imagery.' }
+  ];
+  state.templates.deck_type = [
+    { id: 'dt_sales_pitch', name: 'Sales Pitch', updated_at: '2026-01-10', version: 4,
+      description: '10-slide opening deck for first-meeting prospects.',
+      slide_count_default: 10, tone: 'Confident, concrete, customer-outcome led.',
+      structure: 'Hook · Problem · Stakes · Solution · How it works · Proof · Pricing · Next steps',
+      audience_guidance: 'Mid-market technical buyer.' },
+    { id: 'dt_technical_deep', name: 'Technical Deep-Dive', updated_at: '2025-12-22', version: 3,
+      description: '18-24 slides for engineering audience.',
+      slide_count_default: 20, tone: 'Precise, peer-to-peer.',
+      structure: 'Context · Constraints · Architecture · Components · Data flow',
+      audience_guidance: 'Senior engineers, architects, SREs.' }
+  ];
+  state.bundles = [
+    { id: 'b_telco_pitch', name: 'Telco Sales Pitch',
+      description: 'First-meeting deck for telco prospects.',
+      house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_sales_pitch',
+      updated_at: '2026-01-12', version: 2 }
+  ];
+}
+
+function bundleById(id) { return state.bundles.find(b => b.id === id); }
+function dateStr() { return new Date().toISOString().slice(0,10); }
+function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'dn-deck'; }
+
+// ─── PARSE PASTED TEXT INTO SLIDES ──────────────────────────────────────
+function parseSlides(text) {
+  if (!text || !text.trim()) return [];
+  const hasH2 = /^##\s+/m.test(text);
+  const hasHr = /^\s*---\s*$/m.test(text);
+
+  let chunks = [];
+  if (hasH2) {
+    // Split on lines starting with ##
+    const lines = text.split(/\r?\n/);
+    let current = null;
+    for (const line of lines) {
+      const m = line.match(/^##\s+(.+?)\s*$/);
+      if (m) {
+        if (current) chunks.push(current);
+        current = { title: m[1].replace(/^Slide\s+\d+[:.]?\s*/i, '').trim() || 'Untitled', bodyLines: [] };
+      } else if (current) {
+        current.bodyLines.push(line);
+      }
+    }
+    if (current) chunks.push(current);
+  } else if (hasHr) {
+    const segments = text.split(/^\s*---\s*$/m).map(s => s.trim()).filter(Boolean);
+    chunks = segments.map((seg, i) => {
+      const lines = seg.split(/\r?\n/);
+      const firstNonEmpty = lines.findIndex(l => l.trim().length > 0);
+      const title = firstNonEmpty >= 0 ? lines[firstNonEmpty].replace(/^#+\s*/, '').replace(/^Slide\s+\d+[:.]?\s*/i, '').trim() : `Slide ${i+1}`;
+      const bodyLines = firstNonEmpty >= 0 ? lines.slice(firstNonEmpty + 1) : [];
+      return { title: title || `Slide ${i+1}`, bodyLines };
+    });
+  } else {
+    return null; // no markers
+  }
+
+  return chunks.map((c, i) => ({
+    title: c.title,
+    body: c.bodyLines.join('\n').trim(),
+    imageB64: null,
+    imagePrompt: null,
+    lastPrompt: null,
+    status: 'idle',
+    error: null,
+    regenCount: 0
+  }));
+}
+
+// ─── ANTHROPIC POLISH ──────────────────────────────────────────────────
+async function polishWithClaude(slides, mode) {
+  const key = (state.apiKeys.anthropic || '').trim();
+  if (!key) throw new Error('NO_ANTHROPIC_KEY: Set Anthropic API key in Settings.');
+
+  let systemPrompt = '';
+  if (mode === 'shorten') {
+    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the slide content provided and shorten each slide\'s text to bullet points suitable for presentation. Keep the title intact. Aim for 3-5 short bullets per slide. Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
+  } else if (mode === 'expand') {
+    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the brief notes provided and expand each slide into well-formed presentation content. Keep the title intact. Produce a sub-headline plus 3-5 supporting points per slide. Respond with valid JSON only: {"slides": [{"title": "...", "subheadline": "...", "bullets": ["..."]}, ...]}.';
+  } else if (mode === 'split') {
+    systemPrompt = 'You are a presentation editor for Digitata Networks. Take this raw block of text and split it into a logical slide deck. Each slide should have one clear idea. Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
+  }
+
+  const userContent = mode === 'split'
+    ? `Split this into approximately 8 slides:\n\n${state.rawText}`
+    : `Slides:\n${JSON.stringify(slides.map(s => ({ title: s.title, body: s.body })))}`;
+
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': key,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4000,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userContent }]
+    })
+  });
+  if (!resp.ok) {
+    const err = await resp.text();
+    throw new Error(`Claude ${resp.status}: ${err.slice(0,300)}`);
+  }
+  const data = await resp.json();
+  const raw = data.content[0].text;
+  const clean = raw.replace(/```json|```/g, '').trim();
+  const parsed = JSON.parse(clean);
+  return parsed.slides || [];
+}
+
+function polishedToSlides(polished) {
+  return polished.map(p => {
+    const parts = [];
+    if (p.subheadline) parts.push(p.subheadline);
+    if (p.bullets && p.bullets.length) parts.push(...p.bullets.map(b => '• ' + b));
+    return {
+      title: p.title || 'Untitled',
+      body: parts.join('\n'),
+      imageB64: null,
+      imagePrompt: null,
+      lastPrompt: null,
+      status: 'idle',
+      error: null,
+      regenCount: 0
+    };
+  });
+}
+
+// ─── IMAGE PARAMS + GENERATION ─────────────────────────────────────────
+function buildImageParams(model, prompt, quality) {
+  const base = { model, prompt, n: 1 };
+  if (model === 'gpt-image-2') {
+    return { ...base, output_format: 'jpeg', size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
+  }
+  if (model === 'gpt-image-1') {
+    return { ...base, size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
+  }
+  return { ...base, size: '1024x1024' };
+}
+
+function buildImagePrompt(slide) {
+  return `${MASTER_PROMPT}\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody content / talking points:\n${slide.body || '(no body content provided)'}\n\nRender this slide visually with the title prominent and the body content represented as clear structured visual elements (panels, bullets, diagrams) — NOT as direct text overlays unless short labels.`;
+}
+
+async function generateSlideImage(slide, customPrompt) {
+  const openaiKey = (state.apiKeys.openai || '').trim();
+  if (!openaiKey) throw new Error('NO_OPENAI_KEY: Set OpenAI API key in Settings.');
+  if (!openaiKey.startsWith('sk-')) throw new Error('BAD_KEY_FORMAT: OpenAI key must start with sk-.');
+
+  const prompt = customPrompt || buildImagePrompt(slide);
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` };
+  const org = (state.apiKeys.openai_org || '').trim();
+  if (org) headers['OpenAI-Organization'] = org;
+
+  let model = state.imageModel;
+  let body = buildImageParams(model, prompt, 'high');
+
+  let resp = await fetch('https://api.openai.com/v1/images/generations', {
+    method: 'POST', headers, body: JSON.stringify(body)
+  });
+
+  if ((resp.status === 404 || resp.status === 400) && model === 'gpt-image-2') {
+    const errText = await resp.text();
+    if (/model/i.test(errText)) {
+      if (!state.imageModelFellBack) {
+        state.imageModelFellBack = true;
+        toast({ type: 'info', message: 'gpt-image-2 not available on this org — falling back to gpt-image-1', duration: 6000 });
+      }
+      state.imageModel = 'gpt-image-1';
+      model = 'gpt-image-1';
+      body = buildImageParams(model, prompt, 'high');
+      resp = await fetch('https://api.openai.com/v1/images/generations', {
+        method: 'POST', headers, body: JSON.stringify(body)
+      });
+    } else {
+      throw new Error(`OpenAI ${resp.status}: ${errText.slice(0,300)}`);
+    }
+  }
+
+  if (!resp.ok) {
+    const t = await resp.text().catch(() => '');
+    throw new Error(`OpenAI ${resp.status}: ${t.slice(0,300)}`);
+  }
+
+  const data = await resp.json();
+  const item = data.data[0];
+  if (item.b64_json) return { b64: item.b64_json, prompt };
+  if (item.url) {
+    const imgResp = await fetch(item.url);
+    const blob = await imgResp.blob();
+    const b64 = await new Promise(res => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result.split(',')[1]);
+      fr.readAsDataURL(blob);
+    });
+    return { b64, prompt };
+  }
+  throw new Error('OpenAI response had neither b64_json nor url');
+}
+
+// Concurrency limiter
+async function generateAllImages() {
+  const max = 3;
+  let idx = 0;
+  const total = state.slides.length;
+  const workers = [];
+  for (let w = 0; w < Math.min(max, total); w++) {
+    workers.push((async () => {
+      while (idx < total) {
+        const myIdx = idx++;
+        const slide = state.slides[myIdx];
+        if (slide.status === 'done') continue;
+        slide.status = 'generating';
+        slide.error = null;
+        renderStep4Slides();
+        try {
+          const { b64, prompt } = await generateSlideImage(slide);
+          slide.imageB64 = b64;
+          slide.imagePrompt = prompt;
+          slide.lastPrompt = prompt;
+          slide.status = 'done';
+        } catch (err) {
+          slide.status = 'error';
+          slide.error = err.message || String(err);
+        }
+        renderStep4Slides();
+      }
+    })());
+  }
+  await Promise.all(workers);
+}
+
+async function regenerateOne(idx, newPrompt) {
+  const slide = state.slides[idx];
+  slide.status = 'generating';
+  slide.error = null;
+  renderStep4Slides();
+  try {
+    const { b64, prompt } = await generateSlideImage(slide, newPrompt);
+    slide.imageB64 = b64;
+    slide.imagePrompt = prompt;
+    slide.lastPrompt = prompt;
+    slide.status = 'done';
+    slide.regenCount++;
+    toast({ type: 'success', message: `Slide ${idx+1} regenerated` });
+  } catch (err) {
+    slide.status = 'error';
+    slide.error = err.message || String(err);
+    toast({ type: 'error', message: err.message });
+  }
+  renderStep4Slides();
+}
+
+// ─── LOGO STAMPING ─────────────────────────────────────────────────────
+async function stampLogo(slideBase64, logoBase64) {
+  return new Promise((resolve, reject) => {
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    const slideImg = new Image();
+    slideImg.onload = () => {
+      canvas.width = slideImg.width;
+      canvas.height = slideImg.height;
+      ctx.drawImage(slideImg, 0, 0);
+      const logoImg = new Image();
+      logoImg.onload = () => {
+        const scale = canvas.width / 1536;
+        const lw = Math.round(195 * scale);
+        const aspect = logoImg.naturalHeight / logoImg.naturalWidth;
+        const lh = Math.round(lw * aspect);
+        const x = Math.round(22 * scale);
+        const y = Math.round(20 * scale);
+        const padX = Math.round(14 * scale);
+        const padY = Math.round(10 * scale);
+        ctx.save();
+        ctx.fillStyle = 'rgba(0,0,0,0.55)';
+        const rx = x - padX, ry = y - padY;
+        const rw = lw + padX * 2, rh = lh + padY * 2;
+        const radius = Math.round(6 * scale);
+        ctx.beginPath();
+        ctx.moveTo(rx + radius, ry);
+        ctx.lineTo(rx + rw - radius, ry);
+        ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+        ctx.lineTo(rx + rw, ry + rh - radius);
+        ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+        ctx.lineTo(rx + radius, ry + rh);
+        ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+        ctx.lineTo(rx, ry + radius);
+        ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+        ctx.save();
+        ctx.globalCompositeOperation = 'screen';
+        ctx.drawImage(logoImg, x, y, lw, lh);
+        ctx.restore();
+        resolve(canvas.toDataURL('image/jpeg', 0.92).split(',')[1]);
+      };
+      logoImg.onerror = () => reject(new Error('Logo image failed to load'));
+      logoImg.src = 'data:image/png;base64,' + logoBase64;
+    };
+    slideImg.onerror = () => reject(new Error('Slide image failed to load'));
+    slideImg.src = 'data:image/jpeg;base64,' + slideBase64;
+  });
+}
+
+async function loadDefaultLogo() {
+  try {
+    const r = await fetch(DEFAULT_LOGO_URL);
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const blob = await r.blob();
+    return await new Promise((res, rej) => {
+      const fr = new FileReader();
+      fr.onload = () => res(fr.result.split(',')[1]);
+      fr.onerror = () => rej(new Error('FileReader failed'));
+      fr.readAsDataURL(blob);
+    });
+  } catch (e) {
+    console.warn('Default logo load failed', e);
+    return null;
+  }
+}
+
+// ─── PPTX ASSEMBLY ─────────────────────────────────────────────────────
+async function assemblePptx() {
+  if (!window.__pptxReady || typeof PptxGenJS === 'undefined') {
+    toast({ type: 'error', message: 'PptxGenJS still loading — try again in a moment' });
+    return;
+  }
+  const prs = new PptxGenJS();
+  prs.layout = 'LAYOUT_WIDE';
+  const b = state.selectedBundle ? bundleById(state.selectedBundle) : null;
+  const deckTitle = b ? b.name : 'DN Deck';
+  prs.title = deckTitle;
+  prs.author = 'DN Deck Generator';
+
+  const stampedSlides = [];
+  for (let i = 0; i < state.slides.length; i++) {
+    const slide = state.slides[i];
+    if (!slide.imageB64) continue;
+    let finalB64 = slide.imageB64;
+    if (state.logoB64) {
+      try {
+        finalB64 = await stampLogo(slide.imageB64, state.logoB64);
+      } catch (e) {
+        console.warn('Logo stamp failed for slide', i, e);
+      }
+    }
+    stampedSlides.push({ ...slide, finalB64 });
+  }
+
+  for (const s of stampedSlides) {
+    const slideObj = prs.addSlide();
+    slideObj.addImage({
+      data: `data:image/jpeg;base64,${s.finalB64}`,
+      x: 0, y: 0, w: 13.3, h: 7.5
+    });
+    slideObj.addNotes(`${s.title}\n\n${s.body || ''}`);
+  }
+
+  const fileName = `${slugify(deckTitle)}-${dateStr()}.pptx`;
+  const blob = await prs.write({ outputType: 'blob' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = fileName;
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+  toast({ type: 'success', html: `Downloaded <strong>${escapeHtml(fileName)}</strong> · ${(blob.size/1024).toFixed(0)} KB` });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// COMPOSE VIEW — 4-STEP FLOW
+// ═══════════════════════════════════════════════════════════════════════
+
+function renderCompose() {
+  const cont = document.getElementById('content');
+  cont.innerHTML = `
+    <div style="margin-bottom:24px">
+      <div class="eyebrow" style="margin-bottom:8px">New deck</div>
+      <div class="display">Compose a deck</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Paste your slide content, polish if you want, edit each slide, then generate images. AI helps where you ask — you stay in control of every slide.</div>
+    </div>
+    <div id="step1"></div>
+    <div id="step2"></div>
+    <div id="step3"></div>
+    <div id="step4"></div>
+  `;
+  renderStep1();
+  renderStep2();
+  renderStep3();
+  renderStep4();
+}
+
+function renderStep1() {
+  const el = document.getElementById('step1');
+  if (!el) return;
+  const isActive = state.composeStep === 1;
+  const isDone = state.composeStep > 1;
+
+  if (!isActive && isDone) {
+    el.innerHTML = `
+      <div class="step-card collapsed">
+        <div class="step-header" id="step1Edit">
+          <div class="step-num done">✓</div>
+          <div class="step-title">Pasted text</div>
+          <div class="step-desc">${state.slides.length} slides detected · ${state.rawText.length} chars</div>
+          <button class="btn-ghost" style="margin-left:8px">Edit</button>
+        </div>
+      </div>`;
+    document.getElementById('step1Edit').onclick = () => { state.composeStep = 1; renderCompose(); };
+    return;
+  }
+
+  const placeholder = `Paste your slide content. Separate slides with either:
+  - a line containing only ---
+  - or a heading line starting with ## (markdown H2)
+
+Example:
+## Slide 1: Telecom Operations Are Reaching a Scaling Limit
+Operators face increasing network complexity, rising operational costs, and growing execution demands.
+Current OSS systems are disconnected — spreadsheets, dashboards, tickets, manual coordination.
+---
+## Slide 2: The Industry Shift
+AI is rapidly improving in analysis, recommendations, prediction.
+But operators still struggle with orchestration, lifecycle coordination, governed execution.`;
+
+  el.innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">1</div>
+        <div class="step-title">Paste your deck wording</div>
+        <div class="step-desc">Markdown ## headers or --- separators</div>
+      </div>
+      <div class="step-body">
+        <div class="field">
+          <label class="field-label">Bundle <span class="subtle">tags this deck — does not auto-generate text</span></label>
+          <div class="template-select">
+            <select class="select" id="bundleSel">
+              <option value="">— optional —</option>
+              ${state.bundles.map(b => `<option value="${b.id}" ${state.selectedBundle === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label>
+          <textarea class="textarea" id="rawText" rows="14" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state.rawText)}</textarea>
+        </div>
+        <div id="step1Error"></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn-secondary" id="polishBtn">Polish with AI →</button>
+          <button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button>
+        </div>
+      </div>
+    </div>`;
+
+  const bundleSel = document.getElementById('bundleSel');
+  if (bundleSel) bundleSel.onchange = e => { state.selectedBundle = e.target.value || null; };
+  const raw = document.getElementById('rawText');
+  raw.oninput = e => {
+    state.rawText = e.target.value;
+    document.getElementById('rawCount').textContent = e.target.value.length + ' chars';
+  };
+  document.getElementById('continueAsIsBtn').onclick = () => {
+    const parsed = parseSlides(state.rawText);
+    if (parsed === null) {
+      document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>Please add slide breaks (<span class="mono">---</span> or <span class="mono">## headings</span>) before continuing, or use Polish with AI to auto-split.</div></div>';
+      return;
+    }
+    if (parsed.length === 0) {
+      toast({ type: 'error', message: 'No slides found in text' });
+      return;
+    }
+    state.slides = parsed;
+    state.composeStep = 3; // skip polish
+    renderCompose();
+  };
+  document.getElementById('polishBtn').onclick = () => {
+    if (!state.apiKeys.anthropic) {
+      document.getElementById('step1Error').innerHTML = '<div class="info-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><div>Paste your Anthropic API key in <button class="btn-ghost" id="goSettings" style="color:var(--info);padding:0;text-decoration:underline">Settings → Anthropic</button> to use AI polish, or click <strong>Continue with text as-is</strong>.</div></div>';
+      const gs = document.getElementById('goSettings');
+      if (gs) gs.onclick = () => { state.view = 'settings'; setActiveNav(); render(); };
+      return;
+    }
+    if (!state.rawText.trim()) {
+      toast({ type: 'error', message: 'Paste some text first' });
+      return;
+    }
+    // Try parsing first; if no markers, mark for split mode
+    const parsed = parseSlides(state.rawText);
+    state.slides = parsed || [];
+    state.composeStep = 2;
+    renderCompose();
+  };
+}
+
+function renderStep2() {
+  const el = document.getElementById('step2');
+  if (!el) return;
+  const isActive = state.composeStep === 2;
+  const isDone = state.composeStep > 2;
+  const isFuture = state.composeStep < 2;
+
+  if (isFuture) {
+    el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI (optional)</div><div class="step-desc">shorten / expand / preserve</div></div></div>`;
+    return;
+  }
+  if (isDone) {
+    el.innerHTML = `
+      <div class="step-card collapsed">
+        <div class="step-header" id="step2Edit">
+          <div class="step-num done">✓</div>
+          <div class="step-title">Polish</div>
+          <div class="step-desc">${state.polishMode ? state.polishMode + ' applied' : 'skipped'}</div>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const hasMarkers = state.slides.length > 0;
+  el.innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">2</div>
+        <div class="step-title">Polish with AI</div>
+        <div class="step-desc">${hasMarkers ? state.slides.length + ' slides detected' : 'no markers — will auto-split'}</div>
+      </div>
+      <div class="step-body">
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          ${!hasMarkers ? `<button class="btn-secondary" id="splitBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='split' ? '<span class="spinner"></span> Splitting…' : 'Auto-split into slides'}</button>` : ''}
+          ${hasMarkers ? `<button class="btn-secondary" id="shortenBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='shorten' ? '<span class="spinner"></span> Shortening…' : 'Shorten'}</button>
+          <button class="btn-secondary" id="expandBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='expand' ? '<span class="spinner"></span> Expanding…' : 'Expand'}</button>
+          <button class="btn-secondary" id="preserveBtn">Preserve text</button>` : ''}
+        </div>
+        ${state.slides.length > 0 ? `<div class="caption" style="margin-bottom:8px">${state.slides.length} slides</div>
+        <div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `
+          <div class="slide-edit-card" style="margin-bottom:6px">
+            <div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div>
+            <div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div>
+          </div>`).join('')}</div>` : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong> to let Claude split your text into slides.</div></div>'}
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">
+          <button class="btn-ghost" id="backTo1">← Back</button>
+          <button class="btn-primary" id="toStep3" ${state.slides.length === 0 ? 'disabled' : ''}>Continue to slide edit →</button>
+        </div>
+      </div>
+    </div>`;
+
+  const shortenBtn = document.getElementById('shortenBtn');
+  if (shortenBtn) shortenBtn.onclick = () => runPolish('shorten');
+  const expandBtn = document.getElementById('expandBtn');
+  if (expandBtn) expandBtn.onclick = () => runPolish('expand');
+  const splitBtn = document.getElementById('splitBtn');
+  if (splitBtn) splitBtn.onclick = () => runPolish('split');
+  const preserveBtn = document.getElementById('preserveBtn');
+  if (preserveBtn) preserveBtn.onclick = () => { state.polishMode = 'preserve'; toast({ type: 'success', message: 'Text preserved' }); };
+  document.getElementById('backTo1').onclick = () => { state.composeStep = 1; renderCompose(); };
+  document.getElementById('toStep3').onclick = () => { state.composeStep = 3; renderCompose(); };
+}
+
+async function runPolish(mode) {
+  state.polishing = true;
+  state.polishMode = mode;
+  renderStep2();
+  try {
+    const polished = await polishWithClaude(state.slides, mode);
+    state.slides = polishedToSlides(polished);
+    toast({ type: 'success', message: `${mode === 'split' ? 'Split' : mode === 'shorten' ? 'Shortened' : 'Expanded'} — ${state.slides.length} slides` });
+  } catch (e) {
+    toast({ type: 'error', message: e.message });
+  }
+  state.polishing = false;
+  renderStep2();
+}
+
+function renderStep3() {
+  const el = document.getElementById('step3');
+  if (!el) return;
+  const isActive = state.composeStep === 3;
+  const isDone = state.composeStep > 3;
+  const isFuture = state.composeStep < 3;
+
+  if (isFuture) {
+    el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Slide text preview &amp; edit</div><div class="step-desc">edit titles and body</div></div></div>`;
+    return;
+  }
+  if (isDone) {
+    el.innerHTML = `
+      <div class="step-card collapsed">
+        <div class="step-header" id="step3Edit">
+          <div class="step-num done">✓</div>
+          <div class="step-title">Slide text</div>
+          <div class="step-desc">${state.slides.length} slides</div>
+          <button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button>
+        </div>
+      </div>`;
+    document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); };
+    return;
+  }
+
+  el.innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">3</div>
+        <div class="step-title">Edit slide text</div>
+        <div class="step-desc">${state.slides.length} slides</div>
+      </div>
+      <div class="step-body">
+        <div id="slideEditList">${state.slides.map((s, i) => renderSlideEditCard(s, i)).join('')}</div>
+        <div style="display:flex;gap:8px;margin-top:12px">
+          <button class="btn-secondary" id="addSlideBtn">+ Add slide</button>
+        </div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+          <button class="btn-ghost" id="backTo2or1">← Back</button>
+          <button class="btn-primary lg" id="toStep4" ${state.slides.length === 0 ? 'disabled' : ''}>Generate images →</button>
+        </div>
+      </div>
+    </div>`;
+
+  state.slides.forEach((s, i) => bindSlideEditCard(i));
+  document.getElementById('addSlideBtn').onclick = () => {
+    state.slides.push({ title: 'New slide', body: '', imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0 });
+    renderStep3();
+  };
+  document.getElementById('backTo2or1').onclick = () => { state.composeStep = state.polishMode ? 2 : 1; renderCompose(); };
+  document.getElementById('toStep4').onclick = () => {
+    if (!state.apiKeys.openai) {
+      toast({ type: 'error', message: 'Add OpenAI API key in Settings first' });
+      return;
+    }
+    state.composeStep = 4;
+    renderCompose();
+    generateAllImages();
+  };
+}
+
+function renderSlideEditCard(s, i) {
+  return `
+    <div class="slide-edit-card" data-idx="${i}">
+      <div class="slide-edit-head">
+        <span class="slide-edit-num">Slide ${i+1}</span>
+        <div class="slide-edit-actions">
+          <button class="icon-btn-sm" disabled title="Move up (v2.0.5)" aria-label="Move up">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+          </button>
+          <button class="icon-btn-sm" disabled title="Move down (v2.0.5)" aria-label="Move down">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <button class="icon-btn-sm" data-act="del" title="Delete slide" aria-label="Delete slide">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
+          </button>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Title</label>
+        <input class="input" data-act="title" value="${escapeHtml(s.title)}">
+      </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="field-label">Body</label>
+        <textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea>
+      </div>
+    </div>`;
+}
+
+function bindSlideEditCard(i) {
+  const card = document.querySelector(`.slide-edit-card[data-idx="${i}"]`);
+  if (!card) return;
+  const titleInp = card.querySelector('[data-act="title"]');
+  const bodyInp = card.querySelector('[data-act="body"]');
+  const delBtn = card.querySelector('[data-act="del"]');
+  titleInp.oninput = e => { state.slides[i].title = e.target.value; };
+  bodyInp.oninput = e => { state.slides[i].body = e.target.value; };
+  delBtn.onclick = () => {
+    if (state.slides.length === 1) { toast({ type: 'error', message: 'At least one slide required' }); return; }
+    state.slides.splice(i, 1);
+    renderStep3();
+  };
+}
+
+function renderStep4() {
+  const el = document.getElementById('step4');
+  if (!el) return;
+  const isActive = state.composeStep === 4;
+  const isFuture = state.composeStep < 4;
+
+  if (isFuture) {
+    el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Generate images &amp; assemble</div><div class="step-desc">${state.imageModel}</div></div></div>`;
+    return;
+  }
+
+  const allDone = state.slides.every(s => s.status === 'done');
+  el.innerHTML = `
+    <div class="step-card">
+      <div class="step-header">
+        <div class="step-num">4</div>
+        <div class="step-title">Generate &amp; refine images</div>
+        <div class="step-desc">${state.imageModel} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done</div>
+      </div>
+      <div class="step-body">
+        <div id="step4Slides">${state.slides.map((s, i) => renderImgCard(s, i)).join('')}</div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+          <button class="btn-ghost" id="backTo3">← Back to text edit</button>
+          <button class="btn-primary lg" id="assembleBtn" ${allDone ? '' : 'disabled'}>Assemble .pptx</button>
+        </div>
+      </div>
+    </div>`;
+
+  state.slides.forEach((s, i) => bindImgCard(i));
+  document.getElementById('backTo3').onclick = () => { state.composeStep = 3; renderCompose(); };
+  document.getElementById('assembleBtn').onclick = () => assemblePptx();
+}
+
+function renderStep4Slides() {
+  const list = document.getElementById('step4Slides');
+  if (!list) return;
+  list.innerHTML = state.slides.map((s, i) => renderImgCard(s, i)).join('');
+  state.slides.forEach((s, i) => bindImgCard(i));
+  const head = document.querySelector('#step4 .step-desc');
+  if (head) head.textContent = `${state.imageModel} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done`;
+  const allDone = state.slides.every(s => s.status === 'done');
+  const ab = document.getElementById('assembleBtn');
+  if (ab) ab.disabled = !allDone;
+}
+
+function renderImgCard(s, i) {
+  let thumbContent = '';
+  if (s.status === 'generating') {
+    thumbContent = `<div class="placeholder"><span class="spinner-lg spinner"></span><div style="margin-top:10px">Generating…</div></div>`;
+  } else if (s.status === 'error') {
+    thumbContent = `<div class="err">${escapeHtml(s.error || 'Failed')}</div>`;
+  } else if (s.imageB64) {
+    thumbContent = `<img src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">`;
+  } else {
+    thumbContent = `<div class="placeholder">Queued</div>`;
+  }
+
+  const expanded = !!state.expandedRefine[i];
+  const cost = state.imageModel === 'gpt-image-2' ? 0.06 : 0.04;
+  const regenCost = (s.regenCount * cost).toFixed(2);
+
+  return `
+    <div class="slide-img-card" data-idx="${i}">
+      <div class="slide-img-head">
+        <span class="slide-edit-num">Slide ${i+1}</span>
+        <div class="slide-img-title">${escapeHtml(s.title)}</div>
+        ${s.regenCount > 0 ? `<span class="badge badge-neutral">Regenerated ${s.regenCount}× · $${regenCost}</span>` : ''}
+        ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
+        ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
+      </div>
+      <div class="slide-img-body">
+        <div class="slide-img-thumb ${s.status === 'generating' ? 'loading' : ''}" data-act="open">${thumbContent}</div>
+        <div class="slide-img-controls">
+          <div style="display:flex;gap:6px;flex-wrap:wrap">
+            ${s.status === 'error' ? `<button class="btn-secondary" data-act="retry">Retry</button>` : ''}
+            ${s.status === 'done' ? `<button class="btn-secondary" data-act="enlarge">View full size</button>` : ''}
+            <button class="btn-ghost" disabled title="Coming in v2.0.5">Replace with upload</button>
+          </div>
+          <div class="refine-section">
+            <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
+            ${expanded ? `
+              <div style="margin-top:10px">
+                <label class="field-label" style="margin-bottom:4px">Edit prompt</label>
+                <textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || buildImagePrompt(s))}</textarea>
+                <div style="display:flex;gap:6px;margin-top:8px">
+                  <button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button>
+                  <button class="btn-ghost" data-act="resetPrompt">Reset to default</button>
+                </div>
+              </div>
+            ` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
+}
+
+function bindImgCard(i) {
+  const card = document.querySelector(`.slide-img-card[data-idx="${i}"]`);
+  if (!card) return;
+  const s = state.slides[i];
+
+  const thumb = card.querySelector('[data-act="open"]');
+  if (thumb && s.imageB64) thumb.onclick = () => openLightbox(i);
+
+  const enlarge = card.querySelector('[data-act="enlarge"]');
+  if (enlarge) enlarge.onclick = () => openLightbox(i);
+
+  const retry = card.querySelector('[data-act="retry"]');
+  if (retry) retry.onclick = () => regenerateOne(i);
+
+  const toggle = card.querySelector('[data-act="toggleRefine"]');
+  if (toggle) toggle.onclick = () => {
+    state.expandedRefine[i] = !state.expandedRefine[i];
+    renderStep4Slides();
+  };
+
+  const regen = card.querySelector('[data-act="regen"]');
+  if (regen) regen.onclick = () => {
+    const ta = card.querySelector('[data-act="refinePrompt"]');
+    const newPrompt = ta ? ta.value : null;
+    regenerateOne(i, newPrompt);
+  };
+
+  const reset = card.querySelector('[data-act="resetPrompt"]');
+  if (reset) reset.onclick = () => {
+    const ta = card.querySelector('[data-act="refinePrompt"]');
+    if (ta) ta.value = buildImagePrompt(s);
+  };
+}
+
+function openLightbox(i) {
+  const s = state.slides[i];
+  if (!s.imageB64) return;
+  const html = `
+    <div class="modal-header">
+      <div>
+        <div class="h1">Slide ${i+1}: ${escapeHtml(s.title)}</div>
+        <div class="muted body-sm" style="margin-top:4px">${state.imageModel} · 1536×1024 · regenerated ${s.regenCount}×</div>
+      </div>
+      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
+    </div>
+    <img class="lightbox-img" src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">
+    <div style="margin-top:16px">
+      <button class="refine-toggle" id="showPromptBtn">+ Show prompt used</button>
+      <div id="promptBlock" style="display:none;margin-top:10px">
+        <textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(s.lastPrompt || '')}</textarea>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-secondary" id="saveImgBtn">Save as PNG</button>
+      <button class="btn-primary" onclick="closeModal()">Close</button>
+    </div>`;
+  openModal(html, { xl: true });
+  document.getElementById('showPromptBtn').onclick = () => {
+    const pb = document.getElementById('promptBlock');
+    pb.style.display = pb.style.display === 'none' ? 'block' : 'none';
+  };
+  document.getElementById('saveImgBtn').onclick = () => {
+    const a = document.createElement('a');
+    a.href = 'data:image/jpeg;base64,' + s.imageB64;
+    a.download = `slide-${i+1}-${slugify(s.title)}.jpg`;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// BUNDLES VIEW
+// ═══════════════════════════════════════════════════════════════════════
+function renderBundles() {
+  const cont = document.getElementById('content');
+  cont.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div class="eyebrow" style="margin-bottom:8px">Library</div>
+      <div class="display">Bundles</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:620px">Bundles tag a deck with House Style, Domain Pack, and Deck Type for organisation. In v2.0.4 they no longer auto-generate content — you paste your own text.</div>
+    </div>
+    <div class="template-grid">
+      ${state.bundles.map(b => {
+        const hs = state.templates.house_style.find(t => t.id === b.house_style);
+        const dp = state.templates.domain_pack.find(t => t.id === b.domain_pack);
+        const dt = state.templates.deck_type.find(t => t.id === b.deck_type);
+        return `
+          <div class="template-card">
+            <div class="template-card-header">
+              <div class="template-card-name">${escapeHtml(b.name)}</div>
+              <span class="badge badge-info mono">v${b.version}</span>
+            </div>
+            <div class="template-card-desc">${escapeHtml(b.description)}</div>
+            <div style="font-size:11px;color:var(--text-muted);line-height:1.7">
+              <div>Style: ${escapeHtml(hs ? hs.name : '—')}</div>
+              <div>Domain: ${escapeHtml(dp ? dp.name : '—')}</div>
+              <div>Type: ${escapeHtml(dt ? dt.name : '—')}</div>
+            </div>
+          </div>`;
+      }).join('')}
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// TEMPLATES VIEW
+// ═══════════════════════════════════════════════════════════════════════
+function renderTemplates() {
+  const cont = document.getElementById('content');
+  const tab = state.templatesTab;
+  const items = state.templates[tab];
+  cont.innerHTML = `
+    <div style="margin-bottom:20px">
+      <div class="eyebrow" style="margin-bottom:8px">Layer library</div>
+      <div class="display">Templates</div>
+      <div class="muted body-sm" style="margin-top:8px">Reference templates for House Style, Domain Pack, and Deck Type. Read-only in this build.</div>
+    </div>
+    <div class="tabs">
+      <button class="tab ${tab === 'house_style' ? 'active' : ''}" data-tab="house_style">House Style <span class="subtle mono" style="margin-left:6px">${state.templates.house_style.length}</span></button>
+      <button class="tab ${tab === 'domain_pack' ? 'active' : ''}" data-tab="domain_pack">Domain Pack <span class="subtle mono" style="margin-left:6px">${state.templates.domain_pack.length}</span></button>
+      <button class="tab ${tab === 'deck_type' ? 'active' : ''}" data-tab="deck_type">Deck Type <span class="subtle mono" style="margin-left:6px">${state.templates.deck_type.length}</span></button>
+    </div>
+    <div class="template-grid">
+      ${items.map(t => `
+        <div class="template-card">
+          <div class="template-card-header">
+            <div class="template-card-name">${escapeHtml(t.name)}</div>
+            <span class="badge badge-info mono">v${t.version}</span>
+          </div>
+          <div class="template-card-desc">${escapeHtml(t.description)}</div>
+          ${tab === 'house_style' && t.palette ? `<div class="swatches" style="margin-bottom:10px">${t.palette.map(c => `<div class="swatch" style="background:${c}"></div>`).join('')}</div>` : ''}
+          <div class="template-card-footer">
+            <span>Updated ${escapeHtml(t.updated_at)}</span>
+            <span>${escapeHtml(t.id)}</span>
+          </div>
+        </div>`).join('')}
+    </div>`;
+  document.querySelectorAll('.tab').forEach(el => el.onclick = () => { state.templatesTab = el.dataset.tab; renderTemplates(); });
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// SETTINGS
+// ═══════════════════════════════════════════════════════════════════════
+function renderSettings() {
+  const cont = document.getElementById('content');
+  const oai = state.apiKeys.openai ? (state.apiKeys.openai.slice(0,7) + '…' + state.apiKeys.openai.slice(-4)) : '';
+  const ant = state.apiKeys.anthropic ? (state.apiKeys.anthropic.slice(0,10) + '…' + state.apiKeys.anthropic.slice(-4)) : '';
+  cont.innerHTML = `
+    <div style="margin-bottom:24px">
+      <div class="eyebrow" style="margin-bottom:8px">Configuration</div>
+      <div class="display">Settings</div>
+      <div class="muted body-sm" style="margin-top:8px">API keys, logo, runtime configuration. Settings live in memory only (cleared on reload).</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="h1">Brand logo</div></div>
+      <div class="card">
+        <div class="field">
+          <label class="field-label">Logo image <span class="subtle">PNG with transparent background recommended</span></label>
+          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+            <div class="logo-preview">${state.logoB64 ? `<img src="data:image/png;base64,${state.logoB64}" alt="logo preview">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div>
+            <div style="display:flex;gap:6px">
+              <input type="file" id="logoFile" accept=".png,image/png" style="display:none">
+              <button class="btn-secondary" id="uploadLogoBtn">Upload PNG</button>
+              ${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset to default</button>' : ''}
+            </div>
+          </div>
+          <div class="field-hint" style="margin-top:10px">Logo is stamped onto each generated slide image at .pptx assembly time. Use a roughly 4:1 aspect ratio logo with cyan/white strokes for best results on dark backgrounds. ${state.logoB64 ? '<span class="badge badge-success" style="margin-left:6px">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:6px">No logo loaded</span>'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="h1">Anthropic</div></div>
+      <div class="card">
+        <div class="field">
+          <label class="field-label">API key <span class="subtle">required for AI polish</span></label>
+          <div class="api-key-row">
+            <input class="input" id="anthropicKey" type="password" placeholder="sk-ant-..." value="${escapeHtml(state.apiKeys.anthropic)}" autocomplete="off">
+            <button class="btn-secondary" id="saveAntBtn">Save</button>
+            ${state.apiKeys.anthropic ? '<button class="btn-ghost" id="clearAntBtn">Clear</button>' : ''}
+          </div>
+          <div class="field-hint"><span class="mono">claude-sonnet-4-5</span> · used for shorten / expand / auto-split. ${state.apiKeys.anthropic ? 'Current: <span class="mono">' + escapeHtml(ant) + '</span>' : 'Not set.'}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="h1">OpenAI</div></div>
+      <div class="card">
+        <div class="field">
+          <label class="field-label">API key <span class="subtle">required for image generation</span></label>
+          <div class="api-key-row">
+            <input class="input" id="openaiKey" type="password" placeholder="sk-..." value="${escapeHtml(state.apiKeys.openai)}" autocomplete="off">
+            <button class="btn-secondary" id="saveKeyBtn">Save</button>
+            ${state.apiKeys.openai ? '<button class="btn-ghost" id="clearKeyBtn">Clear</button>' : ''}
+          </div>
+          <div class="field-hint">Default model: <span class="mono">gpt-image-2</span> with auto-fallback to <span class="mono">gpt-image-1</span> if unavailable. ${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div>
+        </div>
+        <div class="field">
+          <label class="field-label">Organization ID <span class="subtle">optional</span></label>
+          <div class="api-key-row">
+            <input class="input" id="openaiOrg" type="text" placeholder="org-..." value="${escapeHtml(state.apiKeys.openai_org)}" autocomplete="off">
+            <button class="btn-secondary" id="saveOrgBtn">Save</button>
+            ${state.apiKeys.openai_org ? '<button class="btn-ghost" id="clearOrgBtn">Clear</button>' : ''}
+          </div>
+        </div>
+        <div class="field">
+          <label class="field-label">Image model</label>
+          <select class="select" id="imgModelSel">
+            <option value="gpt-image-2" ${state.imageModel === 'gpt-image-2' ? 'selected' : ''}>gpt-image-2 (default)</option>
+            <option value="gpt-image-1" ${state.imageModel === 'gpt-image-1' ? 'selected' : ''}>gpt-image-1 (fallback)</option>
+          </select>
+          <div class="field-hint">Currently using <span class="mono">${state.imageModel}</span>${state.imageModelFellBack ? ' (auto-fell back from gpt-image-2)' : ''}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="h1">Runtime</div></div>
+      <div class="card">
+        <dl class="kv">
+          <dt>Version</dt><dd><span class="mono">2.0.4</span> (build #11 — user-controlled compose flow)</dd>
+          <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
+          <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
+          <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
+          <dt>Logo</dt><dd>${state.logoB64 ? '<span class="badge badge-success">Loaded</span>' : '<span class="badge badge-warning">Not loaded</span>'} ${state.logoIsCustom ? '(custom)' : '(default)'}</dd>
+          <dt>Storage</dt><dd>In-memory only · download via browser</dd>
+        </dl>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="h1">Out of scope (deferred)</div></div>
+      <div class="card">
+        <dl class="kv">
+          <dt>v2.0.5</dt><dt></dt><dd>Slide reordering · per-slide image upload · speaker notes editor · OneDrive upload</dd>
+          <dt>v2.1</dt><dd>Multi-LLM comparison</dd>
+          <dt>v2.2</dt><dd>Approval workflow</dd>
+        </dl>
+      </div>
+    </div>`;
+
+  document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
+  document.getElementById('logoFile').onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
+    const fr = new FileReader();
+    fr.onload = () => {
+      state.logoB64 = fr.result.split(',')[1];
+      state.logoIsCustom = true;
+      toast({ type: 'success', message: 'Logo uploaded' });
+      renderSettings();
+    };
+    fr.readAsDataURL(file);
+  };
+  const clrLogo = document.getElementById('clearLogoBtn');
+  if (clrLogo) clrLogo.onclick = async () => {
+    state.logoIsCustom = false;
+    state.logoB64 = await loadDefaultLogo();
+    toast({ type: 'info', message: 'Reset to default DN logo' });
+    renderSettings();
+  };
+
+  document.getElementById('saveKeyBtn').onclick = () => {
+    const v = (document.getElementById('openaiKey').value || '').trim();
+    if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; }
+    if (!v.startsWith('sk-')) { toast({ type: 'error', message: 'OpenAI key must start with sk-' }); return; }
+    state.apiKeys.openai = v;
+    toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` });
+    renderSettings();
+  };
+  const ck = document.getElementById('clearKeyBtn');
+  if (ck) ck.onclick = () => { state.apiKeys.openai = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+
+  document.getElementById('saveAntBtn').onclick = () => {
+    const v = (document.getElementById('anthropicKey').value || '').trim();
+    if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; }
+    if (!v.startsWith('sk-ant-')) { toast({ type: 'error', message: 'Anthropic key must start with sk-ant-' }); return; }
+    state.apiKeys.anthropic = v;
+    toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` });
+    renderSettings();
+  };
+  const ca = document.getElementById('clearAntBtn');
+  if (ca) ca.onclick = () => { state.apiKeys.anthropic = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+
+  document.getElementById('saveOrgBtn').onclick = () => {
+    state.apiKeys.openai_org = (document.getElementById('openaiOrg').value || '').trim();
+    toast({ type: 'success', message: 'Org saved' });
+    renderSettings();
+  };
+  const co = document.getElementById('clearOrgBtn');
+  if (co) co.onclick = () => { state.apiKeys.openai_org = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+
+  document.getElementById('imgModelSel').onchange = e => {
+    state.imageModel = e.target.value;
+    state.imageModelFellBack = false;
+    toast({ type: 'info', message: `Image model set to ${state.imageModel}` });
+    renderSettings();
+  };
+}
+
+// ═══════════════════════════════════════════════════════════════════════
+// MAIN ROUTING
+// ═══════════════════════════════════════════════════════════════════════
+document.getElementById('themeToggle').addEventListener('click', () => {
+  state.theme = state.theme === 'dark' ? 'light' : 'dark';
+  document.documentElement.dataset.theme = state.theme;
+});
+function setActiveNav() { document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === state.view)); }
+document.querySelectorAll('.nav-btn').forEach(b => {
+  b.addEventListener('click', () => { state.view = b.dataset.view; setActiveNav(); render(); });
+});
+function render() {
+  if (state.view === 'compose') renderCompose();
+  else if (state.view === 'bundles') renderBundles();
+  else if (state.view === 'templates') renderTemplates();
+  else renderSettings();
+}
+
+seedData();
+render();
+loadDefaultLogo().then(b => {
+  if (b && !state.logoIsCustom) {
+    state.logoB64 = b;
+    console.log('Default DN logo loaded');
+  } else if (!b) {
+    console.warn('Default logo unavailable — upload one in Settings');
+  }
+});
+</script>
+</body>
+</html>
