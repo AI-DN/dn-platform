@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.0.9 #17</title>
+<title>DN Deck Generator v2.1.0 #18</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -43,7 +43,7 @@ html, body { height: 100%; }
 body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; color: var(--text); background: var(--bg); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
 button { font-family: inherit; }
 .app { display: flex; flex-direction: column; min-height: 100vh; }
-.header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; }
+.header { display: flex; align-items: center; justify-content: space-between; padding: 10px 20px; border-bottom: 1px solid var(--border); background: var(--surface); position: sticky; top: 0; z-index: 50; gap: 12px; }
 .brand { display: flex; align-items: center; gap: 12px; }
 .brand-mark { width: 26px; height: 26px; border-radius: var(--radius-sm); background: var(--accent); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 11px; font-family: var(--mono); letter-spacing: -0.02em; }
 .brand-name { font-size: 14px; font-weight: 600; color: var(--text); }
@@ -55,6 +55,8 @@ button { font-family: inherit; }
 .header-right { display: flex; align-items: center; gap: 6px; }
 .icon-btn { background: transparent; border: 1px solid transparent; color: var(--text-muted); width: 30px; height: 30px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 150ms ease; }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
+.cost-badge { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 12px; background: var(--surface-2); border: 1px solid var(--border); font-size: 11px; font-family: var(--mono); color: var(--text-muted); }
+.cost-badge strong { color: var(--text); font-weight: 600; }
 .main { flex: 1; display: flex; position: relative; }
 .content { flex: 1; padding: 28px 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
 .eyebrow, .caption { font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
@@ -149,7 +151,7 @@ button { font-family: inherit; }
 .icon-btn-sm:hover { background: var(--surface-2); color: var(--text); }
 .icon-btn-sm:disabled { opacity: 0.4; cursor: not-allowed; }
 .slide-img-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; margin-bottom: 12px; }
-.slide-img-head { padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); }
+.slide-img-head { padding: 10px 14px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .slide-img-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
 .slide-img-body { display: grid; grid-template-columns: 420px 1fr; gap: 0; }
 @media (max-width: 800px) { .slide-img-body { grid-template-columns: 1fr; } }
@@ -201,6 +203,20 @@ tbody tr:hover { background: var(--surface-2); }
 .version-row:last-child { border-bottom: none; }
 .version-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; }
 .version-num { font-family: var(--mono); font-weight: 600; color: var(--text); }
+.model-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
+.model-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; display: flex; flex-direction: column; }
+.model-card.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.model-card.disabled { opacity: 0.55; }
+.model-card-head { padding: 10px 12px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 8px; }
+.model-card-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+.model-card-thumb { aspect-ratio: 16/10.67; background: var(--surface-2); display: flex; align-items: center; justify-content: center; overflow: hidden; cursor: pointer; }
+.model-card-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.model-card-thumb .placeholder { color: var(--text-subtle); font-size: 11px; font-family: var(--mono); text-align: center; padding: 12px; }
+.model-card-thumb .err { color: var(--danger); font-size: 11px; font-family: var(--mono); padding: 12px; text-align: center; }
+.model-card-body { padding: 12px; display: flex; flex-direction: column; gap: 6px; font-size: 12px; }
+.model-card-cost { display: flex; justify-content: space-between; font-family: var(--mono); color: var(--text-muted); }
+.model-card-cost strong { color: var(--text); }
+.model-card-actions { padding: 0 12px 12px 12px; display: flex; gap: 6px; }
 @media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } .range-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -210,7 +226,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.0.9 #17</div>
+      <div class="brand-version">v2.1.0 #18</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -219,6 +235,7 @@ tbody tr:hover { background: var(--surface-2); }
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
     <div class="header-right">
+      <span id="costBadge"></span>
       <span id="adminBadge"></span>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
         <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -235,7 +252,6 @@ tbody tr:hover { background: var(--surface-2); }
 const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 document.documentElement.dataset.theme = initialTheme;
 
-// ─── FALLBACK MASTER PROMPT (used if Supabase unreachable or template missing) ──
 const MASTER_PROMPT_FALLBACK = `Create a 16:9 widescreen enterprise presentation slide.
 
 OVERALL STYLE:
@@ -290,40 +306,76 @@ OUTPUT:
 Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No presenter notes.`;
 
 const DEFAULT_LOGO_URL = 'https://ai-dn.github.io/dn-platform/assets/dn-logo.png';
-const COST_PER_IMAGE_GEN = 0.04;
+const FALLBACK_IMAGE_COST = 0.10;
 
-// ─── IN-MEMORY "SUPABASE" (no localStorage in sandbox; emulated persistent store) ──
-const db = {
-  templates: [],
-  bundles: [],
-  versions: [], // {id, template_id, version_num, prompt, change_note, updated_by, created_at}
-  seeded: false
-};
+// ─── COST TABLES (would come from Supabase; seeded locally with realistic values) ──
+const DEFAULT_IMAGE_COSTS = [
+  { provider: 'openai', model: 'gpt-image-2', label: 'gpt-image-2 (high)',   size: '1536x1024', quality: 'high',   cost_per_image: 0.30, is_default: true,  is_active: true },
+  { provider: 'openai', model: 'gpt-image-2', label: 'gpt-image-2 (medium)', size: '1536x1024', quality: 'medium', cost_per_image: 0.07, is_default: false, is_active: true },
+  { provider: 'openai', model: 'gpt-image-2', label: 'gpt-image-2 (low)',    size: '1536x1024', quality: 'low',    cost_per_image: 0.02, is_default: false, is_active: true },
+  { provider: 'openai', model: 'gpt-image-1', label: 'gpt-image-1 (high)',   size: '1536x1024', quality: 'high',   cost_per_image: 0.19, is_default: true,  is_active: true },
+  { provider: 'openai', model: 'gpt-image-1', label: 'gpt-image-1 (medium)', size: '1536x1024', quality: 'medium', cost_per_image: 0.06, is_default: false, is_active: true },
+  { provider: 'google', model: 'imagen-3',      label: 'Imagen 3',             size: '1536x1024', quality: 'high', cost_per_image: 0.04,  is_default: true, is_active: true },
+  { provider: 'google', model: 'imagen-4',      label: 'Imagen 4',             size: '1536x1024', quality: 'high', cost_per_image: 0.04,  is_default: true, is_active: true },
+  { provider: 'google', model: 'gemini-2-flash',label: 'Gemini 2.0 Flash',     size: '1536x1024', quality: 'high', cost_per_image: 0.039, is_default: true, is_active: true }
+];
+const DEFAULT_ANTHROPIC_COSTS = [
+  { model: 'claude-sonnet-4-5-20250929', cost_per_million_input: 3.00, cost_per_million_output: 15.00, is_active: true }
+];
+let imageCosts = DEFAULT_IMAGE_COSTS.slice();
+let anthropicCosts = DEFAULT_ANTHROPIC_COSTS.slice();
+let costTablesLoaded = true; // pre-seeded
 
+function getImageCost(provider, model, size, quality) {
+  size = size || '1536x1024';
+  if (quality) {
+    const exact = imageCosts.find(c => c.provider === provider && c.model === model && c.size === size && c.quality === quality);
+    if (exact) return exact.cost_per_image;
+  }
+  const def = imageCosts.find(c => c.provider === provider && c.model === model && c.is_default);
+  if (def) return def.cost_per_image;
+  const any = imageCosts.find(c => c.provider === provider && c.model === model);
+  if (any) return any.cost_per_image;
+  return FALLBACK_IMAGE_COST;
+}
+function getAnthropicCost(model, inputTokens, outputTokens) {
+  const rate = anthropicCosts.find(c => c.model === model);
+  if (!rate) return 0;
+  return (inputTokens / 1e6) * rate.cost_per_million_input + (outputTokens / 1e6) * rate.cost_per_million_output;
+}
+
+// ─── IN-MEMORY DB ─────────────────────────────────────────────────────
+const db = { templates: [], bundles: [], versions: [], seeded: false };
 function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; const v = c==='x' ? r : (r&0x3|0x8); return v.toString(16); }); }
 function nowIso() { return new Date().toISOString(); }
+
+const deckCost = {
+  polish: 0, outline: 0, image: 0, testImage: 0,
+  imageDetails: [], // {provider, model, quality, cost}
+  total() { return this.polish + this.outline + this.image + this.testImage; },
+  reset() { this.polish = 0; this.outline = 0; this.image = 0; this.testImage = 0; this.imageDetails = []; }
+};
 
 const state = {
   theme: initialTheme,
   view: 'compose',
-  templatesTab: 'all', // all | house_style | domain_pack | deck_type
+  templatesTab: 'all',
   templatesSearch: '',
   bundlesSearch: '',
   selectedBundleId: null,
-  apiKeys: { openai: '', anthropic: '', openai_org: '' },
-  imageModel: 'gpt-image-2',
-  imageModelFellBack: false,
+  apiKeys: { openai: '', anthropic: '', gemini: '', openai_org: '' },
+  imageQuality: 'high',
+  defaultModel: 'openai:gpt-image-2:high', // provider:model:quality
+  selectedModel: null, // chosen after Step 3.5; if null, falls back to defaultModel
+  skipModelPicker: false,
   logoB64: null,
   logoIsCustom: false,
   customerLogoB64: null,
   customerLogoEnabled: false,
   logoBacking: false,
-  // Admin mode — in-memory only (real auth deferred). Toggle via header badge.
   adminMode: false,
-  // Slide range
   slideMin: 6,
   slideMax: 10,
-  // Compose flow
   composeStep: 1,
   rawText: '',
   slides: [],
@@ -332,10 +384,18 @@ const state = {
   generating: false,
   expandedRefine: {},
   shownAdminHint: false,
-  toastOnceKeys: {}
+  toastOnceKeys: {},
+  // Step 3.5 model picker
+  modelPicker: {
+    testSlideIdx: 0,
+    candidates: [], // [{provider, model, quality, label, status, imageB64, error}]
+    inFlight: false
+  }
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function fmtUsd(v) { return '$' + (v || 0).toFixed(2); }
+function fmtUsd4(v) { return '$' + (v || 0).toFixed(4); }
 
 function toast(opts) {
   const c = document.getElementById('toastContainer');
@@ -349,11 +409,7 @@ function toast(opts) {
   c.appendChild(el);
   setTimeout(() => { if (el.parentNode) { el.style.opacity = '0'; el.style.transition = 'opacity 200ms ease'; setTimeout(() => el.remove(), 220); } }, opts.duration || 5500);
 }
-function toastOnce(key, opts) {
-  if (state.toastOnceKeys[key]) return;
-  state.toastOnceKeys[key] = true;
-  toast(opts);
-}
+function toastOnce(key, opts) { if (state.toastOnceKeys[key]) return; state.toastOnceKeys[key] = true; toast(opts); }
 
 function openModal(content, opts) {
   const root = document.getElementById('modalRoot');
@@ -368,123 +424,34 @@ function escClose(e) { if (e.key === 'Escape') closeModal(); }
 // ─── SEED DATA ─────────────────────────────────────────────────────────
 function seedIfEmpty() {
   if (db.seeded || db.templates.length > 0) return;
-
-  const hsId = uuid();
-  const dpTelcoId = uuid();
-  const dpFinId = uuid();
-  const dpGenId = uuid();
-  const dtSalesId = uuid();
-  const dtRcaId = uuid();
-  const dtQrId = uuid();
+  const hsId = uuid(), dpTelcoId = uuid(), dpFinId = uuid(), dpGenId = uuid();
+  const dtSalesId = uuid(), dtRcaId = uuid(), dtQrId = uuid();
   const now = nowIso();
-
-  db.templates.push({
-    id: hsId, name: 'DN House Style — Brand Passport', layer: 'house_style',
-    description: 'Digitata Networks brand passport: dark navy + cyan, premium enterprise look, layout discipline, logo reserve zones.',
-    prompt: MASTER_PROMPT_FALLBACK,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.templates.push({
-    id: dpTelcoId, name: 'DN Telco Operations', layer: 'domain_pack',
-    description: 'Telecommunications network operations: cell towers, OSS/BSS, network slices, intent-to-execution flow, anchor products (NetTOPO, NetAM, Flo, NetCM).',
-    prompt: `Domain: telecommunications network operations. Audience: telco operator personas (CTO, network ops director, planning lead). Visual vocabulary: cell towers, radio access network nodes, mobile core, OSS/BSS systems, network slices, KPI dashboards, automation pipelines, intent-to-execution flow, multi-vendor orchestration. Acceptable iconography: signal-tower silhouettes, hexagonal cell coverage patterns, layered network diagrams, packet/flow arrows, gauge/dial KPI icons.
-
-Anchor products (evoke as category, do not name): NetTOPO (topology intelligence), NetAM (asset management), Flo (orchestration), NetCM (safe execution).
-
-Guardrail: AI never connects directly to network elements. Show execution always flowing through governed anchor products.`,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.templates.push({
-    id: dpFinId, name: 'DN Finance & Commercial', layer: 'domain_pack',
-    description: 'Financial and commercial context: revenue, costs, ROI, business outcomes, deal economics.',
-    prompt: `Domain: enterprise finance and commercial outcomes. Visual vocabulary: KPI dashboards, trend arrows, revenue/cost charts, ROI calculations, deal funnels, business outcome metrics. Use gold accents prominently for revenue/value language. Avoid clutter — finance audiences want clean, decisive visuals.`,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.templates.push({
-    id: dpGenId, name: 'DN Generic Enterprise', layer: 'domain_pack',
-    description: 'Fallback for general enterprise topics not covered by a specific domain pack.',
-    prompt: `Domain: general enterprise technology. Visual vocabulary: clean architecture diagrams, process flows, organization-level concepts, abstract enterprise-grade infographics. No specific industry references.`,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.templates.push({
-    id: dtSalesId, name: 'Sales Pitch', layer: 'deck_type',
-    description: 'Customer-facing sales pitch. Structured, emotive, outcome-driven. Builds tension into solution.',
-    prompt: `Deck type: sales pitch. Tone: confident, emotive, outcome-driven. Structure each slide as one clear argument: problem → stakes → solution → outcome. Use callout strips with key takeaways. Prefer visual storytelling over dense text. Cyan and gold accents prominent for emphasis.`,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.templates.push({
-    id: dtRcaId, name: 'Technical RCA', layer: 'deck_type',
-    description: 'Internal/customer technical root cause analysis. Chronological, evidence-based, detailed.',
-    prompt: `Deck type: technical root cause analysis. Tone: technical, neutral, evidence-based. Chronological structure. Each slide answers one technical question. Use timeline visuals, system diagrams with annotated callouts, before/after comparisons. Red accents permitted for fault highlighting. Detail is welcome.`,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.templates.push({
-    id: dtQrId, name: 'Quarterly Review', layer: 'deck_type',
-    description: 'Board / leadership quarterly review. Data-heavy, neutral, structured around KPIs and outcomes.',
-    prompt: `Deck type: quarterly review. Tone: neutral, data-driven, executive. Structure around KPIs and outcomes. Use scoreboards, trend lines, period-over-period comparisons. Minimal narrative copy. Strong visual hierarchy on numbers. Gold accents for headline metrics.`,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-
-  // Initial versions
-  db.templates.forEach(t => {
-    db.versions.push({ id: uuid(), template_id: t.id, version_num: 1, prompt: t.prompt, change_note: 'Initial seed', updated_by: 'seed', created_at: now });
-  });
-
-  db.bundles.push({
-    id: uuid(), name: 'Telco Sales Pitch',
-    description: 'Customer-facing telco sales pitch with DN brand and anchor products.',
-    swatch_color: '#47D1FF',
-    house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtSalesId,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.bundles.push({
-    id: uuid(), name: 'Technical RCA',
-    description: 'Internal or customer-facing technical RCA in DN telco context.',
-    swatch_color: '#f0a500',
-    house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtRcaId,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-  db.bundles.push({
-    id: uuid(), name: 'Quarterly Review',
-    description: 'Board / leadership quarterly review with DN telco metrics.',
-    swatch_color: '#a855f7',
-    house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtQrId,
-    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
-  });
-
+  db.templates.push({ id: hsId, name: 'DN House Style — Brand Passport', layer: 'house_style', description: 'Digitata Networks brand passport: dark navy + cyan, premium enterprise look, layout discipline, logo reserve zones.', prompt: MASTER_PROMPT_FALLBACK, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.push({ id: dpTelcoId, name: 'DN Telco Operations', layer: 'domain_pack', description: 'Telecommunications network operations: cell towers, OSS/BSS, network slices, intent-to-execution flow, anchor products.', prompt: `Domain: telecommunications network operations. Audience: telco operator personas (CTO, network ops director, planning lead). Visual vocabulary: cell towers, radio access network nodes, mobile core, OSS/BSS systems, network slices, KPI dashboards, automation pipelines, intent-to-execution flow, multi-vendor orchestration. Acceptable iconography: signal-tower silhouettes, hexagonal cell coverage patterns, layered network diagrams, packet/flow arrows, gauge/dial KPI icons.\n\nAnchor products (evoke as category, do not name): NetTOPO (topology intelligence), NetAM (asset management), Flo (orchestration), NetCM (safe execution).\n\nGuardrail: AI never connects directly to network elements. Show execution always flowing through governed anchor products.`, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.push({ id: dpFinId, name: 'DN Finance & Commercial', layer: 'domain_pack', description: 'Financial and commercial context: revenue, costs, ROI, business outcomes, deal economics.', prompt: `Domain: enterprise finance and commercial outcomes. Visual vocabulary: KPI dashboards, trend arrows, revenue/cost charts, ROI calculations, deal funnels, business outcome metrics. Use gold accents prominently for revenue/value language. Avoid clutter — finance audiences want clean, decisive visuals.`, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.push({ id: dpGenId, name: 'DN Generic Enterprise', layer: 'domain_pack', description: 'Fallback for general enterprise topics not covered by a specific domain pack.', prompt: `Domain: general enterprise technology. Visual vocabulary: clean architecture diagrams, process flows, organization-level concepts, abstract enterprise-grade infographics. No specific industry references.`, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.push({ id: dtSalesId, name: 'Sales Pitch', layer: 'deck_type', description: 'Customer-facing sales pitch. Structured, emotive, outcome-driven.', prompt: `Deck type: sales pitch. Tone: confident, emotive, outcome-driven. Structure each slide as one clear argument: problem → stakes → solution → outcome. Use callout strips with key takeaways. Prefer visual storytelling over dense text. Cyan and gold accents prominent for emphasis.`, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.push({ id: dtRcaId, name: 'Technical RCA', layer: 'deck_type', description: 'Technical root cause analysis. Chronological, evidence-based, detailed.', prompt: `Deck type: technical root cause analysis. Tone: technical, neutral, evidence-based. Chronological structure. Each slide answers one technical question. Use timeline visuals, system diagrams with annotated callouts, before/after comparisons. Red accents permitted for fault highlighting. Detail is welcome.`, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.push({ id: dtQrId, name: 'Quarterly Review', layer: 'deck_type', description: 'Board / leadership quarterly review. Data-heavy, neutral, structured around KPIs and outcomes.', prompt: `Deck type: quarterly review. Tone: neutral, data-driven, executive. Structure around KPIs and outcomes. Use scoreboards, trend lines, period-over-period comparisons. Minimal narrative copy. Strong visual hierarchy on numbers. Gold accents for headline metrics.`, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.templates.forEach(t => { db.versions.push({ id: uuid(), template_id: t.id, version_num: 1, prompt: t.prompt, change_note: 'Initial seed', updated_by: 'seed', created_at: now }); });
+  db.bundles.push({ id: uuid(), name: 'Telco Sales Pitch', description: 'Customer-facing telco sales pitch with DN brand and anchor products.', swatch_color: '#47D1FF', house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtSalesId, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.bundles.push({ id: uuid(), name: 'Technical RCA', description: 'Internal or customer-facing technical RCA in DN telco context.', swatch_color: '#f0a500', house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtRcaId, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
+  db.bundles.push({ id: uuid(), name: 'Quarterly Review', description: 'Board / leadership quarterly review with DN telco metrics.', swatch_color: '#a855f7', house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtQrId, is_active: true, created_at: now, updated_at: now, updated_by: 'seed' });
   db.seeded = true;
 }
 
 function templateById(id) { return db.templates.find(t => t.id === id); }
 function bundleById(id) { return db.bundles.find(b => b.id === id); }
 function templatesByLayer(layer) { return db.templates.filter(t => t.layer === layer); }
-function bundlesUsingTemplate(tid) {
-  return db.bundles.filter(b => b.house_style_template_id === tid || b.domain_pack_template_id === tid || b.deck_type_template_id === tid);
-}
-function nextVersionNum(tid) {
-  const versions = db.versions.filter(v => v.template_id === tid);
-  return versions.length === 0 ? 1 : Math.max(...versions.map(v => v.version_num)) + 1;
-}
-
-function joinBundle(b) {
-  return {
-    ...b,
-    house_style: templateById(b.house_style_template_id) || null,
-    domain_pack: templateById(b.domain_pack_template_id) || null,
-    deck_type: templateById(b.deck_type_template_id) || null
-  };
-}
-
+function bundlesUsingTemplate(tid) { return db.bundles.filter(b => b.house_style_template_id === tid || b.domain_pack_template_id === tid || b.deck_type_template_id === tid); }
+function nextVersionNum(tid) { const versions = db.versions.filter(v => v.template_id === tid); return versions.length === 0 ? 1 : Math.max(...versions.map(v => v.version_num)) + 1; }
+function joinBundle(b) { return { ...b, house_style: templateById(b.house_style_template_id) || null, domain_pack: templateById(b.domain_pack_template_id) || null, deck_type: templateById(b.deck_type_template_id) || null }; }
 function dateStr() { return new Date().toISOString().slice(0,10); }
-
 function getImageDimensions(base64) {
   return new Promise(resolve => {
     const img = new Image();
-    img.onload = () => resolve({
-      w: img.naturalWidth,
-      h: img.naturalHeight,
-      aspect: img.naturalHeight / img.naturalWidth
-    });
+    img.onload = () => resolve({ w: img.naturalWidth, h: img.naturalHeight, aspect: img.naturalHeight / img.naturalWidth });
     img.onerror = () => resolve({ w: 1, h: 1, aspect: 0.33 });
     img.src = 'data:image/png;base64,' + base64;
   });
@@ -492,21 +459,14 @@ function getImageDimensions(base64) {
 function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'dn-deck'; }
 
 // ─── PARSE SLIDES ──────────────────────────────────────────────────────
-// Returns { slides: [...], pattern: 'h1' | 'slide_n' | 'h2' | 'hr' | null }
-// Priority order: # H1 (strongest) > Slide N — > ## H2 > ---
 function parseSlidesDetected(text) {
   if (!text || !text.trim()) return { slides: [], pattern: null };
-
   const lines = text.split(/\r?\n/);
-
-  // Helper: split chunks by line-index markers
   function buildChunks(markers) {
     const chunks = [];
     for (let i = 0; i < markers.length; i++) {
-      const cur = markers[i];
-      const next = markers[i+1];
+      const cur = markers[i]; const next = markers[i+1];
       const bodyLines = lines.slice(cur.idx + 1, next ? next.idx : lines.length);
-      // Strip leading "Slide N — " prefix from title if present
       let title = (cur.title || '').replace(/^Slide\s+\d+\s*[—–:\-\.]?\s*/i, '').trim();
       if (!title) {
         for (let j = 0; j < bodyLines.length; j++) {
@@ -514,8 +474,7 @@ function parseSlidesDetected(text) {
           if (!l) continue;
           if (/^title$/i.test(l)) continue;
           title = l.replace(/^#+\s*/, '');
-          bodyLines.splice(j, 1);
-          break;
+          bodyLines.splice(j, 1); break;
         }
       }
       while (bodyLines.length && /^\s*title\s*$/i.test(bodyLines[0])) bodyLines.shift();
@@ -523,44 +482,22 @@ function parseSlidesDetected(text) {
     }
     return chunks;
   }
-
-  let chunks = [];
-  let pattern = null;
-
-  // Priority 1: H1 "# Title" — STRONGEST
+  let chunks = []; let pattern = null;
   const h1Re = /^#\s+(.+?)\s*$/;
   const h1Markers = [];
-  lines.forEach((line, idx) => {
-    const m = line.match(h1Re);
-    if (m) h1Markers.push({ idx, title: (m[1] || '').trim() });
-  });
-  if (h1Markers.length >= 2) {
-    pattern = 'h1';
-    chunks = buildChunks(h1Markers);
-  } else {
-    // Priority 2: "Slide N — Title" pattern
+  lines.forEach((line, idx) => { const m = line.match(h1Re); if (m) h1Markers.push({ idx, title: (m[1] || '').trim() }); });
+  if (h1Markers.length >= 2) { pattern = 'h1'; chunks = buildChunks(h1Markers); }
+  else {
     const slideNRe = /^\s*Slide\s+\d+\s*[—–:\-\.]?\s*(.*)$/i;
     const slideNMarkers = [];
-    lines.forEach((line, idx) => {
-      const m = line.match(slideNRe);
-      if (m) slideNMarkers.push({ idx, title: (m[1] || '').trim() });
-    });
-    if (slideNMarkers.length >= 2) {
-      pattern = 'slide_n';
-      chunks = buildChunks(slideNMarkers);
-    } else {
-      // Priority 3: H2 "## Title"
+    lines.forEach((line, idx) => { const m = line.match(slideNRe); if (m) slideNMarkers.push({ idx, title: (m[1] || '').trim() }); });
+    if (slideNMarkers.length >= 2) { pattern = 'slide_n'; chunks = buildChunks(slideNMarkers); }
+    else {
       const h2Re = /^##\s+(.+?)\s*$/;
       const h2Markers = [];
-      lines.forEach((line, idx) => {
-        const m = line.match(h2Re);
-        if (m) h2Markers.push({ idx, title: (m[1] || '').trim() });
-      });
-      if (h2Markers.length >= 2) {
-        pattern = 'h2';
-        chunks = buildChunks(h2Markers);
-      } else if (/^\s*---\s*$/m.test(text)) {
-        // Priority 4: --- separators
+      lines.forEach((line, idx) => { const m = line.match(h2Re); if (m) h2Markers.push({ idx, title: (m[1] || '').trim() }); });
+      if (h2Markers.length >= 2) { pattern = 'h2'; chunks = buildChunks(h2Markers); }
+      else if (/^\s*---\s*$/m.test(text)) {
         pattern = 'hr';
         const segments = text.split(/^\s*---\s*$/m).map(s => s.trim()).filter(Boolean);
         chunks = segments.map((seg, i) => {
@@ -570,118 +507,62 @@ function parseSlidesDetected(text) {
           const bodyLines = firstNonEmpty >= 0 ? segLines.slice(firstNonEmpty + 1) : [];
           return { title: title || `Slide ${i+1}`, bodyLines };
         });
-      } else {
-        return { slides: null, pattern: null };
-      }
+      } else return { slides: null, pattern: null };
     }
   }
-
-  const slides = chunks.map(c => ({
-    title: c.title, body: c.bodyLines.join('\n').trim(),
-    imageB64: null, imagePrompt: null, lastPrompt: null,
-    status: 'idle', error: null, regenCount: 0
-  }));
+  const slides = chunks.map(c => ({ title: c.title, body: c.bodyLines.join('\n').trim(), imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }));
   return { slides, pattern };
 }
+function parseSlides(text) { return parseSlidesDetected(text).slides; }
+function patternLabel(p) { if (p === 'h1') return '"# heading" pattern'; if (p === 'slide_n') return '"Slide N —" pattern'; if (p === 'h2') return '"## heading" pattern'; if (p === 'hr') return '"---" separator pattern'; return null; }
 
-function parseSlides(text) {
-  const r = parseSlidesDetected(text);
-  return r.slides;
-}
-
-function patternLabel(p) {
-  if (p === 'h1') return '"# heading" pattern';
-  if (p === 'slide_n') return '"Slide N —" pattern';
-  if (p === 'h2') return '"## heading" pattern';
-  if (p === 'hr') return '"---" separator pattern';
-  return null;
-}
-
-// ─── ANTHROPIC POLISH ──────────────────────────────────────────────────
-// Polish receives the RAW pasted text + min/max range. Claude reads the raw text
-// and produces slides that fit within the range, no matter how the input was structured.
+// ─── ANTHROPIC POLISH (with token cost capture) ────────────────────────
 async function polishWithClaude(_unused, mode) {
   const key = (state.apiKeys.anthropic || '').trim();
   if (!key) throw new Error('NO_ANTHROPIC_KEY: Set Anthropic API key in Settings.');
-
   const rawText = state.rawText || '';
   const min = state.slideMin, max = state.slideMax;
   const target = Math.round((min + max) / 2);
-
   const modeInstruction = {
     shorten: 'Aggressively shorten each slide to brief bullet points. Consolidate adjacent slides if needed to fit within the slide count range.',
     expand:  'Expand each slide with supporting bullets and sub-headlines. If the input has very few slides, split into more — but stay within the range.',
     preserve:'Preserve the wording where reasonable. Only split or consolidate slides if necessary to fit the slide count range.',
     split:   'Split this raw text into a logical slide deck. Each slide should carry one clear idea. Consolidate or expand as needed to fit the range.'
   }[mode] || 'Reshape the input into a clean slide deck within the slide count range.';
-
-  const baseSystem = `You are a presentation editor for Digitata Networks, a premium telecom AI company.
-
-CRITICAL CONSTRAINT — non-negotiable:
-You MUST return exactly between ${min} and ${max} slides. Not fewer than ${min}. Not more than ${max}. Aim for ${target} as the default.
-If the input text has more sections than ${max}, you must consolidate.
-If the input text has fewer sections than ${min}, you must split or expand.
-This constraint overrides any other interpretation of the input structure.
-
-Mode: ${mode}
-Mode-specific instruction: ${modeInstruction}
-
-Return ONLY valid JSON, no markdown fences, no preamble:
-{
-  "slides": [
-    { "title": "Slide title — short, decisive", "body": "Slide body. Use \\n for line breaks, * for bullet points. Suitable to render directly on a slide." }
-  ]
-}`;
-
+  const baseSystem = `You are a presentation editor for Digitata Networks, a premium telecom AI company.\n\nCRITICAL CONSTRAINT — non-negotiable:\nYou MUST return exactly between ${min} and ${max} slides. Not fewer than ${min}. Not more than ${max}. Aim for ${target} as the default.\nIf the input text has more sections than ${max}, you must consolidate.\nIf the input text has fewer sections than ${min}, you must split or expand.\nThis constraint overrides any other interpretation of the input structure.\n\nMode: ${mode}\nMode-specific instruction: ${modeInstruction}\n\nReturn ONLY valid JSON, no markdown fences, no preamble:\n{\n  "slides": [\n    { "title": "Slide title — short, decisive", "body": "Slide body. Use \\n for line breaks, * for bullet points." }\n  ]\n}`;
   const userPrompt = `Here is the raw deck wording. Produce between ${min} and ${max} slides — not fewer, not more.\n\nRAW DECK TEXT:\n${rawText}`;
+  const modelName = 'claude-sonnet-4-5-20250929';
 
   async function callClaude(sys) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': key,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({
-        model: 'claude-sonnet-4-5-20250929',
-        max_tokens: 4000,
-        system: sys,
-        messages: [{ role: 'user', content: userPrompt }]
-      })
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: modelName, max_tokens: 4000, system: sys, messages: [{ role: 'user', content: userPrompt }] })
     });
-    if (!resp.ok) {
-      const err = await resp.text();
-      throw new Error(`Claude ${resp.status}: ${err.slice(0,300)}`);
-    }
+    if (!resp.ok) { const err = await resp.text(); throw new Error(`Claude ${resp.status}: ${err.slice(0,300)}`); }
     const data = await resp.json();
+    if (data.usage) {
+      const inTok = data.usage.input_tokens || 0;
+      const outTok = data.usage.output_tokens || 0;
+      const cost = getAnthropicCost(modelName, inTok, outTok);
+      deckCost.polish += cost;
+      renderCostBadge();
+    }
     const raw = data.content[0].text;
     const clean = raw.replace(/```json|```/g, '').trim();
     return JSON.parse(clean).slides || [];
   }
 
-  let attempt = 0;
-  let lastSlides = null;
+  let attempt = 0; let lastSlides = null;
   while (attempt < 3) {
     attempt++;
-    const sys = attempt === 1
-      ? baseSystem
-      : `${baseSystem}\n\nPREVIOUS ATTEMPT RETURNED ${lastSlides ? lastSlides.length : '?'} SLIDES, OUTSIDE THE REQUIRED RANGE OF [${min}, ${max}]. You MUST produce between ${min} and ${max} slides this time. Consolidate or expand as needed.`;
+    const sys = attempt === 1 ? baseSystem : `${baseSystem}\n\nPREVIOUS ATTEMPT RETURNED ${lastSlides ? lastSlides.length : '?'} SLIDES, OUTSIDE THE REQUIRED RANGE OF [${min}, ${max}]. You MUST produce between ${min} and ${max} slides this time.`;
     let result;
-    try {
-      result = await callClaude(sys);
-    } catch (e) {
-      if (attempt >= 3) throw e;
-      continue;
-    }
+    try { result = await callClaude(sys); } catch (e) { if (attempt >= 3) throw e; continue; }
     lastSlides = result;
     const n = result.length;
     if (n >= min && n <= max) return result;
-    if (attempt >= 3) {
-      toast({ type: 'warning', message: `AI couldn't hit the slide range — returned ${n} slides (target was ${min}–${max}). Adjust manually on the next step.` });
-      return result;
-    }
+    if (attempt >= 3) { toast({ type: 'warning', message: `AI couldn't hit the slide range — returned ${n} slides (target was ${min}–${max}). Adjust manually.` }); return result; }
   }
   throw new Error('Polish failed after 3 attempts');
 }
@@ -689,107 +570,103 @@ Return ONLY valid JSON, no markdown fences, no preamble:
 function polishedToSlides(polished) {
   return polished.map(p => {
     let body = '';
-    if (typeof p.body === 'string' && p.body.trim()) {
-      // New format: single body string with \n and * bullets
-      body = p.body.replace(/^\s*\*\s+/gm, '• ');
-    } else {
-      // Legacy format: subheadline + bullets array
-      const parts = [];
-      if (p.subheadline) parts.push(p.subheadline);
-      if (Array.isArray(p.bullets) && p.bullets.length) parts.push(...p.bullets.map(b => '• ' + b));
-      body = parts.join('\n');
-    }
-    return {
-      title: p.title || 'Untitled',
-      body: body,
-      imageB64: null, imagePrompt: null, lastPrompt: null,
-      status: 'idle', error: null, regenCount: 0
-    };
+    if (typeof p.body === 'string' && p.body.trim()) { body = p.body.replace(/^\s*\*\s+/gm, '• '); }
+    else { const parts = []; if (p.subheadline) parts.push(p.subheadline); if (Array.isArray(p.bullets) && p.bullets.length) parts.push(...p.bullets.map(b => '• ' + b)); body = parts.join('\n'); }
+    return { title: p.title || 'Untitled', body, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null };
   });
 }
 
 // ─── COMPOSED PROMPT (3-layer) ────────────────────────────────────────
-function composeBundlePrompt(bundleJoined, slide, customerLogoSet) {
+function composeBundlePrompt(bundleJoined, slide) {
   const layers = [];
-  if (bundleJoined && bundleJoined.house_style && bundleJoined.house_style.prompt) {
-    layers.push(bundleJoined.house_style.prompt);
-  } else {
-    layers.push(MASTER_PROMPT_FALLBACK);
-    toastOnce('missing_hs_' + (bundleJoined ? bundleJoined.id : 'none'), { type: 'warning', message: `Bundle "${bundleJoined ? bundleJoined.name : 'unknown'}" is missing a House Style template — using fallback.` });
-  }
-  if (bundleJoined && bundleJoined.domain_pack && bundleJoined.domain_pack.prompt) {
-    layers.push(bundleJoined.domain_pack.prompt);
-  } else if (bundleJoined) {
-    toastOnce('missing_dp_' + bundleJoined.id, { type: 'warning', message: `Bundle "${bundleJoined.name}" is missing a Domain Pack — generic context applied.` });
-  }
-  if (bundleJoined && bundleJoined.deck_type && bundleJoined.deck_type.prompt) {
-    layers.push(bundleJoined.deck_type.prompt);
-  } else if (bundleJoined) {
-    toastOnce('missing_dt_' + bundleJoined.id, { type: 'warning', message: `Bundle "${bundleJoined.name}" is missing a Deck Type — neutral tone applied.` });
-  }
-  if (slide) {
-    layers.push(`SLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody content / talking points:\n${slide.body || '(no body content provided)'}\n\nRender this slide visually with the title prominent and the body content represented as clear structured visual elements (panels, bullets, diagrams) — NOT as direct text overlays unless short labels.`);
-  }
+  if (bundleJoined && bundleJoined.house_style && bundleJoined.house_style.prompt) layers.push(bundleJoined.house_style.prompt);
+  else { layers.push(MASTER_PROMPT_FALLBACK); toastOnce('missing_hs_' + (bundleJoined ? bundleJoined.id : 'none'), { type: 'warning', message: `Bundle is missing a House Style template — using fallback.` }); }
+  if (bundleJoined && bundleJoined.domain_pack && bundleJoined.domain_pack.prompt) layers.push(bundleJoined.domain_pack.prompt);
+  if (bundleJoined && bundleJoined.deck_type && bundleJoined.deck_type.prompt) layers.push(bundleJoined.deck_type.prompt);
+  if (slide) layers.push(`SLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody content / talking points:\n${slide.body || '(no body content provided)'}\n\nRender this slide visually with the title prominent and the body content represented as clear structured visual elements (panels, bullets, diagrams) — NOT as direct text overlays unless short labels.`);
   return layers.join('\n\n');
 }
+function composeBundlePromptPreview(bundleJoined) { return composeBundlePrompt(bundleJoined, null); }
 
-function composeBundlePromptPreview(bundleJoined) {
-  return composeBundlePrompt(bundleJoined, null, false);
+// ─── PROVIDER ABSTRACTION ─────────────────────────────────────────────
+function blobToBase64(blob) { return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); }); }
+
+async function generateImageWithProvider(providerKey, modelKey, qualityKey, fullPrompt) {
+  switch (providerKey) {
+    case 'openai': return await generateOpenAIImage(modelKey, qualityKey, fullPrompt);
+    case 'google': return await generateGoogleImage(modelKey, fullPrompt);
+    default: throw new Error(`Unknown provider: ${providerKey}`);
+  }
 }
 
-// ─── IMAGE GEN ────────────────────────────────────────────────────────
-function buildImageParams(model, prompt, quality) {
-  const base = { model, prompt, n: 1 };
-  if (model === 'gpt-image-2') return { ...base, output_format: 'jpeg', size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
-  if (model === 'gpt-image-1') return { ...base, size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
-  return { ...base, size: '1024x1024' };
-}
-
-async function generateSlideImage(slide, customPromptOverride) {
-  const openaiKey = (state.apiKeys.openai || '').trim();
-  if (!openaiKey) throw new Error('NO_OPENAI_KEY: Set OpenAI API key in Settings.');
-  if (!openaiKey.startsWith('sk-')) throw new Error('BAD_KEY_FORMAT: OpenAI key must start with sk-.');
-
-  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
-  const prompt = customPromptOverride || composeBundlePrompt(bundle, slide, state.customerLogoEnabled);
-
-  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` };
+async function generateOpenAIImage(model, quality, prompt) {
+  const apiKey = (state.apiKeys.openai || '').trim();
+  if (!apiKey) throw new Error('NO_OPENAI_KEY: Set OpenAI API key in Settings.');
+  if (!apiKey.startsWith('sk-')) throw new Error('BAD_OPENAI_KEY: must start with sk-');
+  const q = quality || state.imageQuality || 'high';
+  const body = (model === 'gpt-image-2')
+    ? { model, prompt, size: '1536x1024', quality: q, n: 1, output_format: 'jpeg' }
+    : { model, prompt, size: '1536x1024', quality: q, n: 1 };
+  const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` };
   const org = (state.apiKeys.openai_org || '').trim();
   if (org) headers['OpenAI-Organization'] = org;
-
-  let model = state.imageModel;
-  let body = buildImageParams(model, prompt, 'high');
-  let resp = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers, body: JSON.stringify(body) });
-
-  if ((resp.status === 404 || resp.status === 400) && model === 'gpt-image-2') {
-    const errText = await resp.text();
-    if (/model/i.test(errText)) {
-      if (!state.imageModelFellBack) {
-        state.imageModelFellBack = true;
-        toast({ type: 'info', message: 'gpt-image-2 not available — falling back to gpt-image-1', duration: 6000 });
-      }
-      state.imageModel = 'gpt-image-1';
-      model = 'gpt-image-1';
-      body = buildImageParams(model, prompt, 'high');
-      resp = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers, body: JSON.stringify(body) });
-    } else {
-      throw new Error(`OpenAI ${resp.status}: ${errText.slice(0,300)}`);
-    }
-  }
-  if (!resp.ok) {
-    const t = await resp.text().catch(() => '');
-    throw new Error(`OpenAI ${resp.status}: ${t.slice(0,300)}`);
-  }
+  const resp = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers, body: JSON.stringify(body) });
+  if (!resp.ok) { const t = await resp.text(); throw new Error(`OpenAI ${model} ${resp.status}: ${t.slice(0,300)}`); }
   const data = await resp.json();
   const item = data.data[0];
-  if (item.b64_json) return { b64: item.b64_json, prompt };
-  if (item.url) {
-    const imgResp = await fetch(item.url);
-    const blob = await imgResp.blob();
-    const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
-    return { b64, prompt };
+  if (item.b64_json) return item.b64_json;
+  if (item.url) { const r2 = await fetch(item.url); const blob = await r2.blob(); return await blobToBase64(blob); }
+  throw new Error('OpenAI response missing b64_json/url');
+}
+
+async function generateGoogleImage(model, prompt) {
+  const apiKey = (state.apiKeys.gemini || '').trim();
+  if (!apiKey) throw new Error('NO_GEMINI_KEY: Set Google Gemini API key in Settings.');
+  if (model === 'imagen-3' || model === 'imagen-4') {
+    const modelPath = model === 'imagen-3' ? 'imagen-3.0-generate-002' : 'imagen-4.0-generate-001';
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/${modelPath}:predict?key=${encodeURIComponent(apiKey)}`;
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: '16:9' } }) });
+    if (!resp.ok) { const t = await resp.text(); throw new Error(`Google ${model} ${resp.status}: ${t.slice(0,300)}`); }
+    const data = await resp.json();
+    const pred = data.predictions && data.predictions[0];
+    if (!pred || !pred.bytesBase64Encoded) throw new Error('Imagen response missing bytesBase64Encoded');
+    return pred.bytesBase64Encoded;
   }
-  throw new Error('OpenAI response had neither b64_json nor url');
+  if (model === 'gemini-2-flash') {
+    const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp:generateContent?key=${encodeURIComponent(apiKey)}`;
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } }) });
+    if (!resp.ok) { const t = await resp.text(); throw new Error(`Gemini 2.0 Flash ${resp.status}: ${t.slice(0,300)}`); }
+    const data = await resp.json();
+    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
+    if (!imgPart) throw new Error('Gemini 2.0 Flash returned no image');
+    return imgPart.inlineData.data;
+  }
+  throw new Error(`Unknown Google model: ${model}`);
+}
+
+function modelLabel(provider, model, quality) {
+  const row = imageCosts.find(c => c.provider === provider && c.model === model && (!quality || c.quality === quality));
+  if (row && row.label) return row.label;
+  return `${provider} / ${model}${quality ? ' (' + quality + ')' : ''}`;
+}
+function parseModelSpec(spec) {
+  if (!spec) return null;
+  const parts = spec.split(':');
+  return { provider: parts[0], model: parts[1], quality: parts[2] || null };
+}
+function currentEffectiveModel() {
+  return parseModelSpec(state.selectedModel || state.defaultModel) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' };
+}
+
+// ─── SLIDE IMAGE GEN (uses currentEffectiveModel) ─────────────────────
+async function generateSlideImage(slide, customPromptOverride, overrideSpec) {
+  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
+  const prompt = customPromptOverride || composeBundlePrompt(bundle, slide);
+  const spec = overrideSpec || currentEffectiveModel();
+  const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, prompt);
+  const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
+  return { b64, prompt, cost, spec };
 }
 
 async function generateAllImages() {
@@ -804,13 +681,17 @@ async function generateAllImages() {
         const slide = state.slides[myIdx];
         if (slide.status === 'done') continue;
         slide.status = 'generating'; slide.error = null;
-        renderStep4Slides();
+        renderStep5Slides();
         try {
-          const { b64, prompt } = await generateSlideImage(slide);
+          const { b64, prompt, cost, spec } = await generateSlideImage(slide);
           slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
-          slide.status = 'done';
+          slide.status = 'done'; slide.costAccrued = (slide.costAccrued || 0) + cost;
+          slide.modelUsed = spec;
+          deckCost.image += cost;
+          deckCost.imageDetails.push({ ...spec, cost, kind: 'slide' });
+          renderCostBadge();
         } catch (err) { slide.status = 'error'; slide.error = err.message || String(err); }
-        renderStep4Slides();
+        renderStep5Slides();
       }
     })());
   }
@@ -820,17 +701,22 @@ async function generateAllImages() {
 async function regenerateOne(idx, newPrompt) {
   const slide = state.slides[idx];
   slide.status = 'generating'; slide.error = null;
-  renderStep4Slides();
+  renderStep5Slides();
   try {
-    const { b64, prompt } = await generateSlideImage(slide, newPrompt);
+    const { b64, prompt, cost, spec } = await generateSlideImage(slide, newPrompt);
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
     slide.status = 'done'; slide.regenCount++;
-    toast({ type: 'success', message: `Slide ${idx+1} regenerated` });
+    slide.costAccrued = (slide.costAccrued || 0) + cost;
+    slide.modelUsed = spec;
+    deckCost.image += cost;
+    deckCost.imageDetails.push({ ...spec, cost, kind: 'regen' });
+    renderCostBadge();
+    toast({ type: 'success', message: `Slide ${idx+1} regenerated · ${fmtUsd(cost)}` });
   } catch (err) {
     slide.status = 'error'; slide.error = err.message || String(err);
     toast({ type: 'error', message: err.message });
   }
-  renderStep4Slides();
+  renderStep5Slides();
 }
 
 async function loadDefaultLogo() {
@@ -838,117 +724,84 @@ async function loadDefaultLogo() {
     const r = await fetch(DEFAULT_LOGO_URL);
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const blob = await r.blob();
-    return await new Promise((res, rej) => {
-      const fr = new FileReader();
-      fr.onload = () => res(fr.result.split(',')[1]);
-      fr.onerror = () => rej(new Error('FileReader failed'));
-      fr.readAsDataURL(blob);
-    });
+    return await new Promise((res, rej) => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.onerror = () => rej(new Error('FileReader failed')); fr.readAsDataURL(blob); });
   } catch (e) { console.warn('Default logo load failed', e); return null; }
 }
 
-// ─── PPTX ASSEMBLY (PowerPoint-native logo placement) ──────────────────
+// ─── PPTX ASSEMBLY ─────────────────────────────────────────────────────
 async function assemblePptx() {
-  if (!window.__pptxReady || typeof PptxGenJS === 'undefined') {
-    toast({ type: 'error', message: 'PptxGenJS still loading — try again in a moment' });
-    return;
-  }
+  if (!window.__pptxReady || typeof PptxGenJS === 'undefined') { toast({ type: 'error', message: 'PptxGenJS still loading — try again in a moment' }); return; }
   const prs = new PptxGenJS();
-  prs.layout = 'LAYOUT_WIDE'; // 13.3" x 7.5"
+  prs.layout = 'LAYOUT_WIDE';
   const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
   const deckTitle = b ? b.name : 'DN Deck';
-  prs.title = deckTitle;
-  prs.subject = 'Digitata Networks Presentation';
-  prs.author = 'DN Deck Generator';
-
+  prs.title = deckTitle; prs.subject = 'Digitata Networks Presentation'; prs.author = 'DN Deck Generator';
   const dnLogoB64 = state.logoB64;
   const customerLogoB64 = state.customerLogoEnabled ? state.customerLogoB64 : null;
   const showLogoBacking = !!state.logoBacking;
-
-  // Compute aspect ratios ONCE (not per slide)
   const dnDims = dnLogoB64 ? await getImageDimensions(dnLogoB64) : null;
   const custDims = customerLogoB64 ? await getImageDimensions(customerLogoB64) : null;
-
-  // Logo placement constants (inches, calibrated for 13.3" wide slide)
-  const LOGO_X_LEFT = 0.19;
-  const LOGO_Y = 0.17;
-  const LOGO_W = 1.69;
-  const LOGO_H_MAX = 0.75;
-
-  // Compute actual placement dimensions per logo (preserves aspect ratio)
+  const LOGO_X_LEFT = 0.19, LOGO_Y = 0.17, LOGO_W = 1.69, LOGO_H_MAX = 0.75;
   const dnW = LOGO_W;
   const dnH = dnDims ? Math.min(LOGO_W * dnDims.aspect, LOGO_H_MAX) : 0.55;
   const custW = LOGO_W;
   const custH = custDims ? Math.min(LOGO_W * custDims.aspect, LOGO_H_MAX) : 0.55;
   const LOGO_X_RIGHT = 13.3 - LOGO_X_LEFT - custW;
-
   for (let i = 0; i < state.slides.length; i++) {
     const slide = state.slides[i];
     if (!slide.imageB64) continue;
     const s = prs.addSlide();
-
-    // Background image — full bleed, raw, no logo baked in
-    s.addImage({
-      data: `data:image/jpeg;base64,${slide.imageB64}`,
-      x: 0, y: 0, w: 13.3, h: 7.5
-    });
-
-    // Optional dark backing panels (native PPT shapes) — sized to each logo's actual dims
+    s.addImage({ data: `data:image/jpeg;base64,${slide.imageB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
     if (showLogoBacking) {
-      if (dnLogoB64) {
-        s.addShape(prs.ShapeType.roundRect, {
-          x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06,
-          w: dnW + 0.16, h: dnH + 0.12,
-          fill: { color: '080C1A' },
-          line: { color: '080C1A', width: 0 },
-          rectRadius: 0.05
-        });
-      }
-      if (customerLogoB64) {
-        s.addShape(prs.ShapeType.roundRect, {
-          x: LOGO_X_RIGHT - 0.08, y: LOGO_Y - 0.06,
-          w: custW + 0.16, h: custH + 0.12,
-          fill: { color: '080C1A' },
-          line: { color: '080C1A', width: 0 },
-          rectRadius: 0.05
-        });
-      }
+      if (dnLogoB64) s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06, w: dnW + 0.16, h: dnH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
+      if (customerLogoB64) s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_RIGHT - 0.08, y: LOGO_Y - 0.06, w: custW + 0.16, h: custH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
     }
-
-    // DN logo top-left — width fixed, height from aspect
-    if (dnLogoB64) {
-      s.addImage({
-        data: `data:image/png;base64,${dnLogoB64}`,
-        x: LOGO_X_LEFT, y: LOGO_Y, w: dnW, h: dnH
-      });
-    }
-
-    // Customer logo top-right — width fixed, height from aspect
-    if (customerLogoB64) {
-      s.addImage({
-        data: `data:image/png;base64,${customerLogoB64}`,
-        x: LOGO_X_RIGHT, y: LOGO_Y, w: custW, h: custH
-      });
-    }
-
+    if (dnLogoB64) s.addImage({ data: `data:image/png;base64,${dnLogoB64}`, x: LOGO_X_LEFT, y: LOGO_Y, w: dnW, h: dnH });
+    if (customerLogoB64) s.addImage({ data: `data:image/png;base64,${customerLogoB64}`, x: LOGO_X_RIGHT, y: LOGO_Y, w: custW, h: custH });
     s.addNotes(`${slide.title}\n\n${slide.body || ''}`);
   }
-
   const fileName = `${slugify(deckTitle)}-${dateStr()}.pptx`;
   const blob = await prs.write({ outputType: 'blob' });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = fileName;
+  const a = document.createElement('a'); a.href = url; a.download = fileName;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
-  toast({ type: 'success', html: `Downloaded <strong>${escapeHtml(fileName)}</strong> · ${(blob.size/1024).toFixed(0)} KB` });
+  showDeckReadyModal(fileName, blob.size);
+  if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
+}
 
-  // After successful write, clear customer logo so it doesn't bleed into next deck
-  if (state.customerLogoB64) {
-    state.customerLogoB64 = null;
-    state.customerLogoEnabled = false;
-    toast({ type: 'info', message: 'Customer logo cleared for next deck' });
-  }
+function showDeckReadyModal(fileName, blobSize) {
+  const slideCount = state.slides.length;
+  const slideImageRows = deckCost.imageDetails.filter(d => d.kind === 'slide');
+  const regenRows = deckCost.imageDetails.filter(d => d.kind === 'regen');
+  const testRows = deckCost.imageDetails.filter(d => d.kind === 'test');
+  const slideImageCost = slideImageRows.reduce((s, r) => s + r.cost, 0);
+  const regenCost = regenRows.reduce((s, r) => s + r.cost, 0);
+  const testCost = testRows.reduce((s, r) => s + r.cost, 0);
+  const total = deckCost.total();
+  const html = `
+    <div class="modal-header">
+      <div>
+        <div class="h1">Deck ready</div>
+        <div class="muted body-sm" style="margin-top:4px">${escapeHtml(fileName)} · ${(blobSize/1024).toFixed(0)} KB · downloaded</div>
+      </div>
+      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
+    </div>
+    <div class="h2" style="margin-bottom:8px">Cost breakdown</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+      <table>
+        <tbody>
+          <tr><td>Polish (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.polish)}</td></tr>
+          ${testCost > 0 ? `<tr><td>Test slide images <span class="subtle">(${testRows.length} model${testRows.length===1?'':'s'} compared)</span></td><td class="mono" style="text-align:right">${fmtUsd4(testCost)}</td></tr>` : ''}
+          <tr><td>Slide images <span class="subtle">(${slideImageRows.length} × ${escapeHtml(slideImageRows[0] ? modelLabel(slideImageRows[0].provider, slideImageRows[0].model, slideImageRows[0].quality) : '—')})</span></td><td class="mono" style="text-align:right">${fmtUsd4(slideImageCost)}</td></tr>
+          ${regenCost > 0 ? `<tr><td>Regenerations <span class="subtle">(${regenRows.length})</span></td><td class="mono" style="text-align:right">${fmtUsd4(regenCost)}</td></tr>` : ''}
+          <tr style="font-weight:600"><td>Total</td><td class="mono" style="text-align:right">${fmtUsd4(total)}</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="muted body-sm">${slideCount} slides generated. Customer logo cleared for the next deck.</div>
+    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Done</button></div>`;
+  openModal(html, { lg: true });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -960,14 +813,15 @@ function renderCompose() {
     <div style="margin-bottom:24px">
       <div class="eyebrow" style="margin-bottom:8px">New deck</div>
       <div class="display">Compose a deck</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Paste your slide content, polish if you want, edit each slide, then generate images. The bundle you pick drives the visual prompt.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Paste your slide content, polish if you want, edit each slide, compare image models side by side, then generate. Real costs tracked at every step.</div>
     </div>
     <div id="step1"></div>
     <div id="step2"></div>
     <div id="step3"></div>
-    <div id="step4"></div>
+    <div id="step35"></div>
+    <div id="step5"></div>
   `;
-  renderStep1(); renderStep2(); renderStep3(); renderStep4();
+  renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
 }
 
 function renderStep1() {
@@ -975,61 +829,27 @@ function renderStep1() {
   if (!el) return;
   const isActive = state.composeStep === 1;
   const isDone = state.composeStep > 1;
-
   if (!isActive && isDone) {
     const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
-    el.innerHTML = `
-      <div class="step-card collapsed">
-        <div class="step-header" id="step1Edit">
-          <div class="step-num done">✓</div>
-          <div class="step-title">Input</div>
-          <div class="step-desc">${b ? escapeHtml(b.name) + ' · ' : ''}${state.slides.length} slides · ${state.slideMin}–${state.slideMax} target</div>
-          <button class="btn-ghost" style="margin-left:8px">Edit</button>
-        </div>
-      </div>`;
+    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step1Edit"><div class="step-num done">✓</div><div class="step-title">Input</div><div class="step-desc">${b ? escapeHtml(b.name) + ' · ' : ''}${state.slides.length} slides · ${state.slideMin}–${state.slideMax} target</div><button class="btn-ghost" style="margin-left:8px">Edit</button></div></div>`;
     document.getElementById('step1Edit').onclick = () => { state.composeStep = 1; renderCompose(); };
     return;
   }
-
-  const placeholder = `Paste your slide content. Separate slides with either:
-  - a line containing only ---
-  - or a heading line starting with ## (markdown H2)
-
-Example:
-## Slide 1: Telecom Operations Are Reaching a Scaling Limit
-Operators face increasing network complexity and rising operational costs.
----
-## Slide 2: The Industry Shift
-AI is rapidly improving but operators still struggle with governed execution.`;
-
+  const placeholder = `Paste your slide content. Separate slides with one of:
+  # H1 title (strongest), Slide N — Title, ## H2 title, or --- separators.`;
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header">
-        <div class="step-num">1</div>
-        <div class="step-title">Paste your deck wording</div>
-        <div class="step-desc">Markdown ## headers or --- separators</div>
-      </div>
+      <div class="step-header"><div class="step-num">1</div><div class="step-title">Paste your deck wording</div><div class="step-desc">Markers: # · Slide N · ## · ---</div></div>
       <div class="step-body">
         <div class="field">
           <label class="field-label">Bundle <span class="subtle">drives the visual prompt</span></label>
-          <div class="template-select">
-            <select class="select" id="bundleSel">
-              <option value="">— optional (uses fallback prompt) —</option>
-              ${db.bundles.map(b => `<option value="${b.id}" ${state.selectedBundleId === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}
-            </select>
-          </div>
+          <div class="template-select"><select class="select" id="bundleSel"><option value="">— optional (uses fallback prompt) —</option>${db.bundles.map(b => `<option value="${b.id}" ${state.selectedBundleId === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}</select></div>
         </div>
         <div class="field">
-          <label class="field-label">Slide count range <span class="subtle">enforced through the flow</span></label>
+          <label class="field-label">Slide count range</label>
           <div class="range-row">
-            <div>
-              <input class="input" type="number" id="slideMin" min="1" max="30" value="${state.slideMin}">
-              <div class="field-hint" style="margin-top:4px">Minimum</div>
-            </div>
-            <div>
-              <input class="input" type="number" id="slideMax" min="1" max="30" value="${state.slideMax}">
-              <div class="field-hint" style="margin-top:4px">Maximum</div>
-            </div>
+            <div><input class="input" type="number" id="slideMin" min="1" max="30" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div>
+            <div><input class="input" type="number" id="slideMax" min="1" max="30" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div>
           </div>
         </div>
         <div class="field">
@@ -1038,161 +858,73 @@ AI is rapidly improving but operators still struggle with governed execution.`;
           <div id="patternIndicator" class="field-hint" style="margin-top:6px"></div>
         </div>
         <div class="field">
-          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="custLogoChk" ${state.customerLogoEnabled ? 'checked' : ''} style="margin:0">
-            <span>Add customer logo (top-right of every slide)</span>
-          </label>
+          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="custLogoChk" ${state.customerLogoEnabled ? 'checked' : ''} style="margin:0"><span>Add customer logo (top-right of every slide)</span></label>
           <div id="custLogoBlock" style="display:${state.customerLogoEnabled ? 'block' : 'none'};margin-top:8px">
             <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
               <div class="logo-preview">${state.customerLogoB64 ? `<img src="data:image/png;base64,${state.customerLogoB64}" alt="customer logo">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div>
-              <div style="display:flex;gap:6px">
-                <input type="file" id="custLogoFile" accept=".png,image/png" style="display:none">
-                <button class="btn-secondary" id="custUploadBtn" type="button">Upload PNG</button>
-                ${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}
-              </div>
+              <div style="display:flex;gap:6px"><input type="file" id="custLogoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="custUploadBtn" type="button">Upload PNG</button>${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}</div>
             </div>
-            <div class="field-hint" style="margin-top:8px">Transparent PNG recommended. Placed as a native PowerPoint image in the top-right corner — selectable / movable in PowerPoint. Cleared automatically after .pptx download.</div>
+            <div class="field-hint" style="margin-top:8px">Transparent PNG recommended. Cleared automatically after .pptx download.</div>
           </div>
         </div>
         <div id="step1Error"></div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
-          <button class="btn-secondary" id="polishBtn">Polish with AI →</button>
-          <button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button>
-        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="polishBtn">Polish with AI →</button><button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button></div>
       </div>
     </div>`;
-
-  const bundleSel = document.getElementById('bundleSel');
-  bundleSel.onchange = e => { state.selectedBundleId = e.target.value || null; };
-  document.getElementById('slideMin').onchange = e => {
-    let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
-    state.slideMin = v;
-    if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; }
-    renderStep1();
-  };
-  document.getElementById('slideMax').onchange = e => {
-    let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
-    state.slideMax = v;
-    if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; }
-    renderStep1();
-  };
-
+  document.getElementById('bundleSel').onchange = e => { state.selectedBundleId = e.target.value || null; };
+  document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; } renderStep1(); };
+  document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; } renderStep1(); };
   const custChk = document.getElementById('custLogoChk');
-  custChk.onchange = e => {
-    state.customerLogoEnabled = e.target.checked;
-    document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none';
-    if (!e.target.checked) state.customerLogoB64 = null;
-    renderStep1();
-  };
-  const custUpload = document.getElementById('custUploadBtn');
-  if (custUpload) custUpload.onclick = () => document.getElementById('custLogoFile').click();
-  const custFile = document.getElementById('custLogoFile');
-  if (custFile) custFile.onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
-    if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
-    const fr = new FileReader();
-    fr.onload = () => { state.customerLogoB64 = fr.result.split(',')[1]; toast({ type: 'success', message: 'Customer logo uploaded' }); renderStep1(); };
-    fr.readAsDataURL(file);
-  };
-  const custClear = document.getElementById('custClearBtn');
-  if (custClear) custClear.onclick = () => { state.customerLogoB64 = null; renderStep1(); };
-
+  custChk.onchange = e => { state.customerLogoEnabled = e.target.checked; document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none'; if (!e.target.checked) state.customerLogoB64 = null; renderStep1(); };
+  const custUpload = document.getElementById('custUploadBtn'); if (custUpload) custUpload.onclick = () => document.getElementById('custLogoFile').click();
+  const custFile = document.getElementById('custLogoFile'); if (custFile) custFile.onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = () => { state.customerLogoB64 = fr.result.split(',')[1]; toast({ type: 'success', message: 'Customer logo uploaded' }); renderStep1(); }; fr.readAsDataURL(file); };
+  const custClear = document.getElementById('custClearBtn'); if (custClear) custClear.onclick = () => { state.customerLogoB64 = null; renderStep1(); };
   const raw = document.getElementById('rawText');
   function updatePatternIndicator() {
-    const ind = document.getElementById('patternIndicator');
-    if (!ind) return;
+    const ind = document.getElementById('patternIndicator'); if (!ind) return;
     const txt = state.rawText || '';
-    if (!txt.trim()) { ind.innerHTML = '<span class="subtle">Paste your deck wording above. Supported markers (priority order): <span class="mono"># Heading</span>, <span class="mono">Slide N — Title</span>, <span class="mono">## Heading</span>, or <span class="mono">---</span> separators.</span>'; return; }
+    if (!txt.trim()) { ind.innerHTML = '<span class="subtle">Supported markers (priority): <span class="mono"># Heading</span>, <span class="mono">Slide N — Title</span>, <span class="mono">## Heading</span>, <span class="mono">---</span>.</span>'; return; }
     const r = parseSlidesDetected(txt);
-    if (!r.pattern || !r.slides) {
-      ind.innerHTML = '<span style="color:var(--warning)">⚠ No slide breaks detected. Add <span class="mono"># Slide Title</span>, <span class="mono">Slide 1 — Title</span>, <span class="mono">## Title</span>, or <span class="mono">---</span> between slides — or use Polish with AI to auto-split.</span>';
-      return;
-    }
+    if (!r.pattern || !r.slides) { ind.innerHTML = '<span style="color:var(--warning)">⚠ No slide breaks detected. Add markers or use Polish with AI.</span>'; return; }
     const n = r.slides.length;
     const inRange = n >= state.slideMin && n <= state.slideMax;
-    if (inRange) {
-      ind.innerHTML = `<span style="color:var(--success)">✓ Detected ${n} slide${n===1?'':'s'} using ${escapeHtml(patternLabel(r.pattern))} — within your ${state.slideMin}–${state.slideMax} range</span>`;
-    } else {
-      const direction = n > state.slideMax ? 'consolidate' : 'expand';
-      ind.innerHTML = `<span style="color:var(--info)">✓ Detected ${n} slide${n===1?'':'s'} using ${escapeHtml(patternLabel(r.pattern))}. AI will ${direction} to fit your ${state.slideMin}–${state.slideMax} range when you click Continue.</span>`;
-    }
+    if (inRange) ind.innerHTML = `<span style="color:var(--success)">✓ Detected ${n} slide${n===1?'':'s'} using ${escapeHtml(patternLabel(r.pattern))} — within your ${state.slideMin}–${state.slideMax} range</span>`;
+    else { const direction = n > state.slideMax ? 'consolidate' : 'expand'; ind.innerHTML = `<span style="color:var(--info)">✓ Detected ${n} slide${n===1?'':'s'}. AI will ${direction} to fit ${state.slideMin}–${state.slideMax} when you continue.</span>`; }
   }
   raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; updatePatternIndicator(); };
   updatePatternIndicator();
-
   document.getElementById('continueAsIsBtn').onclick = async () => {
     const r = parseSlidesDetected(state.rawText);
     const parsed = r.slides;
-    if (parsed === null) {
-      document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>No slide breaks detected. Add <span class="mono"># Slide Title</span>, <span class="mono">Slide 1 — Title</span>, <span class="mono">## Title</span>, or <span class="mono">---</span> between slides — or use Polish with AI to auto-split.</div></div>';
-      return;
-    }
+    if (parsed === null) { document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><div>No slide breaks detected. Add markers or use Polish with AI.</div></div>'; return; }
     if (parsed.length === 0) { toast({ type: 'error', message: 'No slides found in text' }); return; }
-    // In-range happy path
-    if (parsed.length >= state.slideMin && parsed.length <= state.slideMax) {
-      state.slides = parsed;
-      state.composeStep = 3;
-      renderCompose();
-      return;
-    }
-    // Out of range — auto-fit via Polish in Preserve mode
-    if (!state.apiKeys.anthropic) {
-      const direction = parsed.length > state.slideMax ? 'too many' : 'too few';
-      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Detected <strong>${parsed.length}</strong> slides (${direction} for your <strong>${state.slideMin}–${state.slideMax}</strong> range). Auto-fit needs an Anthropic API key — paste yours in <strong>Settings → Anthropic</strong>. Or adjust your text / slide range to match.</div></div>`;
-      return;
-    }
+    if (parsed.length >= state.slideMin && parsed.length <= state.slideMax) { state.slides = parsed; state.composeStep = 3; renderCompose(); return; }
+    if (!state.apiKeys.anthropic) { const direction = parsed.length > state.slideMax ? 'too many' : 'too few'; document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Detected <strong>${parsed.length}</strong> slides (${direction} for your <strong>${state.slideMin}–${state.slideMax}</strong> range). Auto-fit needs an Anthropic API key.</div></div>`; return; }
     const direction = parsed.length > state.slideMax ? 'consolidating' : 'expanding';
-    const btn = document.getElementById('continueAsIsBtn');
-    const polishBtn = document.getElementById('polishBtn');
+    const btn = document.getElementById('continueAsIsBtn'); const polishBtn = document.getElementById('polishBtn');
     if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> ${direction === 'consolidating' ? 'Consolidating' : 'Expanding'}…`; }
     if (polishBtn) polishBtn.disabled = true;
-    document.getElementById('step1Error').innerHTML = `<div class="info-banner" style="margin-top:12px"><div>Detected ${parsed.length} slides — ${direction} to fit your ${state.slideMin}–${state.slideMax} range with AI…</div></div>`;
-    state.slides = parsed;
-    state.polishMode = 'preserve';
-    try {
-      const polished = await polishWithClaude(null, 'preserve');
-      state.slides = polishedToSlides(polished);
-      toast({ type: 'success', message: `AI ${direction === 'consolidating' ? 'consolidated' : 'expanded'} to ${state.slides.length} slides — edit on the next step if needed.` });
-      state.composeStep = 3;
-      renderCompose();
-    } catch (e) {
-      if (btn) { btn.disabled = false; btn.innerHTML = 'Continue with text as-is →'; }
-      if (polishBtn) polishBtn.disabled = false;
-      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Auto-fit failed: ${escapeHtml(e.message || String(e))}. Try <strong>Polish with AI</strong> manually, or adjust your slide range.</div></div>`;
-    }
+    document.getElementById('step1Error').innerHTML = `<div class="info-banner" style="margin-top:12px"><div>Detected ${parsed.length} slides — ${direction} to fit your ${state.slideMin}–${state.slideMax} range…</div></div>`;
+    state.slides = parsed; state.polishMode = 'preserve';
+    try { const polished = await polishWithClaude(null, 'preserve'); state.slides = polishedToSlides(polished); toast({ type: 'success', message: `AI ${direction === 'consolidating' ? 'consolidated' : 'expanded'} to ${state.slides.length} slides.` }); state.composeStep = 3; renderCompose(); }
+    catch (e) { if (btn) { btn.disabled = false; btn.innerHTML = 'Continue with text as-is →'; } if (polishBtn) polishBtn.disabled = false; document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Auto-fit failed: ${escapeHtml(e.message || String(e))}</div></div>`; }
   };
   document.getElementById('polishBtn').onclick = () => {
-    if (!state.apiKeys.anthropic) {
-      document.getElementById('step1Error').innerHTML = '<div class="info-banner" style="margin-top:12px"><div>Paste your Anthropic API key in <strong>Settings → Anthropic</strong> to use AI polish, or click <strong>Continue with text as-is</strong>.</div></div>';
-      return;
-    }
+    if (!state.apiKeys.anthropic) { document.getElementById('step1Error').innerHTML = '<div class="info-banner" style="margin-top:12px"><div>Paste your Anthropic API key in <strong>Settings</strong> to use AI polish.</div></div>'; return; }
     if (!state.rawText.trim()) { toast({ type: 'error', message: 'Paste some text first' }); return; }
-    const r = parseSlidesDetected(state.rawText);
-    state.slides = r.slides || [];
-    state.composeStep = 2;
-    renderCompose();
+    const r = parseSlidesDetected(state.rawText); state.slides = r.slides || []; state.composeStep = 2; renderCompose();
   };
 }
 
 function renderStep2() {
-  const el = document.getElementById('step2');
-  if (!el) return;
-  const isActive = state.composeStep === 2;
-  const isDone = state.composeStep > 2;
-  const isFuture = state.composeStep < 2;
-
+  const el = document.getElementById('step2'); if (!el) return;
+  const isActive = state.composeStep === 2; const isDone = state.composeStep > 2; const isFuture = state.composeStep < 2;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI (optional)</div><div class="step-desc">shorten / expand / split</div></div></div>`; return; }
-  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' applied' : 'skipped'}</div></div></div>`; return; }
-
+  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' applied · ' + fmtUsd4(deckCost.polish) : 'skipped'}</div></div></div>`; return; }
   const hasMarkers = state.slides.length > 0;
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header">
-        <div class="step-num">2</div>
-        <div class="step-title">Polish with AI</div>
-        <div class="step-desc">${hasMarkers ? state.slides.length + ' slides detected · target ' + state.slideMin + '–' + state.slideMax : 'no markers — will auto-split to ' + state.slideMin + '–' + state.slideMax}</div>
-      </div>
+      <div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">${hasMarkers ? state.slides.length + ' slides · target ' + state.slideMin + '–' + state.slideMax : 'no markers — will auto-split to ' + state.slideMin + '–' + state.slideMax}</div></div>
       <div class="step-body">
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
           ${!hasMarkers ? `<button class="btn-secondary" id="splitBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='split' ? '<span class="spinner"></span> Splitting…' : 'Auto-split into slides'}</button>` : ''}
@@ -1200,19 +932,10 @@ function renderStep2() {
           <button class="btn-secondary" id="expandBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='expand' ? '<span class="spinner"></span> Expanding…' : 'Expand'}</button>
           <button class="btn-secondary" id="preserveBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='preserve' ? '<span class="spinner"></span> Reshaping…' : 'Preserve text'}</button>` : ''}
         </div>
-        ${state.slides.length > 0 ? `<div class="caption" style="margin-bottom:8px">${state.slides.length} slides</div>
-        <div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `
-          <div class="slide-edit-card" style="margin-bottom:6px">
-            <div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div>
-            <div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div>
-          </div>`).join('')}</div>` : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong> to let Claude split your text into slides.</div></div>'}
-        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px">
-          <button class="btn-ghost" id="backTo1">← Back</button>
-          <button class="btn-primary" id="toStep3" ${state.slides.length === 0 ? 'disabled' : ''}>Continue to slide edit →</button>
-        </div>
+        ${state.slides.length > 0 ? `<div class="caption" style="margin-bottom:8px">${state.slides.length} slides</div><div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `<div class="slide-edit-card" style="margin-bottom:6px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div><div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div></div>`).join('')}</div>` : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong> to let Claude split your text into slides.</div></div>'}
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px"><button class="btn-ghost" id="backTo1">← Back</button><button class="btn-primary" id="toStep3" ${state.slides.length === 0 ? 'disabled' : ''}>Continue to slide edit →</button></div>
       </div>
     </div>`;
-
   const shortenBtn = document.getElementById('shortenBtn'); if (shortenBtn) shortenBtn.onclick = () => runPolish('shorten');
   const expandBtn = document.getElementById('expandBtn'); if (expandBtn) expandBtn.onclick = () => runPolish('expand');
   const splitBtn = document.getElementById('splitBtn'); if (splitBtn) splitBtn.onclick = () => runPolish('split');
@@ -1220,133 +943,263 @@ function renderStep2() {
   document.getElementById('backTo1').onclick = () => { state.composeStep = 1; renderCompose(); };
   document.getElementById('toStep3').onclick = () => { state.composeStep = 3; renderCompose(); };
 }
-
 async function runPolish(mode) {
   state.polishing = true; state.polishMode = mode; renderStep2();
-  try {
-    const polished = await polishWithClaude(null, mode);
-    state.slides = polishedToSlides(polished);
-    const label = mode === 'split' ? 'Split' : mode === 'shorten' ? 'Shortened' : mode === 'expand' ? 'Expanded' : 'Reshaped';
-    toast({ type: 'success', message: `${label} — ${state.slides.length} slides` });
-  } catch (e) { toast({ type: 'error', message: e.message }); }
-  state.polishing = false;
-  renderStep2();
+  try { const polished = await polishWithClaude(null, mode); state.slides = polishedToSlides(polished); const label = mode === 'split' ? 'Split' : mode === 'shorten' ? 'Shortened' : mode === 'expand' ? 'Expanded' : 'Reshaped'; toast({ type: 'success', message: `${label} — ${state.slides.length} slides · ${fmtUsd4(deckCost.polish)}` }); } catch (e) { toast({ type: 'error', message: e.message }); }
+  state.polishing = false; renderStep2();
 }
 
 function renderStep3() {
-  const el = document.getElementById('step3');
-  if (!el) return;
-  const isActive = state.composeStep === 3;
-  const isDone = state.composeStep > 3;
-  const isFuture = state.composeStep < 3;
-  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Slide text preview &amp; edit</div><div class="step-desc">edit titles and body</div></div></div>`; return; }
-  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step3Edit"><div class="step-num done">✓</div><div class="step-title">Slide text</div><div class="step-desc">${state.slides.length} slides</div><button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button></div></div>`;
-    document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); }; return; }
-
+  const el = document.getElementById('step3'); if (!el) return;
+  const isActive = state.composeStep === 3; const isDone = state.composeStep > 3; const isFuture = state.composeStep < 3;
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Edit slide text</div><div class="step-desc">titles and body</div></div></div>`; return; }
+  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step3Edit"><div class="step-num done">✓</div><div class="step-title">Slide text</div><div class="step-desc">${state.slides.length} slides</div><button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button></div></div>`; document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); }; return; }
   const n = state.slides.length;
   const inRange = n >= state.slideMin && n <= state.slideMax;
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header">
-        <div class="step-num">3</div>
-        <div class="step-title">Edit slide text</div>
-        <div class="step-desc"><span class="slide-counter ${inRange ? 'in-range' : 'out-of-range'}">${n} of ${state.slideMin}–${state.slideMax} slides</span></div>
-      </div>
+      <div class="step-header"><div class="step-num">3</div><div class="step-title">Edit slide text</div><div class="step-desc"><span class="slide-counter ${inRange ? 'in-range' : 'out-of-range'}">${n} of ${state.slideMin}–${state.slideMax} slides</span></div></div>
       <div class="step-body">
         <div id="slideEditList">${state.slides.map((s, i) => renderSlideEditCard(s, i)).join('')}</div>
-        <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn-secondary" id="addSlideBtn" ${n >= state.slideMax ? 'disabled title="Maximum slide count reached"' : ''}>+ Add slide</button>
-        </div>
+        <div style="display:flex;gap:8px;margin-top:12px"><button class="btn-secondary" id="addSlideBtn" ${n >= state.slideMax ? 'disabled title="Maximum slide count reached"' : ''}>+ Add slide</button></div>
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
           <button class="btn-ghost" id="backTo2or1">← Back</button>
-          <button class="btn-primary lg" id="toStep4" ${!inRange ? 'disabled title="Slide count must be within range"' : ''}>Generate images →</button>
+          <button class="btn-primary lg" id="toStep35" ${!inRange ? 'disabled title="Slide count must be within range"' : ''}>Pick image model →</button>
         </div>
       </div>
     </div>`;
-
   state.slides.forEach((s, i) => bindSlideEditCard(i));
-  document.getElementById('addSlideBtn').onclick = () => {
-    if (state.slides.length >= state.slideMax) return;
-    state.slides.push({ title: 'New slide', body: '', imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0 });
-    renderStep3();
-  };
+  document.getElementById('addSlideBtn').onclick = () => { if (state.slides.length >= state.slideMax) return; state.slides.push({ title: 'New slide', body: '', imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }); renderStep3(); };
   document.getElementById('backTo2or1').onclick = () => { state.composeStep = state.polishMode ? 2 : 1; renderCompose(); };
-  document.getElementById('toStep4').onclick = () => {
-    if (!state.apiKeys.openai) { toast({ type: 'error', message: 'Add OpenAI API key in Settings first' }); return; }
-    state.composeStep = 4; renderCompose(); generateAllImages();
+  document.getElementById('toStep35').onclick = () => {
+    if (state.skipModelPicker) {
+      const spec = parseModelSpec(state.defaultModel);
+      if (!spec || !providerKeyAvailable(spec.provider)) { toast({ type: 'error', message: 'Skip is on, but no key available for default model. Configure in Settings.' }); return; }
+      state.selectedModel = state.defaultModel;
+      state.composeStep = 5; renderCompose(); generateAllImages();
+      return;
+    }
+    enterStep35();
   };
 }
-
 function renderSlideEditCard(s, i) {
   const atMin = state.slides.length <= state.slideMin;
   return `
     <div class="slide-edit-card" data-idx="${i}">
-      <div class="slide-edit-head">
-        <span class="slide-edit-num">Slide ${i+1}</span>
-        <div class="slide-edit-actions">
-          <button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled title="Minimum slide count reached"' : 'title="Delete slide"'} aria-label="Delete slide">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
-          </button>
-        </div>
-      </div>
+      <div class="slide-edit-head"><span class="slide-edit-num">Slide ${i+1}</span><div class="slide-edit-actions"><button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled title="Minimum slide count reached"' : 'title="Delete slide"'} aria-label="Delete slide"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>
       <div class="field"><label class="field-label">Title</label><input class="input" data-act="title" value="${escapeHtml(s.title)}"></div>
       <div class="field" style="margin-bottom:0"><label class="field-label">Body</label><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea></div>
     </div>`;
 }
-
 function bindSlideEditCard(i) {
-  const card = document.querySelector(`.slide-edit-card[data-idx="${i}"]`);
-  if (!card) return;
-  const titleInp = card.querySelector('[data-act="title"]');
-  const bodyInp = card.querySelector('[data-act="body"]');
-  const delBtn = card.querySelector('[data-act="del"]');
-  titleInp.oninput = e => { state.slides[i].title = e.target.value; };
-  bodyInp.oninput = e => { state.slides[i].body = e.target.value; };
-  delBtn.onclick = () => {
-    if (state.slides.length <= state.slideMin) return;
-    state.slides.splice(i, 1);
-    renderStep3();
-  };
+  const card = document.querySelector(`.slide-edit-card[data-idx="${i}"]`); if (!card) return;
+  card.querySelector('[data-act="title"]').oninput = e => { state.slides[i].title = e.target.value; };
+  card.querySelector('[data-act="body"]').oninput = e => { state.slides[i].body = e.target.value; };
+  card.querySelector('[data-act="del"]').onclick = () => { if (state.slides.length <= state.slideMin) return; state.slides.splice(i, 1); renderStep3(); };
 }
 
-function renderStep4() {
-  const el = document.getElementById('step4');
-  if (!el) return;
-  const isFuture = state.composeStep < 4;
-  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Generate images &amp; assemble</div><div class="step-desc">${state.imageModel}</div></div></div>`; return; }
-  const allDone = state.slides.every(s => s.status === 'done');
+// ─── STEP 3.5 — Pick model ─────────────────────────────────────────────
+function providerKeyAvailable(provider) {
+  if (provider === 'openai') return !!(state.apiKeys.openai || '').trim();
+  if (provider === 'google') return !!(state.apiKeys.gemini || '').trim();
+  return false;
+}
+function buildModelCandidates() {
+  // One card per is_default row per provider/model — i.e. one card per visually-distinct model
+  const seen = new Set();
+  const list = [];
+  imageCosts.filter(c => c.is_active).forEach(c => {
+    const key = c.provider + ':' + c.model;
+    if (seen.has(key)) return;
+    if (!c.is_default) return;
+    seen.add(key);
+    list.push({
+      provider: c.provider, model: c.model, quality: c.quality || 'high',
+      label: c.label || (c.provider + ' / ' + c.model),
+      cost_per_image: c.cost_per_image,
+      keyAvailable: providerKeyAvailable(c.provider),
+      status: 'idle', imageB64: null, error: null
+    });
+  });
+  return list;
+}
+function enterStep35() {
+  if (!providerKeyAvailable('openai') && !providerKeyAvailable('google')) {
+    toast({ type: 'error', message: 'Configure at least one image provider key in Settings.' });
+    return;
+  }
+  // Pick default test slide — longest body, else slide 2 or 1
+  let idx = 0;
+  let maxLen = -1;
+  state.slides.forEach((s, i) => { const len = (s.body || '').length; if (len > maxLen) { maxLen = len; idx = i; } });
+  if (maxLen <= 0 && state.slides.length > 1) idx = 1;
+  state.modelPicker.testSlideIdx = idx;
+  state.modelPicker.candidates = buildModelCandidates();
+  state.modelPicker.inFlight = false;
+  state.composeStep = 3.5;
+  renderCompose();
+}
+function renderStep35() {
+  const el = document.getElementById('step35'); if (!el) return;
+  const isActive = state.composeStep === 3.5; const isDone = state.composeStep > 3.5; const isFuture = state.composeStep < 3.5;
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">side-by-side comparison</div></div></div>`; return; }
+  if (isDone) {
+    const spec = currentEffectiveModel();
+    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step35Edit"><div class="step-num done">✓</div><div class="step-title">Model</div><div class="step-desc">${escapeHtml(modelLabel(spec.provider, spec.model, spec.quality))} · ${fmtUsd(getImageCost(spec.provider, spec.model, '1536x1024', spec.quality))} per image</div><button class="btn-ghost" style="margin-left:8px">Change</button></div></div>`;
+    document.getElementById('step35Edit').onclick = () => { state.composeStep = 3.5; renderCompose(); };
+    return;
+  }
+  const slide = state.slides[state.modelPicker.testSlideIdx] || state.slides[0];
+  const slideCount = state.slides.length;
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header">
-        <div class="step-num">4</div>
-        <div class="step-title">Generate &amp; refine images</div>
-        <div class="step-desc">${state.imageModel} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done</div>
-      </div>
+      <div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">${state.modelPicker.candidates.length} candidates · test slide ${state.modelPicker.testSlideIdx + 1}</div></div>
       <div class="step-body">
-        <div id="step4Slides">${state.slides.map((s, i) => renderImgCard(s, i)).join('')}</div>
+        <div class="muted body-sm" style="margin-bottom:12px">Same prompt sent to every model in parallel. Compare quality and cost, pick one, then only that model is used for the rest of your deck.</div>
+        <div class="field">
+          <label class="field-label">Test slide <span class="subtle">used as the comparison prompt</span></label>
+          <select class="select" id="testSlideSel">${state.slides.map((s, i) => `<option value="${i}" ${i === state.modelPicker.testSlideIdx ? 'selected' : ''}>${i+1}. ${escapeHtml(s.title.slice(0,60))}</option>`).join('')}</select>
+        </div>
+        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+          <button class="btn-primary" id="runTestBtn" ${state.modelPicker.inFlight ? 'disabled' : ''}>${state.modelPicker.inFlight ? '<span class="spinner"></span> Generating…' : 'Generate test images'}</button>
+          <span class="muted body-sm" style="align-self:center">${slideCount} slide deck · projected total shown per card</span>
+        </div>
+        <div class="model-grid" id="modelGrid">${state.modelPicker.candidates.map((c, i) => renderModelCard(c, i, slideCount)).join('')}</div>
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
-          <button class="btn-ghost" id="backTo3">← Back to text edit</button>
-          <button class="btn-primary lg" id="assembleBtn" ${allDone ? '' : 'disabled'}>Assemble .pptx</button>
+          <button class="btn-ghost" id="backTo3">← Back to slide edit</button>
+          <button class="btn-secondary" id="useDefaultBtn">Skip — use default model (${escapeHtml(modelLabel(parseModelSpec(state.defaultModel).provider, parseModelSpec(state.defaultModel).model, parseModelSpec(state.defaultModel).quality))}) →</button>
         </div>
       </div>
     </div>`;
-  state.slides.forEach((s, i) => bindImgCard(i));
+  document.getElementById('testSlideSel').onchange = e => { state.modelPicker.testSlideIdx = parseInt(e.target.value) || 0; renderStep35(); };
+  document.getElementById('runTestBtn').onclick = () => runTestGenerations();
   document.getElementById('backTo3').onclick = () => { state.composeStep = 3; renderCompose(); };
+  document.getElementById('useDefaultBtn').onclick = () => {
+    const spec = parseModelSpec(state.defaultModel);
+    if (!spec || !providerKeyAvailable(spec.provider)) { toast({ type: 'error', message: 'No API key for default model. Configure in Settings.' }); return; }
+    state.selectedModel = state.defaultModel; state.composeStep = 5; renderCompose(); generateAllImages();
+  };
+  state.modelPicker.candidates.forEach((c, i) => bindModelCard(i));
+}
+function renderModelCard(c, idx, slideCount) {
+  const isSelected = state.selectedModel === `${c.provider}:${c.model}:${c.quality}`;
+  let thumb = '';
+  if (c.status === 'generating') thumb = `<div class="placeholder"><span class="spinner-lg spinner"></span><div style="margin-top:8px">Generating…</div></div>`;
+  else if (c.status === 'error') thumb = `<div class="err">${escapeHtml(c.error || 'Failed')}</div>`;
+  else if (c.imageB64) thumb = `<img src="data:image/jpeg;base64,${c.imageB64}" alt="${escapeHtml(c.label)}">`;
+  else thumb = `<div class="placeholder">${c.keyAvailable ? 'Click "Generate test images" above' : 'API key missing'}</div>`;
+  const deckTotal = c.cost_per_image * slideCount;
+  return `
+    <div class="model-card ${isSelected ? 'selected' : ''} ${!c.keyAvailable ? 'disabled' : ''}" data-idx="${idx}">
+      <div class="model-card-head">
+        <div class="model-card-title">${escapeHtml(c.label)}</div>
+        ${isSelected ? '<span class="badge badge-accent">Selected</span>' : ''}
+      </div>
+      <div class="model-card-thumb" data-act="thumb">${thumb}</div>
+      <div class="model-card-body">
+        <div class="model-card-cost"><span>Per image</span><strong>${fmtUsd(c.cost_per_image)}</strong></div>
+        <div class="model-card-cost"><span>Deck total (${slideCount} slides)</span><strong>${fmtUsd(deckTotal)}</strong></div>
+        ${!c.keyAvailable ? `<div style="font-size:11px;color:var(--warning);margin-top:4px">${c.provider === 'openai' ? 'OpenAI' : 'Gemini'} key missing — <a href="#" data-act="openSettings" style="color:var(--accent)">configure in Settings</a></div>` : ''}
+      </div>
+      <div class="model-card-actions">
+        ${c.status === 'error' && c.keyAvailable ? `<button class="btn-secondary" data-act="retry" style="flex:1">Retry</button>` : ''}
+        <button class="btn-primary" data-act="select" style="flex:1" ${!c.keyAvailable || c.status === 'generating' ? 'disabled' : ''}>Select this model →</button>
+      </div>
+    </div>`;
+}
+function bindModelCard(idx) {
+  const card = document.querySelector(`.model-card[data-idx="${idx}"]`); if (!card) return;
+  const c = state.modelPicker.candidates[idx]; if (!c) return;
+  const thumb = card.querySelector('[data-act="thumb"]'); if (thumb && c.imageB64) thumb.onclick = () => openImageLightbox(c.imageB64, c.label);
+  const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => runSingleTest(idx);
+  const sel = card.querySelector('[data-act="select"]'); if (sel) sel.onclick = () => selectModel(idx);
+  const openSet = card.querySelector('[data-act="openSettings"]'); if (openSet) openSet.onclick = e => { e.preventDefault(); state.view = 'settings'; setActiveNav(); render(); };
+}
+async function runTestGenerations() {
+  if (state.modelPicker.inFlight) return;
+  const slide = state.slides[state.modelPicker.testSlideIdx];
+  if (!slide) { toast({ type: 'error', message: 'No test slide' }); return; }
+  const eligible = state.modelPicker.candidates.filter(c => c.keyAvailable);
+  if (eligible.length === 0) { toast({ type: 'error', message: 'No providers configured.' }); return; }
+  state.modelPicker.inFlight = true;
+  eligible.forEach(c => { c.status = 'generating'; c.error = null; });
+  renderStep35();
+  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
+  const prompt = composeBundlePrompt(bundle, slide);
+  await Promise.all(eligible.map(async c => {
+    try {
+      const b64 = await generateImageWithProvider(c.provider, c.model, c.quality, prompt);
+      c.imageB64 = b64; c.status = 'done';
+      deckCost.testImage += c.cost_per_image;
+      deckCost.imageDetails.push({ provider: c.provider, model: c.model, quality: c.quality, cost: c.cost_per_image, kind: 'test' });
+      renderCostBadge();
+    } catch (err) { c.status = 'error'; c.error = err.message || String(err); }
+    renderStep35();
+  }));
+  state.modelPicker.inFlight = false;
+  renderStep35();
+  toast({ type: 'success', message: `Test images ready · cost so far ${fmtUsd4(deckCost.testImage)}` });
+}
+async function runSingleTest(idx) {
+  const c = state.modelPicker.candidates[idx]; if (!c) return;
+  const slide = state.slides[state.modelPicker.testSlideIdx];
+  c.status = 'generating'; c.error = null; renderStep35();
+  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
+  const prompt = composeBundlePrompt(bundle, slide);
+  try {
+    const b64 = await generateImageWithProvider(c.provider, c.model, c.quality, prompt);
+    c.imageB64 = b64; c.status = 'done';
+    deckCost.testImage += c.cost_per_image;
+    deckCost.imageDetails.push({ provider: c.provider, model: c.model, quality: c.quality, cost: c.cost_per_image, kind: 'test' });
+    renderCostBadge();
+  } catch (err) { c.status = 'error'; c.error = err.message || String(err); }
+  renderStep35();
+}
+function selectModel(idx) {
+  const c = state.modelPicker.candidates[idx]; if (!c) return;
+  state.selectedModel = `${c.provider}:${c.model}:${c.quality}`;
+  // Discard other candidates' images (cost already sunk)
+  state.modelPicker.candidates.forEach((other, i) => { if (i !== idx) other.imageB64 = null; });
+  toast({ type: 'success', message: `Selected ${c.label} · proceeding to generation` });
+  state.composeStep = 5; renderCompose(); generateAllImages();
+}
+function openImageLightbox(b64, title) {
+  const html = `
+    <div class="modal-header"><div><div class="h1">${escapeHtml(title)}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
+    <img class="lightbox-img" src="data:image/jpeg;base64,${b64}" alt="${escapeHtml(title)}">
+    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`;
+  openModal(html, { xl: true });
+}
+
+// ─── STEP 5 (was step 4) ───────────────────────────────────────────────
+function renderStep5() {
+  const el = document.getElementById('step5'); if (!el) return;
+  const isFuture = state.composeStep < 5;
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">5</div><div class="step-title">Generate images &amp; assemble</div><div class="step-desc">${escapeHtml(modelLabel(currentEffectiveModel().provider, currentEffectiveModel().model, currentEffectiveModel().quality))}</div></div></div>`; return; }
+  const allDone = state.slides.every(s => s.status === 'done');
+  const spec = currentEffectiveModel();
+  el.innerHTML = `
+    <div class="step-card">
+      <div class="step-header"><div class="step-num">5</div><div class="step-title">Generate &amp; refine images</div><div class="step-desc">${escapeHtml(modelLabel(spec.provider, spec.model, spec.quality))} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done</div></div>
+      <div class="step-body">
+        <div id="step5Slides">${state.slides.map((s, i) => renderImgCard(s, i)).join('')}</div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)"><button class="btn-ghost" id="backTo3from5">← Back to text edit</button><button class="btn-primary lg" id="assembleBtn" ${allDone ? '' : 'disabled'}>Assemble .pptx</button></div>
+      </div>
+    </div>`;
+  state.slides.forEach((s, i) => bindImgCard(i));
+  document.getElementById('backTo3from5').onclick = () => { state.composeStep = 3; renderCompose(); };
   document.getElementById('assembleBtn').onclick = () => assemblePptx();
 }
-
-function renderStep4Slides() {
-  const list = document.getElementById('step4Slides');
-  if (!list) return;
+function renderStep5Slides() {
+  const list = document.getElementById('step5Slides'); if (!list) return;
   list.innerHTML = state.slides.map((s, i) => renderImgCard(s, i)).join('');
   state.slides.forEach((s, i) => bindImgCard(i));
-  const head = document.querySelector('#step4 .step-desc');
-  if (head) head.textContent = `${state.imageModel} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done`;
+  const head = document.querySelector('#step5 .step-desc');
+  const spec = currentEffectiveModel();
+  if (head) head.textContent = `${modelLabel(spec.provider, spec.model, spec.quality)} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done`;
   const allDone = state.slides.every(s => s.status === 'done');
-  const ab = document.getElementById('assembleBtn');
-  if (ab) ab.disabled = !allDone;
+  const ab = document.getElementById('assembleBtn'); if (ab) ab.disabled = !allDone;
 }
-
 function renderImgCard(s, i) {
   let thumbContent = '';
   if (s.status === 'generating') thumbContent = `<div class="placeholder"><span class="spinner-lg spinner"></span><div style="margin-top:10px">Generating…</div></div>`;
@@ -1354,14 +1207,14 @@ function renderImgCard(s, i) {
   else if (s.imageB64) thumbContent = `<img src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">`;
   else thumbContent = `<div class="placeholder">Queued</div>`;
   const expanded = !!state.expandedRefine[i];
-  const regenCost = (s.regenCount * COST_PER_IMAGE_GEN).toFixed(2);
+  const modelTag = s.modelUsed ? modelLabel(s.modelUsed.provider, s.modelUsed.model, s.modelUsed.quality) : '';
   return `
     <div class="slide-img-card" data-idx="${i}">
       <div class="slide-img-head">
         <span class="slide-edit-num">Slide ${i+1}</span>
         <div class="slide-img-title">${escapeHtml(s.title)}</div>
-        ${s.status === 'done' && s.regenCount === 0 ? `<span class="badge badge-neutral">Generated · $${COST_PER_IMAGE_GEN.toFixed(2)}</span>` : ''}
-        ${s.regenCount > 0 ? `<span class="badge badge-neutral">Regenerated ${s.regenCount}× · $${regenCost}</span>` : ''}
+        ${s.status === 'done' && s.regenCount === 0 ? `<span class="badge badge-neutral">Generated · ${fmtUsd4(s.costAccrued || 0)}${modelTag ? ' · ' + escapeHtml(modelTag) : ''}</span>` : ''}
+        ${s.regenCount > 0 ? `<span class="badge badge-neutral">${s.regenCount + 1}× gens · ${fmtUsd4(s.costAccrued || 0)}${modelTag ? ' · ' + escapeHtml(modelTag) : ''}</span>` : ''}
         ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
       </div>
@@ -1374,72 +1227,37 @@ function renderImgCard(s, i) {
           </div>
           <div class="refine-section">
             <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
-            ${expanded ? `
-              <div style="margin-top:10px">
-                <label class="field-label" style="margin-bottom:4px">Edit prompt</label>
-                <textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s, state.customerLogoEnabled))}</textarea>
-                <div style="display:flex;gap:6px;margin-top:8px">
-                  <button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button>
-                  <button class="btn-ghost" data-act="resetPrompt">Reset to default</button>
-                </div>
-              </div>
-            ` : ''}
+            ${expanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label><textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s))}</textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button><button class="btn-ghost" data-act="resetPrompt">Reset to default</button></div></div>` : ''}
           </div>
         </div>
       </div>
     </div>`;
 }
-
 function bindImgCard(i) {
-  const card = document.querySelector(`.slide-img-card[data-idx="${i}"]`);
-  if (!card) return;
+  const card = document.querySelector(`.slide-img-card[data-idx="${i}"]`); if (!card) return;
   const s = state.slides[i];
-  const thumb = card.querySelector('[data-act="open"]');
-  if (thumb && s.imageB64) thumb.onclick = () => openLightbox(i);
+  const thumb = card.querySelector('[data-act="open"]'); if (thumb && s.imageB64) thumb.onclick = () => openLightbox(i);
   const enlarge = card.querySelector('[data-act="enlarge"]'); if (enlarge) enlarge.onclick = () => openLightbox(i);
   const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => regenerateOne(i);
-  const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep4Slides(); };
+  const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep5Slides(); };
   const regen = card.querySelector('[data-act="regen"]'); if (regen) regen.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); regenerateOne(i, ta ? ta.value : null); };
-  const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => {
-    const ta = card.querySelector('[data-act="refinePrompt"]');
-    if (ta) ta.value = composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s, state.customerLogoEnabled);
-  };
+  const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); if (ta) ta.value = composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s); };
 }
-
 function openLightbox(i) {
-  const s = state.slides[i];
-  if (!s.imageB64) return;
+  const s = state.slides[i]; if (!s.imageB64) return;
+  const spec = s.modelUsed || currentEffectiveModel();
   const html = `
-    <div class="modal-header">
-      <div>
-        <div class="h1">Slide ${i+1}: ${escapeHtml(s.title)}</div>
-        <div class="muted body-sm" style="margin-top:4px">${state.imageModel} · 1536×1024 · regenerated ${s.regenCount}×</div>
-      </div>
-      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
-    </div>
+    <div class="modal-header"><div><div class="h1">Slide ${i+1}: ${escapeHtml(s.title)}</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(modelLabel(spec.provider, spec.model, spec.quality))} · 1536×1024 · regenerated ${s.regenCount}× · ${fmtUsd4(s.costAccrued || 0)}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
     <img class="lightbox-img" src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">
-    <div style="margin-top:16px">
-      <button class="refine-toggle" id="showPromptBtn">+ Show composed prompt</button>
-      <div id="promptBlock" style="display:none;margin-top:10px">
-        <textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(s.lastPrompt || '')}</textarea>
-      </div>
-    </div>
-    <div class="modal-footer">
-      <button class="btn-secondary" id="saveImgBtn">Save as JPG</button>
-      <button class="btn-primary" onclick="closeModal()">Close</button>
-    </div>`;
+    <div style="margin-top:16px"><button class="refine-toggle" id="showPromptBtn">+ Show composed prompt</button><div id="promptBlock" style="display:none;margin-top:10px"><textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(s.lastPrompt || '')}</textarea></div></div>
+    <div class="modal-footer"><button class="btn-secondary" id="saveImgBtn">Save as JPG</button><button class="btn-primary" onclick="closeModal()">Close</button></div>`;
   openModal(html, { xl: true });
   document.getElementById('showPromptBtn').onclick = () => { const pb = document.getElementById('promptBlock'); pb.style.display = pb.style.display === 'none' ? 'block' : 'none'; };
-  document.getElementById('saveImgBtn').onclick = () => {
-    const a = document.createElement('a');
-    a.href = 'data:image/jpeg;base64,' + s.imageB64;
-    a.download = `slide-${i+1}-${slugify(s.title)}.jpg`;
-    document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  };
+  document.getElementById('saveImgBtn').onclick = () => { const a = document.createElement('a'); a.href = 'data:image/jpeg;base64,' + s.imageB64; a.download = `slide-${i+1}-${slugify(s.title)}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// BUNDLES VIEW — CRUD
+// BUNDLES & TEMPLATES (unchanged from #17)
 // ═══════════════════════════════════════════════════════════════════════
 function renderBundles() {
   const cont = document.getElementById('content');
@@ -1449,117 +1267,48 @@ function renderBundles() {
     <div style="margin-bottom:20px">
       <div class="eyebrow" style="margin-bottom:8px">Library</div>
       <div class="display">Bundles</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Bundles wire one House Style + one Domain Pack + one Deck Type. Selecting a bundle in Compose composes the three prompts into the request to gpt-image-2.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Bundles wire one House Style + one Domain Pack + one Deck Type. Selecting a bundle in Compose composes the three prompts into the image generation request.</div>
     </div>
     <div class="section-header">
       <input class="input" id="bundleSearch" placeholder="Search bundles…" value="${escapeHtml(state.bundlesSearch)}" style="max-width:320px">
-      <div style="display:flex;gap:8px;align-items:center">
-        ${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}
-        ${state.adminMode ? '<button class="btn-primary" id="newBundleBtn">+ New bundle</button>' : ''}
-      </div>
+      <div style="display:flex;gap:8px;align-items:center">${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}${state.adminMode ? '<button class="btn-primary" id="newBundleBtn">+ New bundle</button>' : ''}</div>
     </div>
-    ${filtered.length === 0 ? `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="empty-title">No bundles match</div><div class="empty-desc">Try a different search, or create one.</div></div>`
-    : `<div class="template-grid">${filtered.map(b => {
-      const hs = templateById(b.house_style_template_id);
-      const dp = templateById(b.domain_pack_template_id);
-      const dt = templateById(b.deck_type_template_id);
-      return `
-        <div class="template-card">
-          <div class="template-card-header">
-            <div class="template-card-name"><span class="swatch-dot" style="background:${escapeHtml(b.swatch_color)}"></span>${escapeHtml(b.name)}</div>
-          </div>
-          <div class="template-card-desc">${escapeHtml(b.description || '')}</div>
-          <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:10px">
-            <div><span class="layer-badge layer-house_style">HS</span> ${escapeHtml(hs ? hs.name : '— missing —')}</div>
-            <div style="margin-top:2px"><span class="layer-badge layer-domain_pack">DP</span> ${escapeHtml(dp ? dp.name : '— missing —')}</div>
-            <div style="margin-top:2px"><span class="layer-badge layer-deck_type">DT</span> ${escapeHtml(dt ? dt.name : '— missing —')}</div>
-          </div>
-          <div class="template-card-footer">
-            <span>${escapeHtml((b.updated_at || '').slice(0,10))}</span>
-            <div style="display:flex;gap:4px">
-              <button class="btn-ghost" data-act="viewBundle" data-id="${b.id}">View</button>
-              ${state.adminMode ? `<button class="btn-ghost" data-act="editBundle" data-id="${b.id}">Edit</button><button class="btn-ghost" data-act="delBundle" data-id="${b.id}" style="color:var(--danger)">Delete</button>` : ''}
-            </div>
-          </div>
-        </div>`;
-    }).join('')}</div>`}
-  `;
+    ${filtered.length === 0 ? `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="empty-title">No bundles match</div><div class="empty-desc">Try a different search.</div></div>`
+    : `<div class="template-grid">${filtered.map(b => { const hs = templateById(b.house_style_template_id); const dp = templateById(b.domain_pack_template_id); const dt = templateById(b.deck_type_template_id);
+      return `<div class="template-card"><div class="template-card-header"><div class="template-card-name"><span class="swatch-dot" style="background:${escapeHtml(b.swatch_color)}"></span>${escapeHtml(b.name)}</div></div><div class="template-card-desc">${escapeHtml(b.description || '')}</div><div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:10px"><div><span class="layer-badge layer-house_style">HS</span> ${escapeHtml(hs ? hs.name : '— missing —')}</div><div style="margin-top:2px"><span class="layer-badge layer-domain_pack">DP</span> ${escapeHtml(dp ? dp.name : '— missing —')}</div><div style="margin-top:2px"><span class="layer-badge layer-deck_type">DT</span> ${escapeHtml(dt ? dt.name : '— missing —')}</div></div><div class="template-card-footer"><span>${escapeHtml((b.updated_at || '').slice(0,10))}</span><div style="display:flex;gap:4px"><button class="btn-ghost" data-act="viewBundle" data-id="${b.id}">View</button>${state.adminMode ? `<button class="btn-ghost" data-act="editBundle" data-id="${b.id}">Edit</button><button class="btn-ghost" data-act="delBundle" data-id="${b.id}" style="color:var(--danger)">Delete</button>` : ''}</div></div></div>`;
+    }).join('')}</div>`}`;
   document.getElementById('bundleSearch').oninput = e => { state.bundlesSearch = e.target.value; renderBundles(); };
-  if (state.adminMode) {
-    const nb = document.getElementById('newBundleBtn'); if (nb) nb.onclick = () => openBundleEditor(null);
-  }
+  if (state.adminMode) { const nb = document.getElementById('newBundleBtn'); if (nb) nb.onclick = () => openBundleEditor(null); }
   document.querySelectorAll('[data-act="viewBundle"]').forEach(el => el.onclick = () => openBundleEditor(el.dataset.id, true));
   document.querySelectorAll('[data-act="editBundle"]').forEach(el => el.onclick = () => openBundleEditor(el.dataset.id));
   document.querySelectorAll('[data-act="delBundle"]').forEach(el => el.onclick = () => deleteBundle(el.dataset.id));
 }
-
 function openBundleEditor(id, readOnlyView) {
   const editing = id ? bundleById(id) : null;
-  const draft = editing ? { ...editing } : {
-    id: null, name: '', description: '', swatch_color: '#47D1FF',
-    house_style_template_id: templatesByLayer('house_style')[0]?.id || '',
-    domain_pack_template_id: templatesByLayer('domain_pack')[0]?.id || '',
-    deck_type_template_id: templatesByLayer('deck_type')[0]?.id || ''
-  };
+  const draft = editing ? { ...editing } : { id: null, name: '', description: '', swatch_color: '#47D1FF', house_style_template_id: templatesByLayer('house_style')[0]?.id || '', domain_pack_template_id: templatesByLayer('domain_pack')[0]?.id || '', deck_type_template_id: templatesByLayer('deck_type')[0]?.id || '' };
   const ro = readOnlyView || !state.adminMode;
-
   function buildHtml() {
-    const joined = {
-      ...draft,
-      house_style: templateById(draft.house_style_template_id),
-      domain_pack: templateById(draft.domain_pack_template_id),
-      deck_type: templateById(draft.deck_type_template_id),
-      name: draft.name || 'preview'
-    };
+    const joined = { ...draft, house_style: templateById(draft.house_style_template_id), domain_pack: templateById(draft.domain_pack_template_id), deck_type: templateById(draft.deck_type_template_id), name: draft.name || 'preview' };
     const preview = composeBundlePromptPreview(joined);
-    return `
-      <div class="modal-header">
-        <div>
-          <div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' bundle' : 'New bundle'}</div>
-          <div class="muted body-sm" style="margin-top:4px">${ro ? 'Read-only view of composed prompt.' : 'Three layers compose live below.'}</div>
-        </div>
-        <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
-      </div>
+    return `<div class="modal-header"><div><div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' bundle' : 'New bundle'}</div><div class="muted body-sm" style="margin-top:4px">${ro ? 'Read-only view.' : 'Three layers compose live below.'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
       <div class="field"><label class="field-label">Name</label><input class="input" id="bName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div>
       <div class="field"><label class="field-label">Description</label><textarea class="textarea prose" id="bDesc" rows="2" ${ro ? 'disabled' : ''}>${escapeHtml(draft.description || '')}</textarea></div>
       <div class="field"><label class="field-label">Swatch colour</label><input class="input" type="color" id="bColor" value="${escapeHtml(draft.swatch_color)}" ${ro ? 'disabled' : ''} style="width:80px;height:32px;padding:2px"></div>
       <div class="range-row" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <div class="field"><label class="field-label"><span class="layer-badge layer-house_style">House Style</span></label>
-          <select class="select" id="bHS" ${ro ? 'disabled' : ''}>${templatesByLayer('house_style').map(t => `<option value="${t.id}" ${draft.house_style_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select>
-        </div>
-        <div class="field"><label class="field-label"><span class="layer-badge layer-domain_pack">Domain Pack</span></label>
-          <select class="select" id="bDP" ${ro ? 'disabled' : ''}>${templatesByLayer('domain_pack').map(t => `<option value="${t.id}" ${draft.domain_pack_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select>
-        </div>
-        <div class="field"><label class="field-label"><span class="layer-badge layer-deck_type">Deck Type</span></label>
-          <select class="select" id="bDT" ${ro ? 'disabled' : ''}>${templatesByLayer('deck_type').map(t => `<option value="${t.id}" ${draft.deck_type_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select>
-        </div>
+        <div class="field"><label class="field-label"><span class="layer-badge layer-house_style">House Style</span></label><select class="select" id="bHS" ${ro ? 'disabled' : ''}>${templatesByLayer('house_style').map(t => `<option value="${t.id}" ${draft.house_style_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select></div>
+        <div class="field"><label class="field-label"><span class="layer-badge layer-domain_pack">Domain Pack</span></label><select class="select" id="bDP" ${ro ? 'disabled' : ''}>${templatesByLayer('domain_pack').map(t => `<option value="${t.id}" ${draft.domain_pack_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select></div>
+        <div class="field"><label class="field-label"><span class="layer-badge layer-deck_type">Deck Type</span></label><select class="select" id="bDT" ${ro ? 'disabled' : ''}>${templatesByLayer('deck_type').map(t => `<option value="${t.id}" ${draft.deck_type_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select></div>
       </div>
-      <div class="field">
-        <label class="field-label">Composed prompt preview <span class="subtle" id="composedCount">${preview.length} chars</span></label>
-        <div class="composed-preview" id="composedPreview">${escapeHtml(preview)}</div>
-      </div>
-      <div class="modal-footer">
-        <button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>
-        ${!ro ? '<button class="btn-primary" id="bSaveBtn">' + (editing ? 'Save' : 'Create') + '</button>' : ''}
-      </div>`;
+      <div class="field"><label class="field-label">Composed prompt preview <span class="subtle" id="composedCount">${preview.length} chars</span></label><div class="composed-preview" id="composedPreview">${escapeHtml(preview)}</div></div>
+      <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>${!ro ? '<button class="btn-primary" id="bSaveBtn">' + (editing ? 'Save' : 'Create') + '</button>' : ''}</div>`;
   }
   openModal(buildHtml(), { lg: true });
-
   function refreshPreview() {
-    const joined = {
-      ...draft,
-      house_style: templateById(draft.house_style_template_id),
-      domain_pack: templateById(draft.domain_pack_template_id),
-      deck_type: templateById(draft.deck_type_template_id),
-      name: draft.name || 'preview'
-    };
+    const joined = { ...draft, house_style: templateById(draft.house_style_template_id), domain_pack: templateById(draft.domain_pack_template_id), deck_type: templateById(draft.deck_type_template_id), name: draft.name || 'preview' };
     const preview = composeBundlePromptPreview(joined);
-    const cp = document.getElementById('composedPreview');
-    const cc = document.getElementById('composedCount');
-    if (cp) cp.textContent = preview;
-    if (cc) cc.textContent = preview.length + ' chars';
+    const cp = document.getElementById('composedPreview'); const cc = document.getElementById('composedCount');
+    if (cp) cp.textContent = preview; if (cc) cc.textContent = preview.length + ' chars';
   }
-
   if (!ro) {
     document.getElementById('bName').oninput = e => { draft.name = e.target.value; };
     document.getElementById('bDesc').oninput = e => { draft.description = e.target.value; };
@@ -1570,60 +1319,28 @@ function openBundleEditor(id, readOnlyView) {
     document.getElementById('bSaveBtn').onclick = () => {
       if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
       const now = nowIso();
-      if (editing) {
-        Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' });
-        toast({ type: 'success', message: 'Bundle saved' });
-      } else {
-        db.bundles.push({ ...draft, id: uuid(), is_active: true, created_at: now, updated_at: now, updated_by: 'admin' });
-        toast({ type: 'success', message: 'Bundle created' });
-      }
+      if (editing) { Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' }); toast({ type: 'success', message: 'Bundle saved' }); }
+      else { db.bundles.push({ ...draft, id: uuid(), is_active: true, created_at: now, updated_at: now, updated_by: 'admin' }); toast({ type: 'success', message: 'Bundle created' }); }
       closeModal(); renderBundles();
     };
   }
 }
-
 function deleteBundle(id) {
   const b = bundleById(id); if (!b) return;
-  const html = `
-    <div class="modal-header"><div><div class="h1">Delete bundle?</div><div class="muted body-sm" style="margin-top:4px">This cannot be undone.</div></div></div>
-    <div class="danger-banner"><div><strong>${escapeHtml(b.name)}</strong> will be permanently removed.</div></div>
-    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelBundle">Delete</button></div>`;
-  openModal(html);
-  document.getElementById('confirmDelBundle').onclick = () => {
-    db.bundles = db.bundles.filter(x => x.id !== id);
-    toast({ type: 'success', message: 'Bundle deleted' });
-    closeModal(); renderBundles();
-  };
+  openModal(`<div class="modal-header"><div><div class="h1">Delete bundle?</div><div class="muted body-sm" style="margin-top:4px">This cannot be undone.</div></div></div><div class="danger-banner"><div><strong>${escapeHtml(b.name)}</strong> will be permanently removed.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelBundle">Delete</button></div>`);
+  document.getElementById('confirmDelBundle').onclick = () => { db.bundles = db.bundles.filter(x => x.id !== id); toast({ type: 'success', message: 'Bundle deleted' }); closeModal(); renderBundles(); };
 }
 
-// ═══════════════════════════════════════════════════════════════════════
-// TEMPLATES VIEW — CRUD
-// ═══════════════════════════════════════════════════════════════════════
 function renderTemplates() {
   const cont = document.getElementById('content');
-  const filter = state.templatesTab;
-  const search = state.templatesSearch.toLowerCase();
+  const filter = state.templatesTab; const search = state.templatesSearch.toLowerCase();
   let items = db.templates.slice();
   if (filter !== 'all') items = items.filter(t => t.layer === filter);
   if (search) items = items.filter(t => t.name.toLowerCase().includes(search) || (t.description||'').toLowerCase().includes(search));
-  const counts = {
-    all: db.templates.length,
-    house_style: db.templates.filter(t => t.layer === 'house_style').length,
-    domain_pack: db.templates.filter(t => t.layer === 'domain_pack').length,
-    deck_type: db.templates.filter(t => t.layer === 'deck_type').length
-  };
-
-  const hint = !state.adminMode && !state.shownAdminHint ? `
-    <div class="info-banner" style="margin-bottom:16px">
-      <div>You're in <strong>read-only mode</strong>. To edit templates and bundles, click the <strong>Read-only</strong> badge in the header to toggle admin mode (interim — real auth comes later). <button class="btn-ghost" id="dismissAdminHint" style="margin-left:8px;color:var(--info);text-decoration:underline">Got it</button></div>
-    </div>` : '';
-
+  const counts = { all: db.templates.length, house_style: db.templates.filter(t => t.layer === 'house_style').length, domain_pack: db.templates.filter(t => t.layer === 'domain_pack').length, deck_type: db.templates.filter(t => t.layer === 'deck_type').length };
+  const hint = !state.adminMode && !state.shownAdminHint ? `<div class="info-banner" style="margin-bottom:16px"><div>You're in <strong>read-only mode</strong>. Click <strong>Read-only</strong> in the header to toggle admin mode. <button class="btn-ghost" id="dismissAdminHint" style="margin-left:8px;color:var(--info);text-decoration:underline">Got it</button></div></div>` : '';
   cont.innerHTML = `
-    <div style="margin-bottom:20px">
-      <div class="eyebrow" style="margin-bottom:8px">Layer library</div>
-      <div class="display">Templates</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">House Style, Domain Pack, and Deck Type templates. Each contains a prompt fragment composed into image generation requests via Bundles.</div>
-    </div>
+    <div style="margin-bottom:20px"><div class="eyebrow" style="margin-bottom:8px">Layer library</div><div class="display">Templates</div><div class="muted body-sm" style="margin-top:8px;max-width:680px">House Style, Domain Pack, and Deck Type templates.</div></div>
     ${hint}
     <div class="section-header">
       <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1">
@@ -1635,31 +1352,10 @@ function renderTemplates() {
         </div>
         <input class="input" id="tSearch" placeholder="Search…" value="${escapeHtml(state.templatesSearch)}" style="max-width:260px">
       </div>
-      <div style="display:flex;gap:8px;align-items:center">
-        ${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}
-        ${state.adminMode ? '<button class="btn-primary" id="newTemplateBtn">+ New template</button>' : ''}
-      </div>
+      <div style="display:flex;gap:8px;align-items:center">${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}${state.adminMode ? '<button class="btn-primary" id="newTemplateBtn">+ New template</button>' : ''}</div>
     </div>
     ${items.length === 0 ? `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">No templates match</div><div class="empty-desc">Try a different filter or search.</div></div>`
-    : `<div class="card" style="padding:0;overflow:hidden"><table>
-        <thead><tr><th>Name</th><th>Layer</th><th>Description</th><th>Used by</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead>
-        <tbody>${items.map(t => {
-          const usedBy = bundlesUsingTemplate(t.id).length;
-          const layerLabel = t.layer === 'house_style' ? 'House Style' : t.layer === 'domain_pack' ? 'Domain Pack' : 'Deck Type';
-          return `<tr>
-            <td><strong>${escapeHtml(t.name)}</strong></td>
-            <td><span class="layer-badge layer-${t.layer}">${layerLabel}</span></td>
-            <td class="muted" style="max-width:300px;font-size:12px">${escapeHtml((t.description||'').slice(0,100))}${(t.description||'').length>100?'…':''}</td>
-            <td class="mono" style="font-size:12px">${usedBy} bundle${usedBy===1?'':'s'}</td>
-            <td class="mono muted" style="font-size:12px">${escapeHtml((t.updated_at||'').slice(0,10))}</td>
-            <td style="text-align:right"><div style="display:inline-flex;gap:4px">
-              <button class="btn-ghost" data-act="viewTemplate" data-id="${t.id}">View</button>
-              ${state.adminMode ? `<button class="btn-ghost" data-act="editTemplate" data-id="${t.id}">Edit</button><button class="btn-ghost" data-act="versionsTemplate" data-id="${t.id}">Versions</button><button class="btn-ghost" data-act="delTemplate" data-id="${t.id}" style="color:var(--danger)">Delete</button>` : ''}
-            </div></td>
-          </tr>`;
-        }).join('')}</tbody></table></div>`}
-  `;
-
+    : `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Name</th><th>Layer</th><th>Description</th><th>Used by</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead><tbody>${items.map(t => { const usedBy = bundlesUsingTemplate(t.id).length; const layerLabel = t.layer === 'house_style' ? 'House Style' : t.layer === 'domain_pack' ? 'Domain Pack' : 'Deck Type'; return `<tr><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="layer-badge layer-${t.layer}">${layerLabel}</span></td><td class="muted" style="max-width:300px;font-size:12px">${escapeHtml((t.description||'').slice(0,100))}${(t.description||'').length>100?'…':''}</td><td class="mono" style="font-size:12px">${usedBy} bundle${usedBy===1?'':'s'}</td><td class="mono muted" style="font-size:12px">${escapeHtml((t.updated_at||'').slice(0,10))}</td><td style="text-align:right"><div style="display:inline-flex;gap:4px"><button class="btn-ghost" data-act="viewTemplate" data-id="${t.id}">View</button>${state.adminMode ? `<button class="btn-ghost" data-act="editTemplate" data-id="${t.id}">Edit</button><button class="btn-ghost" data-act="versionsTemplate" data-id="${t.id}">Versions</button><button class="btn-ghost" data-act="delTemplate" data-id="${t.id}" style="color:var(--danger)">Delete</button>` : ''}</div></td></tr>`; }).join('')}</tbody></table></div>`}`;
   document.querySelectorAll('.pill').forEach(p => p.onclick = () => { state.templatesTab = p.dataset.filter; renderTemplates(); });
   const ts = document.getElementById('tSearch'); if (ts) ts.oninput = e => { state.templatesSearch = e.target.value; renderTemplates(); };
   const nt = document.getElementById('newTemplateBtn'); if (nt) nt.onclick = () => openTemplateEditor(null);
@@ -1669,46 +1365,18 @@ function renderTemplates() {
   document.querySelectorAll('[data-act="versionsTemplate"]').forEach(el => el.onclick = () => openVersions(el.dataset.id));
   document.querySelectorAll('[data-act="delTemplate"]').forEach(el => el.onclick = () => deleteTemplate(el.dataset.id));
 }
-
 function openTemplateEditor(id, readOnlyView) {
   const editing = id ? templateById(id) : null;
-  const draft = editing ? { ...editing } : {
-    id: null, name: '', layer: 'house_style', description: '', prompt: ''
-  };
+  const draft = editing ? { ...editing } : { id: null, name: '', layer: 'house_style', description: '', prompt: '' };
   const ro = readOnlyView || !state.adminMode;
   const usedBy = editing ? bundlesUsingTemplate(editing.id) : [];
   const layerLocked = !!editing && usedBy.length > 0;
-
-  const html = `
-    <div class="modal-header">
-      <div>
-        <div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' template' : 'New template'}</div>
-        <div class="muted body-sm" style="margin-top:4px">${editing ? 'Used by ' + usedBy.length + ' bundle' + (usedBy.length===1?'':'s') : 'Create a new layer fragment.'}</div>
-      </div>
-      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
-    </div>
-    <div class="range-row">
-      <div class="field"><label class="field-label">Name</label><input class="input" id="tName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div>
-      <div class="field"><label class="field-label">Layer ${layerLocked ? '<span class="subtle">(locked — in use)</span>' : ''}</label>
-        <select class="select" id="tLayer" ${ro || layerLocked ? 'disabled' : ''}>
-          <option value="house_style" ${draft.layer==='house_style'?'selected':''}>House Style</option>
-          <option value="domain_pack" ${draft.layer==='domain_pack'?'selected':''}>Domain Pack</option>
-          <option value="deck_type" ${draft.layer==='deck_type'?'selected':''}>Deck Type</option>
-        </select>
-      </div>
-    </div>
+  openModal(`<div class="modal-header"><div><div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' template' : 'New template'}</div><div class="muted body-sm" style="margin-top:4px">${editing ? 'Used by ' + usedBy.length + ' bundle' + (usedBy.length===1?'':'s') : 'Create a new layer fragment.'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>
+    <div class="range-row"><div class="field"><label class="field-label">Name</label><input class="input" id="tName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div><div class="field"><label class="field-label">Layer ${layerLocked ? '<span class="subtle">(locked — in use)</span>' : ''}</label><select class="select" id="tLayer" ${ro || layerLocked ? 'disabled' : ''}><option value="house_style" ${draft.layer==='house_style'?'selected':''}>House Style</option><option value="domain_pack" ${draft.layer==='domain_pack'?'selected':''}>Domain Pack</option><option value="deck_type" ${draft.layer==='deck_type'?'selected':''}>Deck Type</option></select></div></div>
     <div class="field"><label class="field-label">Description</label><textarea class="textarea prose" id="tDesc" rows="2" ${ro ? 'disabled' : ''}>${escapeHtml(draft.description || '')}</textarea></div>
-    <div class="field">
-      <label class="field-label">Prompt <span class="subtle" id="promptCount">${(draft.prompt||'').length} chars</span></label>
-      <textarea class="textarea" id="tPrompt" rows="14" ${ro ? 'disabled' : ''}>${escapeHtml(draft.prompt || '')}</textarea>
-    </div>
+    <div class="field"><label class="field-label">Prompt <span class="subtle" id="promptCount">${(draft.prompt||'').length} chars</span></label><textarea class="textarea" id="tPrompt" rows="14" ${ro ? 'disabled' : ''}>${escapeHtml(draft.prompt || '')}</textarea></div>
     ${!ro && editing ? `<div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="tChangeNote" placeholder="e.g. tightened brand discipline language"></div>` : ''}
-    <div class="modal-footer">
-      <button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>
-      ${!ro ? '<button class="btn-secondary" id="tSaveAsNew">Save as new</button><button class="btn-primary" id="tSaveBtn">Save</button>' : ''}
-    </div>`;
-  openModal(html, { lg: true });
-
+    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>${!ro ? '<button class="btn-secondary" id="tSaveAsNew">Save as new</button><button class="btn-primary" id="tSaveBtn">Save</button>' : ''}</div>`, { lg: true });
   if (!ro) {
     document.getElementById('tName').oninput = e => { draft.name = e.target.value; };
     document.getElementById('tLayer').onchange = e => { draft.layer = e.target.value; };
@@ -1717,102 +1385,32 @@ function openTemplateEditor(id, readOnlyView) {
     document.getElementById('tSaveBtn').onclick = () => {
       if (!draft.name.trim() || !draft.prompt.trim()) { toast({ type: 'error', message: 'Name and prompt are required' }); return; }
       const now = nowIso();
-      if (editing) {
-        Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' });
-        const note = (document.getElementById('tChangeNote')?.value || '').trim() || 'Edit';
-        db.versions.push({ id: uuid(), template_id: editing.id, version_num: nextVersionNum(editing.id), prompt: draft.prompt, change_note: note, updated_by: 'admin', created_at: now });
-        toast({ type: 'success', message: 'Saved · new version recorded' });
-      } else {
-        const newId = uuid();
-        db.templates.push({ ...draft, id: newId, is_active: true, created_at: now, updated_at: now, updated_by: 'admin' });
-        db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: draft.prompt, change_note: 'Created', updated_by: 'admin', created_at: now });
-        toast({ type: 'success', message: 'Template created' });
-      }
+      if (editing) { Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' }); const note = (document.getElementById('tChangeNote')?.value || '').trim() || 'Edit'; db.versions.push({ id: uuid(), template_id: editing.id, version_num: nextVersionNum(editing.id), prompt: draft.prompt, change_note: note, updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Saved · new version recorded' }); }
+      else { const newId = uuid(); db.templates.push({ ...draft, id: newId, is_active: true, created_at: now, updated_at: now, updated_by: 'admin' }); db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: draft.prompt, change_note: 'Created', updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Template created' }); }
       closeModal(); renderTemplates();
     };
     document.getElementById('tSaveAsNew').onclick = () => {
       if (!draft.name.trim() || !draft.prompt.trim()) { toast({ type: 'error', message: 'Name and prompt are required' }); return; }
-      const now = nowIso();
-      const newId = uuid();
+      const now = nowIso(); const newId = uuid();
       const copy = { ...draft, id: newId, name: draft.name + ' (copy)', is_active: true, created_at: now, updated_at: now, updated_by: 'admin' };
-      db.templates.push(copy);
-      db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: copy.prompt, change_note: 'Copied from "' + (editing ? editing.name : 'new') + '"', updated_by: 'admin', created_at: now });
-      toast({ type: 'success', message: 'Saved as new template' });
-      closeModal(); renderTemplates();
+      db.templates.push(copy); db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: copy.prompt, change_note: 'Copied from "' + (editing ? editing.name : 'new') + '"', updated_by: 'admin', created_at: now });
+      toast({ type: 'success', message: 'Saved as new template' }); closeModal(); renderTemplates();
     };
   }
 }
-
 function deleteTemplate(id) {
   const t = templateById(id); if (!t) return;
   const used = bundlesUsingTemplate(id);
-  if (used.length > 0) {
-    const html = `
-      <div class="modal-header"><div><div class="h1">Cannot delete</div><div class="muted body-sm" style="margin-top:4px">Template is referenced by ${used.length} bundle${used.length===1?'':'s'}.</div></div></div>
-      <div class="warning-banner"><div><strong>${escapeHtml(t.name)}</strong> is in use by:<ul style="margin:6px 0 0 18px">${used.map(b => '<li>' + escapeHtml(b.name) + '</li>').join('')}</ul>Remove from those bundles first.</div></div>
-      <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">OK</button></div>`;
-    openModal(html);
-    return;
-  }
-  const html = `
-    <div class="modal-header"><div><div class="h1">Delete template?</div><div class="muted body-sm" style="margin-top:4px">This cannot be undone. Version history will also be deleted.</div></div></div>
-    <div class="danger-banner"><div><strong>${escapeHtml(t.name)}</strong> will be permanently removed.</div></div>
-    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelT">Delete</button></div>`;
-  openModal(html);
-  document.getElementById('confirmDelT').onclick = () => {
-    db.templates = db.templates.filter(x => x.id !== id);
-    db.versions = db.versions.filter(v => v.template_id !== id);
-    toast({ type: 'success', message: 'Template deleted' });
-    closeModal(); renderTemplates();
-  };
+  if (used.length > 0) { openModal(`<div class="modal-header"><div><div class="h1">Cannot delete</div><div class="muted body-sm" style="margin-top:4px">Template is referenced by ${used.length} bundle${used.length===1?'':'s'}.</div></div></div><div class="warning-banner"><div><strong>${escapeHtml(t.name)}</strong> is in use by:<ul style="margin:6px 0 0 18px">${used.map(b => '<li>' + escapeHtml(b.name) + '</li>').join('')}</ul></div></div><div class="modal-footer"><button class="btn-primary" onclick="closeModal()">OK</button></div>`); return; }
+  openModal(`<div class="modal-header"><div><div class="h1">Delete template?</div><div class="muted body-sm" style="margin-top:4px">Version history will also be deleted.</div></div></div><div class="danger-banner"><div><strong>${escapeHtml(t.name)}</strong> will be permanently removed.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelT">Delete</button></div>`);
+  document.getElementById('confirmDelT').onclick = () => { db.templates = db.templates.filter(x => x.id !== id); db.versions = db.versions.filter(v => v.template_id !== id); toast({ type: 'success', message: 'Template deleted' }); closeModal(); renderTemplates(); };
 }
-
 function openVersions(id) {
   const t = templateById(id); if (!t) return;
   const versions = db.versions.filter(v => v.template_id === id).sort((a, b) => b.version_num - a.version_num);
-  const html = `
-    <div class="modal-header">
-      <div><div class="h1">Version history</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(t.name)} · ${versions.length} version${versions.length===1?'':'s'}</div></div>
-      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
-    </div>
-    <div style="max-height:520px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
-      ${versions.map(v => `
-        <div class="version-row">
-          <div class="version-head">
-            <span class="version-num">v${v.version_num}</span>
-            <span class="muted" style="font-size:12px">${escapeHtml((v.created_at||'').slice(0,16).replace('T',' '))}</span>
-            <span class="muted" style="font-size:12px">· ${escapeHtml(v.updated_by || 'unknown')}</span>
-            <span class="muted" style="font-size:12px">· ${escapeHtml(v.change_note || '')}</span>
-            <div style="margin-left:auto;display:flex;gap:4px">
-              <button class="btn-ghost" data-act="vExpand" data-id="${v.id}">Expand</button>
-              ${state.adminMode ? `<button class="btn-secondary" data-act="vRestore" data-id="${v.id}">Restore</button>` : ''}
-            </div>
-          </div>
-          <div id="vBody_${v.id}" style="display:none;margin-top:8px"><textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(v.prompt)}</textarea></div>
-          <div id="vPreview_${v.id}" class="muted" style="font-size:12px;font-family:var(--mono);margin-top:4px">${escapeHtml(v.prompt.slice(0, 200))}${v.prompt.length>200?'…':''}</div>
-        </div>`).join('')}
-    </div>
-    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`;
-  openModal(html, { lg: true });
-  document.querySelectorAll('[data-act="vExpand"]').forEach(el => el.onclick = () => {
-    const vid = el.dataset.id;
-    const body = document.getElementById('vBody_' + vid);
-    const prev = document.getElementById('vPreview_' + vid);
-    const showing = body.style.display !== 'none';
-    body.style.display = showing ? 'none' : 'block';
-    prev.style.display = showing ? 'block' : 'none';
-    el.textContent = showing ? 'Expand' : 'Collapse';
-  });
-  document.querySelectorAll('[data-act="vRestore"]').forEach(el => el.onclick = () => {
-    const vid = el.dataset.id;
-    const v = db.versions.find(x => x.id === vid); if (!v) return;
-    const tpl = templateById(v.template_id); if (!tpl) return;
-    const now = nowIso();
-    tpl.prompt = v.prompt; tpl.updated_at = now; tpl.updated_by = 'admin';
-    db.versions.push({ id: uuid(), template_id: tpl.id, version_num: nextVersionNum(tpl.id), prompt: v.prompt, change_note: 'Restored from version ' + v.version_num, updated_by: 'admin', created_at: now });
-    toast({ type: 'success', message: 'Restored to v' + v.version_num + ' · new version recorded' });
-    closeModal(); renderTemplates();
-  });
+  openModal(`<div class="modal-header"><div><div class="h1">Version history</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(t.name)} · ${versions.length} version${versions.length===1?'':'s'}</div></div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div><div style="max-height:520px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">${versions.map(v => `<div class="version-row"><div class="version-head"><span class="version-num">v${v.version_num}</span><span class="muted" style="font-size:12px">${escapeHtml((v.created_at||'').slice(0,16).replace('T',' '))}</span><span class="muted" style="font-size:12px">· ${escapeHtml(v.updated_by || 'unknown')}</span><span class="muted" style="font-size:12px">· ${escapeHtml(v.change_note || '')}</span><div style="margin-left:auto;display:flex;gap:4px"><button class="btn-ghost" data-act="vExpand" data-id="${v.id}">Expand</button>${state.adminMode ? `<button class="btn-secondary" data-act="vRestore" data-id="${v.id}">Restore</button>` : ''}</div></div><div id="vBody_${v.id}" style="display:none;margin-top:8px"><textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(v.prompt)}</textarea></div><div id="vPreview_${v.id}" class="muted" style="font-size:12px;font-family:var(--mono);margin-top:4px">${escapeHtml(v.prompt.slice(0, 200))}${v.prompt.length>200?'…':''}</div></div>`).join('')}</div><div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
+  document.querySelectorAll('[data-act="vExpand"]').forEach(el => el.onclick = () => { const vid = el.dataset.id; const body = document.getElementById('vBody_' + vid); const prev = document.getElementById('vPreview_' + vid); const showing = body.style.display !== 'none'; body.style.display = showing ? 'none' : 'block'; prev.style.display = showing ? 'block' : 'none'; el.textContent = showing ? 'Expand' : 'Collapse'; });
+  document.querySelectorAll('[data-act="vRestore"]').forEach(el => el.onclick = () => { const vid = el.dataset.id; const v = db.versions.find(x => x.id === vid); if (!v) return; const tpl = templateById(v.template_id); if (!tpl) return; const now = nowIso(); tpl.prompt = v.prompt; tpl.updated_at = now; tpl.updated_by = 'admin'; db.versions.push({ id: uuid(), template_id: tpl.id, version_num: nextVersionNum(tpl.id), prompt: v.prompt, change_note: 'Restored from version ' + v.version_num, updated_by: 'admin', created_at: now }); toast({ type: 'success', message: 'Restored to v' + v.version_num }); closeModal(); renderTemplates(); });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1822,168 +1420,85 @@ function renderSettings() {
   const cont = document.getElementById('content');
   const oai = state.apiKeys.openai ? (state.apiKeys.openai.slice(0,7) + '…' + state.apiKeys.openai.slice(-4)) : '';
   const ant = state.apiKeys.anthropic ? (state.apiKeys.anthropic.slice(0,10) + '…' + state.apiKeys.anthropic.slice(-4)) : '';
+  const gem = state.apiKeys.gemini ? (state.apiKeys.gemini.slice(0,6) + '…' + state.apiKeys.gemini.slice(-4)) : '';
+  const defaultSpec = parseModelSpec(state.defaultModel) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' };
+  const defaultCost = getImageCost(defaultSpec.provider, defaultSpec.model, '1536x1024', defaultSpec.quality);
   cont.innerHTML = `
-    <div style="margin-bottom:24px">
-      <div class="eyebrow" style="margin-bottom:8px">Configuration</div>
-      <div class="display">Settings</div>
-      <div class="muted body-sm" style="margin-top:8px">API keys, logo, admin mode, runtime configuration. Settings live in memory only.</div>
-    </div>
+    <div style="margin-bottom:24px"><div class="eyebrow" style="margin-bottom:8px">Configuration</div><div class="display">Settings</div><div class="muted body-sm" style="margin-top:8px">API keys, models, costs, logos, admin mode. Settings live in memory only.</div></div>
 
-    <div class="section">
-      <div class="section-header"><div class="h1">Admin mode</div></div>
-      <div class="card">
-        <div class="field">
-          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''} style="margin:0">
-            <span>Enable admin mode</span>
-          </label>
-          <div class="field-hint" style="margin-top:6px">Interim toggle. Real auth via Entra/Supabase comes in a later build. When enabled: New / Edit / Delete on Templates and Bundles tabs.</div>
-        </div>
+    <div class="section"><div class="section-header"><div class="h1">Admin mode</div></div><div class="card"><div class="field"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''} style="margin:0"><span>Enable admin mode</span></label><div class="field-hint" style="margin-top:6px">When enabled: New / Edit / Delete on Templates and Bundles tabs.</div></div></div></div>
+
+    <div class="section"><div class="section-header"><div class="h1">Image models &amp; cost</div></div><div class="card">
+      <div class="field">
+        <label class="field-label">Default image model <span class="subtle">used when skipping the comparison step</span></label>
+        <select class="select" id="defaultModelSel">${imageCosts.filter(c => c.is_active).map(c => { const val = `${c.provider}:${c.model}:${c.quality}`; const label = `${c.label}  —  ${fmtUsd(c.cost_per_image)}/image`; return `<option value="${val}" ${state.defaultModel === val ? 'selected' : ''}>${escapeHtml(label)}</option>`; }).join('')}</select>
+        <div class="field-hint" style="margin-top:6px">Cost at current selection: <strong>${fmtUsd(defaultCost)}</strong> per image · projected <strong>${fmtUsd(defaultCost * (state.slides.length || state.slideMax))}</strong> for a ${state.slides.length || state.slideMax}-slide deck.</div>
       </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header"><div class="h1">Brand logo</div></div>
-      <div class="card">
-        <div class="field">
-          <label class="field-label">Logo image <span class="subtle">PNG with transparent background recommended</span></label>
-          <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
-            <div class="logo-preview">${state.logoB64 ? `<img src="data:image/png;base64,${state.logoB64}" alt="logo preview">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div>
-            <div style="display:flex;gap:6px">
-              <input type="file" id="logoFile" accept=".png,image/png" style="display:none">
-              <button class="btn-secondary" id="uploadLogoBtn">Upload PNG</button>
-              ${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset to default</button>' : ''}
-            </div>
-          </div>
-          <div class="field-hint" style="margin-top:10px">Placed as a native PowerPoint image element on each slide at assembly time — selectable / movable / deletable in PowerPoint. ${state.logoB64 ? '<span class="badge badge-success" style="margin-left:6px">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:6px">No logo loaded</span>'}</div>
-        </div>
-        <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
-          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
-            <input type="checkbox" id="logoBackingChk" ${state.logoBacking ? 'checked' : ''} style="margin:0">
-            <span>Add dark backing panel behind logos in .pptx</span>
-          </label>
-          <div class="field-hint" style="margin-top:6px">For logos with light or coloured backgrounds. Defaults off — use a transparent PNG when possible for the cleanest look.</div>
-        </div>
+      <div class="field">
+        <label class="field-label">OpenAI image quality <span class="subtle">applies to gpt-image-* models only</span></label>
+        <select class="select" id="qualitySel"><option value="low" ${state.imageQuality === 'low' ? 'selected' : ''}>Low</option><option value="medium" ${state.imageQuality === 'medium' ? 'selected' : ''}>Medium</option><option value="high" ${state.imageQuality === 'high' ? 'selected' : ''}>High</option></select>
       </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header"><div class="h1">Anthropic</div></div>
-      <div class="card">
-        <div class="field">
-          <label class="field-label">API key <span class="subtle">required for AI polish</span></label>
-          <div class="api-key-row">
-            <input class="input" id="anthropicKey" type="password" placeholder="sk-ant-..." value="${escapeHtml(state.apiKeys.anthropic)}" autocomplete="off">
-            <button class="btn-secondary" id="saveAntBtn">Save</button>
-            ${state.apiKeys.anthropic ? '<button class="btn-ghost" id="clearAntBtn">Clear</button>' : ''}
-          </div>
-          <div class="field-hint"><span class="mono">claude-sonnet-4-5</span> · used for shorten / expand / auto-split. ${state.apiKeys.anthropic ? 'Current: <span class="mono">' + escapeHtml(ant) + '</span>' : 'Not set.'}</div>
-        </div>
+      <div class="field" style="margin-bottom:0">
+        <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="skipPickerChk" ${state.skipModelPicker ? 'checked' : ''} style="margin:0"><span>Skip the model comparison step</span></label>
+        <div class="field-hint" style="margin-top:6px">If checked, Compose goes straight from Edit → Generate using the default model above.</div>
       </div>
-    </div>
+    </div></div>
 
-    <div class="section">
-      <div class="section-header"><div class="h1">OpenAI</div></div>
-      <div class="card">
-        <div class="field">
-          <label class="field-label">API key <span class="subtle">required for image generation</span></label>
-          <div class="api-key-row">
-            <input class="input" id="openaiKey" type="password" placeholder="sk-..." value="${escapeHtml(state.apiKeys.openai)}" autocomplete="off">
-            <button class="btn-secondary" id="saveKeyBtn">Save</button>
-            ${state.apiKeys.openai ? '<button class="btn-ghost" id="clearKeyBtn">Clear</button>' : ''}
-          </div>
-          <div class="field-hint">Default model: <span class="mono">gpt-image-2</span> with auto-fallback to <span class="mono">gpt-image-1</span>. ${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div>
-        </div>
-        <div class="field">
-          <label class="field-label">Organization ID <span class="subtle">optional</span></label>
-          <div class="api-key-row">
-            <input class="input" id="openaiOrg" type="text" placeholder="org-..." value="${escapeHtml(state.apiKeys.openai_org)}" autocomplete="off">
-            <button class="btn-secondary" id="saveOrgBtn">Save</button>
-            ${state.apiKeys.openai_org ? '<button class="btn-ghost" id="clearOrgBtn">Clear</button>' : ''}
-          </div>
-        </div>
-        <div class="field">
-          <label class="field-label">Image model</label>
-          <select class="select" id="imgModelSel">
-            <option value="gpt-image-2" ${state.imageModel === 'gpt-image-2' ? 'selected' : ''}>gpt-image-2 (default)</option>
-            <option value="gpt-image-1" ${state.imageModel === 'gpt-image-1' ? 'selected' : ''}>gpt-image-1 (fallback)</option>
-          </select>
-        </div>
+    <div class="section"><div class="section-header"><div class="h1">Brand logo</div></div><div class="card">
+      <div class="field">
+        <label class="field-label">Logo image <span class="subtle">PNG with transparent background recommended</span></label>
+        <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="logo-preview">${state.logoB64 ? `<img src="data:image/png;base64,${state.logoB64}" alt="logo preview">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div><div style="display:flex;gap:6px"><input type="file" id="logoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="uploadLogoBtn">Upload PNG</button>${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset to default</button>' : ''}</div></div>
+        <div class="field-hint" style="margin-top:10px">${state.logoB64 ? '<span class="badge badge-success" style="margin-left:0">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:0">No logo loaded</span>'}</div>
       </div>
-    </div>
+      <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="logoBackingChk" ${state.logoBacking ? 'checked' : ''} style="margin:0"><span>Add dark backing panel behind logos in .pptx</span></label></div>
+    </div></div>
 
-    <div class="section">
-      <div class="section-header"><div class="h1">Runtime</div></div>
-      <div class="card">
-        <dl class="kv">
-          <dt>Version</dt><dd><span class="mono">2.0.9</span> (build #17 — H1 parser priority + auto-fit on Continue)</dd>
-          <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
-          <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
-          <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
-          <dt>Templates</dt><dd>${db.templates.length} (${db.templates.filter(t=>t.layer==='house_style').length} HS · ${db.templates.filter(t=>t.layer==='domain_pack').length} DP · ${db.templates.filter(t=>t.layer==='deck_type').length} DT)</dd>
-          <dt>Bundles</dt><dd>${db.bundles.length}</dd>
-          <dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd>
-        </dl>
-      </div>
-    </div>`;
+    <div class="section"><div class="section-header"><div class="h1">Anthropic</div></div><div class="card"><div class="field"><label class="field-label">API key <span class="subtle">for AI polish</span></label><div class="api-key-row"><input class="input" id="anthropicKey" type="password" placeholder="sk-ant-..." value="${escapeHtml(state.apiKeys.anthropic)}" autocomplete="off"><button class="btn-secondary" id="saveAntBtn">Save</button>${state.apiKeys.anthropic ? '<button class="btn-ghost" id="clearAntBtn">Clear</button>' : ''}</div><div class="field-hint"><span class="mono">claude-sonnet-4-5</span> · ${state.apiKeys.anthropic ? 'Current: <span class="mono">' + escapeHtml(ant) + '</span>' : 'Not set.'}</div></div></div></div>
 
+    <div class="section"><div class="section-header"><div class="h1">OpenAI</div></div><div class="card"><div class="field"><label class="field-label">API key <span class="subtle">for gpt-image-* models</span></label><div class="api-key-row"><input class="input" id="openaiKey" type="password" placeholder="sk-..." value="${escapeHtml(state.apiKeys.openai)}" autocomplete="off"><button class="btn-secondary" id="saveKeyBtn">Save</button>${state.apiKeys.openai ? '<button class="btn-ghost" id="clearKeyBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div></div><div class="field"><label class="field-label">Organization ID <span class="subtle">optional</span></label><div class="api-key-row"><input class="input" id="openaiOrg" type="text" placeholder="org-..." value="${escapeHtml(state.apiKeys.openai_org)}" autocomplete="off"><button class="btn-secondary" id="saveOrgBtn">Save</button>${state.apiKeys.openai_org ? '<button class="btn-ghost" id="clearOrgBtn">Clear</button>' : ''}</div></div></div></div>
+
+    <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key <span class="subtle">for Imagen 3, Imagen 4, Gemini 2.0 Flash</span></label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}" autocomplete="off"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">Get a key at <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener" style="color:var(--accent)">aistudio.google.com/app/apikey</a>. ${state.apiKeys.gemini ? 'Current: <span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
+
+    <div class="section"><div class="section-header"><div class="h1">Cost table</div></div><div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Provider</th><th>Model</th><th>Size</th><th>Quality</th><th style="text-align:right">Per image</th></tr></thead><tbody>${imageCosts.filter(c => c.is_active).map(c => `<tr><td>${escapeHtml(c.provider)}</td><td class="mono">${escapeHtml(c.model)}</td><td class="mono muted">${escapeHtml(c.size)}</td><td>${escapeHtml(c.quality)}</td><td class="mono" style="text-align:right">${fmtUsd(c.cost_per_image)}</td></tr>`).join('')}</tbody></table></div><div class="field-hint" style="margin-top:8px">Editing cost rows in-UI is out of scope for #18 — admins update Supabase directly. Costs are seeded from <span class="mono">image_model_costs</span> + <span class="mono">anthropic_token_costs</span> tables.</div></div>
+
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.1.0</span> (build #18 — real cost + Gemini + model comparison)</dd><dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd><dt>Default image model</dt><dd><span class="mono">${escapeHtml(state.defaultModel)}</span></dd><dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd><dt>Templates</dt><dd>${db.templates.length} (${db.templates.filter(t=>t.layer==='house_style').length} HS · ${db.templates.filter(t=>t.layer==='domain_pack').length} DP · ${db.templates.filter(t=>t.layer==='deck_type').length} DT)</dd><dt>Bundles</dt><dd>${db.bundles.length}</dd><dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd></dl></div></div>`;
   document.getElementById('adminChk').onchange = e => { state.adminMode = e.target.checked; updateAdminBadge(); renderSettings(); };
-  const lbChk = document.getElementById('logoBackingChk');
-  if (lbChk) lbChk.onchange = e => { state.logoBacking = e.target.checked; toast({ type: 'info', message: e.target.checked ? 'Logo backing panel enabled' : 'Logo backing panel disabled' }); };
+  document.getElementById('defaultModelSel').onchange = e => { state.defaultModel = e.target.value; toast({ type: 'info', message: 'Default model updated' }); renderSettings(); };
+  document.getElementById('qualitySel').onchange = e => { state.imageQuality = e.target.value; toast({ type: 'info', message: 'OpenAI quality: ' + state.imageQuality }); renderSettings(); };
+  document.getElementById('skipPickerChk').onchange = e => { state.skipModelPicker = e.target.checked; toast({ type: 'info', message: e.target.checked ? 'Will skip model picker' : 'Will show model picker' }); };
+  const lbChk = document.getElementById('logoBackingChk'); if (lbChk) lbChk.onchange = e => { state.logoBacking = e.target.checked; toast({ type: 'info', message: e.target.checked ? 'Logo backing enabled' : 'Logo backing disabled' }); };
   document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
-  document.getElementById('logoFile').onchange = e => {
-    const file = e.target.files[0]; if (!file) return;
-    if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
-    const fr = new FileReader();
-    fr.onload = () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; toast({ type: 'success', message: 'Logo uploaded' }); renderSettings(); };
-    fr.readAsDataURL(file);
-  };
-  const clrLogo = document.getElementById('clearLogoBtn');
-  if (clrLogo) clrLogo.onclick = async () => { state.logoIsCustom = false; state.logoB64 = await loadDefaultLogo(); toast({ type: 'info', message: 'Reset to default DN logo' }); renderSettings(); };
-
-  document.getElementById('saveKeyBtn').onclick = () => {
-    const v = (document.getElementById('openaiKey').value || '').trim();
-    if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; }
-    if (!v.startsWith('sk-')) { toast({ type: 'error', message: 'OpenAI key must start with sk-' }); return; }
-    state.apiKeys.openai = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings();
-  };
+  document.getElementById('logoFile').onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; toast({ type: 'success', message: 'Logo uploaded' }); renderSettings(); }; fr.readAsDataURL(file); };
+  const clrLogo = document.getElementById('clearLogoBtn'); if (clrLogo) clrLogo.onclick = async () => { state.logoIsCustom = false; state.logoB64 = await loadDefaultLogo(); toast({ type: 'info', message: 'Reset to default DN logo' }); renderSettings(); };
+  document.getElementById('saveKeyBtn').onclick = () => { const v = (document.getElementById('openaiKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } if (!v.startsWith('sk-')) { toast({ type: 'error', message: 'OpenAI key must start with sk-' }); return; } state.apiKeys.openai = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
   const ck = document.getElementById('clearKeyBtn'); if (ck) ck.onclick = () => { state.apiKeys.openai = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-  document.getElementById('saveAntBtn').onclick = () => {
-    const v = (document.getElementById('anthropicKey').value || '').trim();
-    if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; }
-    if (!v.startsWith('sk-ant-')) { toast({ type: 'error', message: 'Anthropic key must start with sk-ant-' }); return; }
-    state.apiKeys.anthropic = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings();
-  };
+  document.getElementById('saveAntBtn').onclick = () => { const v = (document.getElementById('anthropicKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } if (!v.startsWith('sk-ant-')) { toast({ type: 'error', message: 'Anthropic key must start with sk-ant-' }); return; } state.apiKeys.anthropic = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
   const ca = document.getElementById('clearAntBtn'); if (ca) ca.onclick = () => { state.apiKeys.anthropic = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('saveGemBtn').onclick = () => { const v = (document.getElementById('geminiKey').value || '').trim(); if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; } state.apiKeys.gemini = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings(); };
+  const cg = document.getElementById('clearGemBtn'); if (cg) cg.onclick = () => { state.apiKeys.gemini = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
   document.getElementById('saveOrgBtn').onclick = () => { state.apiKeys.openai_org = (document.getElementById('openaiOrg').value || '').trim(); toast({ type: 'success', message: 'Org saved' }); renderSettings(); };
   const co = document.getElementById('clearOrgBtn'); if (co) co.onclick = () => { state.apiKeys.openai_org = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-  document.getElementById('imgModelSel').onchange = e => { state.imageModel = e.target.value; state.imageModelFellBack = false; toast({ type: 'info', message: `Image model set to ${state.imageModel}` }); renderSettings(); };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// ADMIN BADGE / ROUTING
+// HEADER / ROUTING
 // ═══════════════════════════════════════════════════════════════════════
 function updateAdminBadge() {
-  const el = document.getElementById('adminBadge');
-  if (!el) return;
+  const el = document.getElementById('adminBadge'); if (!el) return;
   el.innerHTML = state.adminMode
     ? '<span class="badge badge-accent" style="cursor:pointer" id="adminBadgeBtn" title="Click to disable admin mode">Admin</span>'
     : '<span class="badge badge-neutral" style="cursor:pointer" id="adminBadgeBtn" title="Click to enable admin mode">Read-only</span>';
   const btn = document.getElementById('adminBadgeBtn');
-  if (btn) btn.onclick = () => {
-    state.adminMode = !state.adminMode;
-    updateAdminBadge();
-    toast({ type: 'info', message: state.adminMode ? 'Admin mode enabled' : 'Admin mode disabled' });
-    if (state.view === 'templates') renderTemplates();
-    else if (state.view === 'bundles') renderBundles();
-    else if (state.view === 'settings') renderSettings();
-  };
+  if (btn) btn.onclick = () => { state.adminMode = !state.adminMode; updateAdminBadge(); toast({ type: 'info', message: state.adminMode ? 'Admin mode enabled' : 'Admin mode disabled' }); if (state.view === 'templates') renderTemplates(); else if (state.view === 'bundles') renderBundles(); else if (state.view === 'settings') renderSettings(); };
+}
+function renderCostBadge() {
+  const el = document.getElementById('costBadge'); if (!el) return;
+  const total = deckCost.total();
+  if (total <= 0) { el.innerHTML = ''; return; }
+  el.innerHTML = `<span class="cost-badge" title="Polish ${fmtUsd4(deckCost.polish)} · Test images ${fmtUsd4(deckCost.testImage)} · Images ${fmtUsd4(deckCost.image)}">Deck cost <strong>${fmtUsd4(total)}</strong></span>`;
 }
 
-document.getElementById('themeToggle').addEventListener('click', () => {
-  state.theme = state.theme === 'dark' ? 'light' : 'dark';
-  document.documentElement.dataset.theme = state.theme;
-});
+document.getElementById('themeToggle').addEventListener('click', () => { state.theme = state.theme === 'dark' ? 'light' : 'dark'; document.documentElement.dataset.theme = state.theme; });
 function setActiveNav() { document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === state.view)); }
 document.querySelectorAll('.nav-btn').forEach(b => { b.addEventListener('click', () => { state.view = b.dataset.view; setActiveNav(); render(); }); });
 function render() {
@@ -1991,15 +1506,13 @@ function render() {
   else if (state.view === 'bundles') renderBundles();
   else if (state.view === 'templates') renderTemplates();
   else renderSettings();
+  renderCostBadge();
 }
 
 seedIfEmpty();
 updateAdminBadge();
 render();
-loadDefaultLogo().then(b => {
-  if (b && !state.logoIsCustom) { state.logoB64 = b; console.log('Default DN logo loaded'); }
-  else if (!b) { console.warn('Default logo unavailable — upload one in Settings'); }
-});
+loadDefaultLogo().then(b => { if (b && !state.logoIsCustom) { state.logoB64 = b; console.log('Default DN logo loaded'); } else if (!b) { console.warn('Default logo unavailable — upload one in Settings'); } });
 </script>
 </body>
 </html>
