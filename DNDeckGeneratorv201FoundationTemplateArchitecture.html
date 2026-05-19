@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.0.8</title>
+<title>DN Deck Generator v2.0.9 #17</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -210,7 +210,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.0.8</div>
+      <div class="brand-version">v2.0.9 #17</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -492,66 +492,150 @@ function getImageDimensions(base64) {
 function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'dn-deck'; }
 
 // ─── PARSE SLIDES ──────────────────────────────────────────────────────
-function parseSlides(text) {
-  if (!text || !text.trim()) return [];
-  const hasH2 = /^##\s+/m.test(text);
-  const hasHr = /^\s*---\s*$/m.test(text);
+// Returns { slides: [...], pattern: 'h1' | 'slide_n' | 'h2' | 'hr' | null }
+// Priority order: # H1 (strongest) > Slide N — > ## H2 > ---
+function parseSlidesDetected(text) {
+  if (!text || !text.trim()) return { slides: [], pattern: null };
+
+  const lines = text.split(/\r?\n/);
+
+  // Helper: split chunks by line-index markers
+  function buildChunks(markers) {
+    const chunks = [];
+    for (let i = 0; i < markers.length; i++) {
+      const cur = markers[i];
+      const next = markers[i+1];
+      const bodyLines = lines.slice(cur.idx + 1, next ? next.idx : lines.length);
+      // Strip leading "Slide N — " prefix from title if present
+      let title = (cur.title || '').replace(/^Slide\s+\d+\s*[—–:\-\.]?\s*/i, '').trim();
+      if (!title) {
+        for (let j = 0; j < bodyLines.length; j++) {
+          const l = bodyLines[j].trim();
+          if (!l) continue;
+          if (/^title$/i.test(l)) continue;
+          title = l.replace(/^#+\s*/, '');
+          bodyLines.splice(j, 1);
+          break;
+        }
+      }
+      while (bodyLines.length && /^\s*title\s*$/i.test(bodyLines[0])) bodyLines.shift();
+      chunks.push({ title: title || ('Slide ' + (i+1)), bodyLines });
+    }
+    return chunks;
+  }
+
   let chunks = [];
-  if (hasH2) {
-    const lines = text.split(/\r?\n/);
-    let current = null;
-    for (const line of lines) {
-      const m = line.match(/^##\s+(.+?)\s*$/);
-      if (m) {
-        if (current) chunks.push(current);
-        current = { title: m[1].replace(/^Slide\s+\d+[:.]?\s*/i, '').trim() || 'Untitled', bodyLines: [] };
-      } else if (current) {
-        current.bodyLines.push(line);
+  let pattern = null;
+
+  // Priority 1: H1 "# Title" — STRONGEST
+  const h1Re = /^#\s+(.+?)\s*$/;
+  const h1Markers = [];
+  lines.forEach((line, idx) => {
+    const m = line.match(h1Re);
+    if (m) h1Markers.push({ idx, title: (m[1] || '').trim() });
+  });
+  if (h1Markers.length >= 2) {
+    pattern = 'h1';
+    chunks = buildChunks(h1Markers);
+  } else {
+    // Priority 2: "Slide N — Title" pattern
+    const slideNRe = /^\s*Slide\s+\d+\s*[—–:\-\.]?\s*(.*)$/i;
+    const slideNMarkers = [];
+    lines.forEach((line, idx) => {
+      const m = line.match(slideNRe);
+      if (m) slideNMarkers.push({ idx, title: (m[1] || '').trim() });
+    });
+    if (slideNMarkers.length >= 2) {
+      pattern = 'slide_n';
+      chunks = buildChunks(slideNMarkers);
+    } else {
+      // Priority 3: H2 "## Title"
+      const h2Re = /^##\s+(.+?)\s*$/;
+      const h2Markers = [];
+      lines.forEach((line, idx) => {
+        const m = line.match(h2Re);
+        if (m) h2Markers.push({ idx, title: (m[1] || '').trim() });
+      });
+      if (h2Markers.length >= 2) {
+        pattern = 'h2';
+        chunks = buildChunks(h2Markers);
+      } else if (/^\s*---\s*$/m.test(text)) {
+        // Priority 4: --- separators
+        pattern = 'hr';
+        const segments = text.split(/^\s*---\s*$/m).map(s => s.trim()).filter(Boolean);
+        chunks = segments.map((seg, i) => {
+          const segLines = seg.split(/\r?\n/);
+          const firstNonEmpty = segLines.findIndex(l => l.trim().length > 0);
+          const title = firstNonEmpty >= 0 ? segLines[firstNonEmpty].replace(/^#+\s*/, '').replace(/^Slide\s+\d+[:.]?\s*/i, '').trim() : `Slide ${i+1}`;
+          const bodyLines = firstNonEmpty >= 0 ? segLines.slice(firstNonEmpty + 1) : [];
+          return { title: title || `Slide ${i+1}`, bodyLines };
+        });
+      } else {
+        return { slides: null, pattern: null };
       }
     }
-    if (current) chunks.push(current);
-  } else if (hasHr) {
-    const segments = text.split(/^\s*---\s*$/m).map(s => s.trim()).filter(Boolean);
-    chunks = segments.map((seg, i) => {
-      const lines = seg.split(/\r?\n/);
-      const firstNonEmpty = lines.findIndex(l => l.trim().length > 0);
-      const title = firstNonEmpty >= 0 ? lines[firstNonEmpty].replace(/^#+\s*/, '').replace(/^Slide\s+\d+[:.]?\s*/i, '').trim() : `Slide ${i+1}`;
-      const bodyLines = firstNonEmpty >= 0 ? lines.slice(firstNonEmpty + 1) : [];
-      return { title: title || `Slide ${i+1}`, bodyLines };
-    });
-  } else {
-    return null;
   }
-  return chunks.map(c => ({
+
+  const slides = chunks.map(c => ({
     title: c.title, body: c.bodyLines.join('\n').trim(),
     imageB64: null, imagePrompt: null, lastPrompt: null,
     status: 'idle', error: null, regenCount: 0
   }));
+  return { slides, pattern };
+}
+
+function parseSlides(text) {
+  const r = parseSlidesDetected(text);
+  return r.slides;
+}
+
+function patternLabel(p) {
+  if (p === 'h1') return '"# heading" pattern';
+  if (p === 'slide_n') return '"Slide N —" pattern';
+  if (p === 'h2') return '"## heading" pattern';
+  if (p === 'hr') return '"---" separator pattern';
+  return null;
 }
 
 // ─── ANTHROPIC POLISH ──────────────────────────────────────────────────
-async function polishWithClaude(slides, mode) {
+// Polish receives the RAW pasted text + min/max range. Claude reads the raw text
+// and produces slides that fit within the range, no matter how the input was structured.
+async function polishWithClaude(_unused, mode) {
   const key = (state.apiKeys.anthropic || '').trim();
   if (!key) throw new Error('NO_ANTHROPIC_KEY: Set Anthropic API key in Settings.');
 
+  const rawText = state.rawText || '';
   const min = state.slideMin, max = state.slideMax;
   const target = Math.round((min + max) / 2);
-  const rangeConstraint = `\n\nYou MUST produce exactly between ${min} and ${max} slides. Not fewer than ${min}. Not more than ${max}. This is a strict requirement — if the input has more or fewer slides, consolidate or expand to fit. Aim for ${target} slides as a default but stay within [${min}, ${max}].`;
 
-  let systemPrompt = '';
-  if (mode === 'shorten') {
-    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the slide content provided and shorten each slide\'s text to bullet points suitable for presentation. Keep the title intact. Aim for 3-5 short bullets per slide.' + rangeConstraint + ' Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
-  } else if (mode === 'expand') {
-    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the brief notes provided and expand each slide into well-formed presentation content. Keep the title intact. Produce a sub-headline plus 3-5 supporting points per slide.' + rangeConstraint + ' Respond with valid JSON only: {"slides": [{"title": "...", "subheadline": "...", "bullets": ["..."]}, ...]}.';
-  } else if (mode === 'split') {
-    systemPrompt = 'You are a presentation editor for Digitata Networks. Take this raw block of text and split it into a logical slide deck. Each slide should have one clear idea.' + rangeConstraint + ' Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
-  }
+  const modeInstruction = {
+    shorten: 'Aggressively shorten each slide to brief bullet points. Consolidate adjacent slides if needed to fit within the slide count range.',
+    expand:  'Expand each slide with supporting bullets and sub-headlines. If the input has very few slides, split into more — but stay within the range.',
+    preserve:'Preserve the wording where reasonable. Only split or consolidate slides if necessary to fit the slide count range.',
+    split:   'Split this raw text into a logical slide deck. Each slide should carry one clear idea. Consolidate or expand as needed to fit the range.'
+  }[mode] || 'Reshape the input into a clean slide deck within the slide count range.';
 
-  const userContent = mode === 'split'
-    ? `Produce between ${min} and ${max} slides — not fewer, not more. Split this text:\n\n${state.rawText}`
-    : `Produce between ${min} and ${max} slides — not fewer, not more.\n\nSlides:\n${JSON.stringify(slides.map(s => ({ title: s.title, body: s.body })))}`;
+  const baseSystem = `You are a presentation editor for Digitata Networks, a premium telecom AI company.
 
-  async function callClaude(sys, user) {
+CRITICAL CONSTRAINT — non-negotiable:
+You MUST return exactly between ${min} and ${max} slides. Not fewer than ${min}. Not more than ${max}. Aim for ${target} as the default.
+If the input text has more sections than ${max}, you must consolidate.
+If the input text has fewer sections than ${min}, you must split or expand.
+This constraint overrides any other interpretation of the input structure.
+
+Mode: ${mode}
+Mode-specific instruction: ${modeInstruction}
+
+Return ONLY valid JSON, no markdown fences, no preamble:
+{
+  "slides": [
+    { "title": "Slide title — short, decisive", "body": "Slide body. Use \\n for line breaks, * for bullet points. Suitable to render directly on a slide." }
+  ]
+}`;
+
+  const userPrompt = `Here is the raw deck wording. Produce between ${min} and ${max} slides — not fewer, not more.\n\nRAW DECK TEXT:\n${rawText}`;
+
+  async function callClaude(sys) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
@@ -564,7 +648,7 @@ async function polishWithClaude(slides, mode) {
         model: 'claude-sonnet-4-5-20250929',
         max_tokens: 4000,
         system: sys,
-        messages: [{ role: 'user', content: user }]
+        messages: [{ role: 'user', content: userPrompt }]
       })
     });
     if (!resp.ok) {
@@ -577,31 +661,47 @@ async function polishWithClaude(slides, mode) {
     return JSON.parse(clean).slides || [];
   }
 
-  let result = await callClaude(systemPrompt, userContent);
-  if (result.length < min || result.length > max) {
-    const retrySys = systemPrompt + `\n\nPREVIOUS ATTEMPT RETURNED ${result.length} SLIDES, OUTSIDE THE REQUIRED RANGE OF [${min}, ${max}]. You must produce exactly between ${min} and ${max} slides this time. Adjust your output.`;
+  let attempt = 0;
+  let lastSlides = null;
+  while (attempt < 3) {
+    attempt++;
+    const sys = attempt === 1
+      ? baseSystem
+      : `${baseSystem}\n\nPREVIOUS ATTEMPT RETURNED ${lastSlides ? lastSlides.length : '?'} SLIDES, OUTSIDE THE REQUIRED RANGE OF [${min}, ${max}]. You MUST produce between ${min} and ${max} slides this time. Consolidate or expand as needed.`;
+    let result;
     try {
-      const retry = await callClaude(retrySys, userContent);
-      if (retry.length >= min && retry.length <= max) result = retry;
-      else {
-        toast({ type: 'warning', message: `AI couldn't hit the slide count range — proceeding with ${retry.length} slides. Edit manually or restart.` });
-        result = retry;
-      }
+      result = await callClaude(sys);
     } catch (e) {
-      toast({ type: 'warning', message: `Retry failed; using initial ${result.length} slides` });
+      if (attempt >= 3) throw e;
+      continue;
+    }
+    lastSlides = result;
+    const n = result.length;
+    if (n >= min && n <= max) return result;
+    if (attempt >= 3) {
+      toast({ type: 'warning', message: `AI couldn't hit the slide range — returned ${n} slides (target was ${min}–${max}). Adjust manually on the next step.` });
+      return result;
     }
   }
-  return result;
+  throw new Error('Polish failed after 3 attempts');
 }
 
 function polishedToSlides(polished) {
   return polished.map(p => {
-    const parts = [];
-    if (p.subheadline) parts.push(p.subheadline);
-    if (p.bullets && p.bullets.length) parts.push(...p.bullets.map(b => '• ' + b));
+    let body = '';
+    if (typeof p.body === 'string' && p.body.trim()) {
+      // New format: single body string with \n and * bullets
+      body = p.body.replace(/^\s*\*\s+/gm, '• ');
+    } else {
+      // Legacy format: subheadline + bullets array
+      const parts = [];
+      if (p.subheadline) parts.push(p.subheadline);
+      if (Array.isArray(p.bullets) && p.bullets.length) parts.push(...p.bullets.map(b => '• ' + b));
+      body = parts.join('\n');
+    }
     return {
       title: p.title || 'Untitled',
-      body: parts.join('\n'),
+      body: body,
       imageB64: null, imagePrompt: null, lastPrompt: null,
       status: 'idle', error: null, regenCount: 0
     };
@@ -935,6 +1035,7 @@ AI is rapidly improving but operators still struggle with governed execution.`;
         <div class="field">
           <label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label>
           <textarea class="textarea" id="rawText" rows="12" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state.rawText)}</textarea>
+          <div id="patternIndicator" class="field-hint" style="margin-top:6px"></div>
         </div>
         <div class="field">
           <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -998,26 +1099,68 @@ AI is rapidly improving but operators still struggle with governed execution.`;
   if (custClear) custClear.onclick = () => { state.customerLogoB64 = null; renderStep1(); };
 
   const raw = document.getElementById('rawText');
-  raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; };
+  function updatePatternIndicator() {
+    const ind = document.getElementById('patternIndicator');
+    if (!ind) return;
+    const txt = state.rawText || '';
+    if (!txt.trim()) { ind.innerHTML = '<span class="subtle">Paste your deck wording above. Supported markers (priority order): <span class="mono"># Heading</span>, <span class="mono">Slide N — Title</span>, <span class="mono">## Heading</span>, or <span class="mono">---</span> separators.</span>'; return; }
+    const r = parseSlidesDetected(txt);
+    if (!r.pattern || !r.slides) {
+      ind.innerHTML = '<span style="color:var(--warning)">⚠ No slide breaks detected. Add <span class="mono"># Slide Title</span>, <span class="mono">Slide 1 — Title</span>, <span class="mono">## Title</span>, or <span class="mono">---</span> between slides — or use Polish with AI to auto-split.</span>';
+      return;
+    }
+    const n = r.slides.length;
+    const inRange = n >= state.slideMin && n <= state.slideMax;
+    if (inRange) {
+      ind.innerHTML = `<span style="color:var(--success)">✓ Detected ${n} slide${n===1?'':'s'} using ${escapeHtml(patternLabel(r.pattern))} — within your ${state.slideMin}–${state.slideMax} range</span>`;
+    } else {
+      const direction = n > state.slideMax ? 'consolidate' : 'expand';
+      ind.innerHTML = `<span style="color:var(--info)">✓ Detected ${n} slide${n===1?'':'s'} using ${escapeHtml(patternLabel(r.pattern))}. AI will ${direction} to fit your ${state.slideMin}–${state.slideMax} range when you click Continue.</span>`;
+    }
+  }
+  raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; updatePatternIndicator(); };
+  updatePatternIndicator();
 
-  document.getElementById('continueAsIsBtn').onclick = () => {
-    const parsed = parseSlides(state.rawText);
+  document.getElementById('continueAsIsBtn').onclick = async () => {
+    const r = parseSlidesDetected(state.rawText);
+    const parsed = r.slides;
     if (parsed === null) {
-      document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>Please add slide breaks (<span class="mono">---</span> or <span class="mono">## headings</span>) before continuing, or use Polish with AI to auto-split.</div></div>';
+      document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>No slide breaks detected. Add <span class="mono"># Slide Title</span>, <span class="mono">Slide 1 — Title</span>, <span class="mono">## Title</span>, or <span class="mono">---</span> between slides — or use Polish with AI to auto-split.</div></div>';
       return;
     }
     if (parsed.length === 0) { toast({ type: 'error', message: 'No slides found in text' }); return; }
-    if (parsed.length < state.slideMin) {
-      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Your pasted text produced <strong>${parsed.length}</strong> slides, below your minimum of <strong>${state.slideMin}</strong>. Add slide breaks or use AI Polish to expand.</div></div>`;
+    // In-range happy path
+    if (parsed.length >= state.slideMin && parsed.length <= state.slideMax) {
+      state.slides = parsed;
+      state.composeStep = 3;
+      renderCompose();
       return;
     }
-    if (parsed.length > state.slideMax) {
-      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Your pasted text produced <strong>${parsed.length}</strong> slides, above your maximum of <strong>${state.slideMax}</strong>. Remove some slides or use AI Polish to shorten.</div></div>`;
+    // Out of range — auto-fit via Polish in Preserve mode
+    if (!state.apiKeys.anthropic) {
+      const direction = parsed.length > state.slideMax ? 'too many' : 'too few';
+      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Detected <strong>${parsed.length}</strong> slides (${direction} for your <strong>${state.slideMin}–${state.slideMax}</strong> range). Auto-fit needs an Anthropic API key — paste yours in <strong>Settings → Anthropic</strong>. Or adjust your text / slide range to match.</div></div>`;
       return;
     }
+    const direction = parsed.length > state.slideMax ? 'consolidating' : 'expanding';
+    const btn = document.getElementById('continueAsIsBtn');
+    const polishBtn = document.getElementById('polishBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = `<span class="spinner"></span> ${direction === 'consolidating' ? 'Consolidating' : 'Expanding'}…`; }
+    if (polishBtn) polishBtn.disabled = true;
+    document.getElementById('step1Error').innerHTML = `<div class="info-banner" style="margin-top:12px"><div>Detected ${parsed.length} slides — ${direction} to fit your ${state.slideMin}–${state.slideMax} range with AI…</div></div>`;
     state.slides = parsed;
-    state.composeStep = 3;
-    renderCompose();
+    state.polishMode = 'preserve';
+    try {
+      const polished = await polishWithClaude(null, 'preserve');
+      state.slides = polishedToSlides(polished);
+      toast({ type: 'success', message: `AI ${direction === 'consolidating' ? 'consolidated' : 'expanded'} to ${state.slides.length} slides — edit on the next step if needed.` });
+      state.composeStep = 3;
+      renderCompose();
+    } catch (e) {
+      if (btn) { btn.disabled = false; btn.innerHTML = 'Continue with text as-is →'; }
+      if (polishBtn) polishBtn.disabled = false;
+      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Auto-fit failed: ${escapeHtml(e.message || String(e))}. Try <strong>Polish with AI</strong> manually, or adjust your slide range.</div></div>`;
+    }
   };
   document.getElementById('polishBtn').onclick = () => {
     if (!state.apiKeys.anthropic) {
@@ -1025,8 +1168,8 @@ AI is rapidly improving but operators still struggle with governed execution.`;
       return;
     }
     if (!state.rawText.trim()) { toast({ type: 'error', message: 'Paste some text first' }); return; }
-    const parsed = parseSlides(state.rawText);
-    state.slides = parsed || [];
+    const r = parseSlidesDetected(state.rawText);
+    state.slides = r.slides || [];
     state.composeStep = 2;
     renderCompose();
   };
@@ -1055,7 +1198,7 @@ function renderStep2() {
           ${!hasMarkers ? `<button class="btn-secondary" id="splitBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='split' ? '<span class="spinner"></span> Splitting…' : 'Auto-split into slides'}</button>` : ''}
           ${hasMarkers ? `<button class="btn-secondary" id="shortenBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='shorten' ? '<span class="spinner"></span> Shortening…' : 'Shorten'}</button>
           <button class="btn-secondary" id="expandBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='expand' ? '<span class="spinner"></span> Expanding…' : 'Expand'}</button>
-          <button class="btn-secondary" id="preserveBtn">Preserve text</button>` : ''}
+          <button class="btn-secondary" id="preserveBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='preserve' ? '<span class="spinner"></span> Reshaping…' : 'Preserve text'}</button>` : ''}
         </div>
         ${state.slides.length > 0 ? `<div class="caption" style="margin-bottom:8px">${state.slides.length} slides</div>
         <div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `
@@ -1073,7 +1216,7 @@ function renderStep2() {
   const shortenBtn = document.getElementById('shortenBtn'); if (shortenBtn) shortenBtn.onclick = () => runPolish('shorten');
   const expandBtn = document.getElementById('expandBtn'); if (expandBtn) expandBtn.onclick = () => runPolish('expand');
   const splitBtn = document.getElementById('splitBtn'); if (splitBtn) splitBtn.onclick = () => runPolish('split');
-  const preserveBtn = document.getElementById('preserveBtn'); if (preserveBtn) preserveBtn.onclick = () => { state.polishMode = 'preserve'; toast({ type: 'success', message: 'Text preserved' }); };
+  const preserveBtn = document.getElementById('preserveBtn'); if (preserveBtn) preserveBtn.onclick = () => runPolish('preserve');
   document.getElementById('backTo1').onclick = () => { state.composeStep = 1; renderCompose(); };
   document.getElementById('toStep3').onclick = () => { state.composeStep = 3; renderCompose(); };
 }
@@ -1081,9 +1224,10 @@ function renderStep2() {
 async function runPolish(mode) {
   state.polishing = true; state.polishMode = mode; renderStep2();
   try {
-    const polished = await polishWithClaude(state.slides, mode);
+    const polished = await polishWithClaude(null, mode);
     state.slides = polishedToSlides(polished);
-    toast({ type: 'success', message: `${mode === 'split' ? 'Split' : mode === 'shorten' ? 'Shortened' : 'Expanded'} — ${state.slides.length} slides` });
+    const label = mode === 'split' ? 'Split' : mode === 'shorten' ? 'Shortened' : mode === 'expand' ? 'Expanded' : 'Reshaped';
+    toast({ type: 'success', message: `${label} — ${state.slides.length} slides` });
   } catch (e) { toast({ type: 'error', message: e.message }); }
   state.polishing = false;
   renderStep2();
@@ -1772,7 +1916,7 @@ function renderSettings() {
       <div class="section-header"><div class="h1">Runtime</div></div>
       <div class="card">
         <dl class="kv">
-          <dt>Version</dt><dd><span class="mono">2.0.8</span> (build #15 — logo aspect-ratio preservation)</dd>
+          <dt>Version</dt><dd><span class="mono">2.0.9</span> (build #17 — H1 parser priority + auto-fit on Continue)</dd>
           <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
           <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
           <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
