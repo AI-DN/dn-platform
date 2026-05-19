@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.0.7</title>
+<title>DN Deck Generator v2.0.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -163,8 +163,8 @@ button { font-family: inherit; }
 .refine-toggle { background: transparent; border: none; color: var(--text-muted); cursor: pointer; font-size: 12px; font-weight: 500; padding: 0; display: flex; align-items: center; gap: 4px; font-family: inherit; }
 .refine-toggle:hover { color: var(--text); }
 .lightbox-img { max-width: 100%; max-height: 70vh; display: block; margin: 0 auto; border-radius: var(--radius-sm); }
-.logo-preview { width: 220px; height: 75px; background: #0a0e1a; border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: flex-start; padding: 10px 14px; overflow: hidden; }
-.logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; object-position: left center; }
+.logo-preview { width: 220px; min-height: 50px; max-height: 110px; background: #0a0e1a; border: 1px solid var(--border); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: flex-start; padding: 10px 14px; overflow: hidden; }
+.logo-preview img { max-width: 100%; max-height: 90px; width: auto; height: auto; object-fit: contain; object-position: left center; display: block; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 thead th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
 tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
@@ -210,7 +210,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.0.7</div>
+      <div class="brand-version">v2.0.8</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -476,6 +476,19 @@ function joinBundle(b) {
 }
 
 function dateStr() { return new Date().toISOString().slice(0,10); }
+
+function getImageDimensions(base64) {
+  return new Promise(resolve => {
+    const img = new Image();
+    img.onload = () => resolve({
+      w: img.naturalWidth,
+      h: img.naturalHeight,
+      aspect: img.naturalHeight / img.naturalWidth
+    });
+    img.onerror = () => resolve({ w: 1, h: 1, aspect: 0.33 });
+    img.src = 'data:image/png;base64,' + base64;
+  });
+}
 function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'dn-deck'; }
 
 // ─── PARSE SLIDES ──────────────────────────────────────────────────────
@@ -752,12 +765,22 @@ async function assemblePptx() {
   const customerLogoB64 = state.customerLogoEnabled ? state.customerLogoB64 : null;
   const showLogoBacking = !!state.logoBacking;
 
+  // Compute aspect ratios ONCE (not per slide)
+  const dnDims = dnLogoB64 ? await getImageDimensions(dnLogoB64) : null;
+  const custDims = customerLogoB64 ? await getImageDimensions(customerLogoB64) : null;
+
   // Logo placement constants (inches, calibrated for 13.3" wide slide)
   const LOGO_X_LEFT = 0.19;
   const LOGO_Y = 0.17;
   const LOGO_W = 1.69;
-  const LOGO_H = 0.55;
-  const LOGO_X_RIGHT = 13.3 - LOGO_X_LEFT - LOGO_W;
+  const LOGO_H_MAX = 0.75;
+
+  // Compute actual placement dimensions per logo (preserves aspect ratio)
+  const dnW = LOGO_W;
+  const dnH = dnDims ? Math.min(LOGO_W * dnDims.aspect, LOGO_H_MAX) : 0.55;
+  const custW = LOGO_W;
+  const custH = custDims ? Math.min(LOGO_W * custDims.aspect, LOGO_H_MAX) : 0.55;
+  const LOGO_X_RIGHT = 13.3 - LOGO_X_LEFT - custW;
 
   for (let i = 0; i < state.slides.length; i++) {
     const slide = state.slides[i];
@@ -770,12 +793,12 @@ async function assemblePptx() {
       x: 0, y: 0, w: 13.3, h: 7.5
     });
 
-    // Optional dark backing panels (native PPT shapes)
+    // Optional dark backing panels (native PPT shapes) — sized to each logo's actual dims
     if (showLogoBacking) {
       if (dnLogoB64) {
         s.addShape(prs.ShapeType.roundRect, {
           x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06,
-          w: LOGO_W + 0.16, h: LOGO_H + 0.12,
+          w: dnW + 0.16, h: dnH + 0.12,
           fill: { color: '080C1A' },
           line: { color: '080C1A', width: 0 },
           rectRadius: 0.05
@@ -784,7 +807,7 @@ async function assemblePptx() {
       if (customerLogoB64) {
         s.addShape(prs.ShapeType.roundRect, {
           x: LOGO_X_RIGHT - 0.08, y: LOGO_Y - 0.06,
-          w: LOGO_W + 0.16, h: LOGO_H + 0.12,
+          w: custW + 0.16, h: custH + 0.12,
           fill: { color: '080C1A' },
           line: { color: '080C1A', width: 0 },
           rectRadius: 0.05
@@ -792,19 +815,19 @@ async function assemblePptx() {
       }
     }
 
-    // DN logo top-left as native PPT image
+    // DN logo top-left — width fixed, height from aspect
     if (dnLogoB64) {
       s.addImage({
         data: `data:image/png;base64,${dnLogoB64}`,
-        x: LOGO_X_LEFT, y: LOGO_Y, w: LOGO_W, h: LOGO_H
+        x: LOGO_X_LEFT, y: LOGO_Y, w: dnW, h: dnH
       });
     }
 
-    // Customer logo top-right as native PPT image
+    // Customer logo top-right — width fixed, height from aspect
     if (customerLogoB64) {
       s.addImage({
         data: `data:image/png;base64,${customerLogoB64}`,
-        x: LOGO_X_RIGHT, y: LOGO_Y, w: LOGO_W, h: LOGO_H
+        x: LOGO_X_RIGHT, y: LOGO_Y, w: custW, h: custH
       });
     }
 
@@ -1749,7 +1772,7 @@ function renderSettings() {
       <div class="section-header"><div class="h1">Runtime</div></div>
       <div class="card">
         <dl class="kv">
-          <dt>Version</dt><dd><span class="mono">2.0.7</span> (build #14 — PowerPoint-native logo placement, corner quiet zones)</dd>
+          <dt>Version</dt><dd><span class="mono">2.0.8</span> (build #15 — logo aspect-ratio preservation)</dd>
           <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
           <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
           <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
