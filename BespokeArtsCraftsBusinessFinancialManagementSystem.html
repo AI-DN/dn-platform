@@ -1,0 +1,2151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Atelier — Craft Business Finance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #a1a1aa;
+  --border: rgba(0,0,0,0.08);
+  --border-strong: rgba(0,0,0,0.16);
+  --accent: #5e6ad2;
+  --accent-hover: #4f59c4;
+  --accent-bg: rgba(94,106,210,0.08);
+  --success: #16a34a;
+  --success-bg: rgba(22,163,74,0.08);
+  --warning: #d97706;
+  --warning-bg: rgba(217,119,6,0.08);
+  --danger: #dc2626;
+  --danger-bg: rgba(220,38,38,0.08);
+  --info: #0284c7;
+  --info-bg: rgba(2,132,199,0.08);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --mono: ui-monospace, 'SF Mono', Menlo, Monaco, Consolas, monospace;
+}
+[data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #131316;
+  --surface-2: #1c1c20;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --border: rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.14);
+  --accent: #7b85e3;
+  --accent-hover: #8d96e8;
+  --accent-bg: rgba(123,133,227,0.10);
+  --success: #22c55e;
+  --success-bg: rgba(34,197,94,0.10);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245,158,11,0.10);
+  --danger: #ef4444;
+  --danger-bg: rgba(239,68,68,0.10);
+  --info: #38bdf8;
+  --info-bg: rgba(56,189,248,0.10);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; height: 100%; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+.app { display: grid; grid-template-columns: 220px 1fr; height: 100vh; }
+
+/* Sidebar */
+.sidebar {
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex; flex-direction: column;
+  overflow-y: auto;
+}
+.sidebar-header {
+  padding: 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+}
+.logo {
+  width: 24px; height: 24px; border-radius: var(--radius-sm);
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-weight: 700; font-size: 13px;
+}
+.logo-text { font-weight: 600; font-size: 14px; letter-spacing: -0.005em; }
+.sidebar-section { padding: 12px 8px; }
+.sidebar-label {
+  font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-muted);
+  padding: 4px 12px 8px;
+}
+.nav-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  cursor: pointer; color: var(--text-muted);
+  font-size: 13px; font-weight: 500;
+  transition: background 150ms ease, color 150ms ease;
+}
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item.active { background: var(--accent-bg); color: var(--accent); }
+.nav-item svg { width: 14px; height: 14px; flex-shrink: 0; }
+.nav-item .count {
+  margin-left: auto; font-size: 11px; color: var(--text-subtle);
+  font-variant-numeric: tabular-nums;
+}
+.sidebar-footer {
+  margin-top: auto;
+  padding: 12px 16px;
+  border-top: 1px solid var(--border);
+  font-size: 12px; color: var(--text-muted);
+}
+.user-chip { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  width: 24px; height: 24px; border-radius: 50%;
+  background: var(--accent-bg); color: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+}
+
+/* Main */
+.main { display: flex; flex-direction: column; overflow: hidden; }
+.topbar {
+  height: 52px; padding: 0 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  display: flex; align-items: center; gap: 12px;
+  flex-shrink: 0;
+}
+.breadcrumb { font-size: 13px; color: var(--text-muted); flex: 1; }
+.breadcrumb strong { color: var(--text); font-weight: 600; }
+.search-box {
+  position: relative;
+  width: 260px;
+}
+.search-box svg {
+  position: absolute; left: 8px; top: 50%; transform: translateY(-50%);
+  width: 14px; height: 14px; color: var(--text-subtle);
+}
+.search-box input { padding-left: 28px; width: 100%; }
+.period-select { display: flex; align-items: center; gap: 4px; }
+.theme-toggle {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent; border: 1px solid transparent;
+  border-radius: var(--radius-sm); cursor: pointer; color: var(--text-muted);
+  transition: background 150ms ease, color 150ms ease;
+}
+.theme-toggle:hover { background: var(--surface-2); color: var(--text); }
+.theme-toggle svg { width: 16px; height: 16px; }
+
+.content { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* Typography */
+.display { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; margin: 0; }
+h1.section { font-size: 20px; font-weight: 600; letter-spacing: -0.005em; margin: 0 0 16px; }
+h2.sub { font-size: 16px; font-weight: 600; margin: 0 0 12px; }
+.caption { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.muted { color: var(--text-muted); }
+.mono { font-family: var(--mono); font-size: 13px; }
+.numeric { font-variant-numeric: tabular-nums; }
+
+/* Buttons */
+.btn-primary, .btn-secondary, .btn-ghost, .btn-danger {
+  border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  padding: 6px 12px;
+  cursor: pointer;
+  font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.btn-primary { background: var(--accent); color: white; border: 1px solid var(--accent); }
+.btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--text-subtle); }
+.btn-ghost { background: transparent; color: var(--text-muted); border: 1px solid transparent; padding: 6px 10px; }
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn-danger { background: transparent; color: var(--danger); border: 1px solid var(--border-strong); }
+.btn-danger:hover { background: var(--danger-bg); border-color: var(--danger); }
+.btn-primary:disabled, .btn-secondary:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-primary svg, .btn-secondary svg, .btn-ghost svg { width: 14px; height: 14px; }
+
+/* Inputs */
+.input, select.input, textarea.input {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  width: 100%;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.input:focus, select.input:focus, textarea.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+  box-shadow: 0 0 0 3px var(--accent-bg);
+}
+.input::placeholder { color: var(--text-subtle); }
+textarea.input { resize: vertical; min-height: 60px; }
+select.input { cursor: pointer; }
+label.field { display: block; margin-bottom: 12px; }
+label.field > .caption { display: block; margin-bottom: 4px; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-title { font-size: 13px; font-weight: 500; color: var(--text-muted); }
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px; margin-bottom: 24px;
+}
+.kpi-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; cursor: pointer; transition: border-color 150ms ease; }
+.kpi-card:hover { border-color: var(--border-strong); }
+.kpi-label { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 8px; }
+.kpi-value { font-size: 24px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.kpi-delta { font-size: 12px; margin-top: 6px; font-variant-numeric: tabular-nums; display: flex; align-items: center; gap: 4px; }
+.delta-up { color: var(--success); }
+.delta-down { color: var(--danger); }
+.delta-neutral { color: var(--text-muted); }
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+thead th {
+  text-align: left;
+  font-size: 11px; font-weight: 500;
+  letter-spacing: 0.04em; text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; top: 0;
+}
+tbody td {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+tbody tr { transition: background 100ms ease; cursor: pointer; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr.expanded { background: var(--surface-2); }
+td.num, th.num { text-align: right; font-family: var(--mono); font-size: 12px; }
+.amount-neg { color: var(--danger); }
+.amount-pos { color: var(--text); }
+.row-cleared td { color: var(--text-subtle); }
+.row-cleared td.desc { text-decoration: line-through; }
+.row-week-sep td {
+  padding: 6px 12px; background: var(--surface-2);
+  font-size: 11px; font-weight: 500; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-muted);
+  cursor: default;
+}
+.row-week-sep:hover { background: var(--surface-2); }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px; font-weight: 500;
+  white-space: nowrap;
+}
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-accent { background: var(--accent-bg); color: var(--accent); }
+.badge-neutral { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+
+/* Filters */
+.filters-bar {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+  margin-bottom: 16px;
+}
+.filter-chip {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 8px;
+  background: var(--accent-bg);
+  color: var(--accent);
+  border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500;
+}
+.filter-chip button {
+  background: none; border: none; color: inherit; cursor: pointer;
+  padding: 0; display: flex; opacity: 0.7;
+}
+.filter-chip button:hover { opacity: 1; }
+.filter-chip svg { width: 12px; height: 12px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin-bottom: 16px; }
+.tab {
+  padding: 8px 12px; font-size: 13px; font-weight: 500;
+  color: var(--text-muted); cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  background: none; border-left: none; border-right: none; border-top: none;
+  font-family: inherit;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* Modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 100;
+  animation: fadeIn 150ms ease;
+}
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 520px;
+  width: 92vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 200ms ease;
+}
+.modal.wide { max-width: 720px; }
+@keyframes slideUp { from { transform: translateY(8px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+.modal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+.modal-title { font-size: 16px; font-weight: 600; margin: 0; }
+.modal-close { background: none; border: none; cursor: pointer; color: var(--text-muted); display: flex; padding: 4px; border-radius: var(--radius-sm); }
+.modal-close:hover { background: var(--surface-2); color: var(--text); }
+.modal-close svg { width: 16px; height: 16px; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border); }
+
+/* Toasts */
+.toast-container { position: fixed; top: 16px; right: 16px; z-index: 200; display: flex; flex-direction: column; gap: 8px; }
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px;
+  min-width: 240px; max-width: 360px;
+  animation: toastIn 200ms ease;
+}
+@keyframes toastIn { from { transform: translateX(8px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--info); }
+.toast svg { width: 14px; height: 14px; flex-shrink: 0; }
+.toast.success svg { color: var(--success); }
+.toast.error svg { color: var(--danger); }
+.toast.info svg { color: var(--info); }
+
+/* Empty state */
+.empty-state {
+  padding: 48px 24px;
+  text-align: left;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+}
+.empty-state .icon { opacity: 0.16; margin-bottom: 12px; }
+.empty-state .icon svg { width: 32px; height: 32px; }
+.empty-state h3 { font-size: 14px; font-weight: 600; margin: 0 0 4px; }
+.empty-state p { font-size: 13px; color: var(--text-muted); margin: 0 0 12px; max-width: 400px; }
+
+/* Two-column project detail */
+.two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 900px) { .two-col { grid-template-columns: 1fr; } }
+
+/* Stepper */
+.stepper { display: flex; flex-direction: column; gap: 0; }
+.step { display: flex; gap: 12px; padding-bottom: 16px; position: relative; }
+.step:not(:last-child)::before {
+  content: ''; position: absolute;
+  left: 11px; top: 24px; bottom: 0;
+  width: 1px; background: var(--border);
+}
+.step-dot {
+  width: 22px; height: 22px; border-radius: 50%;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600;
+  flex-shrink: 0; z-index: 1;
+}
+.step.complete .step-dot { background: var(--success); border-color: var(--success); color: white; }
+.step.active .step-dot { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.step-content { flex: 1; }
+.step-title { font-size: 13px; font-weight: 500; }
+.step-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; font-variant-numeric: tabular-nums; }
+
+/* Expanded row */
+.expand-row td { padding: 0; background: var(--surface-2); }
+.expand-content { padding: 12px 24px; display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.expand-section h4 { font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); margin: 0 0 6px; }
+.expand-section p { font-size: 13px; margin: 0; color: var(--text); }
+
+/* Misc */
+.flex { display: flex; }
+.flex-between { display: flex; align-items: center; justify-content: space-between; }
+.flex-gap { display: flex; gap: 8px; align-items: center; }
+.col-gap { display: flex; flex-direction: column; gap: 12px; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.checkbox { width: 14px; height: 14px; accent-color: var(--accent); cursor: pointer; vertical-align: middle; }
+.icon-btn { background: none; border: none; cursor: pointer; padding: 4px; border-radius: var(--radius-sm); color: var(--text-muted); display: inline-flex; }
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn svg { width: 14px; height: 14px; }
+.scroll-area { max-height: calc(100vh - 220px); overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); }
+.alert {
+  padding: 10px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; display: flex; gap: 8px; align-items: center;
+  margin-bottom: 12px;
+}
+.alert-warning { background: var(--warning-bg); color: var(--warning); }
+.alert-danger { background: var(--danger-bg); color: var(--danger); }
+.alert-info { background: var(--info-bg); color: var(--info); }
+.alert svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+/* Bar chart */
+.bar-chart { display: flex; align-items: flex-end; gap: 4px; height: 140px; padding: 8px 0; }
+.bar-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bar-wrap { width: 100%; height: 100%; display: flex; flex-direction: column; justify-content: flex-end; }
+.bar { width: 100%; background: var(--accent); border-radius: 2px 2px 0 0; min-height: 2px; transition: opacity 150ms ease; }
+.bar:hover { opacity: 0.8; }
+.bar.expense { background: var(--text-subtle); }
+.bar-label { font-size: 10px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
+/* FAB */
+.fab {
+  position: fixed; bottom: 24px; right: 24px;
+  background: var(--accent); color: white;
+  border: none; border-radius: var(--radius-md);
+  padding: 10px 16px;
+  font-size: 13px; font-weight: 500;
+  cursor: pointer;
+  display: flex; align-items: center; gap: 6px;
+  z-index: 50;
+  font-family: inherit;
+  transition: background 150ms ease;
+}
+.fab:hover { background: var(--accent-hover); }
+.fab svg { width: 14px; height: 14px; }
+.fab kbd {
+  font-family: var(--mono); font-size: 10px;
+  background: rgba(255,255,255,0.2); padding: 1px 4px;
+  border-radius: 3px; margin-left: 4px;
+}
+
+@media (max-width: 900px) {
+  .app { grid-template-columns: 1fr; }
+  .sidebar { display: none; }
+  .search-box { width: 140px; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="logo">A</div>
+      <span class="logo-text">Atelier</span>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Workspace</div>
+      <div id="nav-list"></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Reports</div>
+      <div class="nav-item" data-view="reports" onclick="switchView('reports')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 13V3M2 13H14M5 10V8M8 10V6M11 10V4"/></svg>
+        P&amp;L Reports
+      </div>
+      <div class="nav-item" data-view="reconcile" onclick="switchView('reconcile')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M2 5h12M2 11h12M5 2v3M11 8v6"/></svg>
+        Reconciliation
+      </div>
+      <div class="nav-item" data-view="tax" onclick="switchView('tax')">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 2h7l3 3v9H3V2zM10 2v3h3"/></svg>
+        Tax Summary
+      </div>
+    </div>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="avatar" id="user-avatar">EM</div>
+        <div>
+          <div style="color: var(--text); font-weight: 500; font-size: 12px;" id="user-name">Emma Marsh</div>
+          <div style="font-size: 11px;">Owner</div>
+        </div>
+        <button class="icon-btn" onclick="switchUser()" aria-label="Switch user" style="margin-left:auto;">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 7l3-3 3 3M11 9l-3 3-3-3"/></svg>
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div class="breadcrumb" id="breadcrumb"><strong>Dashboard</strong></div>
+      <div class="search-box">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="M10.5 10.5L14 14"/></svg>
+        <input class="input" id="global-search" placeholder="Search everything…" oninput="handleSearch(event)" onfocus="handleSearch(event)">
+        <div id="search-results" style="display:none; position:absolute; top:100%; left:0; right:0; margin-top:4px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); max-height: 400px; overflow-y: auto; z-index: 50;"></div>
+      </div>
+      <div class="period-select">
+        <select class="input" id="period-select" onchange="changePeriod(this.value)" style="width: auto; padding-right: 24px;">
+          <option value="week">This Week</option>
+          <option value="month" selected>This Month</option>
+          <option value="quarter">This Quarter</option>
+          <option value="ytd">Year to Date</option>
+          <option value="all">All Time</option>
+        </select>
+      </div>
+      <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" id="theme-btn">
+        <svg id="theme-icon" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/></svg>
+      </button>
+    </div>
+    <div class="content" id="content"></div>
+  </main>
+</div>
+
+<button class="fab" onclick="openTransactionModal()" aria-label="Add transaction">
+  <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+  New Transaction <kbd>N</kbd>
+</button>
+
+<div id="modal-root"></div>
+<div class="toast-container" id="toast-container"></div>
+
+<script>
+// ============ THEME ============
+const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+function toggleTheme() {
+  const cur = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const icon = document.getElementById('theme-icon');
+  if (isDark) {
+    icon.innerHTML = '<path d="M13 9.5A5 5 0 0 1 6.5 3a.5.5 0 0 0-.7-.6A6.5 6.5 0 1 0 13.6 10.2a.5.5 0 0 0-.6-.7z"/>';
+  } else {
+    icon.innerHTML = '<circle cx="8" cy="8" r="3"/><path d="M8 1v2M8 13v2M1 8h2M13 8h2M3 3l1.5 1.5M11.5 11.5L13 13M3 13l1.5-1.5M11.5 4.5L13 3"/>';
+  }
+}
+updateThemeIcon();
+
+// ============ STATE ============
+const state = {
+  currentView: 'dashboard',
+  currentUser: 'Emma Marsh',
+  users: ['Emma Marsh', 'Jamie Hart'],
+  period: 'month',
+  filters: { category: null, project: null, customer: null, reconciled: null, dateFrom: null, dateTo: null },
+  customers: [
+    { id: 'c1', name: 'Sarah Chen', email: 'sarah.c@example.com', phone: '555-0142', address: '88 Oak Ave, Portland', terms: 'Net 30', notes: 'Loves walnut & brass accents.' },
+    { id: 'c2', name: 'Marcus Webb', email: 'marcus@webbarts.com', phone: '555-0177', address: '12 Pine St, Seattle', terms: 'Deposit + Final', notes: 'Repeat customer since 2022.' },
+    { id: 'c3', name: 'Linnea Park', email: 'linnea.p@example.com', phone: '555-0193', address: '405 Maple Rd, Eugene', terms: '50/50', notes: '' },
+    { id: 'c4', name: 'Henley Studios', email: 'orders@henleystudios.com', phone: '555-0124', address: '900 Birch Way, Tacoma', terms: 'Net 15', notes: 'Wholesale account.' },
+    { id: 'c5', name: 'Rosa Almeida', email: 'rosa.a@example.com', phone: '555-0188', address: '37 Cedar Ln, Bend', terms: 'Net 30', notes: '' }
+  ],
+  projects: [
+    { id: 'p1', name: 'Walnut Console Table', customerId: 'c1', status: 'In Progress', contracted: 2400, deposit: 1200, depositDate: '2025-10-15', startDate: '2025-10-15', dueDate: '2025-12-10', laborHours: 18, laborRate: 55, notes: 'Live edge walnut, brass hairpin legs.' },
+    { id: 'p2', name: 'Custom Quilt — King', customerId: 'c2', status: 'Awaiting Payment', contracted: 1850, deposit: 925, depositDate: '2025-09-02', startDate: '2025-09-02', dueDate: '2025-11-15', laborHours: 32, laborRate: 45, notes: 'Hand-quilted, vintage cotton blend.' },
+    { id: 'p3', name: 'Stained Glass Window', customerId: 'c3', status: 'Complete', contracted: 3200, deposit: 1600, depositDate: '2025-08-10', startDate: '2025-08-10', dueDate: '2025-10-20', laborHours: 42, laborRate: 60, notes: 'Botanical pattern, lead came.' },
+    { id: 'p4', name: 'Ceramic Dinner Set (8pc)', customerId: 'c4', status: 'In Progress', contracted: 960, deposit: 480, depositDate: '2025-11-01', startDate: '2025-11-01', dueDate: '2025-12-22', laborHours: 14, laborRate: 45, notes: 'Wholesale repeat order.' },
+    { id: 'p5', name: 'Hand-Carved Sign', customerId: 'c5', status: 'Complete', contracted: 450, deposit: 450, depositDate: '2025-10-28', startDate: '2025-10-28', dueDate: '2025-11-05', laborHours: 6, laborRate: 55, notes: 'Cedar shop sign.' }
+  ],
+  inventory: [
+    { id: 'i1', name: 'Walnut Lumber (bf)', category: 'Wood', qty: 24, unit: 'board ft', cost: 12.50, photo: null },
+    { id: 'i2', name: 'Brass Hairpin Legs', category: 'Hardware', qty: 6, unit: 'set', cost: 38.00, photo: null },
+    { id: 'i3', name: 'Cotton Quilt Batting', category: 'Fabric', qty: 8, unit: 'yard', cost: 9.75, photo: null },
+    { id: 'i4', name: 'Stained Glass Sheets', category: 'Glass', qty: 12, unit: 'sheet', cost: 22.40, photo: null },
+    { id: 'i5', name: 'Stoneware Clay', category: 'Clay', qty: 50, unit: 'lb', cost: 1.85, photo: null },
+    { id: 'i6', name: 'Mineral Oil (food safe)', category: 'Finishes', qty: 3, unit: 'qt', cost: 14.20, photo: null },
+    { id: 'i7', name: 'Shipping Boxes — Med', category: 'Packaging', qty: 35, unit: 'each', cost: 2.10, photo: null }
+  ],
+  transactions: [],
+  recurring: [
+    { id: 'r1', description: 'Studio rent', amount: -850, category: 'Workspace', day: 1 },
+    { id: 'r2', description: 'Adobe Creative Cloud', amount: -54.99, category: 'Software', day: 15 },
+    { id: 'r3', description: 'Etsy seller fees', amount: -32, category: 'Marketing', day: 5 }
+  ],
+  categories: {
+    income: ['Commission Deposit', 'Commission Progress', 'Commission Final', 'Show Sale', 'Online Sale', 'Wholesale', 'Other Income'],
+    expense: ['Fabric', 'Wood', 'Paint', 'Hardware', 'Glass', 'Clay', 'Finishes', 'Packaging', 'Tools/Equipment', 'Workspace', 'Marketing', 'Shipping', 'Software', 'Travel', 'Other Expense']
+  },
+  toasts: [],
+  expandedRows: new Set(),
+  searchOpen: false
+};
+
+// Seed transactions
+(function seedTransactions() {
+  const today = new Date();
+  function d(daysAgo) { const dt = new Date(today); dt.setDate(dt.getDate() - daysAgo); return dt.toISOString().slice(0,10); }
+  const tx = [
+    { date: d(2), description: 'Final payment — Stained Glass Window', amount: 1600, category: 'Commission Final', projectId: 'p3', customerId: 'c3', reconciled: false, notes: 'Picked up in person.', user: 'Emma Marsh' },
+    { date: d(3), description: 'Walnut lumber restock', amount: -312.50, category: 'Wood', projectId: 'p1', customerId: null, reconciled: false, notes: '25 bf at $12.50', user: 'Jamie Hart' },
+    { date: d(4), description: 'Deposit — Ceramic Dinner Set', amount: 480, category: 'Commission Deposit', projectId: 'p4', customerId: 'c4', reconciled: true, notes: '50% deposit, Henley Studios.', user: 'Emma Marsh' },
+    { date: d(6), description: 'Brass hairpin legs (3 sets)', amount: -114, category: 'Hardware', projectId: 'p1', customerId: null, reconciled: true, notes: '', user: 'Emma Marsh' },
+    { date: d(7), description: 'Show booth — Maker Market', amount: 845, category: 'Show Sale', projectId: null, customerId: null, reconciled: true, notes: 'Sold 12 small pieces.', user: 'Emma Marsh' },
+    { date: d(8), description: 'Studio rent — November', amount: -850, category: 'Workspace', projectId: null, customerId: null, reconciled: true, notes: 'Recurring.', user: 'Emma Marsh' },
+    { date: d(10), description: 'Hand-carved cedar sign', amount: 450, category: 'Commission Final', projectId: 'p5', customerId: 'c5', reconciled: true, notes: 'Paid full on delivery.', user: 'Jamie Hart' },
+    { date: d(12), description: 'Shipping supplies', amount: -67.40, category: 'Packaging', projectId: null, customerId: null, reconciled: true, notes: '', user: 'Emma Marsh' },
+    { date: d(14), description: 'Etsy seller fees', amount: -32, category: 'Marketing', projectId: null, customerId: null, reconciled: true, notes: 'Monthly.', user: 'Emma Marsh' },
+    { date: d(16), description: 'Online order — small bowls', amount: 128, category: 'Online Sale', projectId: null, customerId: null, reconciled: true, notes: '', user: 'Jamie Hart' },
+    { date: d(18), description: 'Stoneware clay (40 lb)', amount: -74, category: 'Clay', projectId: 'p4', customerId: null, reconciled: true, notes: '', user: 'Emma Marsh' },
+    { date: d(22), description: 'Progress payment — Walnut Console', amount: 600, category: 'Commission Progress', projectId: 'p1', customerId: 'c1', reconciled: true, notes: 'Halfway check-in.', user: 'Emma Marsh' },
+    { date: d(26), description: 'Stained glass sheets', amount: -268.80, category: 'Glass', projectId: 'p3', customerId: null, reconciled: true, notes: '', user: 'Emma Marsh' },
+    { date: d(35), description: 'Cotton batting bulk', amount: -78, category: 'Fabric', projectId: 'p2', customerId: null, reconciled: true, notes: '', user: 'Jamie Hart' },
+    { date: d(45), description: 'Quilt deposit — Webb', amount: 925, category: 'Commission Deposit', projectId: 'p2', customerId: 'c2', reconciled: true, notes: '', user: 'Emma Marsh' },
+    { date: d(50), description: 'New router bits', amount: -142, category: 'Tools/Equipment', projectId: null, customerId: null, reconciled: true, notes: 'Carbide set.', user: 'Jamie Hart' },
+    { date: d(60), description: 'Console table deposit', amount: 1200, category: 'Commission Deposit', projectId: 'p1', customerId: 'c1', reconciled: true, notes: '', user: 'Emma Marsh' },
+    { date: d(75), description: 'Stained glass deposit', amount: 1600, category: 'Commission Deposit', projectId: 'p3', customerId: 'c3', reconciled: true, notes: '', user: 'Emma Marsh' }
+  ];
+  state.transactions = tx.map((t, i) => ({ id: 't' + (i+1), ...t }));
+})();
+
+// ============ UTILS ============
+const fmtCurrency = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(n);
+const fmtNumber = (n) => new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
+const fmtDate = (s) => { if (!s) return ''; const d = new Date(s); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }); };
+const fmtDateShort = (s) => { if (!s) return ''; const d = new Date(s); return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }); };
+const fmtRelative = (s) => {
+  if (!s) return '';
+  const d = new Date(s);
+  const days = Math.floor((Date.now() - d) / 86400000);
+  if (days === 0) return 'today';
+  if (days === 1) return 'yesterday';
+  if (days < 7) return days + ' days ago';
+  return fmtDate(s);
+};
+const uid = (p) => p + Math.random().toString(36).slice(2,8);
+const escapeHtml = (s) => String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+function periodRange() {
+  const now = new Date();
+  const start = new Date(now);
+  if (state.period === 'week') start.setDate(now.getDate() - 7);
+  else if (state.period === 'month') start.setDate(now.getDate() - 30);
+  else if (state.period === 'quarter') start.setDate(now.getDate() - 90);
+  else if (state.period === 'ytd') { start.setMonth(0); start.setDate(1); }
+  else return { start: new Date('2000-01-01'), end: new Date('2099-12-31') };
+  start.setHours(0,0,0,0);
+  return { start, end: now };
+}
+
+function transactionsInPeriod() {
+  const { start, end } = periodRange();
+  return state.transactions.filter(t => {
+    const d = new Date(t.date);
+    return d >= start && d <= end;
+  });
+}
+
+function prevPeriodTransactions() {
+  const { start, end } = periodRange();
+  const len = end - start;
+  const prevStart = new Date(start.getTime() - len);
+  const prevEnd = start;
+  return state.transactions.filter(t => {
+    const d = new Date(t.date);
+    return d >= prevStart && d < prevEnd;
+  });
+}
+
+function getCustomer(id) { return state.customers.find(c => c.id === id); }
+function getProject(id) { return state.projects.find(p => p.id === id); }
+
+function projectMaterialCost(pid) {
+  return state.transactions.filter(t => t.projectId === pid && t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+}
+function projectRevenue(pid) {
+  return state.transactions.filter(t => t.projectId === pid && t.amount > 0).reduce((s,t) => s + t.amount, 0);
+}
+function projectLaborCost(p) { return (p.laborHours || 0) * (p.laborRate || 0); }
+function projectProfit(p) { return projectRevenue(p.id) - projectMaterialCost(p.id) - projectLaborCost(p); }
+function projectMargin(p) {
+  const rev = projectRevenue(p.id) || p.contracted;
+  if (!rev) return 0;
+  return (projectProfit(p) / rev) * 100;
+}
+
+function inventoryValue() { return state.inventory.reduce((s,i) => s + i.qty * i.cost, 0); }
+function cashBalance() { return state.transactions.reduce((s,t) => s + t.amount, 0); }
+function lastReconciledDate() {
+  const rec = state.transactions.filter(t => t.reconciled);
+  if (!rec.length) return null;
+  return rec.map(t => t.date).sort().pop();
+}
+function daysSinceReconciled() {
+  const d = lastReconciledDate();
+  if (!d) return null;
+  return Math.floor((Date.now() - new Date(d)) / 86400000);
+}
+
+// ============ TOASTS ============
+function toast(msg, type = 'info') {
+  const id = uid('toast_');
+  const container = document.getElementById('toast-container');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const iconSvg = type === 'success' ? '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 8l3 3 7-7"/></svg>' :
+                  type === 'error' ? '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>' :
+                  '<svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="8" cy="8" r="6"/><path d="M8 5v3M8 11h.01"/></svg>';
+  el.innerHTML = iconSvg + '<span>' + escapeHtml(msg) + '</span>';
+  el.id = id;
+  container.appendChild(el);
+  setTimeout(() => { el.style.opacity = '0'; setTimeout(() => el.remove(), 200); }, 4000);
+}
+
+// ============ NAV ============
+const nav = [
+  { key: 'dashboard', label: 'Dashboard', icon: '<path d="M2 2h5v5H2zM9 2h5v5H9zM2 9h5v5H2zM9 9h5v5H9z"/>' },
+  { key: 'transactions', label: 'Transactions', icon: '<path d="M2 4h12M2 8h12M2 12h8"/>' },
+  { key: 'projects', label: 'Projects', icon: '<path d="M2 5l6-3 6 3-6 3-6-3zM2 8l6 3 6-3M2 11l6 3 6-3"/>' },
+  { key: 'customers', label: 'Customers', icon: '<circle cx="8" cy="5" r="2.5"/><path d="M3 14c0-2.8 2.2-5 5-5s5 2.2 5 5"/>' },
+  { key: 'inventory', label: 'Inventory', icon: '<path d="M2 5l6-3 6 3v6l-6 3-6-3V5zM2 5l6 3M14 5l-6 3M8 8v7"/>' }
+];
+function renderNav() {
+  const counts = {
+    transactions: state.transactions.length,
+    projects: state.projects.filter(p => p.status !== 'Complete').length,
+    customers: state.customers.length,
+    inventory: state.inventory.length
+  };
+  document.getElementById('nav-list').innerHTML = nav.map(n => `
+    <div class="nav-item ${state.currentView === n.key ? 'active' : ''}" onclick="switchView('${n.key}')">
+      <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5">${n.icon}</svg>
+      ${n.label}
+      ${counts[n.key] !== undefined ? `<span class="count">${counts[n.key]}</span>` : ''}
+    </div>
+  `).join('');
+  // also re-render the reports/etc by checking active
+  document.querySelectorAll('.sidebar .nav-item').forEach(el => {
+    el.classList.toggle('active', el.dataset.view === state.currentView);
+  });
+}
+
+function switchView(view, opts) {
+  state.currentView = view;
+  if (opts && opts.filter) state.filters = { ...state.filters, ...opts.filter };
+  renderNav();
+  render();
+  document.getElementById('content').scrollTop = 0;
+}
+
+function changePeriod(p) {
+  state.period = p;
+  render();
+  toast('Period changed to ' + document.querySelector('#period-select option:checked').text, 'info');
+}
+
+function switchUser() {
+  const i = state.users.indexOf(state.currentUser);
+  state.currentUser = state.users[(i+1) % state.users.length];
+  const initials = state.currentUser.split(' ').map(s => s[0]).join('');
+  document.getElementById('user-name').textContent = state.currentUser;
+  document.getElementById('user-avatar').textContent = initials;
+  toast('Signed in as ' + state.currentUser, 'success');
+}
+
+function setBreadcrumb(parts) {
+  document.getElementById('breadcrumb').innerHTML = parts.map((p,i) => i === parts.length-1 ? `<strong>${escapeHtml(p)}</strong>` : escapeHtml(p)).join(' / ');
+}
+
+// ============ DASHBOARD ============
+function renderDashboard() {
+  setBreadcrumb(['Dashboard']);
+  const tx = transactionsInPeriod();
+  const prevTx = prevPeriodTransactions();
+  const revenue = tx.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const prevRevenue = prevTx.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+  const expense = tx.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0);
+  const profit = revenue - expense;
+  const margin = revenue > 0 ? (profit / revenue) * 100 : 0;
+  const activeProjects = state.projects.filter(p => p.status !== 'Complete');
+  const activeContractedValue = activeProjects.reduce((s,p) => s + p.contracted, 0);
+  const revDelta = prevRevenue > 0 ? ((revenue - prevRevenue) / prevRevenue) * 100 : null;
+  const cash = cashBalance();
+  const daysRec = daysSinceReconciled();
+  const invValue = inventoryValue();
+  const completedRecent = state.projects.filter(p => p.status === 'Complete').slice(-3);
+  const avgMargin = completedRecent.length ? completedRecent.reduce((s,p) => s + projectMargin(p), 0) / completedRecent.length : 0;
+
+  // Monthly trend (last 6 months)
+  const months = [];
+  for (let i = 5; i >= 0; i--) {
+    const d = new Date(); d.setMonth(d.getMonth() - i); d.setDate(1);
+    const next = new Date(d); next.setMonth(next.getMonth()+1);
+    const mTx = state.transactions.filter(t => { const td = new Date(t.date); return td >= d && td < next; });
+    months.push({
+      label: d.toLocaleDateString('en-US', { month: 'short' }),
+      income: mTx.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0),
+      expense: mTx.filter(t => t.amount < 0).reduce((s,t) => s + Math.abs(t.amount), 0)
+    });
+  }
+  const maxBar = Math.max(...months.map(m => Math.max(m.income, m.expense)), 1);
+
+  const recentTx = [...state.transactions].sort((a,b) => b.date.localeCompare(a.date)).slice(0, 6);
+
+  const reconcileAlert = daysRec !== null && daysRec > 7;
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 24px;">
+      <div>
+        <h1 class="display">${fmtCurrency(profit)}</h1>
+        <div class="muted" style="font-size: 13px; margin-top: 4px;">Net profit this period • ${tx.length} transactions</div>
+      </div>
+      <div class="flex-gap">
+        <button class="btn-secondary" onclick="openImportModal()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2v9M4 7l4 4 4-4M2 13h12"/></svg>
+          Import CSV
+        </button>
+        <button class="btn-secondary" onclick="exportCSV()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 11V2M4 6l4-4 4 4M2 13h12"/></svg>
+          Export
+        </button>
+      </div>
+    </div>
+
+    ${reconcileAlert ? `
+      <div class="alert alert-warning">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1zM8 6v4M8 12h.01"/></svg>
+        Bank reconciliation is ${daysRec} days overdue. <a href="#" onclick="event.preventDefault(); switchView('reconcile')" style="color: inherit; text-decoration: underline; margin-left: 4px;">Reconcile now</a>
+      </div>
+    ` : ''}
+
+    <div class="kpi-grid">
+      <div class="kpi-card" onclick="switchView('transactions', { filter: { category: null }})">
+        <div class="kpi-label">Revenue</div>
+        <div class="kpi-value">${fmtCurrency(revenue)}</div>
+        <div class="kpi-delta ${revDelta === null ? 'delta-neutral' : revDelta >= 0 ? 'delta-up' : 'delta-down'}">
+          ${revDelta === null ? 'no prior data' : (revDelta >= 0 ? '↑ ' : '↓ ') + Math.abs(revDelta).toFixed(1) + '% vs previous'}
+        </div>
+      </div>
+      <div class="kpi-card" onclick="switchView('projects')">
+        <div class="kpi-label">Active Projects</div>
+        <div class="kpi-value">${activeProjects.length}</div>
+        <div class="kpi-delta delta-neutral">${fmtCurrency(activeContractedValue)} contracted</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Profit Margin</div>
+        <div class="kpi-value" style="color: ${margin < 0 ? 'var(--danger)' : 'inherit'}">${margin.toFixed(1)}%</div>
+        <div class="kpi-delta delta-neutral">${fmtCurrency(profit)} net</div>
+      </div>
+      <div class="kpi-card" onclick="switchView('reconcile')">
+        <div class="kpi-label">Cash Balance</div>
+        <div class="kpi-value" style="color: ${cash < 0 ? 'var(--danger)' : 'inherit'}">${fmtCurrency(cash)}</div>
+        <div class="kpi-delta ${daysRec > 7 ? 'delta-down' : 'delta-neutral'}">
+          ${daysRec === null ? 'never reconciled' : daysRec + ' days since reconciled'}
+        </div>
+      </div>
+      <div class="kpi-card" onclick="switchView('inventory')">
+        <div class="kpi-label">Inventory at Cost</div>
+        <div class="kpi-value">${fmtCurrency(invValue)}</div>
+        <div class="kpi-delta delta-neutral">${state.inventory.length} items tracked</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Avg Project Margin</div>
+        <div class="kpi-value" style="color: ${avgMargin < 0 ? 'var(--danger)' : 'inherit'}">${avgMargin.toFixed(1)}%</div>
+        <div class="kpi-delta delta-neutral">trailing ${completedRecent.length} completed</div>
+      </div>
+    </div>
+
+    <div style="display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin-bottom: 16px;">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Income vs Expense — 6 month trend</div>
+          <div class="flex-gap" style="font-size: 11px; color: var(--text-muted);">
+            <span class="flex-gap"><span style="width:8px;height:8px;background:var(--accent);border-radius:2px;"></span> Income</span>
+            <span class="flex-gap"><span style="width:8px;height:8px;background:var(--text-subtle);border-radius:2px;"></span> Expense</span>
+          </div>
+        </div>
+        <div class="bar-chart">
+          ${months.map(m => `
+            <div class="bar-col">
+              <div class="bar-wrap" style="display:flex; gap: 2px; align-items: flex-end;">
+                <div class="bar" style="height: ${(m.income/maxBar)*100}%" title="${fmtCurrency(m.income)} income"></div>
+                <div class="bar expense" style="height: ${(m.expense/maxBar)*100}%" title="${fmtCurrency(m.expense)} expense"></div>
+              </div>
+              <div class="bar-label">${m.label}</div>
+            </div>
+          `).join('')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Active Projects</div></div>
+        ${activeProjects.length === 0 ? `
+          <div style="padding: 12px 0; color: var(--text-muted); font-size: 13px;">No active projects.</div>
+        ` : `
+          <div class="col-gap">
+            ${activeProjects.slice(0,4).map(p => {
+              const c = getCustomer(p.customerId);
+              const rev = projectRevenue(p.id);
+              const pct = Math.min(100, (rev / p.contracted) * 100);
+              return `
+                <div onclick="openProject('${p.id}')" style="cursor:pointer; padding: 8px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                  <div class="flex-between" style="margin-bottom: 6px;">
+                    <div style="font-weight: 500; font-size: 13px;">${escapeHtml(p.name)}</div>
+                    <span class="badge badge-${p.status === 'Awaiting Payment' ? 'warning' : 'info'}">${p.status}</span>
+                  </div>
+                  <div style="font-size: 12px; color: var(--text-muted); margin-bottom: 6px;">${escapeHtml(c ? c.name : '—')} • due ${fmtDateShort(p.dueDate)}</div>
+                  <div style="height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden;">
+                    <div style="height: 100%; background: var(--accent); width: ${pct}%;"></div>
+                  </div>
+                  <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; font-variant-numeric: tabular-nums;">
+                    ${fmtCurrency(rev)} of ${fmtCurrency(p.contracted)} (${pct.toFixed(0)}%)
+                  </div>
+                </div>
+              `;
+            }).join('')}
+          </div>
+        `}
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Recent Transactions</div>
+        <button class="btn-ghost" onclick="switchView('transactions')">View all →</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Description</th><th>Category</th><th>Project</th><th class="num">Amount</th><th style="width: 80px;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${recentTx.map(t => {
+            const p = t.projectId ? getProject(t.projectId) : null;
+            return `
+              <tr onclick="toggleExpand('${t.id}', 'dashboard')">
+                <td>${fmtDateShort(t.date)}</td>
+                <td>${escapeHtml(t.description)}</td>
+                <td><span class="badge badge-neutral">${escapeHtml(t.category)}</span></td>
+                <td>${p ? escapeHtml(p.name) : '<span class="muted">—</span>'}</td>
+                <td class="num ${t.amount < 0 ? 'amount-neg' : ''}">${t.amount < 0 ? '−' : ''}${fmtCurrency(Math.abs(t.amount))}</td>
+                <td>${t.reconciled ? '<span class="badge badge-success">Cleared</span>' : '<span class="badge badge-neutral">Pending</span>'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ============ TRANSACTIONS ============
+function renderTransactions() {
+  setBreadcrumb(['Transactions']);
+  let tx = transactionsInPeriod();
+  const f = state.filters;
+  if (f.category) tx = tx.filter(t => t.category === f.category);
+  if (f.project) tx = tx.filter(t => t.projectId === f.project);
+  if (f.customer) tx = tx.filter(t => t.customerId === f.customer);
+  if (f.reconciled === 'cleared') tx = tx.filter(t => t.reconciled);
+  if (f.reconciled === 'pending') tx = tx.filter(t => !t.reconciled);
+
+  tx = [...tx].sort((a,b) => b.date.localeCompare(a.date));
+
+  // Running balance — calculate over all tx oldest-first
+  const ordered = [...state.transactions].sort((a,b) => a.date.localeCompare(b.date));
+  const balanceMap = {};
+  let running = 0;
+  ordered.forEach(t => { running += t.amount; balanceMap[t.id] = running; });
+
+  // Group by week
+  function weekStart(dateStr) {
+    const d = new Date(dateStr); d.setHours(0,0,0,0);
+    const day = d.getDay();
+    const diff = (day + 6) % 7;
+    d.setDate(d.getDate() - diff);
+    return d.toISOString().slice(0,10);
+  }
+  const groups = {};
+  tx.forEach(t => {
+    const w = weekStart(t.date);
+    if (!groups[w]) groups[w] = [];
+    groups[w].push(t);
+  });
+  const weeks = Object.keys(groups).sort().reverse();
+
+  const activeFilters = [];
+  if (f.category) activeFilters.push({ key: 'category', label: 'Category: ' + f.category });
+  if (f.project) { const p = getProject(f.project); activeFilters.push({ key: 'project', label: 'Project: ' + (p ? p.name : '?') }); }
+  if (f.customer) { const c = getCustomer(f.customer); activeFilters.push({ key: 'customer', label: 'Customer: ' + (c ? c.name : '?') }); }
+  if (f.reconciled) activeFilters.push({ key: 'reconciled', label: 'Status: ' + f.reconciled });
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="section" style="margin-bottom: 4px;">Transactions</h1>
+        <div class="muted" style="font-size: 13px;">${tx.length} entries • ${fmtCurrency(tx.reduce((s,t)=>s+t.amount,0))} net</div>
+      </div>
+      <div class="flex-gap">
+        <button class="btn-secondary" onclick="openRecurringModal()">Recurring</button>
+        <button class="btn-secondary" onclick="openImportModal()">Import CSV</button>
+        <button class="btn-primary" onclick="openTransactionModal()">
+          <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+          New
+        </button>
+      </div>
+    </div>
+
+    <div class="filters-bar">
+      <select class="input" style="width: auto;" onchange="applyFilter('category', this.value)">
+        <option value="">All categories</option>
+        ${[...state.categories.income, ...state.categories.expense].map(c => `<option ${f.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+      </select>
+      <select class="input" style="width: auto;" onchange="applyFilter('project', this.value)">
+        <option value="">All projects</option>
+        ${state.projects.map(p => `<option value="${p.id}" ${f.project === p.id ? 'selected' : ''}>${escapeHtml(p.name)}</option>`).join('')}
+      </select>
+      <select class="input" style="width: auto;" onchange="applyFilter('customer', this.value)">
+        <option value="">All customers</option>
+        ${state.customers.map(c => `<option value="${c.id}" ${f.customer === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+      </select>
+      <select class="input" style="width: auto;" onchange="applyFilter('reconciled', this.value)">
+        <option value="">All status</option>
+        <option value="cleared" ${f.reconciled === 'cleared' ? 'selected' : ''}>Cleared</option>
+        <option value="pending" ${f.reconciled === 'pending' ? 'selected' : ''}>Pending</option>
+      </select>
+      ${activeFilters.map(af => `
+        <span class="filter-chip">${escapeHtml(af.label)}
+          <button onclick="applyFilter('${af.key}', '')" aria-label="Clear filter">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+          </button>
+        </span>
+      `).join('')}
+      ${activeFilters.length ? `<button class="btn-ghost" onclick="clearAllFilters()">Clear all</button>` : ''}
+    </div>
+
+    ${tx.length === 0 ? renderEmptyState('No transactions match', 'Try widening your period or clearing filters. You can also add a new transaction.') : `
+      <div class="scroll-area">
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 32px;"></th>
+              <th>Date</th>
+              <th>Description</th>
+              <th>Category</th>
+              <th>Project / Customer</th>
+              <th class="num">Amount</th>
+              <th class="num">Balance</th>
+              <th style="width: 60px;">User</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${weeks.map(w => {
+              const ws = new Date(w);
+              const we = new Date(w); we.setDate(we.getDate() + 6);
+              const wTx = groups[w];
+              const wTotal = wTx.reduce((s,t) => s + t.amount, 0);
+              return `
+                <tr class="row-week-sep">
+                  <td colspan="8">
+                    Week of ${fmtDateShort(w)} – ${fmtDateShort(we.toISOString().slice(0,10))}
+                    <span style="float:right; color: var(--text); font-family: var(--mono); font-size: 12px;">${wTotal >= 0 ? '+' : '−'}${fmtCurrency(Math.abs(wTotal))}</span>
+                  </td>
+                </tr>
+                ${wTx.map(t => {
+                  const p = t.projectId ? getProject(t.projectId) : null;
+                  const c = t.customerId ? getCustomer(t.customerId) : (p ? getCustomer(p.customerId) : null);
+                  const expanded = state.expandedRows.has(t.id);
+                  return `
+                    <tr class="${t.reconciled ? 'row-cleared' : ''} ${expanded ? 'expanded' : ''}" onclick="toggleExpand('${t.id}', 'transactions')">
+                      <td onclick="event.stopPropagation()">
+                        <input type="checkbox" class="checkbox" ${t.reconciled ? 'checked' : ''} onchange="toggleReconciled('${t.id}')" aria-label="Mark cleared">
+                      </td>
+                      <td>${fmtDateShort(t.date)}</td>
+                      <td class="desc">${escapeHtml(t.description)}${t.notes ? '<span style="color: var(--text-subtle); font-size: 11px; margin-left: 6px;">• note</span>' : ''}</td>
+                      <td><span class="badge badge-neutral">${escapeHtml(t.category)}</span></td>
+                      <td>${p ? escapeHtml(p.name) : (c ? escapeHtml(c.name) : '<span class="muted">—</span>')}</td>
+                      <td class="num ${t.amount < 0 ? 'amount-neg' : ''}">${t.amount < 0 ? '−' : '+'}${fmtCurrency(Math.abs(t.amount))}</td>
+                      <td class="num muted">${fmtCurrency(balanceMap[t.id])}</td>
+                      <td><span class="avatar" title="${escapeHtml(t.user)}">${escapeHtml(t.user.split(' ').map(s=>s[0]).join(''))}</span></td>
+                    </tr>
+                    ${expanded ? `
+                      <tr class="expand-row">
+                        <td colspan="8">
+                          <div class="expand-content">
+                            <div class="expand-section">
+                              <h4>Notes</h4>
+                              <p>${t.notes ? escapeHtml(t.notes) : '<span class="muted">No notes added.</span>'}</p>
+                            </div>
+                            <div class="expand-section">
+                              <h4>Audit Trail</h4>
+                              <p>Entered by <strong>${escapeHtml(t.user)}</strong> • ${fmtDate(t.date)}</p>
+                            </div>
+                          </div>
+                          <div style="padding: 0 24px 12px; display:flex; gap: 8px;">
+                            <button class="btn-secondary" onclick="event.stopPropagation(); editTransaction('${t.id}')">Edit</button>
+                            <button class="btn-danger" onclick="event.stopPropagation(); deleteTransaction('${t.id}')">Delete</button>
+                          </div>
+                        </td>
+                      </tr>
+                    ` : ''}
+                  `;
+                }).join('')}
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+}
+
+function applyFilter(key, value) {
+  state.filters[key] = value || null;
+  render();
+}
+function clearAllFilters() {
+  state.filters = { category: null, project: null, customer: null, reconciled: null, dateFrom: null, dateTo: null };
+  render();
+}
+
+function toggleExpand(id, source) {
+  if (state.expandedRows.has(id)) state.expandedRows.delete(id);
+  else state.expandedRows.add(id);
+  render();
+}
+
+function toggleReconciled(id) {
+  const t = state.transactions.find(x => x.id === id);
+  if (!t) return;
+  t.reconciled = !t.reconciled;
+  toast(t.reconciled ? 'Marked as cleared' : 'Marked as pending', 'success');
+  render();
+}
+
+function deleteTransaction(id) {
+  const t = state.transactions.find(x => x.id === id);
+  if (!t) return;
+  openConfirmModal('Delete transaction?', `"${escapeHtml(t.description)}" — ${fmtCurrency(Math.abs(t.amount))}`, () => {
+    state.transactions = state.transactions.filter(x => x.id !== id);
+    state.expandedRows.delete(id);
+    closeModal();
+    toast('Transaction deleted', 'success');
+    render();
+  });
+}
+
+// ============ PROJECTS ============
+function renderProjects() {
+  setBreadcrumb(['Projects']);
+  const projects = [...state.projects].sort((a,b) => projectMargin(b) - projectMargin(a));
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="section" style="margin-bottom: 4px;">Projects</h1>
+        <div class="muted" style="font-size: 13px;">${state.projects.length} total • ${state.projects.filter(p => p.status !== 'Complete').length} active</div>
+      </div>
+      <button class="btn-primary" onclick="openProjectModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        New Project
+      </button>
+    </div>
+    ${projects.length === 0 ? renderEmptyState('No projects yet', 'Create a project to track revenue, material costs, and profitability against a contract.') : `
+      <div class="scroll-area">
+        <table>
+          <thead>
+            <tr>
+              <th>Project</th>
+              <th>Customer</th>
+              <th>Status</th>
+              <th>Due</th>
+              <th class="num">Revenue</th>
+              <th class="num">Materials</th>
+              <th class="num">Labor</th>
+              <th class="num">Profit</th>
+              <th class="num">Margin</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${projects.map(p => {
+              const c = getCustomer(p.customerId);
+              const rev = projectRevenue(p.id);
+              const mat = projectMaterialCost(p.id);
+              const lab = projectLaborCost(p);
+              const prof = rev - mat - lab;
+              const margin = projectMargin(p);
+              const statusClass = p.status === 'Complete' ? 'success' : p.status === 'Awaiting Payment' ? 'warning' : 'info';
+              return `
+                <tr onclick="openProject('${p.id}')">
+                  <td><strong>${escapeHtml(p.name)}</strong></td>
+                  <td>${c ? escapeHtml(c.name) : '<span class="muted">—</span>'}</td>
+                  <td><span class="badge badge-${statusClass}">${p.status}</span></td>
+                  <td>${fmtDateShort(p.dueDate)}</td>
+                  <td class="num">${fmtCurrency(rev)}</td>
+                  <td class="num amount-neg">${mat > 0 ? '−' : ''}${fmtCurrency(mat)}</td>
+                  <td class="num amount-neg">${lab > 0 ? '−' : ''}${fmtCurrency(lab)}</td>
+                  <td class="num ${prof < 0 ? 'amount-neg' : ''}">${prof < 0 ? '−' : ''}${fmtCurrency(Math.abs(prof))}</td>
+                  <td class="num" style="color: ${margin < 0 ? 'var(--danger)' : margin < 15 ? 'var(--warning)' : 'inherit'}">${margin.toFixed(1)}%</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+}
+
+function openProject(id) {
+  state.currentView = 'project-detail';
+  state.currentProjectId = id;
+  renderNav();
+  render();
+}
+
+function renderProjectDetail() {
+  const p = getProject(state.currentProjectId);
+  if (!p) { switchView('projects'); return; }
+  const c = getCustomer(p.customerId);
+  setBreadcrumb(['Projects', p.name]);
+
+  const rev = projectRevenue(p.id);
+  const mat = projectMaterialCost(p.id);
+  const lab = projectLaborCost(p);
+  const prof = rev - mat - lab;
+  const margin = rev > 0 ? (prof / rev) * 100 : 0;
+  const projectTx = state.transactions.filter(t => t.projectId === p.id).sort((a,b) => a.date.localeCompare(b.date));
+  const incomeTx = projectTx.filter(t => t.amount > 0);
+  const expenseTx = projectTx.filter(t => t.amount < 0);
+
+  // Milestone steps
+  const deposit = incomeTx.find(t => t.category === 'Commission Deposit');
+  const progress = incomeTx.find(t => t.category === 'Commission Progress');
+  const final = incomeTx.find(t => t.category === 'Commission Final');
+  const steps = [
+    { title: 'Deposit', complete: !!deposit, active: !deposit, tx: deposit, expected: p.contracted * 0.5 },
+    { title: 'Progress payment', complete: !!progress, active: !!deposit && !progress, tx: progress, expected: p.contracted * 0.25 },
+    { title: 'Final payment', complete: !!final, active: (!!deposit || !!progress) && !final, tx: final, expected: p.contracted - (deposit ? deposit.amount : 0) - (progress ? progress.amount : 0) }
+  ];
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 16px;">
+      <div>
+        <button class="btn-ghost" onclick="switchView('projects')" style="margin-bottom: 8px; padding-left: 0;">← Projects</button>
+        <h1 class="section" style="margin-bottom: 4px;">${escapeHtml(p.name)}</h1>
+        <div class="muted" style="font-size: 13px;">
+          ${c ? escapeHtml(c.name) : '—'} • ${fmtDateShort(p.startDate)} → ${fmtDateShort(p.dueDate)}
+          <span class="badge badge-${p.status === 'Complete' ? 'success' : p.status === 'Awaiting Payment' ? 'warning' : 'info'}" style="margin-left: 8px;">${p.status}</span>
+        </div>
+      </div>
+      <div class="flex-gap">
+        <button class="btn-secondary" onclick="editProject('${p.id}')">Edit</button>
+        <button class="btn-primary" onclick="openTransactionModal({ projectId: '${p.id}' })">Add Transaction</button>
+      </div>
+    </div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Contracted</div><div class="kpi-value">${fmtCurrency(p.contracted)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Collected</div><div class="kpi-value">${fmtCurrency(rev)}</div><div class="kpi-delta delta-neutral">${((rev/p.contracted)*100).toFixed(0)}% of contract</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total Cost</div><div class="kpi-value">${fmtCurrency(mat + lab)}</div><div class="kpi-delta delta-neutral">${fmtCurrency(mat)} mat + ${fmtCurrency(lab)} labor</div></div>
+      <div class="kpi-card"><div class="kpi-label">Profit / Margin</div><div class="kpi-value" style="color: ${prof < 0 ? 'var(--danger)' : 'inherit'}">${fmtCurrency(prof)}</div><div class="kpi-delta ${margin < 0 ? 'delta-down' : 'delta-up'}">${margin.toFixed(1)}%</div></div>
+    </div>
+
+    <div class="two-col">
+      <div class="card">
+        <h2 class="sub">Payment Milestones</h2>
+        <div class="stepper">
+          ${steps.map((s,i) => `
+            <div class="step ${s.complete ? 'complete' : s.active ? 'active' : ''}">
+              <div class="step-dot">${s.complete ? '✓' : i+1}</div>
+              <div class="step-content">
+                <div class="flex-between">
+                  <div class="step-title">${s.title}</div>
+                  <div class="mono numeric" style="font-size: 13px;">${fmtCurrency(s.tx ? s.tx.amount : s.expected)}</div>
+                </div>
+                <div class="step-meta">
+                  ${s.tx ? 'Received ' + fmtDate(s.tx.date) : s.active ? '<span style="color: var(--warning);">Awaiting payment</span>' : '<span class="muted">Not yet due</span>'}
+                </div>
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        ${p.notes ? `<div class="divider"></div><div class="caption" style="margin-bottom: 4px;">Notes</div><div style="font-size: 13px;">${escapeHtml(p.notes)}</div>` : ''}
+      </div>
+
+      <div class="card">
+        <h2 class="sub">Allocated Costs</h2>
+        <table>
+          <thead><tr><th>Item</th><th>Date</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            ${expenseTx.length === 0 ? `<tr><td colspan="3" class="muted" style="padding: 12px;">No material costs allocated yet.</td></tr>` : expenseTx.map(t => `
+              <tr>
+                <td>${escapeHtml(t.description)} <span class="badge badge-neutral" style="margin-left:4px;">${escapeHtml(t.category)}</span></td>
+                <td class="muted">${fmtDateShort(t.date)}</td>
+                <td class="num amount-neg">−${fmtCurrency(Math.abs(t.amount))}</td>
+              </tr>
+            `).join('')}
+            <tr>
+              <td colspan="2"><strong>Labor</strong> <span class="muted">— ${p.laborHours}h × ${fmtCurrency(p.laborRate)}/hr</span></td>
+              <td class="num amount-neg">−${fmtCurrency(lab)}</td>
+            </tr>
+            <tr style="background: var(--surface-2);">
+              <td colspan="2"><strong>Total Cost</strong></td>
+              <td class="num"><strong>${fmtCurrency(mat + lab)}</strong></td>
+            </tr>
+            <tr>
+              <td colspan="2"><strong>Revenue Collected</strong></td>
+              <td class="num">${fmtCurrency(rev)}</td>
+            </tr>
+            <tr style="background: ${prof >= 0 ? 'var(--success-bg)' : 'var(--danger-bg)'};">
+              <td colspan="2"><strong>Net Profit</strong></td>
+              <td class="num" style="color: ${prof < 0 ? 'var(--danger)' : 'var(--success)'};"><strong>${fmtCurrency(prof)}</strong></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `;
+}
+
+// ============ CUSTOMERS ============
+function renderCustomers() {
+  setBreadcrumb(['Customers']);
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="section" style="margin-bottom: 4px;">Customers</h1>
+        <div class="muted" style="font-size: 13px;">${state.customers.length} customers</div>
+      </div>
+      <button class="btn-primary" onclick="openCustomerModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        New Customer
+      </button>
+    </div>
+    ${state.customers.length === 0 ? renderEmptyState('No customers yet', 'Add a customer to start tracking projects, lifetime value, and payment history.') : `
+      <div class="scroll-area">
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th><th>Contact</th><th>Terms</th>
+              <th class="num">Projects</th><th class="num">Lifetime Value</th><th class="num">Outstanding</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.customers.map(c => {
+              const projects = state.projects.filter(p => p.customerId === c.id);
+              const ltv = state.transactions.filter(t => t.customerId === c.id && t.amount > 0).reduce((s,t) => s + t.amount, 0);
+              const outstanding = projects.reduce((s,p) => {
+                if (p.status === 'Complete') return s;
+                return s + (p.contracted - projectRevenue(p.id));
+              }, 0);
+              return `
+                <tr onclick="openCustomerDetail('${c.id}')">
+                  <td><strong>${escapeHtml(c.name)}</strong>${c.notes ? `<div style="font-size: 11px; color: var(--text-muted); margin-top: 2px;">${escapeHtml(c.notes)}</div>` : ''}</td>
+                  <td>${escapeHtml(c.email)}<div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(c.phone)}</div></td>
+                  <td><span class="badge badge-neutral">${escapeHtml(c.terms)}</span></td>
+                  <td class="num">${projects.length}</td>
+                  <td class="num">${fmtCurrency(ltv)}</td>
+                  <td class="num" style="color: ${outstanding > 0 ? 'var(--warning)' : 'inherit'}">${fmtCurrency(outstanding)}</td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+}
+
+function openCustomerDetail(id) {
+  const c = getCustomer(id);
+  if (!c) return;
+  const projects = state.projects.filter(p => p.customerId === id);
+  const tx = state.transactions.filter(t => t.customerId === id).sort((a,b) => b.date.localeCompare(a.date));
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">${escapeHtml(c.name)}</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="grid-2">
+      <div><div class="caption">Email</div><div>${escapeHtml(c.email)}</div></div>
+      <div><div class="caption">Phone</div><div>${escapeHtml(c.phone)}</div></div>
+      <div style="grid-column: 1 / -1;"><div class="caption">Address</div><div>${escapeHtml(c.address)}</div></div>
+      <div><div class="caption">Terms</div><div>${escapeHtml(c.terms)}</div></div>
+      <div><div class="caption">Projects</div><div>${projects.length}</div></div>
+    </div>
+    ${c.notes ? `<div class="divider"></div><div class="caption">Notes</div><div style="font-size: 13px;">${escapeHtml(c.notes)}</div>` : ''}
+    <div class="divider"></div>
+    <h2 class="sub">Project History</h2>
+    ${projects.length === 0 ? '<div class="muted" style="font-size: 13px;">No projects yet.</div>' : `
+      <table>
+        <thead><tr><th>Project</th><th>Status</th><th class="num">Contracted</th><th class="num">Profit</th></tr></thead>
+        <tbody>
+          ${projects.map(p => `
+            <tr onclick="closeModal(); openProject('${p.id}')">
+              <td>${escapeHtml(p.name)}</td>
+              <td><span class="badge badge-${p.status === 'Complete' ? 'success' : 'info'}">${p.status}</span></td>
+              <td class="num">${fmtCurrency(p.contracted)}</td>
+              <td class="num" style="color: ${projectProfit(p) < 0 ? 'var(--danger)' : 'inherit'}">${fmtCurrency(projectProfit(p))}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `}
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal(); editCustomer('${c.id}')">Edit</button>
+      <button class="btn-primary" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+
+// ============ INVENTORY ============
+function renderInventory() {
+  setBreadcrumb(['Inventory']);
+  const totalValue = inventoryValue();
+  const byCategory = {};
+  state.inventory.forEach(i => {
+    byCategory[i.category] = (byCategory[i.category] || 0) + i.qty * i.cost;
+  });
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="section" style="margin-bottom: 4px;">Inventory</h1>
+        <div class="muted" style="font-size: 13px;">${state.inventory.length} items • ${fmtCurrency(totalValue)} total value at cost</div>
+      </div>
+      <button class="btn-primary" onclick="openInventoryModal()">
+        <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 3v10M3 8h10"/></svg>
+        New Item
+      </button>
+    </div>
+
+    <div class="kpi-grid">
+      ${Object.entries(byCategory).map(([cat, val]) => `
+        <div class="kpi-card">
+          <div class="kpi-label">${escapeHtml(cat)}</div>
+          <div class="kpi-value" style="font-size: 18px;">${fmtCurrency(val)}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    ${state.inventory.length === 0 ? renderEmptyState('No inventory tracked', 'Add materials to track quantity on hand and allocate cost to projects.') : `
+      <div class="scroll-area">
+        <table>
+          <thead>
+            <tr>
+              <th>Item</th><th>Category</th><th class="num">Quantity</th><th>Unit</th>
+              <th class="num">Unit Cost</th><th class="num">Total Value</th><th style="width: 80px;"></th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.inventory.map(i => `
+              <tr>
+                <td><strong>${escapeHtml(i.name)}</strong></td>
+                <td><span class="badge badge-neutral">${escapeHtml(i.category)}</span></td>
+                <td class="num">${fmtNumber(i.qty)}</td>
+                <td>${escapeHtml(i.unit)}</td>
+                <td class="num">${fmtCurrency(i.cost)}</td>
+                <td class="num"><strong>${fmtCurrency(i.qty * i.cost)}</strong></td>
+                <td>
+                  <button class="icon-btn" onclick="editInventory('${i.id}')" aria-label="Edit"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M10 2l4 4-8 8H2v-4l8-8z"/></svg></button>
+                  <button class="icon-btn" onclick="deleteInventory('${i.id}')" aria-label="Delete"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M3 4h10M6 4V2h4v2M5 4l1 10h4l1-10"/></svg></button>
+                </td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `}
+  `;
+}
+
+function deleteInventory(id) {
+  const item = state.inventory.find(i => i.id === id);
+  if (!item) return;
+  openConfirmModal('Delete inventory item?', `"${escapeHtml(item.name)}" will be removed.`, () => {
+    state.inventory = state.inventory.filter(i => i.id !== id);
+    closeModal();
+    toast('Item deleted', 'success');
+    render();
+  });
+}
+
+// ============ REPORTS ============
+function renderReports() {
+  setBreadcrumb(['Reports', 'Profit &amp; Loss']);
+  const tx = transactionsInPeriod();
+  const prevTx = prevPeriodTransactions();
+
+  function groupBy(items, key) {
+    const m = {};
+    items.forEach(t => { m[t[key]] = (m[t[key]] || 0) + Math.abs(t.amount); });
+    return m;
+  }
+  const incomeByCat = groupBy(tx.filter(t => t.amount > 0), 'category');
+  const expenseByCat = groupBy(tx.filter(t => t.amount < 0), 'category');
+  const prevIncomeByCat = groupBy(prevTx.filter(t => t.amount > 0), 'category');
+  const prevExpenseByCat = groupBy(prevTx.filter(t => t.amount < 0), 'category');
+  const totalIncome = Object.values(incomeByCat).reduce((s,v) => s+v, 0);
+  const totalExpense = Object.values(expenseByCat).reduce((s,v) => s+v, 0);
+  const netProfit = totalIncome - totalExpense;
+  const prevIncome = Object.values(prevIncomeByCat).reduce((s,v) => s+v, 0);
+  const prevExpense = Object.values(prevExpenseByCat).reduce((s,v) => s+v, 0);
+  const prevProfit = prevIncome - prevExpense;
+
+  function delta(cur, prev) {
+    if (!prev) return { txt: '—', cls: 'delta-neutral' };
+    const d = cur - prev;
+    const pct = (d / prev) * 100;
+    return { txt: (d >= 0 ? '+' : '−') + fmtCurrency(Math.abs(d)) + ' (' + (pct >= 0 ? '+' : '−') + Math.abs(pct).toFixed(1) + '%)', cls: d >= 0 ? 'delta-up' : 'delta-down' };
+  }
+
+  document.getElementById('content').innerHTML = `
+    <div class="flex-between" style="margin-bottom: 16px;">
+      <div>
+        <h1 class="section" style="margin-bottom: 4px;">Profit &amp; Loss</h1>
+        <div class="muted" style="font-size: 13px;">vs previous comparable period</div>
+      </div>
+      <button class="btn-secondary" onclick="exportCSV()">Export</button>
+    </div>
+
+    <div class="card" style="margin-bottom: 16px;">
+      <table>
+        <thead>
+          <tr><th>Category</th><th class="num">This Period</th><th class="num">Previous</th><th class="num">Δ</th></tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="4" style="background: var(--surface-2); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; color: var(--text-muted);">Income</td></tr>
+          ${Object.entries(incomeByCat).sort((a,b) => b[1] - a[1]).map(([cat, val]) => {
+            const d = delta(val, prevIncomeByCat[cat] || 0);
+            return `<tr><td>${escapeHtml(cat)}</td><td class="num">${fmtCurrency(val)}</td><td class="num muted">${fmtCurrency(prevIncomeByCat[cat] || 0)}</td><td class="num ${d.cls}">${d.txt}</td></tr>`;
+          }).join('')}
+          ${Object.keys(incomeByCat).length === 0 ? '<tr><td colspan="4" class="muted" style="padding: 12px;">No income recorded in this period.</td></tr>' : ''}
+          <tr style="background: var(--surface-2); font-weight: 600;">
+            <td>Total Income</td>
+            <td class="num">${fmtCurrency(totalIncome)}</td>
+            <td class="num muted">${fmtCurrency(prevIncome)}</td>
+            <td class="num ${delta(totalIncome, prevIncome).cls}">${delta(totalIncome, prevIncome).txt}</td>
+          </tr>
+
+          <tr><td colspan="4" style="background: var(--surface-2); font-weight: 600; text-transform: uppercase; font-size: 11px; letter-spacing: 0.04em; color: var(--text-muted);">Expenses</td></tr>
+          ${Object.entries(expenseByCat).sort((a,b) => b[1] - a[1]).map(([cat, val]) => {
+            const d = delta(val, prevExpenseByCat[cat] || 0);
+            const reversedCls = d.cls === 'delta-up' ? 'delta-down' : d.cls === 'delta-down' ? 'delta-up' : 'delta-neutral';
+            return `<tr><td>${escapeHtml(cat)}</td><td class="num amount-neg">−${fmtCurrency(val)}</td><td class="num muted">−${fmtCurrency(prevExpenseByCat[cat] || 0)}</td><td class="num ${reversedCls}">${d.txt}</td></tr>`;
+          }).join('')}
+          ${Object.keys(expenseByCat).length === 0 ? '<tr><td colspan="4" class="muted" style="padding: 12px;">No expenses recorded in this period.</td></tr>' : ''}
+          <tr style="background: var(--surface-2); font-weight: 600;">
+            <td>Total Expenses</td>
+            <td class="num amount-neg">−${fmtCurrency(totalExpense)}</td>
+            <td class="num muted">−${fmtCurrency(prevExpense)}</td>
+            <td class="num">${delta(totalExpense, prevExpense).txt}</td>
+          </tr>
+          <tr style="background: ${netProfit >= 0 ? 'var(--success-bg)' : 'var(--danger-bg)'}; font-weight: 600;">
+            <td>Net Profit</td>
+            <td class="num" style="color: ${netProfit < 0 ? 'var(--danger)' : 'var(--success)'}">${fmtCurrency(netProfit)}</td>
+            <td class="num muted">${fmtCurrency(prevProfit)}</td>
+            <td class="num ${delta(netProfit, prevProfit).cls}">${delta(netProfit, prevProfit).txt}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="card">
+      <h2 class="sub">Project Profitability Ranking</h2>
+      <table>
+        <thead><tr><th>Project</th><th>Customer</th><th class="num">Revenue</th><th class="num">Cost</th><th class="num">Profit</th><th class="num">Margin</th></tr></thead>
+        <tbody>
+          ${[...state.projects].sort((a,b) => projectMargin(b) - projectMargin(a)).map(p => {
+            const c = getCustomer(p.customerId);
+            const rev = projectRevenue(p.id);
+            const cost = projectMaterialCost(p.id) + projectLaborCost(p);
+            const prof = rev - cost;
+            const margin = projectMargin(p);
+            return `
+              <tr onclick="openProject('${p.id}')">
+                <td>${escapeHtml(p.name)}</td>
+                <td class="muted">${c ? escapeHtml(c.name) : '—'}</td>
+                <td class="num">${fmtCurrency(rev)}</td>
+                <td class="num amount-neg">−${fmtCurrency(cost)}</td>
+                <td class="num ${prof < 0 ? 'amount-neg' : ''}">${prof < 0 ? '−' : ''}${fmtCurrency(Math.abs(prof))}</td>
+                <td class="num" style="color: ${margin < 0 ? 'var(--danger)' : 'inherit'}">${margin.toFixed(1)}%</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+// ============ RECONCILIATION ============
+function renderReconcile() {
+  setBreadcrumb(['Reconciliation']);
+  const recordedBalance = cashBalance();
+  const recordedCleared = state.transactions.filter(t => t.reconciled).reduce((s,t) => s + t.amount, 0);
+  const pending = state.transactions.filter(t => !t.reconciled);
+  const daysRec = daysSinceReconciled();
+
+  document.getElementById('content').innerHTML = `
+    <h1 class="section">Bank Reconciliation</h1>
+    ${daysRec > 7 ? `<div class="alert alert-warning"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 1l7 13H1L8 1zM8 6v4M8 12h.01"/></svg> Reconciliation is ${daysRec} days overdue.</div>` : ''}
+
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Recorded Balance</div><div class="kpi-value">${fmtCurrency(recordedBalance)}</div><div class="kpi-delta delta-neutral">all transactions</div></div>
+      <div class="kpi-card"><div class="kpi-label">Cleared Balance</div><div class="kpi-value">${fmtCurrency(recordedCleared)}</div><div class="kpi-delta delta-neutral">reconciled only</div></div>
+      <div class="kpi-card"><div class="kpi-label">Pending Items</div><div class="kpi-value">${pending.length}</div><div class="kpi-delta delta-neutral">${fmtCurrency(pending.reduce((s,t)=>s+t.amount,0))} net</div></div>
+      <div class="kpi-card"><div class="kpi-label">Last Reconciled</div><div class="kpi-value" style="font-size: 18px;">${lastReconciledDate() ? fmtDate(lastReconciledDate()) : 'Never'}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">Pending Transactions — Check off items that appear on your bank statement</div>
+        <button class="btn-secondary" onclick="markAllReconciled()">Mark All Cleared</button>
+      </div>
+      ${pending.length === 0 ? `<div class="muted" style="padding: 24px; text-align: center; font-size: 13px;">✓ All transactions are reconciled.</div>` : `
+        <table>
+          <thead><tr><th style="width: 32px;"></th><th>Date</th><th>Description</th><th>Category</th><th class="num">Amount</th></tr></thead>
+          <tbody>
+            ${pending.sort((a,b) => b.date.localeCompare(a.date)).map(t => `
+              <tr>
+                <td><input type="checkbox" class="checkbox" onchange="toggleReconciled('${t.id}')" aria-label="Mark cleared"></td>
+                <td>${fmtDateShort(t.date)}</td>
+                <td>${escapeHtml(t.description)}</td>
+                <td><span class="badge badge-neutral">${escapeHtml(t.category)}</span></td>
+                <td class="num ${t.amount < 0 ? 'amount-neg' : ''}">${t.amount < 0 ? '−' : '+'}${fmtCurrency(Math.abs(t.amount))}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      `}
+    </div>
+  `;
+}
+
+function markAllReconciled() {
+  state.transactions.forEach(t => { t.reconciled = true; });
+  toast('All transactions marked as cleared', 'success');
+  render();
+}
+
+// ============ TAX SUMMARY ============
+function renderTax() {
+  setBreadcrumb(['Tax Summary']);
+  const year = new Date().getFullYear();
+  const ytdStart = new Date(year, 0, 1);
+  const ytdTx = state.transactions.filter(t => new Date(t.date) >= ytdStart);
+  const ytdIncome = ytdTx.filter(t => t.amount > 0).reduce((s,t) => s + t.amount, 0);
+
+  const deductionGroups = {
+    'Materials': ['Fabric','Wood','Paint','Hardware','Glass','Clay','Finishes'],
+    'Tools & Equipment': ['Tools/Equipment'],
+    'Workspace & Studio': ['Workspace'],
+    'Marketing': ['Marketing'],
+    'Shipping & Packaging': ['Shipping','Packaging'],
+    'Software & Subscriptions': ['Software'],
+    'Travel': ['Travel'],
+    'Other': ['Other Expense']
+  };
+
+  const groupTotals = {};
+  let totalDeductions = 0;
+  Object.entries(deductionGroups).forEach(([group, cats]) => {
+    const total = ytdTx.filter(t => t.amount < 0 && cats.includes(t.category)).reduce((s,t) => s + Math.abs(t.amount), 0);
+    groupTotals[group] = total;
+    totalDeductions += total;
+  });
+  const netTaxable = ytdIncome - totalDeductions;
+
+  document.getElementById('content').innerHTML = `
+    <h1 class="section">Tax Summary — ${year}</h1>
+    <div class="muted" style="font-size: 13px; margin-bottom: 16px;">Year-to-date totals grouped by common craft business deduction categories.</div>
+
+    <div class="kpi-grid">
+      <div class="kpi-card"><div class="kpi-label">Gross Income YTD</div><div class="kpi-value">${fmtCurrency(ytdIncome)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Total Deductions</div><div class="kpi-value">${fmtCurrency(totalDeductions)}</div></div>
+      <div class="kpi-card"><div class="kpi-label">Net Taxable Income</div><div class="kpi-value" style="color: ${netTaxable < 0 ? 'var(--danger)' : 'inherit'}">${fmtCurrency(netTaxable)}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><div class="card-title">Deductions by Category Group</div></div>
+      <table>
+        <thead><tr><th>Group</th><th>Categories</th><th class="num">YTD Total</th></tr></thead>
+        <tbody>
+          ${Object.entries(deductionGroups).map(([group, cats]) => `
+            <tr>
+              <td><strong>${escapeHtml(group)}</strong></td>
+              <td class="muted" style="font-size: 12px;">${cats.map(c => escapeHtml(c)).join(', ')}</td>
+              <td class="num amount-neg">−${fmtCurrency(groupTotals[group])}</td>
+            </tr>
+          `).join('')}
+          <tr style="background: var(--surface-2); font-weight: 600;">
+            <td colspan="2">Total Deductions</td>
+            <td class="num amount-neg">−${fmtCurrency(totalDeductions)}</td>
+          </tr>
+        </tbody>
+      </table>
+      <div style="margin-top: 16px; padding: 12px; background: var(--info-bg); color: var(--info); border-radius: var(--radius-sm); font-size: 12px;">
+        ℹ This summary is for record-keeping. Consult your tax advisor for filing.
+      </div>
+    </div>
+  `;
+}
+
+// ============ MODALS ============
+function openModal(html, wide) {
+  const root = document.getElementById('modal-root');
+  root.innerHTML = `<div class="modal-backdrop" onclick="if(event.target===this) closeModal()"><div class="modal ${wide ? 'wide' : ''}">${html}</div></div>`;
+  document.addEventListener('keydown', escClose);
+}
+function closeModal() {
+  document.getElementById('modal-root').innerHTML = '';
+  document.removeEventListener('keydown', escClose);
+}
+function escClose(e) { if (e.key === 'Escape') closeModal(); }
+
+function openConfirmModal(title, body, onConfirm) {
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">${escapeHtml(title)}</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div>${body}</div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-danger" id="confirm-btn">Delete</button>
+    </div>
+  `);
+  document.getElementById('confirm-btn').onclick = onConfirm;
+}
+
+function openTransactionModal(prefill, editId) {
+  prefill = prefill || {};
+  const editing = editId ? state.transactions.find(t => t.id === editId) : null;
+  const today = new Date().toISOString().slice(0,10);
+  const t = editing || { date: today, amount: '', description: '', category: prefill.category || 'Commission Deposit', projectId: prefill.projectId || '', customerId: '', notes: '', reconciled: false };
+  const isExpense = (editing && editing.amount < 0) || (prefill.type === 'expense');
+  const allCats = [...state.categories.income, ...state.categories.expense];
+
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">${editing ? 'Edit' : 'New'} Transaction</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <form id="tx-form" onsubmit="saveTransaction(event, '${editId || ''}')">
+      <div class="grid-2">
+        <label class="field"><span class="caption">Date</span><input class="input" type="date" name="date" value="${t.date}" required></label>
+        <label class="field"><span class="caption">Amount (negative = expense)</span><input class="input" type="number" step="0.01" name="amount" value="${editing ? editing.amount : ''}" placeholder="0.00" required></label>
+      </div>
+      <label class="field"><span class="caption">Description</span><input class="input" name="description" value="${escapeHtml(t.description)}" placeholder="e.g. Walnut lumber restock" required></label>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Category</span>
+          <select class="input" name="category" required>
+            <optgroup label="Income">${state.categories.income.map(c => `<option ${t.category === c ? 'selected' : ''}>${c}</option>`).join('')}</optgroup>
+            <optgroup label="Expense">${state.categories.expense.map(c => `<option ${t.category === c ? 'selected' : ''}>${c}</option>`).join('')}</optgroup>
+          </select>
+        </label>
+        <label class="field"><span class="caption">Project (optional)</span>
+          <select class="input" name="projectId">
+            <option value="">None</option>
+            ${state.projects.map(p => { const c = getCustomer(p.customerId); return `<option value="${p.id}" ${t.projectId === p.id ? 'selected' : ''}>${escapeHtml(p.name)}${c ? ' — ' + escapeHtml(c.name) : ''}</option>`; }).join('')}
+          </select>
+        </label>
+      </div>
+      <label class="field"><span class="caption">Customer (optional)</span>
+        <select class="input" name="customerId">
+          <option value="">None</option>
+          ${state.customers.map(c => `<option value="${c.id}" ${t.customerId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+        </select>
+      </label>
+      <label class="field"><span class="caption">Notes</span><textarea class="input" name="notes" placeholder="Optional details">${escapeHtml(t.notes)}</textarea></label>
+      <label style="display:flex; align-items:center; gap:6px; font-size: 13px;">
+        <input type="checkbox" class="checkbox" name="reconciled" ${t.reconciled ? 'checked' : ''}> Mark as cleared
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">${editing ? 'Save Changes' : 'Add Transaction'}</button>
+      </div>
+    </form>
+  `);
+  setTimeout(() => { const el = document.querySelector('[name=amount]'); if (el) el.focus(); }, 50);
+}
+
+function saveTransaction(e, editId) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    date: fd.get('date'),
+    amount: parseFloat(fd.get('amount')),
+    description: fd.get('description'),
+    category: fd.get('category'),
+    projectId: fd.get('projectId') || null,
+    customerId: fd.get('customerId') || null,
+    notes: fd.get('notes') || '',
+    reconciled: !!fd.get('reconciled')
+  };
+  if (isNaN(data.amount)) { toast('Amount must be a number', 'error'); return; }
+  if (editId) {
+    const t = state.transactions.find(x => x.id === editId);
+    Object.assign(t, data);
+    toast('Transaction updated', 'success');
+  } else {
+    state.transactions.push({ id: uid('t_'), user: state.currentUser, ...data });
+    toast('Transaction added: ' + fmtCurrency(Math.abs(data.amount)), 'success');
+  }
+  closeModal();
+  render();
+}
+
+function editTransaction(id) { openTransactionModal(null, id); }
+
+function openProjectModal(editId) {
+  const editing = editId ? state.projects.find(p => p.id === editId) : null;
+  const p = editing || { name: '', customerId: '', status: 'In Progress', contracted: '', deposit: '', startDate: new Date().toISOString().slice(0,10), dueDate: '', laborHours: 0, laborRate: 50, notes: '' };
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">${editing ? 'Edit' : 'New'} Project</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <form onsubmit="saveProject(event, '${editId || ''}')">
+      <label class="field"><span class="caption">Project Name</span><input class="input" name="name" value="${escapeHtml(p.name)}" required></label>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Customer</span>
+          <select class="input" name="customerId" required>
+            <option value="">Select customer</option>
+            ${state.customers.map(c => `<option value="${c.id}" ${p.customerId === c.id ? 'selected' : ''}>${escapeHtml(c.name)}</option>`).join('')}
+          </select>
+        </label>
+        <label class="field"><span class="caption">Status</span>
+          <select class="input" name="status">
+            ${['In Progress','Awaiting Payment','Complete'].map(s => `<option ${p.status === s ? 'selected' : ''}>${s}</option>`).join('')}
+          </select>
+        </label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Contracted Value</span><input class="input" type="number" step="0.01" name="contracted" value="${p.contracted}" required></label>
+        <label class="field"><span class="caption">Deposit Amount</span><input class="input" type="number" step="0.01" name="deposit" value="${p.deposit || ''}"></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Start Date</span><input class="input" type="date" name="startDate" value="${p.startDate}" required></label>
+        <label class="field"><span class="caption">Due Date</span><input class="input" type="date" name="dueDate" value="${p.dueDate}" required></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Labor Hours</span><input class="input" type="number" step="0.5" name="laborHours" value="${p.laborHours}"></label>
+        <label class="field"><span class="caption">Labor Rate ($/hr)</span><input class="input" type="number" step="0.01" name="laborRate" value="${p.laborRate}"></label>
+      </div>
+      <label class="field"><span class="caption">Notes</span><textarea class="input" name="notes">${escapeHtml(p.notes)}</textarea></label>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">${editing ? 'Save' : 'Create Project'}</button>
+      </div>
+    </form>
+  `);
+}
+
+function saveProject(e, editId) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = {
+    name: fd.get('name'),
+    customerId: fd.get('customerId'),
+    status: fd.get('status'),
+    contracted: parseFloat(fd.get('contracted')),
+    deposit: parseFloat(fd.get('deposit')) || 0,
+    startDate: fd.get('startDate'),
+    dueDate: fd.get('dueDate'),
+    laborHours: parseFloat(fd.get('laborHours')) || 0,
+    laborRate: parseFloat(fd.get('laborRate')) || 0,
+    notes: fd.get('notes')
+  };
+  if (editId) {
+    Object.assign(state.projects.find(p => p.id === editId), data);
+    toast('Project updated', 'success');
+  } else {
+    state.projects.push({ id: uid('p_'), ...data });
+    toast('Project created', 'success');
+  }
+  closeModal();
+  render();
+}
+function editProject(id) { openProjectModal(id); }
+
+function openCustomerModal(editId) {
+  const editing = editId ? state.customers.find(c => c.id === editId) : null;
+  const c = editing || { name: '', email: '', phone: '', address: '', terms: 'Net 30', notes: '' };
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">${editing ? 'Edit' : 'New'} Customer</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <form onsubmit="saveCustomer(event, '${editId || ''}')">
+      <label class="field"><span class="caption">Name</span><input class="input" name="name" value="${escapeHtml(c.name)}" required></label>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Email</span><input class="input" type="email" name="email" value="${escapeHtml(c.email)}"></label>
+        <label class="field"><span class="caption">Phone</span><input class="input" name="phone" value="${escapeHtml(c.phone)}"></label>
+      </div>
+      <label class="field"><span class="caption">Address</span><input class="input" name="address" value="${escapeHtml(c.address)}"></label>
+      <label class="field"><span class="caption">Payment Terms</span>
+        <select class="input" name="terms">
+          ${['Net 15','Net 30','Net 60','50/50','Deposit + Final','Cash on Delivery'].map(s => `<option ${c.terms === s ? 'selected' : ''}>${s}</option>`).join('')}
+        </select>
+      </label>
+      <label class="field"><span class="caption">Notes</span><textarea class="input" name="notes">${escapeHtml(c.notes)}</textarea></label>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">${editing ? 'Save' : 'Create Customer'}</button>
+      </div>
+    </form>
+  `);
+}
+function saveCustomer(e, editId) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = { name: fd.get('name'), email: fd.get('email'), phone: fd.get('phone'), address: fd.get('address'), terms: fd.get('terms'), notes: fd.get('notes') };
+  if (editId) { Object.assign(state.customers.find(c => c.id === editId), data); toast('Customer updated', 'success'); }
+  else { state.customers.push({ id: uid('c_'), ...data }); toast('Customer added', 'success'); }
+  closeModal(); render();
+}
+function editCustomer(id) { openCustomerModal(id); }
+
+function openInventoryModal(editId) {
+  const editing = editId ? state.inventory.find(i => i.id === editId) : null;
+  const i = editing || { name: '', category: 'Wood', qty: 0, unit: 'each', cost: 0 };
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">${editing ? 'Edit' : 'New'} Inventory Item</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <form onsubmit="saveInventory(event, '${editId || ''}')">
+      <label class="field"><span class="caption">Item Name</span><input class="input" name="name" value="${escapeHtml(i.name)}" required></label>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Category</span>
+          <select class="input" name="category">
+            ${['Wood','Fabric','Paint','Hardware','Glass','Clay','Finishes','Packaging','Tools/Equipment','Other'].map(c => `<option ${i.category === c ? 'selected' : ''}>${c}</option>`).join('')}
+          </select>
+        </label>
+        <label class="field"><span class="caption">Unit</span><input class="input" name="unit" value="${escapeHtml(i.unit)}" placeholder="each, yard, board ft"></label>
+      </div>
+      <div class="grid-2">
+        <label class="field"><span class="caption">Quantity on Hand</span><input class="input" type="number" step="0.01" name="qty" value="${i.qty}" required></label>
+        <label class="field"><span class="caption">Unit Cost</span><input class="input" type="number" step="0.01" name="cost" value="${i.cost}" required></label>
+      </div>
+      <div class="modal-actions">
+        <button type="button" class="btn-secondary" onclick="closeModal()">Cancel</button>
+        <button type="submit" class="btn-primary">${editing ? 'Save' : 'Add Item'}</button>
+      </div>
+    </form>
+  `);
+}
+function saveInventory(e, editId) {
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  const data = { name: fd.get('name'), category: fd.get('category'), unit: fd.get('unit'), qty: parseFloat(fd.get('qty')), cost: parseFloat(fd.get('cost')) };
+  if (editId) { Object.assign(state.inventory.find(i => i.id === editId), data); toast('Item updated', 'success'); }
+  else { state.inventory.push({ id: uid('i_'), photo: null, ...data }); toast('Item added', 'success'); }
+  closeModal(); render();
+}
+function editInventory(id) { openInventoryModal(id); }
+
+function openRecurringModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">Recurring Templates</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="muted" style="font-size: 13px; margin-bottom: 12px;">Click to add a transaction from a template.</div>
+    <div class="col-gap">
+      ${state.recurring.map(r => `
+        <div class="flex-between" style="padding: 10px; border: 1px solid var(--border); border-radius: var(--radius-sm);">
+          <div>
+            <div style="font-weight: 500; font-size: 13px;">${escapeHtml(r.description)}</div>
+            <div style="font-size: 11px; color: var(--text-muted);">${escapeHtml(r.category)} • day ${r.day} of month</div>
+          </div>
+          <div class="flex-gap">
+            <div class="mono" style="color: ${r.amount < 0 ? 'var(--danger)' : 'var(--text)'};">${r.amount < 0 ? '−' : '+'}${fmtCurrency(Math.abs(r.amount))}</div>
+            <button class="btn-secondary" onclick="applyRecurring('${r.id}')">Apply</button>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Close</button>
+    </div>
+  `);
+}
+function applyRecurring(id) {
+  const r = state.recurring.find(x => x.id === id);
+  if (!r) return;
+  state.transactions.push({
+    id: uid('t_'), date: new Date().toISOString().slice(0,10),
+    description: r.description, amount: r.amount, category: r.category,
+    projectId: null, customerId: null, notes: 'From recurring template', reconciled: false, user: state.currentUser
+  });
+  toast('Recurring transaction added', 'success');
+  closeModal();
+  render();
+}
+
+function openImportModal() {
+  openModal(`
+    <div class="modal-header">
+      <h3 class="modal-title">Import CSV</h3>
+      <button class="modal-close" onclick="closeModal()"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4l8 8M12 4l-8 8"/></svg></button>
+    </div>
+    <div class="muted" style="font-size: 13px; margin-bottom: 12px;">Paste CSV with columns: <code class="mono">date, description, amount, category</code>. Amount negative = expense.</div>
+    <textarea class="input" id="csv-input" rows="8" placeholder="2025-11-15, Coffee, -4.50, Other Expense"></textarea>
+    <div id="csv-preview" style="margin-top: 12px;"></div>
+    <div class="modal-actions">
+      <button class="btn-secondary" onclick="closeModal()">Cancel</button>
+      <button class="btn-secondary" onclick="previewCSV()">Preview</button>
+      <button class="btn-primary" onclick="importCSV()">Import</button>
+    </div>
+  `, true);
+}
+function parseCSV(text) {
+  return text.trim().split('\n').map(line => {
+    const parts = line.split(',').map(s => s.trim());
+    if (parts.length < 3) return null;
+    return { date: parts[0], description: parts[1], amount: parseFloat(parts[2]), category: parts[3] || 'Other Expense' };
+  }).filter(r => r && !isNaN(r.amount) && r.date);
+}
+function previewCSV() {
+  const text = document.getElementById('csv-input').value;
+  const rows = parseCSV(text);
+  document.getElementById('csv-preview').innerHTML = rows.length === 0 ? '<div class="alert alert-warning">No valid rows detected.</div>' :
+    `<div class="caption" style="margin-bottom: 4px;">Preview — ${rows.length} rows</div><div style="max-height: 150px; overflow-y: auto; border: 1px solid var(--border); border-radius: var(--radius-sm);"><table><thead><tr><th>Date</th><th>Description</th><th>Cat</th><th class="num">Amt</th></tr></thead><tbody>${rows.slice(0,10).map(r => `<tr><td>${escapeHtml(r.date)}</td><td>${escapeHtml(r.description)}</td><td>${escapeHtml(r.category)}</td><td class="num">${fmtCurrency(r.amount)}</td></tr>`).join('')}</tbody></table></div>`;
+}
+function importCSV() {
+  const text = document.getElementById('csv-input').value;
+  const rows = parseCSV(text);
+  if (rows.length === 0) { toast('No valid rows to import', 'error'); return; }
+  rows.forEach(r => {
+    state.transactions.push({ id: uid('t_'), date: r.date, description: r.description, amount: r.amount, category: r.category, projectId: null, customerId: null, notes: 'Imported', reconciled: false, user: state.currentUser });
+  });
+  closeModal();
+  toast(`Imported ${rows.length} transactions`, 'success');
+  render();
+}
+
+function exportCSV() {
+  const rows = [['Date','Description','Category','Project','Customer','Amount','Reconciled','User','Notes']];
+  state.transactions.forEach(t => {
+    const p = t.projectId ? getProject(t.projectId) : null;
+    const c = t.customerId ? getCustomer(t.customerId) : null;
+    rows.push([t.date, t.description, t.category, p ? p.name : '', c ? c.name : '', t.amount, t.reconciled ? 'Y' : 'N', t.user, (t.notes || '').replace(/\n/g, ' ')]);
+  });
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'atelier-transactions.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast(`Exported ${state.transactions.length} transactions`, 'success');
+}
+
+// ============ EMPTY STATE ============
+function renderEmptyState(title, body) {
+  return `
+    <div class="empty-state">
+      <div class="icon">
+        <svg viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="4" y="4" width="24" height="24" rx="2"/><path d="M4 12h24M10 4v24"/></svg>
+      </div>
+      <h3>${escapeHtml(title)}</h3>
+      <p>${escapeHtml(body)}</p>
+      <button class="btn-primary" onclick="openTransactionModal()">New Transaction</button>
+    </div>
+  `;
+}
+
+// ============ SEARCH ============
+function handleSearch(e) {
+  const q = e.target.value.toLowerCase().trim();
+  const box = document.getElementById('search-results');
+  if (!q) { box.style.display = 'none'; return; }
+  const tx = state.transactions.filter(t => t.description.toLowerCase().includes(q) || (t.notes || '').toLowerCase().includes(q)).slice(0,5);
+  const projects = state.projects.filter(p => p.name.toLowerCase().includes(q)).slice(0,5);
+  const customers = state.customers.filter(c => c.name.toLowerCase().includes(q) || c.email.toLowerCase().includes(q)).slice(0,5);
+  const inventory = state.inventory.filter(i => i.name.toLowerCase().includes(q)).slice(0,5);
+  const total = tx.length + projects.length + customers.length + inventory.length;
+  if (total === 0) {
+    box.innerHTML = '<div style="padding: 12px; color: var(--text-muted); font-size: 13px;">No results for "' + escapeHtml(q) + '"</div>';
+  } else {
+    let html = '';
+    if (tx.length) html += '<div class="caption" style="padding: 8px 12px 4px;">Transactions</div>' + tx.map(t => `<div onclick="closeSearch(); switchView('transactions')" style="padding: 6px 12px; cursor: pointer; font-size: 13px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">${escapeHtml(t.description)} <span class="muted" style="float:right; font-family: var(--mono); font-size: 12px;">${fmtCurrency(t.amount)}</span></div>`).join('');
+    if (projects.length) html += '<div class="caption" style="padding: 8px 12px 4px;">Projects</div>' + projects.map(p => `<div onclick="closeSearch(); openProject('${p.id}')" style="padding: 6px 12px; cursor: pointer; font-size: 13px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">${escapeHtml(p.name)}</div>`).join('');
+    if (customers.length) html += '<div class="caption" style="padding: 8px 12px 4px;">Customers</div>' + customers.map(c => `<div onclick="closeSearch(); openCustomerDetail('${c.id}')" style="padding: 6px 12px; cursor: pointer; font-size: 13px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">${escapeHtml(c.name)}</div>`).join('');
+    if (inventory.length) html += '<div class="caption" style="padding: 8px 12px 4px;">Inventory</div>' + inventory.map(i => `<div onclick="closeSearch(); switchView('inventory')" style="padding: 6px 12px; cursor: pointer; font-size: 13px;" onmouseover="this.style.background='var(--surface-2)'" onmouseout="this.style.background=''">${escapeHtml(i.name)}</div>`).join('');
+    box.innerHTML = html;
+  }
+  box.style.display = 'block';
+}
+function closeSearch() {
+  document.getElementById('search-results').style.display = 'none';
+  document.getElementById('global-search').value = '';
+}
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.search-box')) {
+    const box = document.getElementById('search-results');
+    if (box) box.style.display = 'none';
+  }
+});
+
+// ============ RENDER ============
+function render() {
+  try {
+    switch (state.currentView) {
+      case 'dashboard': renderDashboard(); break;
+      case 'transactions': renderTransactions(); break;
+      case 'projects': renderProjects(); break;
+      case 'project-detail': renderProjectDetail(); break;
+      case 'customers': renderCustomers(); break;
+      case 'inventory': renderInventory(); break;
+      case 'reports': renderReports(); break;
+      case 'reconcile': renderReconcile(); break;
+      case 'tax': renderTax(); break;
+      default: renderDashboard();
+    }
+    renderNav();
+  } catch (err) {
+    console.error(err);
+    document.getElementById('content').innerHTML = '<div class="alert alert-danger">Error rendering view: ' + escapeHtml(err.message) + '</div>';
+  }
+}
+
+// keyboard shortcut
+document.addEventListener('keydown', (e) => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') return;
+  if (e.key === 'n' || e.key === 'N') { e.preventDefault(); openTransactionModal(); }
+});
+
+render();
+toast('Welcome to Atelier — your craft business HQ', 'info');
+</script>
+</body>
+</html>
