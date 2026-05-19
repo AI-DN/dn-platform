@@ -1,0 +1,2377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apogee — Launch Tracker</title>
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #a1a1aa;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --accent: #5e6ad2;
+  --accent-hover: #4f59c4;
+  --accent-bg: rgba(94, 106, 210, 0.08);
+  --success: #16a34a;
+  --success-bg: rgba(22, 163, 74, 0.08);
+  --warning: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.08);
+  --danger: #dc2626;
+  --danger-bg: rgba(220, 38, 38, 0.08);
+  --info: #0284c7;
+  --info-bg: rgba(2, 132, 199, 0.08);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+[data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #131316;
+  --surface-2: #1c1c20;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --accent: #7b85e3;
+  --accent-hover: #8d96e8;
+  --accent-bg: rgba(123, 133, 227, 0.10);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.10);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.10);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.10);
+  --info: #38bdf8;
+  --info-bg: rgba(56, 189, 248, 0.10);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  height: 100%;
+}
+body { font-variant-numeric: tabular-nums; }
+button { font-family: inherit; }
+
+/* Layout — mobile-first app shell */
+.app {
+  max-width: 480px;
+  margin: 0 auto;
+  min-height: 100vh;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  border-left: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+  position: relative;
+}
+@media (max-width: 520px) {
+  .app { border-left: none; border-right: none; }
+}
+
+.header {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.brand-mark {
+  width: 24px; height: 24px;
+  background: var(--accent);
+  border-radius: var(--radius-sm);
+  display: flex; align-items: center; justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 13px;
+}
+.brand-name {
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+}
+.header-actions {
+  display: flex;
+  gap: 4px;
+}
+.icon-btn {
+  width: 32px; height: 32px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease;
+}
+.icon-btn:hover { background: var(--surface-2); color: var(--text); }
+.icon-btn.active { background: var(--accent-bg); color: var(--accent); }
+.icon-btn svg { width: 16px; height: 16px; }
+
+/* Tabs */
+.tabs {
+  display: flex;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 49px;
+  z-index: 19;
+}
+.tab {
+  flex: 1;
+  padding: 10px 8px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+.tab:hover:not(.active) { color: var(--text); }
+
+/* Time selector pills */
+.pill-group {
+  display: flex;
+  gap: 4px;
+  padding: 12px 16px 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.pill-group::-webkit-scrollbar { display: none; }
+.pill {
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+.pill.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+.pill:hover:not(.active) { background: var(--surface-2); color: var(--text); }
+
+/* Filter chips */
+.chip-row {
+  display: flex;
+  gap: 6px;
+  padding: 4px 16px 12px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: 1px solid var(--border);
+}
+.chip-row::-webkit-scrollbar { display: none; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+.chip:hover { background: var(--surface-2); color: var(--text); }
+.chip.has-active {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-bg);
+}
+.chip-count {
+  background: var(--accent);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 1px 5px;
+  border-radius: 8px;
+  min-width: 14px;
+  text-align: center;
+}
+.chip svg { width: 12px; height: 12px; }
+
+/* Refresh status */
+.refresh-bar {
+  padding: 8px 16px;
+  font-size: 11px;
+  color: var(--text-subtle);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.refresh-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 11px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 6px;
+  border-radius: var(--radius-sm);
+}
+.refresh-btn:hover { background: var(--surface-2); color: var(--text); }
+.refresh-btn svg { width: 11px; height: 11px; }
+.refresh-btn.spinning svg { animation: spin 1s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Timeline */
+.timeline {
+  padding: 12px 16px 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  flex: 1;
+}
+.section-header {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 16px 0 4px;
+  position: sticky;
+  top: 91px;
+  background: var(--bg);
+  z-index: 5;
+}
+.section-header:first-child { padding-top: 0; }
+
+/* Launch card */
+.launch-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+  cursor: pointer;
+  position: relative;
+  transition: border-color 150ms ease, background 150ms ease;
+  overflow: hidden;
+}
+.launch-card:hover { border-color: var(--border-strong); }
+.launch-card.spacex {
+  border-left: 3px solid var(--accent);
+}
+.card-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.card-left { flex: 1; min-width: 0; }
+.agency-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.agency-logo {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+.agency-name {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+.mission-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.005em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.rocket-name {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.launch-site {
+  font-size: 12px;
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+.card-right {
+  text-align: right;
+  flex-shrink: 0;
+}
+.countdown {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.02em;
+}
+.countdown.imminent {
+  color: var(--accent);
+}
+.countdown.live {
+  color: var(--danger);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.live-dot {
+  width: 6px; height: 6px;
+  background: var(--danger);
+  border-radius: 50%;
+  animation: pulse 1.2s ease-in-out infinite;
+}
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.3; }
+}
+.launch-date {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin-top: 2px;
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+.card-bottom {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+}
+.card-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.card-meta span { display: inline-flex; align-items: center; gap: 4px; }
+.card-meta svg { width: 11px; height: 11px; }
+.card-actions {
+  display: flex;
+  gap: 4px;
+}
+.card-action-btn {
+  width: 24px; height: 24px;
+  display: flex; align-items: center; justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--text-subtle);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.card-action-btn:hover { background: var(--surface-2); color: var(--text); }
+.card-action-btn.active { color: var(--accent); }
+.card-action-btn svg { width: 13px; height: 13px; }
+
+/* Badge */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 10px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger  { background: var(--danger-bg);  color: var(--danger); }
+.badge-info    { background: var(--info-bg);    color: var(--info); }
+.badge-neutral { background: var(--surface-2); color: var(--text-muted); }
+.badge-accent  { background: var(--accent-bg); color: var(--accent); }
+
+/* Empty state */
+.empty {
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty svg {
+  width: 48px; height: 48px;
+  opacity: 0.14;
+  margin-bottom: 16px;
+}
+.empty-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.empty-text {
+  font-size: 13px;
+  color: var(--text-muted);
+  max-width: 280px;
+  margin: 0 auto;
+}
+
+/* Search */
+.search-wrap {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.search-input {
+  width: 100%;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 8px 12px 8px 32px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.search-input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.search-input::placeholder { color: var(--text-subtle); }
+.search-rel { position: relative; }
+.search-icon {
+  position: absolute;
+  left: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 14px; height: 14px;
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+/* Modal / Sheet */
+.sheet-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.sheet-backdrop.open { opacity: 1; pointer-events: auto; }
+.sheet {
+  position: fixed;
+  inset: 0;
+  background: var(--bg);
+  z-index: 101;
+  display: flex;
+  flex-direction: column;
+  transform: translateY(100%);
+  transition: transform 250ms ease;
+  max-width: 480px;
+  margin: 0 auto;
+  pointer-events: none;
+  visibility: hidden;
+}
+.sheet.open { transform: translateY(0); pointer-events: auto; visibility: visible; }
+.sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky;
+  top: 0;
+  z-index: 5;
+}
+.sheet-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.sheet-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+/* Detail sheet specifics */
+.detail-hero {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+.detail-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+.detail-mission {
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.005em;
+  margin-bottom: 4px;
+}
+.detail-sub {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.detail-countdown {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  font-size: 28px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text);
+  margin-bottom: 4px;
+}
+.detail-countdown.imminent { color: var(--accent); }
+.detail-countdown.live { color: var(--danger); }
+.detail-time {
+  font-size: 12px;
+  color: var(--text-subtle);
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+
+.detail-tabs {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.detail-tabs::-webkit-scrollbar { display: none; }
+.detail-tab {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 150ms ease;
+}
+.detail-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.section-block {
+  margin-bottom: 20px;
+}
+.section-block h3 {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.section-block p {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.6;
+}
+.dl {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.dl-row {
+  display: contents;
+}
+.dl dt {
+  font-size: 12px;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.dl dd {
+  font-size: 12px;
+  color: var(--text);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  text-align: right;
+  background: var(--surface);
+}
+.dl-row:last-child dt, .dl-row:last-child dd { border-bottom: none; }
+
+.progress-bar {
+  height: 6px;
+  background: var(--surface-2);
+  border-radius: 3px;
+  overflow: hidden;
+  margin-top: 6px;
+}
+.progress-fill {
+  height: 100%;
+  background: var(--success);
+  transition: width 300ms ease;
+}
+.progress-fill.warn { background: var(--warning); }
+.progress-fill.danger { background: var(--danger); }
+
+/* Filter sheet */
+.filter-group {
+  margin-bottom: 20px;
+}
+.filter-group-title {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.filter-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.filter-option {
+  padding: 6px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 150ms ease;
+}
+.filter-option.selected {
+  background: var(--accent-bg);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--accent);
+  color: white;
+  border: 1px solid var(--accent);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-secondary {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 7px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--text-subtle); }
+.btn-ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid transparent;
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+
+/* Notification preferences */
+.pref-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+}
+.pref-row:first-child { border-radius: var(--radius-md) var(--radius-md) 0 0; }
+.pref-row:last-child { border-bottom: none; border-radius: 0 0 var(--radius-md) var(--radius-md); }
+.pref-group {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  margin-bottom: 12px;
+  overflow: hidden;
+}
+.pref-nested {
+  padding-left: 28px;
+  background: var(--bg);
+}
+.pref-label-wrap { flex: 1; }
+.pref-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+}
+.pref-desc {
+  font-size: 11px;
+  color: var(--text-subtle);
+  margin-top: 2px;
+}
+.toggle {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+  flex-shrink: 0;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 14px;
+  height: 14px;
+  background: var(--text-subtle);
+  border-radius: 50%;
+  transition: transform 150ms ease, background 150ms ease;
+}
+.toggle.on {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle.on::after {
+  transform: translateX(14px);
+  background: white;
+}
+.expand-btn {
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px;
+  margin-right: 4px;
+  display: flex;
+  align-items: center;
+}
+.expand-btn svg { width: 14px; height: 14px; transition: transform 150ms ease; }
+.expand-btn.open svg { transform: rotate(90deg); }
+
+/* Toast */
+.toast-container {
+  position: fixed;
+  top: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 200;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+  width: 92%;
+  max-width: 420px;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  color: var(--text);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  pointer-events: auto;
+  animation: slideDown 200ms ease;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--info); }
+.toast svg { width: 14px; height: 14px; flex-shrink: 0; }
+.toast.success svg { color: var(--success); }
+.toast.error svg { color: var(--danger); }
+.toast.info svg { color: var(--info); }
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Stats */
+.stats-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+}
+.stat-label {
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+.stat-delta {
+  font-size: 11px;
+  margin-top: 2px;
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+.stat-delta.up { color: var(--success); }
+.stat-delta.down { color: var(--danger); }
+
+.stat-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.stat-row:last-child { border-bottom: none; }
+.stat-row-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stat-row-value {
+  font-family: 'SF Mono', 'Menlo', monospace;
+  color: var(--text-muted);
+}
+
+/* History table */
+.history-table-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.history-row {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer;
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  transition: background 150ms ease;
+}
+.history-row:hover { background: var(--surface-2); }
+.history-row:last-child { border-bottom: none; }
+.history-date {
+  font-size: 11px;
+  color: var(--text-subtle);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  width: 56px;
+}
+.history-mission {
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.history-sub {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+/* Map */
+.map-wrap {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  margin-bottom: 16px;
+  position: relative;
+}
+.map-svg {
+  width: 100%;
+  height: 220px;
+  display: block;
+}
+.map-pad {
+  cursor: pointer;
+}
+.map-pad-dot {
+  fill: var(--accent);
+  stroke: var(--bg);
+  stroke-width: 1.5;
+}
+.map-pad-pulse {
+  fill: var(--accent);
+  opacity: 0.3;
+  animation: padPulse 2s ease-in-out infinite;
+}
+@keyframes padPulse {
+  0%, 100% { opacity: 0.3; transform: scale(1); }
+  50% { opacity: 0; transform: scale(2.5); }
+}
+.map-bg {
+  fill: var(--surface-2);
+  stroke: var(--border);
+  stroke-width: 0.5;
+}
+
+.site-list .stat-row { cursor: default; }
+
+/* Updates */
+.update-item {
+  padding: 10px 12px;
+  border-left: 2px solid var(--border);
+  margin-left: 4px;
+  position: relative;
+  font-size: 12px;
+}
+.update-item::before {
+  content: '';
+  position: absolute;
+  left: -5px;
+  top: 14px;
+  width: 8px;
+  height: 8px;
+  background: var(--surface);
+  border: 2px solid var(--border-strong);
+  border-radius: 50%;
+}
+.update-item.latest::before {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.update-time {
+  font-size: 10px;
+  color: var(--text-subtle);
+  font-family: 'SF Mono', 'Menlo', monospace;
+  margin-bottom: 2px;
+}
+.update-text { color: var(--text); }
+
+/* Compare */
+.compare-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.compare-col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 12px;
+  font-size: 12px;
+}
+.compare-col h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.compare-col p {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 12px;
+}
+.compare-spec {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  font-size: 11px;
+}
+.compare-spec:last-child { border: none; }
+.compare-spec span:last-child {
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+
+.weather-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+}
+.weather-icon {
+  font-size: 24px;
+  color: var(--text-muted);
+}
+.weather-prob {
+  font-size: 18px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.media-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+.media-thumb {
+  aspect-ratio: 16/10;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-subtle);
+  font-size: 11px;
+  position: relative;
+  overflow: hidden;
+}
+.media-thumb svg { width: 24px; height: 24px; opacity: 0.4; }
+
+.stream-link {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 150ms ease;
+}
+.stream-link:hover { background: var(--surface-2); }
+.stream-link svg { width: 16px; height: 16px; color: var(--danger); }
+
+/* Skeleton */
+.skel {
+  background: linear-gradient(90deg, var(--surface-2) 0%, var(--surface) 50%, var(--surface-2) 100%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.5s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skeletonShimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skel-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 14px;
+}
+.skel-line { height: 12px; margin-bottom: 8px; }
+
+/* Booster reuse expanded SpaceX */
+.spacex-extra {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+.spacex-extra strong {
+  color: var(--text);
+  font-weight: 600;
+  font-family: 'SF Mono', 'Menlo', monospace;
+}
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="header">
+    <div class="brand">
+      <div class="brand-mark">A</div>
+      <div class="brand-name">Apogee</div>
+    </div>
+    <div class="header-actions">
+      <button class="icon-btn" id="searchBtn" aria-label="Search launches">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <button class="icon-btn" id="filterBtn" aria-label="Filter and sort">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M6 12h12M10 18h4"/></svg>
+      </button>
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">
+        <svg id="themeIcon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>
+      </button>
+    </div>
+  </header>
+
+  <nav class="tabs">
+    <button class="tab active" data-tab="timeline">Timeline</button>
+    <button class="tab" data-tab="history">History</button>
+    <button class="tab" data-tab="sites">Sites</button>
+    <button class="tab" data-tab="stats">Stats</button>
+  </nav>
+
+  <div id="searchSection" style="display:none">
+    <div class="search-wrap">
+      <div class="search-rel">
+        <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+        <input type="text" class="search-input" id="searchInput" placeholder="Search mission, payload, or rocket..." aria-label="Search">
+      </div>
+    </div>
+  </div>
+
+  <main id="viewContent"></main>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- Detail Sheet -->
+<div class="sheet-backdrop" id="detailBackdrop"></div>
+<div class="sheet" id="detailSheet">
+  <div class="sheet-header">
+    <button class="icon-btn" id="closeDetail" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="sheet-title" id="detailTitle">Mission Detail</div>
+    <button class="icon-btn" id="shareDetail" aria-label="Share">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13"/></svg>
+    </button>
+  </div>
+  <div class="sheet-content" id="detailContent"></div>
+</div>
+
+<!-- Filter Sheet -->
+<div class="sheet-backdrop" id="filterBackdrop"></div>
+<div class="sheet" id="filterSheet">
+  <div class="sheet-header">
+    <button class="btn-ghost" id="clearFilters">Clear</button>
+    <div class="sheet-title">Filter &amp; Sort</div>
+    <button class="btn-primary" id="applyFilters">Apply</button>
+  </div>
+  <div class="sheet-content" id="filterContent"></div>
+</div>
+
+<!-- Notifications Sheet -->
+<div class="sheet-backdrop" id="notifBackdrop"></div>
+<div class="sheet" id="notifSheet">
+  <div class="sheet-header">
+    <button class="icon-btn" id="closeNotif" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="sheet-title">Notifications</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="sheet-content" id="notifContent"></div>
+</div>
+
+<!-- Compare Sheet -->
+<div class="sheet-backdrop" id="compareBackdrop"></div>
+<div class="sheet" id="compareSheet">
+  <div class="sheet-header">
+    <button class="icon-btn" id="closeCompare" aria-label="Close">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+    </button>
+    <div class="sheet-title">Compare Rockets</div>
+    <div style="width:32px"></div>
+  </div>
+  <div class="sheet-content" id="compareContent"></div>
+</div>
+
+<script>
+// ============= THEME =============
+const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+updateThemeIcon();
+
+document.getElementById('themeBtn').addEventListener('click', () => {
+  const cur = document.documentElement.dataset.theme;
+  document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+  updateThemeIcon();
+});
+
+function updateThemeIcon() {
+  const isDark = document.documentElement.dataset.theme === 'dark';
+  const icon = document.getElementById('themeIcon');
+  if (isDark) {
+    icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+  } else {
+    icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+  }
+}
+
+// ============= TOASTS =============
+function toast(message, type = 'info') {
+  const container = document.getElementById('toastContainer');
+  const el = document.createElement('div');
+  el.className = 'toast ' + type;
+  const icons = {
+    success: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 6 9 17l-5-5"/></svg>',
+    error: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+    info: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
+  };
+  el.innerHTML = icons[type] + '<span>' + message + '</span>';
+  container.appendChild(el);
+  setTimeout(() => {
+    el.style.opacity = '0';
+    el.style.transition = 'opacity 200ms';
+    setTimeout(() => el.remove(), 200);
+  }, 4000);
+}
+
+// ============= DATA =============
+const NOW = new Date();
+function offsetDate(hours) { return new Date(NOW.getTime() + hours * 3600000); }
+
+const LAUNCHES = [
+  // Upcoming
+  { id: 'l1', agency: 'SpaceX', agencyCode: 'SX', mission: 'Starlink 8-12', rocket: 'Falcon 9', variant: 'Block 5', site: 'SLC-40, Cape Canaveral', siteId: 'ccafs-40', date: offsetDate(0.4), status: 'scheduled', missionType: 'Commercial', orbit: 'LEO', payloadMass: 17400, payload: '23 Starlink v2-mini satellites', objective: 'Deploy second-generation Starlink internet satellites into low Earth orbit.', booster: 'B1080-12', reuse: 11, landing: 'ASOG droneship', windowStart: 0.4, windowEnd: 4.4, streamStart: -0.25, weather: 85, updates: [{ time: '14m ago', text: 'Propellant load underway.' }, { time: '1h ago', text: 'Static fire complete, all systems nominal.' }, { time: '4h ago', text: 'Vehicle vertical on SLC-40.' }] },
+  { id: 'l2', agency: 'ULA', agencyCode: 'UL', mission: 'Vulcan Cert-2', rocket: 'Vulcan Centaur', variant: 'VC2S', site: 'SLC-41, Cape Canaveral', siteId: 'ccafs-41', date: offsetDate(20), status: 'scheduled', missionType: 'Government', orbit: 'GTO', payloadMass: 5300, payload: 'Dream Chaser Tenacity (cargo)', objective: 'Second certification flight of Vulcan, demonstrating GTO capability.', windowStart: 20, windowEnd: 21, streamStart: 19.5, weather: 70, updates: [{ time: '2h ago', text: 'Launch readiness review passed.' }] },
+  { id: 'l3', agency: 'SpaceX', agencyCode: 'SX', mission: 'Crew-9 Return', rocket: 'Falcon 9', variant: 'Block 5', site: 'LC-39A, Kennedy', siteId: 'lc39a', date: offsetDate(72), status: 'scheduled', missionType: 'Government', orbit: 'LEO', payloadMass: 12500, payload: 'Crew Dragon Freedom (4 crew)', objective: 'Return rotation flight for Expedition 72 crew aboard the ISS.', booster: 'B1085-3', reuse: 2, landing: 'LZ-1, Cape Canaveral', windowStart: 72, windowEnd: 72, streamStart: 71, weather: 60, updates: [] },
+  { id: 'l4', agency: 'CNSA', agencyCode: 'CN', mission: 'Tianzhou-9', rocket: 'Long March 7', variant: 'CZ-7', site: 'Wenchang LC-201', siteId: 'wenchang', date: offsetDate(120), status: 'scheduled', missionType: 'Government', orbit: 'LEO', payloadMass: 13500, payload: 'Tianzhou cargo spacecraft', objective: 'Resupply mission to Tiangong space station.', windowStart: 120, windowEnd: 120.5, streamStart: 119.5, weather: 78, updates: [] },
+  { id: 'l5', agency: 'SpaceX', agencyCode: 'SX', mission: 'Starship IFT-12', rocket: 'Starship', variant: 'V2', site: 'OLP-1, Starbase', siteId: 'starbase', date: offsetDate(168), status: 'scheduled', missionType: 'Test', orbit: 'Suborbital', payloadMass: 0, payload: 'Test article (no payload)', objective: 'Second-stage demonstration with payload bay door operations and on-orbit relight.', booster: 'B16', reuse: 0, landing: 'Mechazilla catch attempt', windowStart: 168, windowEnd: 169, streamStart: 167.5, weather: 65, updates: [{ time: '6h ago', text: 'FAA license modification approved.' }] },
+  { id: 'l6', agency: 'ESA', agencyCode: 'ES', mission: 'Galileo L13', rocket: 'Ariane 6', variant: 'A62', site: 'ELA-4, Kourou', siteId: 'kourou', date: offsetDate(240), status: 'scheduled', missionType: 'Government', orbit: 'MEO', payloadMass: 1500, payload: 'Galileo navigation satellites (2)', objective: 'Continuation of Galileo constellation deployment.', windowStart: 240, windowEnd: 242, streamStart: 239.5, weather: 80, updates: [] },
+  { id: 'l7', agency: 'Rocket Lab', agencyCode: 'RL', mission: 'Owl For One', rocket: 'Electron', variant: 'Std', site: 'LC-1B, Mahia', siteId: 'mahia', date: offsetDate(96), status: 'delayed', missionType: 'Commercial', orbit: 'SSO', payloadMass: 200, payload: 'StriX SAR satellites (Synspective)', objective: 'Earth observation constellation deployment.', windowStart: 96, windowEnd: 97, streamStart: 95.5, weather: 55, updates: [{ time: '8h ago', text: 'Delayed 24h for upper-stage component review.' }] },
+  { id: 'l8', agency: 'SpaceX', agencyCode: 'SX', mission: 'Transporter-14', rocket: 'Falcon 9', variant: 'Block 5', site: 'SLC-4E, Vandenberg', siteId: 'vandy', date: offsetDate(480), status: 'scheduled', missionType: 'Commercial', orbit: 'SSO', payloadMass: 5200, payload: '116 smallsat rideshare payloads', objective: 'Smallsat rideshare program flight 14.', booster: 'B1071-21', reuse: 20, landing: 'LZ-4, Vandenberg', windowStart: 480, windowEnd: 480.5, streamStart: 479.5, weather: 90, updates: [] },
+  { id: 'l9', agency: 'JAXA', agencyCode: 'JX', mission: 'HTV-X1', rocket: 'H3', variant: '24L', site: 'Tanegashima LA-Y2', siteId: 'tanegashima', date: offsetDate(600), status: 'scheduled', missionType: 'Government', orbit: 'LEO', payloadMass: 6000, payload: 'HTV-X cargo spacecraft', objective: 'First flight of upgraded HTV cargo vehicle to ISS.', windowStart: 600, windowEnd: 601, streamStart: 599.5, weather: 75, updates: [] },
+  { id: 'l10', agency: 'SpaceX', agencyCode: 'SX', mission: 'USSF-106', rocket: 'Falcon Heavy', variant: 'Block 5', site: 'LC-39A, Kennedy', siteId: 'lc39a', date: offsetDate(720), status: 'scheduled', missionType: 'Government', orbit: 'GEO', payloadMass: 6500, payload: 'USSF-106 classified payload', objective: 'Direct-to-GEO mission for U.S. Space Force.', booster: 'B1085 + 2 side cores', reuse: 4, landing: 'LZ-1 + LZ-2 (cores)', windowStart: 720, windowEnd: 723, streamStart: 719.5, weather: 70, updates: [] },
+  { id: 'l11', agency: 'Blue Origin', agencyCode: 'BO', mission: 'New Glenn NG-3', rocket: 'New Glenn', variant: '2-Stage', site: 'LC-36, Cape Canaveral', siteId: 'ccafs-36', date: offsetDate(1440), status: 'scheduled', missionType: 'Commercial', orbit: 'GTO', payloadMass: 13000, payload: 'Kuiper batch 3', objective: 'Third New Glenn flight; Kuiper deployment.', windowStart: 1440, windowEnd: 1444, streamStart: 1439.5, weather: 65, updates: [] },
+  // Past launches
+  { id: 'p1', agency: 'SpaceX', agencyCode: 'SX', mission: 'Starlink 7-89', rocket: 'Falcon 9', variant: 'Block 5', site: 'SLC-4E, Vandenberg', siteId: 'vandy', date: offsetDate(-48), status: 'success', missionType: 'Commercial', orbit: 'LEO', payloadMass: 17400, payload: '20 Starlink v2-mini', objective: 'Starlink constellation expansion.', booster: 'B1063-22', reuse: 21, landing: 'OCISLY droneship — success' },
+  { id: 'p2', agency: 'SpaceX', agencyCode: 'SX', mission: 'CRS-31', rocket: 'Falcon 9', variant: 'Block 5', site: 'LC-39A, Kennedy', siteId: 'lc39a', date: offsetDate(-168), status: 'success', missionType: 'Government', orbit: 'LEO', payloadMass: 2800, payload: 'Cargo Dragon (ISS resupply)', objective: 'ISS commercial resupply mission 31.', booster: 'B1083-5', reuse: 4, landing: 'LZ-1 — success' },
+  { id: 'p3', agency: 'ULA', agencyCode: 'UL', mission: 'Vulcan Cert-1', rocket: 'Vulcan Centaur', variant: 'VC2S', site: 'SLC-41, Cape Canaveral', siteId: 'ccafs-41', date: offsetDate(-720), status: 'success', missionType: 'Test', orbit: 'TLI', payloadMass: 2500, payload: 'Peregrine lunar lander', objective: 'Vulcan certification flight 1.' },
+  { id: 'p4', agency: 'CNSA', agencyCode: 'CN', mission: 'Shenzhou-19', rocket: 'Long March 2F', variant: 'CZ-2F', site: 'Jiuquan SLS-1', siteId: 'jiuquan', date: offsetDate(-1100), status: 'success', missionType: 'Government', orbit: 'LEO', payloadMass: 7800, payload: 'Shenzhou crew (3)', objective: 'Crew rotation to Tiangong.' },
+  { id: 'p5', agency: 'SpaceX', agencyCode: 'SX', mission: 'Starship IFT-7', rocket: 'Starship', variant: 'V2', site: 'OLP-1, Starbase', siteId: 'starbase', date: offsetDate(-1900), status: 'failure', missionType: 'Test', orbit: 'Suborbital', payloadMass: 0, payload: 'Test article', objective: 'Block 2 second-stage debut.', booster: 'B14', reuse: 0, landing: 'Mechazilla catch — success (booster); ship lost mid-coast' },
+  { id: 'p6', agency: 'Rocket Lab', agencyCode: 'RL', mission: 'Beginning Of The Swarm', rocket: 'Electron', variant: 'Std', site: 'LC-1B, Mahia', siteId: 'mahia', date: offsetDate(-960), status: 'success', missionType: 'Commercial', orbit: 'SSO', payloadMass: 180, payload: 'NEONSAT-1 + ACS3', objective: 'Two-payload rideshare to SSO.' },
+  { id: 'p7', agency: 'ESA', agencyCode: 'ES', mission: 'Ariane 6 Inaugural', rocket: 'Ariane 6', variant: 'A62', site: 'ELA-4, Kourou', siteId: 'kourou', date: offsetDate(-3500), status: 'success', missionType: 'Test', orbit: 'LEO', payloadMass: 1300, payload: 'Rideshare smallsats', objective: 'Ariane 6 inaugural flight.' },
+  { id: 'p8', agency: 'SpaceX', agencyCode: 'SX', mission: 'Polaris Dawn', rocket: 'Falcon 9', variant: 'Block 5', site: 'LC-39A, Kennedy', siteId: 'lc39a', date: offsetDate(-2100), status: 'success', missionType: 'Commercial', orbit: 'HEO', payloadMass: 12500, payload: 'Crew Dragon (4 crew)', objective: 'First commercial EVA.', booster: 'B1083-3', reuse: 2, landing: 'JRTI droneship — success' },
+  { id: 'p9', agency: 'JAXA', agencyCode: 'JX', mission: 'H3 TF3', rocket: 'H3', variant: '22S', site: 'Tanegashima LA-Y2', siteId: 'tanegashima', date: offsetDate(-2800), status: 'success', missionType: 'Government', orbit: 'SSO', payloadMass: 3000, payload: 'ALOS-4', objective: 'L-band SAR earth observation.' },
+  { id: 'p10', agency: 'SpaceX', agencyCode: 'SX', mission: 'Starlink 6-77', rocket: 'Falcon 9', variant: 'Block 5', site: 'SLC-40, Cape Canaveral', siteId: 'ccafs-40', date: offsetDate(-336), status: 'success', missionType: 'Commercial', orbit: 'LEO', payloadMass: 17500, payload: '22 Starlink v2-mini', objective: 'Starlink expansion.', booster: 'B1077-15', reuse: 14, landing: 'ASOG droneship — success' },
+];
+
+const SITES = [
+  { id: 'ccafs-40', name: 'SLC-40, Cape Canaveral', lat: 28.56, lon: -80.58, x: 28, y: 50, country: 'USA', launches: 38, scrubs: 4 },
+  { id: 'lc39a', name: 'LC-39A, Kennedy', lat: 28.61, lon: -80.60, x: 28, y: 49, country: 'USA', launches: 22, scrubs: 2 },
+  { id: 'ccafs-41', name: 'SLC-41, Cape Canaveral', lat: 28.58, lon: -80.58, x: 29, y: 50, country: 'USA', launches: 6, scrubs: 1 },
+  { id: 'ccafs-36', name: 'LC-36, Cape Canaveral', lat: 28.47, lon: -80.54, x: 28, y: 51, country: 'USA', launches: 2, scrubs: 0 },
+  { id: 'vandy', name: 'SLC-4E, Vandenberg', lat: 34.63, lon: -120.61, x: 17, y: 44, country: 'USA', launches: 18, scrubs: 1 },
+  { id: 'starbase', name: 'OLP-1, Starbase', lat: 25.99, lon: -97.16, x: 24, y: 53, country: 'USA', launches: 4, scrubs: 1 },
+  { id: 'kourou', name: 'ELA-4, Kourou', lat: 5.24, lon: -52.77, x: 38, y: 62, country: 'France', launches: 3, scrubs: 0 },
+  { id: 'wenchang', name: 'Wenchang LC-201', lat: 19.61, lon: 110.95, x: 80, y: 58, country: 'China', launches: 8, scrubs: 0 },
+  { id: 'jiuquan', name: 'Jiuquan SLS-1', lat: 40.96, lon: 100.30, x: 76, y: 40, country: 'China', launches: 12, scrubs: 1 },
+  { id: 'mahia', name: 'LC-1B, Mahia', lat: -39.26, lon: 177.86, x: 92, y: 80, country: 'New Zealand', launches: 7, scrubs: 1 },
+  { id: 'tanegashima', name: 'Tanegashima LA-Y2', lat: 30.40, lon: 130.97, x: 84, y: 50, country: 'Japan', launches: 2, scrubs: 0 },
+];
+
+const BOOSTERS = [
+  { serial: 'B1067', flights: 23, lastTurn: 22, status: 'Active' },
+  { serial: 'B1071', flights: 20, lastTurn: 28, status: 'Active' },
+  { serial: 'B1080', flights: 11, lastTurn: 35, status: 'Active' },
+  { serial: 'B1083', flights: 5, lastTurn: 47, status: 'Active' },
+  { serial: 'B1085', flights: 3, lastTurn: 52, status: 'Active' },
+  { serial: 'B1063', flights: 22, lastTurn: 21, status: 'Active' },
+  { serial: 'B1058', flights: 19, lastTurn: 33, status: 'Lost (Dec 2023)' },
+];
+
+const ROCKETS = {
+  'Falcon 9': { height: '70 m', diameter: '3.7 m', mass: '549,054 kg', stages: 2, thrust: '7,607 kN', payloadLEO: '22,800 kg', payloadGTO: '8,300 kg', firstFlight: '2010', successRate: 99.3, attempts: 396, reusable: 'Stage 1' },
+  'Falcon Heavy': { height: '70 m', diameter: '12.2 m', mass: '1,420,788 kg', stages: 2, thrust: '22,819 kN', payloadLEO: '63,800 kg', payloadGTO: '26,700 kg', firstFlight: '2018', successRate: 100, attempts: 11, reusable: 'All 3 cores' },
+  'Starship': { height: '121 m', diameter: '9 m', mass: '5,000,000 kg', stages: 2, thrust: '74,400 kN', payloadLEO: '150,000 kg', payloadGTO: '21,000 kg (refilled)', firstFlight: '2023', successRate: 54.5, attempts: 11, reusable: 'Fully reusable (in dev)' },
+  'Vulcan Centaur': { height: '61.6 m', diameter: '5.4 m', mass: '546,700 kg', stages: 2, thrust: '17,400 kN', payloadLEO: '27,200 kg', payloadGTO: '14,400 kg', firstFlight: '2024', successRate: 100, attempts: 2, reusable: 'Expendable' },
+  'Ariane 6': { height: '63 m', diameter: '5.4 m', mass: '860,000 kg', stages: 2, thrust: '14,500 kN', payloadLEO: '21,650 kg', payloadGTO: '11,500 kg', firstFlight: '2024', successRate: 100, attempts: 3, reusable: 'Expendable' },
+  'Electron': { height: '18 m', diameter: '1.2 m', mass: '13,000 kg', stages: 2, thrust: '224 kN', payloadLEO: '320 kg', payloadGTO: '— kg', firstFlight: '2017', successRate: 92.0, attempts: 50, reusable: 'Stage 1 (recovery)' },
+  'H3': { height: '63 m', diameter: '5.2 m', mass: '574,000 kg', stages: 2, thrust: '8,600 kN', payloadLEO: '13,500 kg', payloadGTO: '6,500 kg', firstFlight: '2023', successRate: 80, attempts: 5, reusable: 'Expendable' },
+  'Long March 7': { height: '53.1 m', diameter: '3.35 m', mass: '594,000 kg', stages: 2, thrust: '7,200 kN', payloadLEO: '13,500 kg', payloadGTO: '5,500 kg', firstFlight: '2016', successRate: 100, attempts: 9, reusable: 'Expendable' },
+  'Long March 2F': { height: '62 m', diameter: '3.35 m', mass: '464,000 kg', stages: 2, thrust: '5,920 kN', payloadLEO: '8,400 kg', payloadGTO: '3,400 kg', firstFlight: '1999', successRate: 100, attempts: 22, reusable: 'Expendable' },
+  'New Glenn': { height: '98 m', diameter: '7 m', mass: '1,400,000 kg', stages: 2, thrust: '17,100 kN', payloadLEO: '45,000 kg', payloadGTO: '13,600 kg', firstFlight: '2025', successRate: 100, attempts: 2, reusable: 'Stage 1' },
+};
+
+const AGENCIES = ['SpaceX', 'ULA', 'CNSA', 'ESA', 'Rocket Lab', 'JAXA', 'Blue Origin'];
+const ROCKET_FAMILIES = ['Falcon 9', 'Falcon Heavy', 'Starship', 'Vulcan Centaur', 'Long March 7', 'Long March 2F', 'Ariane 6', 'Electron', 'H3', 'New Glenn'];
+const MISSION_TYPES = ['Commercial', 'Government', 'Test', 'Scientific'];
+const LAUNCH_SITES = [...new Set(LAUNCHES.map(l => l.site))];
+
+// ============= STATE =============
+let state = {
+  view: 'timeline',
+  horizon: 'upcoming',
+  filters: {
+    agency: new Set(),
+    rocket: new Set(),
+    type: new Set(),
+    site: new Set(),
+  },
+  favorites: new Set(['l1', 'l5']),
+  search: '',
+  searchOpen: false,
+  activeLaunch: null,
+  detailTab: 'overview',
+  lastRefresh: new Date(),
+  notifPrefs: {
+    global: { enabled: true, t24: true, t1: true, live: true },
+    bySpaceX: { enabled: true, expanded: false },
+    byULA: { enabled: false, expanded: false },
+    byCNSA: { enabled: false, expanded: false },
+    byESA: { enabled: false, expanded: false },
+    byMission: {}
+  },
+  compareSelection: ['Falcon 9', 'Starship'],
+};
+
+// ============= UTIL =============
+function fmtCountdown(date) {
+  const ms = date.getTime() - Date.now();
+  if (ms < 0 && ms > -3600000) {
+    return { text: 'IN PROGRESS', class: 'live', live: true };
+  }
+  if (ms < 0) {
+    return { text: 'COMPLETE', class: '', live: false };
+  }
+  const s = Math.floor(ms / 1000);
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  const sec = s % 60;
+  if (ms > 86400000) {
+    return { text: 'T-' + d + 'd ' + String(h).padStart(2, '0') + 'h', class: '' };
+  }
+  if (ms > 3600000) {
+    return { text: 'T-' + String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'), class: 'imminent' };
+  }
+  return { text: 'T-' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0'), class: 'imminent' };
+}
+
+function fmtAbsTime(date) {
+  return date.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit', timeZoneName: 'short' });
+}
+
+function fmtDate(date) {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function fmtRel(date) {
+  const ms = Date.now() - date.getTime();
+  const days = Math.floor(ms / 86400000);
+  if (days < 1) return 'today';
+  if (days < 2) return 'yesterday';
+  if (days < 30) return days + ' days ago';
+  if (days < 365) return Math.floor(days / 30) + ' months ago';
+  return Math.floor(days / 365) + ' years ago';
+}
+
+function statusBadge(status) {
+  const map = {
+    scheduled: { label: 'Scheduled', cls: 'badge-neutral' },
+    delayed: { label: 'Delayed', cls: 'badge-warning' },
+    scrubbed: { label: 'Scrubbed', cls: 'badge-warning' },
+    success: { label: 'Success', cls: 'badge-success' },
+    failure: { label: 'Failure', cls: 'badge-danger' },
+    live: { label: 'Live', cls: 'badge-danger' },
+  };
+  const s = map[status] || map.scheduled;
+  return '<span class="badge ' + s.cls + '">' + s.label + '</span>';
+}
+
+function filterLaunches() {
+  let list = LAUNCHES.slice();
+  const now = Date.now();
+  if (state.horizon === 'upcoming') {
+    list = list.filter(l => l.date.getTime() > now - 3600000);
+  } else if (state.horizon === '30d') {
+    list = list.filter(l => l.date.getTime() > now - 3600000 && l.date.getTime() < now + 30 * 86400000);
+  } else if (state.horizon === '90d') {
+    list = list.filter(l => l.date.getTime() > now - 3600000 && l.date.getTime() < now + 90 * 86400000);
+  } else if (state.horizon === 'past') {
+    list = list.filter(l => l.date.getTime() < now - 3600000);
+  } else if (state.horizon === 'favs') {
+    list = list.filter(l => state.favorites.has(l.id));
+  }
+  if (state.filters.agency.size) list = list.filter(l => state.filters.agency.has(l.agency));
+  if (state.filters.rocket.size) list = list.filter(l => state.filters.rocket.has(l.rocket));
+  if (state.filters.type.size) list = list.filter(l => state.filters.type.has(l.missionType));
+  if (state.filters.site.size) list = list.filter(l => state.filters.site.has(l.site));
+  if (state.search) {
+    const q = state.search.toLowerCase();
+    list = list.filter(l =>
+      l.mission.toLowerCase().includes(q) ||
+      (l.payload || '').toLowerCase().includes(q) ||
+      l.rocket.toLowerCase().includes(q) ||
+      l.agency.toLowerCase().includes(q)
+    );
+  }
+  if (state.horizon === 'past') {
+    list.sort((a, b) => b.date - a.date);
+  } else {
+    list.sort((a, b) => a.date - b.date);
+  }
+  return list;
+}
+
+function countActiveFilters() {
+  return state.filters.agency.size + state.filters.rocket.size + state.filters.type.size + state.filters.site.size;
+}
+
+// ============= RENDER =============
+function render() {
+  const c = document.getElementById('viewContent');
+  if (state.view === 'timeline') renderTimeline(c);
+  else if (state.view === 'history') renderHistory(c);
+  else if (state.view === 'sites') renderSites(c);
+  else if (state.view === 'stats') renderStats(c);
+}
+
+function renderTimeline(c) {
+  const launches = filterLaunches();
+  const activeFilters = countActiveFilters();
+
+  let html = '';
+
+  html += '<div class="pill-group">';
+  const pills = [
+    { k: 'upcoming', label: 'Upcoming' },
+    { k: '30d', label: 'Next 30d' },
+    { k: '90d', label: 'Next 90d' },
+    { k: 'past', label: 'Past' },
+    { k: 'favs', label: 'Favorites' },
+  ];
+  pills.forEach(p => {
+    html += '<button class="pill ' + (state.horizon === p.k ? 'active' : '') + '" data-horizon="' + p.k + '">' + p.label + '</button>';
+  });
+  html += '</div>';
+
+  html += '<div class="chip-row">';
+  html += '<button class="chip ' + (state.filters.agency.size ? 'has-active' : '') + '" data-chip="agency">';
+  html += 'Agency' + (state.filters.agency.size ? ' <span class="chip-count">' + state.filters.agency.size + '</span>' : '');
+  html += '</button>';
+  html += '<button class="chip ' + (state.filters.rocket.size ? 'has-active' : '') + '" data-chip="rocket">';
+  html += 'Rocket' + (state.filters.rocket.size ? ' <span class="chip-count">' + state.filters.rocket.size + '</span>' : '');
+  html += '</button>';
+  html += '<button class="chip ' + (state.filters.type.size ? 'has-active' : '') + '" data-chip="type">';
+  html += 'Mission' + (state.filters.type.size ? ' <span class="chip-count">' + state.filters.type.size + '</span>' : '');
+  html += '</button>';
+  html += '<button class="chip ' + (state.filters.site.size ? 'has-active' : '') + '" data-chip="site">';
+  html += 'Site' + (state.filters.site.size ? ' <span class="chip-count">' + state.filters.site.size + '</span>' : '');
+  html += '</button>';
+  if (activeFilters > 0) {
+    html += '<button class="chip" data-chip="clear" style="color:var(--danger)">Clear all</button>';
+  }
+  html += '</div>';
+
+  html += '<div class="refresh-bar">';
+  html += '<span>Updated ' + fmtRel(state.lastRefresh) + ' · ' + state.lastRefresh.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + '</span>';
+  html += '<button class="refresh-btn" id="refreshBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg> Refresh</button>';
+  html += '</div>';
+
+  html += '<div class="timeline">';
+
+  if (launches.length === 0) {
+    html += emptyState(state.horizon === 'favs' ? 'No favorited launches' : 'No launches match your filters', state.horizon === 'favs' ? 'Tap the star on any launch card to track it here.' : 'Adjust your filters or time range to see more launches.');
+  } else {
+    let lastSection = '';
+    launches.forEach(l => {
+      const section = sectionLabel(l.date, state.horizon);
+      if (section !== lastSection) {
+        html += '<div class="section-header">' + section + '</div>';
+        lastSection = section;
+      }
+      html += renderLaunchCard(l);
+    });
+  }
+
+  html += '</div>';
+  c.innerHTML = html;
+
+  // Wire events
+  c.querySelectorAll('[data-horizon]').forEach(el => {
+    el.addEventListener('click', () => {
+      state.horizon = el.dataset.horizon;
+      render();
+    });
+  });
+  c.querySelectorAll('[data-chip]').forEach(el => {
+    el.addEventListener('click', () => {
+      if (el.dataset.chip === 'clear') {
+        state.filters.agency.clear();
+        state.filters.rocket.clear();
+        state.filters.type.clear();
+        state.filters.site.clear();
+        toast('Filters cleared', 'info');
+        render();
+      } else {
+        openFilterSheet(el.dataset.chip);
+      }
+    });
+  });
+  const refreshBtn = c.querySelector('#refreshBtn');
+  if (refreshBtn) {
+    refreshBtn.addEventListener('click', doRefresh);
+  }
+  c.querySelectorAll('.launch-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('.card-action-btn')) return;
+      openDetail(card.dataset.id);
+    });
+  });
+  c.querySelectorAll('.fav-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const id = btn.dataset.id;
+      if (state.favorites.has(id)) {
+        state.favorites.delete(id);
+        toast('Removed from favorites', 'info');
+      } else {
+        state.favorites.add(id);
+        toast('Added to favorites', 'success');
+      }
+      render();
+    });
+  });
+  c.querySelectorAll('.notif-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      openNotifSheet(btn.dataset.id);
+    });
+  });
+}
+
+function sectionLabel(date, horizon) {
+  if (horizon === 'past') {
+    return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  }
+  const ms = date.getTime() - Date.now();
+  if (ms < 86400000) return 'Today';
+  if (ms < 172800000) return 'Tomorrow';
+  if (ms < 7 * 86400000) return 'This week';
+  if (ms < 30 * 86400000) return 'This month';
+  if (ms < 90 * 86400000) return date.toLocaleString('en-US', { month: 'long', year: 'numeric' });
+  return 'Later';
+}
+
+function renderLaunchCard(l) {
+  const cd = fmtCountdown(l.date);
+  const isSpaceX = l.agency === 'SpaceX';
+  const fav = state.favorites.has(l.id);
+  let h = '<div class="launch-card ' + (isSpaceX ? 'spacex' : '') + '" data-id="' + l.id + '">';
+  h += '<div class="card-top">';
+  h += '<div class="card-left">';
+  h += '<div class="agency-row">';
+  h += '<div class="agency-logo">' + l.agencyCode + '</div>';
+  h += '<span class="agency-name">' + l.agency + '</span>';
+  h += '</div>';
+  h += '<div class="mission-name">' + l.mission + '</div>';
+  h += '<div class="rocket-name">' + l.rocket + ' <span style="color:var(--text-subtle)">· ' + l.variant + '</span></div>';
+  h += '<div class="launch-site">' + l.site + '</div>';
+  h += '</div>';
+  h += '<div class="card-right">';
+  if (cd.live) {
+    h += '<div class="countdown live"><span class="live-dot"></span>LIVE</div>';
+  } else {
+    h += '<div class="countdown ' + cd.class + '">' + cd.text + '</div>';
+  }
+  h += '<div class="launch-date">' + fmtAbsTime(l.date) + '</div>';
+  h += '</div>';
+  h += '</div>';
+
+  if (isSpaceX && l.booster) {
+    h += '<div class="spacex-extra">';
+    h += '<span>Booster <strong>' + l.booster + '</strong></span>';
+    h += '<span>Flights <strong>' + (l.reuse + 1) + '</strong></span>';
+    if (l.landing) h += '<span style="flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + l.landing + '</span>';
+    h += '</div>';
+  }
+
+  h += '<div class="card-bottom">';
+  h += '<div class="card-meta">';
+  h += statusBadge(l.status);
+  h += '<span>' + l.missionType + ' · ' + l.orbit + '</span>';
+  h += '</div>';
+  h += '<div class="card-actions">';
+  h += '<button class="card-action-btn notif-btn" data-id="' + l.id + '" aria-label="Notifications"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></button>';
+  h += '<button class="card-action-btn fav-btn ' + (fav ? 'active' : '') + '" data-id="' + l.id + '" aria-label="Favorite"><svg viewBox="0 0 24 24" fill="' + (fav ? 'currentColor' : 'none') + '" stroke="currentColor" stroke-width="2"><path d="m12 2 3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg></button>';
+  h += '</div>';
+  h += '</div>';
+  h += '</div>';
+  return h;
+}
+
+function emptyState(title, text) {
+  return '<div class="empty">' +
+    '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4.5 16.5c-1.5 1.26-2 5-2 5s3.74-.5 5-2c.71-.84.7-2.13-.09-2.91a2.18 2.18 0 0 0-2.91-.09zM12 15l-3-3a22 22 0 0 1 2-3.95A12.88 12.88 0 0 1 22 2c0 2.72-.78 7.5-6 11a22.35 22.35 0 0 1-4 2zM9 12H4s.55-3.03 2-4c1.62-1.08 5 0 5 0M12 15v5s3.03-.55 4-2c1.08-1.62 0-5 0-5"/></svg>' +
+    '<div class="empty-title">' + title + '</div>' +
+    '<div class="empty-text">' + text + '</div>' +
+    '</div>';
+}
+
+function renderHistory(c) {
+  const past = LAUNCHES.filter(l => l.date.getTime() < Date.now() - 3600000).sort((a, b) => b.date - a.date);
+  let html = '';
+  html += '<div style="padding: 16px 16px 8px">';
+  html += '<div style="display:flex; gap:8px; margin-bottom:12px">';
+  html += '<div class="search-rel" style="flex:1">';
+  html += '<svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>';
+  html += '<input type="text" class="search-input" id="histSearch" placeholder="Search history..." value="' + (state.search || '') + '">';
+  html += '</div>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div style="padding: 0 16px">';
+  const filtered = state.search ? past.filter(l => {
+    const q = state.search.toLowerCase();
+    return l.mission.toLowerCase().includes(q) || l.rocket.toLowerCase().includes(q) || l.agency.toLowerCase().includes(q);
+  }) : past;
+
+  if (filtered.length === 0) {
+    html += emptyState('No historical launches found', 'Try a different search term or check back later.');
+  } else {
+    let lastYear = '';
+    let curHtml = '<div class="history-table-wrap">';
+    filtered.forEach(l => {
+      const year = String(l.date.getFullYear());
+      if (year !== lastYear) {
+        if (lastYear) curHtml += '</div>';
+        if (lastYear) html += curHtml;
+        html += '<div class="section-header" style="padding-top:16px">' + year + '</div>';
+        curHtml = '<div class="history-table-wrap">';
+        lastYear = year;
+      }
+      curHtml += '<div class="history-row" data-id="' + l.id + '">';
+      curHtml += '<div class="history-date">' + l.date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) + '</div>';
+      curHtml += '<div>';
+      curHtml += '<div class="history-mission">' + l.mission + '</div>';
+      curHtml += '<div class="history-sub">' + l.agency + ' · ' + l.rocket + '</div>';
+      curHtml += '</div>';
+      curHtml += '<div>' + statusBadge(l.status) + '</div>';
+      curHtml += '</div>';
+    });
+    curHtml += '</div>';
+    html += curHtml;
+  }
+  html += '<div style="height:48px"></div>';
+  html += '</div>';
+  c.innerHTML = html;
+
+  const search = c.querySelector('#histSearch');
+  if (search) {
+    search.addEventListener('input', () => {
+      state.search = search.value;
+      renderHistory(c);
+    });
+  }
+  c.querySelectorAll('.history-row').forEach(row => {
+    row.addEventListener('click', () => openDetail(row.dataset.id));
+  });
+}
+
+function renderSites(c) {
+  let html = '<div style="padding:16px">';
+  html += '<div class="map-wrap">';
+  html += '<div style="font-size:11px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px">Active Launch Pads</div>';
+  html += '<svg class="map-svg" viewBox="0 0 100 100" preserveAspectRatio="none">';
+  // Simplified continental outlines
+  html += '<rect class="map-bg" x="0" y="0" width="100" height="100"/>';
+  // Rough continent shapes (very stylized)
+  html += '<path d="M10 30 L25 25 L35 35 L30 55 L20 60 L12 55 Z" fill="var(--border)" opacity="0.4"/>'; // N. America
+  html += '<path d="M30 60 L40 60 L38 80 L32 85 L28 75 Z" fill="var(--border)" opacity="0.4"/>'; // S. America
+  html += '<path d="M45 28 L60 26 L62 40 L50 50 L45 42 Z" fill="var(--border)" opacity="0.4"/>'; // Europe/Africa
+  html += '<path d="M50 50 L55 55 L52 75 L46 70 Z" fill="var(--border)" opacity="0.4"/>';
+  html += '<path d="M62 28 L88 30 L90 50 L75 55 L65 45 Z" fill="var(--border)" opacity="0.4"/>'; // Asia
+  html += '<path d="M80 65 L92 65 L92 78 L82 78 Z" fill="var(--border)" opacity="0.4"/>'; // Australia
+  // Sites
+  SITES.forEach(s => {
+    const r = Math.min(4, 1.5 + s.launches / 10);
+    html += '<g class="map-pad" data-id="' + s.id + '">';
+    html += '<circle class="map-pad-pulse" cx="' + s.x + '" cy="' + s.y + '" r="' + r + '"/>';
+    html += '<circle class="map-pad-dot" cx="' + s.x + '" cy="' + s.y + '" r="' + r + '"/>';
+    html += '</g>';
+  });
+  html += '</svg>';
+  html += '<div style="display:flex; gap:12px; margin-top:8px; font-size:11px; color:var(--text-subtle)"><span>● Active pad</span><span>Size = launches YTD</span></div>';
+  html += '</div>';
+
+  html += '<div style="font-size:11px; font-weight:500; letter-spacing:0.04em; text-transform:uppercase; color:var(--text-muted); margin-bottom:8px">Site Utilization</div>';
+  html += '<div class="history-table-wrap site-list">';
+  const sortedSites = SITES.slice().sort((a, b) => b.launches - a.launches);
+  sortedSites.forEach(s => {
+    const scrubRate = s.launches > 0 ? (s.scrubs / (s.launches + s.scrubs) * 100).toFixed(1) : '0.0';
+    html += '<div class="stat-row">';
+    html += '<div class="stat-row-label">';
+    html += '<div style="width:8px; height:8px; background:var(--accent); border-radius:50%"></div>';
+    html += '<div><div style="font-size:13px; font-weight:500">' + s.name + '</div>';
+    html += '<div style="font-size:11px; color:var(--text-subtle)">' + s.country + '</div></div>';
+    html += '</div>';
+    html += '<div style="text-align:right"><div class="stat-row-value">' + s.launches + ' launches</div>';
+    html += '<div style="font-size:11px; color:var(--text-subtle); font-family:SF Mono, Menlo, monospace">' + scrubRate + '% scrub</div></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="height:48px"></div>';
+  html += '</div>';
+  c.innerHTML = html;
+}
+
+function renderStats(c) {
+  const now = Date.now();
+  const yearStart = new Date(NOW.getFullYear(), 0, 1).getTime();
+  const ytd = LAUNCHES.filter(l => l.date.getTime() < now && l.date.getTime() >= yearStart);
+  const next7 = LAUNCHES.filter(l => l.date.getTime() > now && l.date.getTime() < now + 7 * 86400000);
+  const next30 = LAUNCHES.filter(l => l.date.getTime() > now && l.date.getTime() < now + 30 * 86400000);
+  const next90 = LAUNCHES.filter(l => l.date.getTime() > now && l.date.getTime() < now + 90 * 86400000);
+
+  const byAgency = {};
+  ytd.forEach(l => { byAgency[l.agency] = (byAgency[l.agency] || 0) + 1; });
+
+  const byType = {};
+  LAUNCHES.forEach(l => { byType[l.missionType] = (byType[l.missionType] || 0) + 1; });
+  const totalType = Object.values(byType).reduce((a, b) => a + b, 0);
+
+  let html = '<div style="padding:16px">';
+
+  html += '<div class="stats-grid">';
+  html += '<div class="stat-card"><div class="stat-label">Next 7 Days</div><div class="stat-value">' + next7.length + '</div><div class="stat-delta">' + next30.length + ' in 30d</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">Next 90 Days</div><div class="stat-value">' + next90.length + '</div><div class="stat-delta" style="color:var(--text-muted)">across ' + new Set(next90.map(l => l.agency)).size + ' agencies</div></div>';
+  html += '<div class="stat-card"><div class="stat-label">Launches YTD</div><div class="stat-value">' + ytd.length + '</div><div class="stat-delta up">+12% vs prior</div></div>';
+  const successPct = ytd.length ? (ytd.filter(l => l.status === 'success').length / ytd.length * 100).toFixed(1) : 0;
+  html += '<div class="stat-card"><div class="stat-label">Success Rate</div><div class="stat-value">' + successPct + '%</div><div class="stat-delta" style="color:var(--text-muted)">' + ytd.length + ' attempts</div></div>';
+  html += '</div>';
+
+  html += '<div class="section-block">';
+  html += '<h3>Success Rate by Rocket Family</h3>';
+  html += '<div class="history-table-wrap">';
+  Object.keys(ROCKETS).slice(0, 6).forEach(r => {
+    const data = ROCKETS[r];
+    const cls = data.successRate >= 95 ? '' : data.successRate >= 80 ? 'warn' : 'danger';
+    html += '<div class="stat-row" style="display:block; padding:12px">';
+    html += '<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px">';
+    html += '<span style="font-size:13px; font-weight:500">' + r + '</span>';
+    html += '<span style="font-family:SF Mono, Menlo, monospace; font-size:12px">' + data.successRate + '% <span style="color:var(--text-subtle)">· ' + data.attempts + '</span></span>';
+    html += '</div>';
+    html += '<div class="progress-bar"><div class="progress-fill ' + cls + '" style="width:' + data.successRate + '%"></div></div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="section-block">';
+  html += '<h3>Launches YTD by Agency</h3>';
+  html += '<div class="history-table-wrap">';
+  const totalYtd = ytd.length || 1;
+  Object.entries(byAgency).sort((a, b) => b[1] - a[1]).forEach(([a, n]) => {
+    const pct = (n / totalYtd * 100).toFixed(0);
+    html += '<div class="stat-row">';
+    html += '<div class="stat-row-label"><span>' + a + '</span></div>';
+    html += '<div style="display:flex; align-items:center; gap:8px; flex:1; max-width:140px">';
+    html += '<div class="progress-bar" style="flex:1"><div class="progress-fill" style="width:' + pct + '%; background:var(--accent)"></div></div>';
+    html += '<span class="stat-row-value" style="min-width:24px; text-align:right">' + n + '</span>';
+    html += '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="section-block">';
+  html += '<h3>Mission Type Distribution</h3>';
+  html += '<div class="history-table-wrap">';
+  Object.entries(byType).sort((a, b) => b[1] - a[1]).forEach(([t, n]) => {
+    const pct = (n / totalType * 100).toFixed(1);
+    html += '<div class="stat-row">';
+    html += '<div class="stat-row-label"><span>' + t + '</span></div>';
+    html += '<div class="stat-row-value">' + pct + '%</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="section-block">';
+  html += '<h3>SpaceX Booster Reuse</h3>';
+  html += '<div class="history-table-wrap">';
+  BOOSTERS.slice().sort((a, b) => b.flights - a.flights).slice(0, 6).forEach(b => {
+    html += '<div class="stat-row">';
+    html += '<div class="stat-row-label">';
+    html += '<span style="font-family:SF Mono, Menlo, monospace; font-weight:500">' + b.serial + '</span>';
+    html += '<span class="badge ' + (b.status === 'Active' ? 'badge-success' : 'badge-neutral') + '">' + b.status + '</span>';
+    html += '</div>';
+    html += '<div class="stat-row-value">' + b.flights + ' flights · ' + b.lastTurn + 'd turn</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  html += '<div style="margin-top:12px; text-align:center">';
+  html += '<button class="btn-secondary" id="openCompare">Compare Rockets</button>';
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div style="height:48px"></div></div>';
+  c.innerHTML = html;
+
+  const cmpBtn = c.querySelector('#openCompare');
+  if (cmpBtn) cmpBtn.addEventListener('click', openCompareSheet);
+}
+
+// ============= DETAIL SHEET =============
+function openDetail(id) {
+  const l = LAUNCHES.find(x => x.id === id);
+  if (!l) return;
+  state.activeLaunch = l;
+  state.detailTab = 'overview';
+  renderDetail();
+  openSheet('detail');
+}
+
+function renderDetail() {
+  const l = state.activeLaunch;
+  if (!l) return;
+  document.getElementById('detailTitle').textContent = l.mission;
+  const c = document.getElementById('detailContent');
+  const cd = fmtCountdown(l.date);
+  const rk = ROCKETS[l.rocket] || {};
+
+  let html = '';
+  html += '<div class="detail-hero">';
+  html += '<div class="detail-status-row">';
+  html += '<div class="agency-row"><div class="agency-logo">' + l.agencyCode + '</div><span class="agency-name">' + l.agency + '</span></div>';
+  html += statusBadge(l.status);
+  html += '</div>';
+  html += '<div class="detail-mission">' + l.mission + '</div>';
+  html += '<div class="detail-sub">' + l.rocket + ' · ' + l.variant + ' · ' + l.site + '</div>';
+  if (cd.live) {
+    html += '<div class="detail-countdown live"><span class="live-dot"></span> IN PROGRESS</div>';
+  } else {
+    html += '<div class="detail-countdown ' + cd.class + '">' + cd.text + '</div>';
+  }
+  html += '<div class="detail-time">' + fmtAbsTime(l.date) + '</div>';
+  if (l.windowStart !== undefined && l.windowEnd !== undefined && l.windowEnd > l.windowStart) {
+    const end = new Date(NOW.getTime() + l.windowEnd * 3600000);
+    html += '<div class="detail-time">Window: ' + (l.windowEnd - l.windowStart).toFixed(1) + 'h, closes ' + end.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }) + '</div>';
+  }
+  if (l.streamStart !== undefined && l.date.getTime() > Date.now()) {
+    const streamDate = new Date(NOW.getTime() + l.streamStart * 3600000);
+    const streamMs = streamDate.getTime() - Date.now();
+    if (streamMs > 0) {
+      html += '<div class="detail-time" style="color:var(--accent); margin-top:4px">Webcast in ' + Math.floor(streamMs / 60000) + ' min</div>';
+    }
+  }
+  html += '</div>';
+
+  html += '<div class="detail-tabs">';
+  const tabs = ['overview', 'rocket', 'payload', 'media', 'updates'];
+  tabs.forEach(t => {
+    html += '<button class="detail-tab ' + (state.detailTab === t ? 'active' : '') + '" data-tab="' + t + '">' + t.charAt(0).toUpperCase() + t.slice(1) + '</button>';
+  });
+  html += '</div>';
+
+  if (state.detailTab === 'overview') {
+    html += '<div class="section-block">';
+    html += '<h3>Mission Objective</h3>';
+    html += '<p>' + l.objective + '</p>';
+    html += '</div>';
+
+    if (l.date.getTime() > Date.now() && l.weather !== undefined) {
+      html += '<div class="section-block">';
+      html += '<h3>Weather Forecast</h3>';
+      html += '<div class="weather-card">';
+      html += '<div class="weather-icon">' + (l.weather >= 75 ? '◯' : l.weather >= 60 ? '◐' : '●') + '</div>';
+      html += '<div style="flex:1">';
+      html += '<div class="weather-prob">' + l.weather + '% GO</div>';
+      html += '<div style="font-size:11px; color:var(--text-muted)">Probability of acceptable launch conditions</div>';
+      html += '<div class="progress-bar" style="margin-top:6px"><div class="progress-fill ' + (l.weather >= 75 ? '' : l.weather >= 60 ? 'warn' : 'danger') + '" style="width:' + l.weather + '%"></div></div>';
+      html += '</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+
+    html += '<div class="section-block">';
+    html += '<h3>Quick Facts</h3>';
+    html += '<dl class="dl">';
+    html += '<div class="dl-row"><dt>Mission Type</dt><dd>' + l.missionType + '</dd></div>';
+    html += '<div class="dl-row"><dt>Target Orbit</dt><dd>' + l.orbit + '</dd></div>';
+    html += '<div class="dl-row"><dt>Launch Date</dt><dd>' + fmtDate(l.date) + '</dd></div>';
+    html += '<div class="dl-row"><dt>Status</dt><dd>' + l.status.toUpperCase() + '</dd></div>';
+    html += '</dl>';
+    html += '</div>';
+
+    if (l.agency === 'SpaceX' && l.booster) {
+      html += '<div class="section-block">';
+      html += '<h3>Booster Reuse</h3>';
+      html += '<dl class="dl">';
+      html += '<div class="dl-row"><dt>Core Serial</dt><dd>' + l.booster + '</dd></div>';
+      html += '<div class="dl-row"><dt>Flight Number</dt><dd>' + (l.reuse + 1) + '</dd></div>';
+      html += '<div class="dl-row"><dt>Landing Plan</dt><dd>' + (l.landing || 'Expendable') + '</dd></div>';
+      html += '</dl>';
+      html += '</div>';
+    }
+  } else if (state.detailTab === 'rocket') {
+    html += '<div class="section-block">';
+    html += '<h3>' + l.rocket + ' Specifications</h3>';
+    if (rk.height) {
+      html += '<dl class="dl">';
+      html += '<div class="dl-row"><dt>Height</dt><dd>' + rk.height + '</dd></div>';
+      html += '<div class="dl-row"><dt>Diameter</dt><dd>' + rk.diameter + '</dd></div>';
+      html += '<div class="dl-row"><dt>Mass</dt><dd>' + rk.mass + '</dd></div>';
+      html += '<div class="dl-row"><dt>Stages</dt><dd>' + rk.stages + '</dd></div>';
+      html += '<div class="dl-row"><dt>Thrust (T/O)</dt><dd>' + rk.thrust + '</dd></div>';
+      html += '<div class="dl-row"><dt>Payload LEO</dt><dd>' + rk.payloadLEO + '</dd></div>';
+      html += '<div class="dl-row"><dt>Payload GTO</dt><dd>' + rk.payloadGTO + '</dd></div>';
+      html += '<div class="dl-row"><dt>First Flight</dt><dd>' + rk.firstFlight + '</dd></div>';
+      html += '<div class="dl-row"><dt>Reusability</dt><dd>' + rk.reusable + '</dd></div>';
+      html += '</dl>';
+    } else {
+      html += '<p style="color:var(--text-muted)">Specifications not available for this vehicle.</p>';
+    }
+    html += '</div>';
+    if (rk.successRate !== undefined) {
+      html += '<div class="section-block">';
+      html += '<h3>Reliability</h3>';
+      html += '<div style="background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-md); padding:12px">';
+      html += '<div style="display:flex; justify-content:space-between; margin-bottom:6px">';
+      html += '<span style="font-size:13px">' + l.rocket + ' success rate</span>';
+      html += '<span style="font-family:SF Mono, Menlo, monospace; font-weight:600">' + rk.successRate + '%</span>';
+      html += '</div>';
+      const rcls = rk.successRate >= 95 ? '' : rk.successRate >= 80 ? 'warn' : 'danger';
+      html += '<div class="progress-bar"><div class="progress-fill ' + rcls + '" style="width:' + rk.successRate + '%"></div></div>';
+      html += '<div style="font-size:11px; color:var(--text-subtle); margin-top:4px">' + rk.attempts + ' attempts to date</div>';
+      html += '</div>';
+      html += '</div>';
+    }
+  } else if (state.detailTab === 'payload') {
+    html += '<div class="section-block">';
+    html += '<h3>Primary Payload</h3>';
+    html += '<p>' + l.payload + '</p>';
+    html += '</div>';
+    html += '<div class="section-block">';
+    html += '<h3>Details</h3>';
+    html += '<dl class="dl">';
+    html += '<div class="dl-row"><dt>Payload Mass</dt><dd>' + (l.payloadMass ? l.payloadMass.toLocaleString() + ' kg' : 'N/A') + '</dd></div>';
+    html += '<div class="dl-row"><dt>Target Orbit</dt><dd>' + l.orbit + '</dd></div>';
+    html += '<div class="dl-row"><dt>Operator</dt><dd>' + l.agency + '</dd></div>';
+    html += '</dl>';
+    html += '</div>';
+  } else if (state.detailTab === 'media') {
+    html += '<div class="section-block">';
+    html += '<h3>Webcast</h3>';
+    html += '<a class="stream-link" id="streamLink">';
+    html += '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19c-.23-.86-.91-1.54-1.77-1.77C18.25 5 12 5 12 5s-6.25 0-7.81.42c-.86.23-1.54.91-1.77 1.77C2 8.75 2 12 2 12s0 3.25.42 4.81c.23.86.91 1.54 1.77 1.77C5.75 19 12 19 12 19s6.25 0 7.81-.42c.86-.23 1.54-.91 1.77-1.77C22 15.25 22 12 22 12s0-3.25-.42-4.81zM10 15V9l5 3-5 3z"/></svg>';
+    html += '<span style="flex:1">' + l.agency + ' Official Stream</span>';
+    html += '<span style="font-size:11px; color:var(--text-subtle)">YouTube</span>';
+    html += '</a>';
+    html += '</div>';
+    html += '<div class="section-block">';
+    html += '<h3>Gallery</h3>';
+    html += '<div class="media-grid">';
+    for (let i = 0; i < 4; i++) {
+      html += '<div class="media-thumb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-5-5L5 21"/></svg></div>';
+    }
+    html += '</div>';
+    html += '<p style="font-size:11px; color:var(--text-subtle); margin-top:8px">Mission photos appear after launch.</p>';
+    html += '</div>';
+    html += '<div class="section-block">';
+    html += '<button class="btn-secondary" style="width:100%" id="exportCard">Export Launch Card as Image</button>';
+    html += '</div>';
+  } else if (state.detailTab === 'updates') {
+    html += '<div class="section-block">';
+    html += '<h3>Mission Updates</h3>';
+    const updates = l.updates && l.updates.length ? l.updates : [];
+    if (updates.length === 0) {
+      html += '<p style="color:var(--text-muted); font-size:13px">No updates yet. Subscribe to notifications to be alerted when mission status changes.</p>';
+    } else {
+      updates.forEach((u, i) => {
+        html += '<div class="update-item ' + (i === 0 ? 'latest' : '') + '">';
+        html += '<div class="update-time">' + u.time + '</div>';
+        html += '<div class="update-text">' + u.text + '</div>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+    html += '<div style="display:flex; gap:8px">';
+    html += '<button class="btn-secondary" style="flex:1" id="detailNotif">Set notifications</button>';
+    html += '<button class="btn-primary" style="flex:1" id="detailFav">' + (state.favorites.has(l.id) ? '★ Favorited' : '☆ Favorite') + '</button>';
+    html += '</div>';
+  }
+
+  html += '<div style="height:32px"></div>';
+  c.innerHTML = html;
+
+  c.querySelectorAll('.detail-tab').forEach(t => {
+    t.addEventListener('click', () => {
+      state.detailTab = t.dataset.tab;
+      renderDetail();
+    });
+  });
+  const sl = c.querySelector('#streamLink');
+  if (sl) sl.addEventListener('click', () => toast('External link would open. (Demo mode)', 'info'));
+  const ec = c.querySelector('#exportCard');
+  if (ec) ec.addEventListener('click', () => toast('Launch card exported to clipboard', 'success'));
+  const dn = c.querySelector('#detailNotif');
+  if (dn) dn.addEventListener('click', () => openNotifSheet(l.id));
+  const df = c.querySelector('#detailFav');
+  if (df) df.addEventListener('click', () => {
+    if (state.favorites.has(l.id)) {
+      state.favorites.delete(l.id);
+      toast('Removed from favorites', 'info');
+    } else {
+      state.favorites.add(l.id);
+      toast('Added to favorites', 'success');
+    }
+    renderDetail();
+  });
+}
+
+// ============= FILTER SHEET =============
+let filterFocus = null;
+function openFilterSheet(focus) {
+  filterFocus = focus;
+  renderFilterSheet();
+  openSheet('filter');
+}
+
+function renderFilterSheet() {
+  const c = document.getElementById('filterContent');
+  const groups = [
+    { key: 'agency', label: 'Agency', items: AGENCIES, set: state.filters.agency },
+    { key: 'rocket', label: 'Rocket Family', items: ROCKET_FAMILIES, set: state.filters.rocket },
+    { key: 'type', label: 'Mission Type', items: MISSION_TYPES, set: state.filters.type },
+    { key: 'site', label: 'Launch Site', items: LAUNCH_SITES, set: state.filters.site },
+  ];
+  let html = '';
+  groups.forEach(g => {
+    html += '<div class="filter-group">';
+    html += '<div class="filter-group-title">' + g.label + '</div>';
+    html += '<div class="filter-options">';
+    g.items.forEach(i => {
+      const sel = g.set.has(i);
+      html += '<button class="filter-option ' + (sel ? 'selected' : '') + '" data-group="' + g.key + '" data-value="' + i + '">' + i + '</button>';
+    });
+    html += '</div>';
+    html += '</div>';
+  });
+  c.innerHTML = html;
+  c.querySelectorAll('.filter-option').forEach(b => {
+    b.addEventListener('click', () => {
+      const grp = b.dataset.group;
+      const val = b.dataset.value;
+      const set = state.filters[grp];
+      if (set.has(val)) set.delete(val); else set.add(val);
+      renderFilterSheet();
+    });
+  });
+}
+
+// ============= NOTIF SHEET =============
+let notifContext = null;
+function openNotifSheet(launchId) {
+  notifContext = launchId;
+  renderNotifSheet();
+  openSheet('notif');
+}
+
+function renderNotifSheet() {
+  const c = document.getElementById('notifContent');
+  const launch = notifContext ? LAUNCHES.find(l => l.id === notifContext) : null;
+
+  let html = '';
+  if (launch) {
+    html += '<div class="section-block">';
+    html += '<h3>Mission Override</h3>';
+    html += '<div style="font-size:13px; font-weight:600; margin-bottom:4px">' + launch.mission + '</div>';
+    html += '<div style="font-size:12px; color:var(--text-muted); margin-bottom:12px">' + launch.agency + ' · ' + launch.rocket + '</div>';
+
+    const mp = state.notifPrefs.byMission[launch.id] || { t24: true, t1: true, live: true };
+    html += '<div class="pref-group">';
+    html += renderPrefRow('Alert 24 hours before', 'Get notified the day before launch', mp.t24, 'mission-' + launch.id + '-t24');
+    html += renderPrefRow('Alert 1 hour before', 'Final go/no-go window approaches', mp.t1, 'mission-' + launch.id + '-t1');
+    html += renderPrefRow('Live launch alert', 'Pushed at T-0', mp.live, 'mission-' + launch.id + '-live');
+    html += renderPrefRow('Status changes', 'Delays, scrubs, weather holds', mp.status !== false, 'mission-' + launch.id + '-status');
+    html += '</div>';
+    html += '</div>';
+  }
+
+  html += '<div class="section-block">';
+  html += '<h3>Global Defaults</h3>';
+  const g = state.notifPrefs.global;
+  html += '<div class="pref-group">';
+  html += renderPrefRow('Notifications enabled', 'Master switch for all alerts', g.enabled, 'global-enabled');
+  html += renderPrefRow('24-hour alerts', 'Default for all tracked missions', g.t24, 'global-t24');
+  html += renderPrefRow('1-hour alerts', 'Default for all tracked missions', g.t1, 'global-t1');
+  html += renderPrefRow('Live launch alerts', 'Default for all tracked missions', g.live, 'global-live');
+  html += '</div>';
+  html += '</div>';
+
+  html += '<div class="section-block">';
+  html += '<h3>By Agency</h3>';
+  ['SpaceX', 'ULA', 'CNSA', 'ESA'].forEach(a => {
+    const key = 'by' + a;
+    const p = state.notifPrefs[key] || { enabled: false, expanded: false };
+    html += '<div class="pref-group">';
+    html += '<div class="pref-row">';
+    html += '<button class="expand-btn ' + (p.expanded ? 'open' : '') + '" data-expand="' + key + '"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>';
+    html += '<div class="pref-label-wrap"><div class="pref-label">' + a + '</div><div class="pref-desc">All ' + a + ' missions</div></div>';
+    html += '<button class="toggle ' + (p.enabled ? 'on' : '') + '" data-toggle="' + key + '-enabled" aria-label="Toggle"></button>';
+    html += '</div>';
+    if (p.expanded) {
+      const families = LAUNCHES.filter(l => l.agency === a).map(l => l.rocket);
+      const uniqFamilies = [...new Set(families)];
+      uniqFamilies.forEach(rf => {
+        html += '<div class="pref-row pref-nested">';
+        html += '<div class="pref-label-wrap"><div class="pref-label" style="font-size:12px">' + rf + '</div></div>';
+        html += '<button class="toggle ' + (p.enabled ? 'on' : '') + '" data-toggle="rocket-' + rf + '" aria-label="Toggle"></button>';
+        html += '</div>';
+      });
+    }
+    html += '</div>';
+  });
+  html += '</div>';
+
+  html += '<div style="height:48px"></div>';
+  c.innerHTML = html;
+
+  c.querySelectorAll('[data-toggle]').forEach(t => {
+    t.addEventListener('click', () => {
+      const id = t.dataset.toggle;
+      handleToggle(id);
+      renderNotifSheet();
+    });
+  });
+  c.querySelectorAll('[data-expand]').forEach(e => {
+    e.addEventListener('click', () => {
+      const k = e.dataset.expand;
+      state.notifPrefs[k] = state.notifPrefs[k] || { enabled: false, expanded: false };
+      state.notifPrefs[k].expanded = !state.notifPrefs[k].expanded;
+      renderNotifSheet();
+    });
+  });
+}
+
+function renderPrefRow(label, desc, on, id) {
+  return '<div class="pref-row">' +
+    '<div class="pref-label-wrap"><div class="pref-label">' + label + '</div><div class="pref-desc">' + desc + '</div></div>' +
+    '<button class="toggle ' + (on ? 'on' : '') + '" data-toggle="' + id + '" aria-label="Toggle"></button>' +
+    '</div>';
+}
+
+function handleToggle(id) {
+  if (id.startsWith('global-')) {
+    const k = id.replace('global-', '');
+    state.notifPrefs.global[k] = !state.notifPrefs.global[k];
+    toast('Updated global ' + k + ' alerts', 'success');
+  } else if (id.startsWith('mission-')) {
+    const parts = id.replace('mission-', '').split('-');
+    const t = parts.pop();
+    const mid = parts.join('-');
+    if (!state.notifPrefs.byMission[mid]) state.notifPrefs.byMission[mid] = { t24: true, t1: true, live: true };
+    state.notifPrefs.byMission[mid][t] = !state.notifPrefs.byMission[mid][t];
+    toast('Mission alert updated', 'success');
+  } else if (id.endsWith('-enabled')) {
+    const k = id.replace('-enabled', '');
+    state.notifPrefs[k] = state.notifPrefs[k] || { enabled: false, expanded: false };
+    state.notifPrefs[k].enabled = !state.notifPrefs[k].enabled;
+    toast(state.notifPrefs[k].enabled ? 'Agency alerts enabled' : 'Agency alerts disabled', state.notifPrefs[k].enabled ? 'success' : 'info');
+  }
+}
+
+// ============= COMPARE SHEET =============
+function openCompareSheet() {
+  renderCompareSheet();
+  openSheet('compare');
+}
+function renderCompareSheet() {
+  const c = document.getElementById('compareContent');
+  const [a, b] = state.compareSelection;
+  let html = '';
+  html += '<div style="display:flex; gap:8px; margin-bottom:16px">';
+  html += '<select class="search-input" id="cmpA" style="padding-left:10px; flex:1">';
+  Object.keys(ROCKETS).forEach(r => { html += '<option ' + (r === a ? 'selected' : '') + '>' + r + '</option>'; });
+  html += '</select>';
+  html += '<select class="search-input" id="cmpB" style="padding-left:10px; flex:1">';
+  Object.keys(ROCKETS).forEach(r => { html += '<option ' + (r === b ? 'selected' : '') + '>' + r + '</option>'; });
+  html += '</select>';
+  html += '</div>';
+
+  const ra = ROCKETS[a];
+  const rb = ROCKETS[b];
+  const specs = ['height', 'diameter', 'mass', 'thrust', 'payloadLEO', 'payloadGTO', 'stages', 'firstFlight', 'successRate', 'attempts', 'reusable'];
+  const labels = { height: 'Height', diameter: 'Diameter', mass: 'Mass', thrust: 'Thrust', payloadLEO: 'Payload LEO', payloadGTO: 'Payload GTO', stages: 'Stages', firstFlight: 'First Flight', successRate: 'Success %', attempts: 'Attempts', reusable: 'Reusability' };
+
+  html += '<div class="compare-grid">';
+  [[a, ra], [b, rb]].forEach(([name, r]) => {
+    html += '<div class="compare-col">';
+    html += '<h4>' + name + '</h4>';
+    html += '<p>' + (name.includes('Falcon') || name.includes('Starship') ? 'SpaceX' : name.includes('Vulcan') ? 'ULA' : name.includes('Ariane') ? 'ESA' : name.includes('Electron') ? 'Rocket Lab' : name.includes('Long March') ? 'CNSA' : name.includes('H3') ? 'JAXA' : 'Blue Origin') + '</p>';
+    specs.forEach(s => {
+      html += '<div class="compare-spec"><span>' + labels[s] + '</span><span>' + r[s] + (s === 'successRate' ? '%' : '') + '</span></div>';
+    });
+    html += '</div>';
+  });
+  html += '</div>';
+  c.innerHTML = html;
+
+  c.querySelector('#cmpA').addEventListener('change', e => {
+    state.compareSelection[0] = e.target.value;
+    renderCompareSheet();
+  });
+  c.querySelector('#cmpB').addEventListener('change', e => {
+    state.compareSelection[1] = e.target.value;
+    renderCompareSheet();
+  });
+}
+
+// ============= SHEETS =============
+function openSheet(name) {
+  document.getElementById(name + 'Backdrop').classList.add('open');
+  document.getElementById(name + 'Sheet').classList.add('open');
+}
+function closeSheet(name) {
+  document.getElementById(name + 'Backdrop').classList.remove('open');
+  document.getElementById(name + 'Sheet').classList.remove('open');
+}
+
+document.getElementById('closeDetail').addEventListener('click', () => closeSheet('detail'));
+document.getElementById('detailBackdrop').addEventListener('click', () => closeSheet('detail'));
+document.getElementById('shareDetail').addEventListener('click', () => toast('Launch card copied to clipboard', 'success'));
+document.getElementById('clearFilters').addEventListener('click', () => {
+  state.filters.agency.clear();
+  state.filters.rocket.clear();
+  state.filters.type.clear();
+  state.filters.site.clear();
+  renderFilterSheet();
+  toast('Filters cleared', 'info');
+});
+document.getElementById('applyFilters').addEventListener('click', () => {
+  closeSheet('filter');
+  render();
+  toast('Filters applied', 'success');
+});
+document.getElementById('filterBackdrop').addEventListener('click', () => closeSheet('filter'));
+document.getElementById('closeNotif').addEventListener('click', () => closeSheet('notif'));
+document.getElementById('notifBackdrop').addEventListener('click', () => closeSheet('notif'));
+document.getElementById('closeCompare').addEventListener('click', () => closeSheet('compare'));
+document.getElementById('compareBackdrop').addEventListener('click', () => closeSheet('compare'));
+
+// ============= HEADER ACTIONS =============
+document.getElementById('filterBtn').addEventListener('click', () => openFilterSheet());
+document.getElementById('searchBtn').addEventListener('click', () => {
+  state.searchOpen = !state.searchOpen;
+  document.getElementById('searchSection').style.display = state.searchOpen ? 'block' : 'none';
+  document.getElementById('searchBtn').classList.toggle('active', state.searchOpen);
+  if (state.searchOpen) {
+    setTimeout(() => document.getElementById('searchInput').focus(), 50);
+  } else {
+    state.search = '';
+    document.getElementById('searchInput').value = '';
+    render();
+  }
+});
+document.getElementById('searchInput').addEventListener('input', e => {
+  state.search = e.target.value;
+  render();
+});
+
+// Tabs
+document.querySelectorAll('.tab').forEach(t => {
+  t.addEventListener('click', () => {
+    state.view = t.dataset.tab;
+    state.search = '';
+    document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t));
+    render();
+  });
+});
+
+// Keyboard
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    ['detail', 'filter', 'notif', 'compare'].forEach(closeSheet);
+  }
+});
+
+// Refresh
+function doRefresh() {
+  const btn = document.getElementById('refreshBtn');
+  if (btn) btn.classList.add('spinning');
+  setTimeout(() => {
+    state.lastRefresh = new Date();
+    if (btn) btn.classList.remove('spinning');
+    render();
+    toast('Launch data refreshed', 'success');
+  }, 800);
+}
+
+// Live countdown tick
+setInterval(() => {
+  if (state.view === 'timeline') {
+    document.querySelectorAll('.launch-card').forEach(card => {
+      const id = card.dataset.id;
+      const l = LAUNCHES.find(x => x.id === id);
+      if (!l) return;
+      const cd = fmtCountdown(l.date);
+      const cdEl = card.querySelector('.countdown');
+      if (cdEl) {
+        if (cd.live) {
+          cdEl.className = 'countdown live';
+          cdEl.innerHTML = '<span class="live-dot"></span>LIVE';
+        } else {
+          cdEl.className = 'countdown ' + cd.class;
+          cdEl.textContent = cd.text;
+        }
+      }
+    });
+  }
+  if (state.activeLaunch && document.getElementById('detailSheet').classList.contains('open')) {
+    const cd = fmtCountdown(state.activeLaunch.date);
+    const cdEl = document.querySelector('.detail-countdown');
+    if (cdEl) {
+      if (cd.live) {
+        cdEl.className = 'detail-countdown live';
+        cdEl.innerHTML = '<span class="live-dot"></span> IN PROGRESS';
+      } else {
+        cdEl.className = 'detail-countdown ' + cd.class;
+        cdEl.textContent = cd.text;
+      }
+    }
+  }
+}, 1000);
+
+// Initial render
+render();
+setTimeout(() => toast('Tracking ' + LAUNCHES.filter(l => l.date > NOW).length + ' upcoming launches', 'info'), 400);
+</script>
+</body>
+</html>
