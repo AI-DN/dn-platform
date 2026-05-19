@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.0.5</title>
+<title>DN Deck Generator v2.0.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -56,7 +56,7 @@ button { font-family: inherit; }
 .icon-btn { background: transparent; border: 1px solid transparent; color: var(--text-muted); width: 30px; height: 30px; border-radius: var(--radius-sm); cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 150ms ease; }
 .icon-btn:hover { background: var(--surface-2); color: var(--text); border-color: var(--border); }
 .main { flex: 1; display: flex; position: relative; }
-.content { flex: 1; padding: 28px 24px; max-width: 980px; margin: 0 auto; width: 100%; }
+.content { flex: 1; padding: 28px 24px; max-width: 1100px; margin: 0 auto; width: 100%; }
 .eyebrow, .caption { font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
 .display { font-size: 28px; font-weight: 600; line-height: 1.2; color: var(--text); letter-spacing: -0.01em; }
 .h1 { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.005em; }
@@ -133,10 +133,11 @@ button { font-family: inherit; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .warning-banner { padding: 10px 14px; background: var(--warning-bg); border: 1px solid var(--warning); border-radius: var(--radius-sm); color: var(--warning); font-size: 13px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
 .info-banner { padding: 10px 14px; background: var(--info-bg); border: 1px solid var(--info); border-radius: var(--radius-sm); color: var(--info); font-size: 13px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
+.danger-banner { padding: 10px 14px; background: var(--danger-bg); border: 1px solid var(--danger); border-radius: var(--radius-sm); color: var(--danger); font-size: 13px; margin-bottom: 14px; display: flex; gap: 10px; align-items: flex-start; }
 .api-key-row { display: flex; gap: 8px; align-items: center; }
 .api-key-row .input { flex: 1; font-family: var(--mono); font-size: 12px; }
 .section { margin-bottom: 28px; }
-.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.section-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; gap: 12px; }
 .kv { display: grid; grid-template-columns: 160px 1fr; gap: 8px 14px; font-size: 13px; }
 .kv dt { color: var(--text-muted); font-size: 12px; }
 .kv dd { color: var(--text); word-break: break-all; }
@@ -166,25 +167,41 @@ button { font-family: inherit; }
 .logo-preview img { max-width: 100%; max-height: 100%; object-fit: contain; object-position: left center; }
 table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
 thead th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
-tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); }
+tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
 tbody tr:hover { background: var(--surface-2); }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
 .tab { padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 150ms ease; font-family: inherit; }
 .tab:hover { color: var(--text); }
 .tab.active { color: var(--text); border-bottom-color: var(--accent); }
-.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; }
-.template-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; cursor: pointer; transition: all 150ms ease; }
+.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.template-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; transition: all 150ms ease; position: relative; }
 .template-card:hover { background: var(--surface-2); border-color: var(--border-strong); }
 .template-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
-.template-card-name { font-size: 14px; font-weight: 600; color: var(--text); }
+.template-card-name { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
 .template-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.template-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-subtle); font-family: var(--mono); }
-.swatches { display: flex; gap: 4px; }
-.swatch { width: 16px; height: 16px; border-radius: 3px; border: 1px solid var(--border); }
-.summary-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-size: 12px; padding: 0 18px 14px; }
-.summary-grid dt { color: var(--text-muted); }
-.summary-grid dd { color: var(--text); }
-@media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } }
+.template-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-subtle); font-family: var(--mono); gap: 8px; }
+.swatch-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border); }
+.filter-pills { display: flex; gap: 4px; flex-wrap: wrap; }
+.pill { padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 150ms ease; font-family: inherit; }
+.pill:hover { color: var(--text); }
+.pill.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.layer-badge { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
+.layer-house_style { background: rgba(94,106,210,0.10); color: #5e6ad2; }
+.layer-domain_pack { background: rgba(217,119,6,0.10); color: #d97706; }
+.layer-deck_type { background: rgba(22,163,74,0.10); color: #16a34a; }
+[data-theme="dark"] .layer-house_style { background: rgba(123,133,227,0.15); color: #7b85e3; }
+[data-theme="dark"] .layer-domain_pack { background: rgba(245,158,11,0.15); color: #f59e0b; }
+[data-theme="dark"] .layer-deck_type { background: rgba(34,197,94,0.15); color: #22c55e; }
+.composed-preview { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--text-muted); max-height: 280px; overflow-y: auto; white-space: pre-wrap; }
+.range-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.slide-counter { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 12px; font-family: var(--mono); }
+.slide-counter.in-range { background: var(--success-bg); color: var(--success); }
+.slide-counter.out-of-range { background: var(--warning-bg); color: var(--warning); }
+.version-row { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.version-row:last-child { border-bottom: none; }
+.version-head { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; font-size: 12px; }
+.version-num { font-family: var(--mono); font-weight: 600; color: var(--text); }
+@media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } .range-row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -193,7 +210,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.0.5</div>
+      <div class="brand-version">v2.0.6</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -202,6 +219,7 @@ tbody tr:hover { background: var(--surface-2); }
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
     <div class="header-right">
+      <span id="adminBadge"></span>
       <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme">
         <svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
       </button>
@@ -217,7 +235,8 @@ tbody tr:hover { background: var(--surface-2); }
 const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 document.documentElement.dataset.theme = initialTheme;
 
-const MASTER_PROMPT = `Create a 16:9 widescreen enterprise presentation slide.
+// ─── FALLBACK MASTER PROMPT (used if Supabase unreachable or template missing) ──
+const MASTER_PROMPT_FALLBACK = `Create a 16:9 widescreen enterprise presentation slide.
 
 OVERALL STYLE:
 Premium enterprise telecom / AI architecture presentation.
@@ -264,60 +283,33 @@ Do NOT create circular emblems, tree shapes, network graphs, or any symbol that 
 LOGO RESERVE ZONE — MANDATORY:
 Reserve a clean, dark, empty rectangular area in the EXACT TOP-LEFT CORNER of the slide.
 This zone must be: approximately 220px wide x 75px tall, positioned 20px from the left edge and 20px from the top edge.
-ALSO reserve a matching clean, dark, empty rectangular area in the EXACT TOP-RIGHT CORNER of the slide.
-This right zone must be: approximately 220px wide x 75px tall, positioned 20px from the right edge and 20px from the top edge.
-Both zones must contain NO text, NO icons, NO decorative lines, NO gradients — only a flat dark background (matching the slide's dark background color).
-Company logos will be composited into these exact zones after the slide is generated.
-If the slide background in those corners is not dark, add subtle dark overlay rectangles in those zones only.
-
-ARCHITECTURE RULES:
-AI must NEVER connect directly to live network elements.
-Execution must always flow through governed systems.
-Where execution is shown, use this pattern:
-Intent → Interpreter → Decision → Mediation → Anchor Products → Network → Feedback
-
-ANCHOR PRODUCT RULES:
-When anchor products are relevant, show them as solid engineered foundation blocks:
-NetTOPO — Topology Intelligence
-NetAM — Inventory & Assets
-Flo — Workflow Orchestration
-NetCM — Safe Execution Engine
-
-COLOR DISCIPLINE:
-Use electric blue for intent and AI.
-Use gold for key messages or executive emphasis.
-Use green for safe execution / validation.
-Use purple for workflow or AI agent paths.
-Use red only for warnings such as "NO direct AI-to-network interaction."
-
-CONTENT DISCIPLINE:
-Each slide must introduce one clear idea.
-Prioritize architecture clarity over decorative visuals. Use concise wording.
+It must contain NO text, NO icons, NO decorative lines, NO gradients — only a flat dark background (matching the slide's dark background color).
+Company logos will be composited into this exact zone after the slide is generated.
 
 OUTPUT:
 Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No presenter notes.`;
 
 const DEFAULT_LOGO_URL = 'https://ai-dn.github.io/dn-platform/assets/dn-logo.png';
 const COST_PER_IMAGE_GEN = 0.04;
-const CUSTOMER_LOGO_STORAGE_KEY = 'dn_customer_logo_b64';
 
-function safeGetCustomerLogo() {
-  try { return (typeof localStorage !== 'undefined') ? localStorage.getItem(CUSTOMER_LOGO_STORAGE_KEY) : null; } catch (e) { return null; }
-}
-function safeSetCustomerLogo(v) {
-  try { if (typeof localStorage !== 'undefined') localStorage.setItem(CUSTOMER_LOGO_STORAGE_KEY, v); } catch (e) {}
-}
-function safeClearCustomerLogo() {
-  try { if (typeof localStorage !== 'undefined') localStorage.removeItem(CUSTOMER_LOGO_STORAGE_KEY); } catch (e) {}
-}
+// ─── IN-MEMORY "SUPABASE" (no localStorage in sandbox; emulated persistent store) ──
+const db = {
+  templates: [],
+  bundles: [],
+  versions: [], // {id, template_id, version_num, prompt, change_note, updated_by, created_at}
+  seeded: false
+};
+
+function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; const v = c==='x' ? r : (r&0x3|0x8); return v.toString(16); }); }
+function nowIso() { return new Date().toISOString(); }
 
 const state = {
   theme: initialTheme,
   view: 'compose',
-  templates: { house_style: [], domain_pack: [], deck_type: [] },
-  bundles: [],
-  selectedBundle: null,
-  templatesTab: 'house_style',
+  templatesTab: 'all', // all | house_style | domain_pack | deck_type
+  templatesSearch: '',
+  bundlesSearch: '',
+  selectedBundleId: null,
   apiKeys: { openai: '', anthropic: '', openai_org: '' },
   imageModel: 'gpt-image-2',
   imageModelFellBack: false,
@@ -325,14 +317,21 @@ const state = {
   logoIsCustom: false,
   customerLogoB64: null,
   customerLogoEnabled: false,
-  // Compose flow state
+  // Admin mode — in-memory only (real auth deferred). Toggle via header badge.
+  adminMode: false,
+  // Slide range
+  slideMin: 6,
+  slideMax: 10,
+  // Compose flow
   composeStep: 1,
   rawText: '',
-  slides: [], // {title, body, imageB64, imagePrompt, lastPrompt, status, error, regenCount}
+  slides: [],
   polishMode: null,
   polishing: false,
   generating: false,
-  expandedRefine: {} // slideIdx -> bool
+  expandedRefine: {},
+  shownAdminHint: false,
+  toastOnceKeys: {}
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -349,6 +348,11 @@ function toast(opts) {
   c.appendChild(el);
   setTimeout(() => { if (el.parentNode) { el.style.opacity = '0'; el.style.transition = 'opacity 200ms ease'; setTimeout(() => el.remove(), 220); } }, opts.duration || 5500);
 }
+function toastOnce(key, opts) {
+  if (state.toastOnceKeys[key]) return;
+  state.toastOnceKeys[key] = true;
+  toast(opts);
+}
 
 function openModal(content, opts) {
   const root = document.getElementById('modalRoot');
@@ -360,67 +364,126 @@ function openModal(content, opts) {
 function closeModal() { document.getElementById('modalRoot').innerHTML = ''; document.removeEventListener('keydown', escClose); }
 function escClose(e) { if (e.key === 'Escape') closeModal(); }
 
-function seedData() {
-  state.templates.house_style = [
-    { id: 'hs_dn_core', name: 'DN Core Brand', updated_at: '2026-01-12', version: 3,
-      description: 'Primary Digitata Networks brand. Dark navy + electric blue accent.',
-      palette: ['#1a6fff', '#080c1a', '#e8eaf0', '#47D1FF', '#f0a500'],
-      typography: 'Inter (display + body), SF Mono (figures + IDs)',
-      visual_rules: 'Dark navy gradient backgrounds, electric blue primary accent.',
-      branding_constraints: 'DN logo composited top-left at 220x75px reserve zone after generation.',
-      anti_examples: 'No cream backgrounds. No abstract floating shapes.',
-      output_format: '16:9 PPTX.',
-      image_style: 'premium enterprise telecom presentation, dark navy gradient, electric blue accent' }
-  ];
-  state.templates.domain_pack = [
-    { id: 'dp_telco_arch', name: 'Telco Network Architecture', updated_at: '2026-01-08', version: 5,
-      description: '5G core, MEC, network slicing.',
-      anchor_products: 'NetTOPO, NetAM, Flo, NetCM',
-      visual_metaphors: 'layered network planes, packet flows',
-      key_concepts: 'Control/data plane separation, intent-based networking.',
-      forbidden: 'Generic stock-photo network imagery.' }
-  ];
-  state.templates.deck_type = [
-    { id: 'dt_sales_pitch', name: 'Sales Pitch', updated_at: '2026-01-10', version: 4,
-      description: '10-slide opening deck for first-meeting prospects.',
-      slide_count_default: 10, tone: 'Confident, concrete, customer-outcome led.',
-      structure: 'Hook · Problem · Stakes · Solution · How it works · Proof · Pricing · Next steps',
-      audience_guidance: 'Mid-market technical buyer.' },
-    { id: 'dt_technical_deep', name: 'Technical Deep-Dive', updated_at: '2025-12-22', version: 3,
-      description: '18-24 slides for engineering audience.',
-      slide_count_default: 20, tone: 'Precise, peer-to-peer.',
-      structure: 'Context · Constraints · Architecture · Components · Data flow',
-      audience_guidance: 'Senior engineers, architects, SREs.' }
-  ];
-  state.bundles = [
-    { id: 'b_telco_pitch', name: 'Telco Sales Pitch',
-      description: 'First-meeting deck for telco prospects.',
-      house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_sales_pitch',
-      updated_at: '2026-01-12', version: 2 },
-    { id: 'b_technical_rca', name: 'Technical RCA',
-      description: 'Root-cause analysis deck for engineering reviews.',
-      house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_technical_deep',
-      updated_at: '2026-01-10', version: 1 },
-    { id: 'b_quarterly_review', name: 'Quarterly Review',
-      description: 'Quarterly business + ops review for execs.',
-      house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_sales_pitch',
-      updated_at: '2026-01-08', version: 1 }
-  ];
+// ─── SEED DATA ─────────────────────────────────────────────────────────
+function seedIfEmpty() {
+  if (db.seeded || db.templates.length > 0) return;
+
+  const hsId = uuid();
+  const dpTelcoId = uuid();
+  const dpFinId = uuid();
+  const dpGenId = uuid();
+  const dtSalesId = uuid();
+  const dtRcaId = uuid();
+  const dtQrId = uuid();
+  const now = nowIso();
+
+  db.templates.push({
+    id: hsId, name: 'DN House Style — Brand Passport', layer: 'house_style',
+    description: 'Digitata Networks brand passport: dark navy + cyan, premium enterprise look, layout discipline, logo reserve zones.',
+    prompt: MASTER_PROMPT_FALLBACK,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.templates.push({
+    id: dpTelcoId, name: 'DN Telco Operations', layer: 'domain_pack',
+    description: 'Telecommunications network operations: cell towers, OSS/BSS, network slices, intent-to-execution flow, anchor products (NetTOPO, NetAM, Flo, NetCM).',
+    prompt: `Domain: telecommunications network operations. Audience: telco operator personas (CTO, network ops director, planning lead). Visual vocabulary: cell towers, radio access network nodes, mobile core, OSS/BSS systems, network slices, KPI dashboards, automation pipelines, intent-to-execution flow, multi-vendor orchestration. Acceptable iconography: signal-tower silhouettes, hexagonal cell coverage patterns, layered network diagrams, packet/flow arrows, gauge/dial KPI icons.
+
+Anchor products (evoke as category, do not name): NetTOPO (topology intelligence), NetAM (asset management), Flo (orchestration), NetCM (safe execution).
+
+Guardrail: AI never connects directly to network elements. Show execution always flowing through governed anchor products.`,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.templates.push({
+    id: dpFinId, name: 'DN Finance & Commercial', layer: 'domain_pack',
+    description: 'Financial and commercial context: revenue, costs, ROI, business outcomes, deal economics.',
+    prompt: `Domain: enterprise finance and commercial outcomes. Visual vocabulary: KPI dashboards, trend arrows, revenue/cost charts, ROI calculations, deal funnels, business outcome metrics. Use gold accents prominently for revenue/value language. Avoid clutter — finance audiences want clean, decisive visuals.`,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.templates.push({
+    id: dpGenId, name: 'DN Generic Enterprise', layer: 'domain_pack',
+    description: 'Fallback for general enterprise topics not covered by a specific domain pack.',
+    prompt: `Domain: general enterprise technology. Visual vocabulary: clean architecture diagrams, process flows, organization-level concepts, abstract enterprise-grade infographics. No specific industry references.`,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.templates.push({
+    id: dtSalesId, name: 'Sales Pitch', layer: 'deck_type',
+    description: 'Customer-facing sales pitch. Structured, emotive, outcome-driven. Builds tension into solution.',
+    prompt: `Deck type: sales pitch. Tone: confident, emotive, outcome-driven. Structure each slide as one clear argument: problem → stakes → solution → outcome. Use callout strips with key takeaways. Prefer visual storytelling over dense text. Cyan and gold accents prominent for emphasis.`,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.templates.push({
+    id: dtRcaId, name: 'Technical RCA', layer: 'deck_type',
+    description: 'Internal/customer technical root cause analysis. Chronological, evidence-based, detailed.',
+    prompt: `Deck type: technical root cause analysis. Tone: technical, neutral, evidence-based. Chronological structure. Each slide answers one technical question. Use timeline visuals, system diagrams with annotated callouts, before/after comparisons. Red accents permitted for fault highlighting. Detail is welcome.`,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.templates.push({
+    id: dtQrId, name: 'Quarterly Review', layer: 'deck_type',
+    description: 'Board / leadership quarterly review. Data-heavy, neutral, structured around KPIs and outcomes.',
+    prompt: `Deck type: quarterly review. Tone: neutral, data-driven, executive. Structure around KPIs and outcomes. Use scoreboards, trend lines, period-over-period comparisons. Minimal narrative copy. Strong visual hierarchy on numbers. Gold accents for headline metrics.`,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+
+  // Initial versions
+  db.templates.forEach(t => {
+    db.versions.push({ id: uuid(), template_id: t.id, version_num: 1, prompt: t.prompt, change_note: 'Initial seed', updated_by: 'seed', created_at: now });
+  });
+
+  db.bundles.push({
+    id: uuid(), name: 'Telco Sales Pitch',
+    description: 'Customer-facing telco sales pitch with DN brand and anchor products.',
+    swatch_color: '#47D1FF',
+    house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtSalesId,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.bundles.push({
+    id: uuid(), name: 'Technical RCA',
+    description: 'Internal or customer-facing technical RCA in DN telco context.',
+    swatch_color: '#f0a500',
+    house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtRcaId,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+  db.bundles.push({
+    id: uuid(), name: 'Quarterly Review',
+    description: 'Board / leadership quarterly review with DN telco metrics.',
+    swatch_color: '#a855f7',
+    house_style_template_id: hsId, domain_pack_template_id: dpTelcoId, deck_type_template_id: dtQrId,
+    is_active: true, created_at: now, updated_at: now, updated_by: 'seed'
+  });
+
+  db.seeded = true;
 }
 
-function bundleById(id) { return state.bundles.find(b => b.id === id); }
+function templateById(id) { return db.templates.find(t => t.id === id); }
+function bundleById(id) { return db.bundles.find(b => b.id === id); }
+function templatesByLayer(layer) { return db.templates.filter(t => t.layer === layer); }
+function bundlesUsingTemplate(tid) {
+  return db.bundles.filter(b => b.house_style_template_id === tid || b.domain_pack_template_id === tid || b.deck_type_template_id === tid);
+}
+function nextVersionNum(tid) {
+  const versions = db.versions.filter(v => v.template_id === tid);
+  return versions.length === 0 ? 1 : Math.max(...versions.map(v => v.version_num)) + 1;
+}
+
+function joinBundle(b) {
+  return {
+    ...b,
+    house_style: templateById(b.house_style_template_id) || null,
+    domain_pack: templateById(b.domain_pack_template_id) || null,
+    deck_type: templateById(b.deck_type_template_id) || null
+  };
+}
+
 function dateStr() { return new Date().toISOString().slice(0,10); }
 function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'dn-deck'; }
 
-// ─── PARSE PASTED TEXT INTO SLIDES ──────────────────────────────────────
+// ─── PARSE SLIDES ──────────────────────────────────────────────────────
 function parseSlides(text) {
   if (!text || !text.trim()) return [];
   const hasH2 = /^##\s+/m.test(text);
   const hasHr = /^\s*---\s*$/m.test(text);
-
   let chunks = [];
   if (hasH2) {
-    // Split on lines starting with ##
     const lines = text.split(/\r?\n/);
     let current = null;
     for (const line of lines) {
@@ -443,18 +506,12 @@ function parseSlides(text) {
       return { title: title || `Slide ${i+1}`, bodyLines };
     });
   } else {
-    return null; // no markers
+    return null;
   }
-
-  return chunks.map((c, i) => ({
-    title: c.title,
-    body: c.bodyLines.join('\n').trim(),
-    imageB64: null,
-    imagePrompt: null,
-    lastPrompt: null,
-    status: 'idle',
-    error: null,
-    regenCount: 0
+  return chunks.map(c => ({
+    title: c.title, body: c.bodyLines.join('\n').trim(),
+    imageB64: null, imagePrompt: null, lastPrompt: null,
+    status: 'idle', error: null, regenCount: 0
   }));
 }
 
@@ -463,43 +520,64 @@ async function polishWithClaude(slides, mode) {
   const key = (state.apiKeys.anthropic || '').trim();
   if (!key) throw new Error('NO_ANTHROPIC_KEY: Set Anthropic API key in Settings.');
 
+  const min = state.slideMin, max = state.slideMax;
+  const target = Math.round((min + max) / 2);
+  const rangeConstraint = `\n\nYou MUST produce exactly between ${min} and ${max} slides. Not fewer than ${min}. Not more than ${max}. This is a strict requirement — if the input has more or fewer slides, consolidate or expand to fit. Aim for ${target} slides as a default but stay within [${min}, ${max}].`;
+
   let systemPrompt = '';
   if (mode === 'shorten') {
-    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the slide content provided and shorten each slide\'s text to bullet points suitable for presentation. Keep the title intact. Aim for 3-5 short bullets per slide. Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
+    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the slide content provided and shorten each slide\'s text to bullet points suitable for presentation. Keep the title intact. Aim for 3-5 short bullets per slide.' + rangeConstraint + ' Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
   } else if (mode === 'expand') {
-    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the brief notes provided and expand each slide into well-formed presentation content. Keep the title intact. Produce a sub-headline plus 3-5 supporting points per slide. Respond with valid JSON only: {"slides": [{"title": "...", "subheadline": "...", "bullets": ["..."]}, ...]}.';
+    systemPrompt = 'You are a presentation editor for Digitata Networks. Take the brief notes provided and expand each slide into well-formed presentation content. Keep the title intact. Produce a sub-headline plus 3-5 supporting points per slide.' + rangeConstraint + ' Respond with valid JSON only: {"slides": [{"title": "...", "subheadline": "...", "bullets": ["..."]}, ...]}.';
   } else if (mode === 'split') {
-    systemPrompt = 'You are a presentation editor for Digitata Networks. Take this raw block of text and split it into a logical slide deck. Each slide should have one clear idea. Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
+    systemPrompt = 'You are a presentation editor for Digitata Networks. Take this raw block of text and split it into a logical slide deck. Each slide should have one clear idea.' + rangeConstraint + ' Respond with valid JSON only: {"slides": [{"title": "...", "bullets": ["..."]}, ...]}.';
   }
 
   const userContent = mode === 'split'
-    ? `Split this into approximately 8 slides:\n\n${state.rawText}`
-    : `Slides:\n${JSON.stringify(slides.map(s => ({ title: s.title, body: s.body })))}`;
+    ? `Produce between ${min} and ${max} slides — not fewer, not more. Split this text:\n\n${state.rawText}`
+    : `Produce between ${min} and ${max} slides — not fewer, not more.\n\nSlides:\n${JSON.stringify(slides.map(s => ({ title: s.title, body: s.body })))}`;
 
-  const resp = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-      'anthropic-dangerous-direct-browser-access': 'true'
-    },
-    body: JSON.stringify({
-      model: 'claude-sonnet-4-5-20250929',
-      max_tokens: 4000,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userContent }]
-    })
-  });
-  if (!resp.ok) {
-    const err = await resp.text();
-    throw new Error(`Claude ${resp.status}: ${err.slice(0,300)}`);
+  async function callClaude(sys, user) {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': key,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-5-20250929',
+        max_tokens: 4000,
+        system: sys,
+        messages: [{ role: 'user', content: user }]
+      })
+    });
+    if (!resp.ok) {
+      const err = await resp.text();
+      throw new Error(`Claude ${resp.status}: ${err.slice(0,300)}`);
+    }
+    const data = await resp.json();
+    const raw = data.content[0].text;
+    const clean = raw.replace(/```json|```/g, '').trim();
+    return JSON.parse(clean).slides || [];
   }
-  const data = await resp.json();
-  const raw = data.content[0].text;
-  const clean = raw.replace(/```json|```/g, '').trim();
-  const parsed = JSON.parse(clean);
-  return parsed.slides || [];
+
+  let result = await callClaude(systemPrompt, userContent);
+  if (result.length < min || result.length > max) {
+    const retrySys = systemPrompt + `\n\nPREVIOUS ATTEMPT RETURNED ${result.length} SLIDES, OUTSIDE THE REQUIRED RANGE OF [${min}, ${max}]. You must produce exactly between ${min} and ${max} slides this time. Adjust your output.`;
+    try {
+      const retry = await callClaude(retrySys, userContent);
+      if (retry.length >= min && retry.length <= max) result = retry;
+      else {
+        toast({ type: 'warning', message: `AI couldn't hit the slide count range — proceeding with ${retry.length} slides. Edit manually or restart.` });
+        result = retry;
+      }
+    } catch (e) {
+      toast({ type: 'warning', message: `Retry failed; using initial ${result.length} slides` });
+    }
+  }
+  return result;
 }
 
 function polishedToSlides(polished) {
@@ -510,89 +588,99 @@ function polishedToSlides(polished) {
     return {
       title: p.title || 'Untitled',
       body: parts.join('\n'),
-      imageB64: null,
-      imagePrompt: null,
-      lastPrompt: null,
-      status: 'idle',
-      error: null,
-      regenCount: 0
+      imageB64: null, imagePrompt: null, lastPrompt: null,
+      status: 'idle', error: null, regenCount: 0
     };
   });
 }
 
-// ─── IMAGE PARAMS + GENERATION ─────────────────────────────────────────
+// ─── COMPOSED PROMPT (3-layer) ────────────────────────────────────────
+function composeBundlePrompt(bundleJoined, slide, customerLogoSet) {
+  const layers = [];
+  if (bundleJoined && bundleJoined.house_style && bundleJoined.house_style.prompt) {
+    layers.push(bundleJoined.house_style.prompt);
+  } else {
+    layers.push(MASTER_PROMPT_FALLBACK);
+    toastOnce('missing_hs_' + (bundleJoined ? bundleJoined.id : 'none'), { type: 'warning', message: `Bundle "${bundleJoined ? bundleJoined.name : 'unknown'}" is missing a House Style template — using fallback.` });
+  }
+  if (bundleJoined && bundleJoined.domain_pack && bundleJoined.domain_pack.prompt) {
+    layers.push(bundleJoined.domain_pack.prompt);
+  } else if (bundleJoined) {
+    toastOnce('missing_dp_' + bundleJoined.id, { type: 'warning', message: `Bundle "${bundleJoined.name}" is missing a Domain Pack — generic context applied.` });
+  }
+  if (bundleJoined && bundleJoined.deck_type && bundleJoined.deck_type.prompt) {
+    layers.push(bundleJoined.deck_type.prompt);
+  } else if (bundleJoined) {
+    toastOnce('missing_dt_' + bundleJoined.id, { type: 'warning', message: `Bundle "${bundleJoined.name}" is missing a Deck Type — neutral tone applied.` });
+  }
+  if (customerLogoSet) {
+    layers.push(`CUSTOMER LOGO RESERVE ZONE — MANDATORY: Reserve a clean, dark, empty rectangular area in the EXACT TOP-RIGHT CORNER of the slide. Approximately 220px wide x 75px tall, positioned 20px from the right edge and 20px from the top edge. Flat dark background only. A customer logo will be composited there after generation.`);
+  }
+  if (slide) {
+    layers.push(`SLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody content / talking points:\n${slide.body || '(no body content provided)'}\n\nRender this slide visually with the title prominent and the body content represented as clear structured visual elements (panels, bullets, diagrams) — NOT as direct text overlays unless short labels.`);
+  }
+  return layers.join('\n\n');
+}
+
+function composeBundlePromptPreview(bundleJoined) {
+  return composeBundlePrompt(bundleJoined, null, state.customerLogoEnabled);
+}
+
+// ─── IMAGE GEN ────────────────────────────────────────────────────────
 function buildImageParams(model, prompt, quality) {
   const base = { model, prompt, n: 1 };
-  if (model === 'gpt-image-2') {
-    return { ...base, output_format: 'jpeg', size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
-  }
-  if (model === 'gpt-image-1') {
-    return { ...base, size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
-  }
+  if (model === 'gpt-image-2') return { ...base, output_format: 'jpeg', size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
+  if (model === 'gpt-image-1') return { ...base, size: '1536x1024', quality: quality === 'low' ? 'low' : quality === 'medium' ? 'medium' : 'high' };
   return { ...base, size: '1024x1024' };
 }
 
-function buildImagePrompt(slide) {
-  return `${MASTER_PROMPT}\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody content / talking points:\n${slide.body || '(no body content provided)'}\n\nRender this slide visually with the title prominent and the body content represented as clear structured visual elements (panels, bullets, diagrams) — NOT as direct text overlays unless short labels.`;
-}
-
-async function generateSlideImage(slide, customPrompt) {
+async function generateSlideImage(slide, customPromptOverride) {
   const openaiKey = (state.apiKeys.openai || '').trim();
   if (!openaiKey) throw new Error('NO_OPENAI_KEY: Set OpenAI API key in Settings.');
   if (!openaiKey.startsWith('sk-')) throw new Error('BAD_KEY_FORMAT: OpenAI key must start with sk-.');
 
-  const prompt = customPrompt || buildImagePrompt(slide);
+  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
+  const prompt = customPromptOverride || composeBundlePrompt(bundle, slide, state.customerLogoEnabled);
+
   const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${openaiKey}` };
   const org = (state.apiKeys.openai_org || '').trim();
   if (org) headers['OpenAI-Organization'] = org;
 
   let model = state.imageModel;
   let body = buildImageParams(model, prompt, 'high');
-
-  let resp = await fetch('https://api.openai.com/v1/images/generations', {
-    method: 'POST', headers, body: JSON.stringify(body)
-  });
+  let resp = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers, body: JSON.stringify(body) });
 
   if ((resp.status === 404 || resp.status === 400) && model === 'gpt-image-2') {
     const errText = await resp.text();
     if (/model/i.test(errText)) {
       if (!state.imageModelFellBack) {
         state.imageModelFellBack = true;
-        toast({ type: 'info', message: 'gpt-image-2 not available on this org — falling back to gpt-image-1', duration: 6000 });
+        toast({ type: 'info', message: 'gpt-image-2 not available — falling back to gpt-image-1', duration: 6000 });
       }
       state.imageModel = 'gpt-image-1';
       model = 'gpt-image-1';
       body = buildImageParams(model, prompt, 'high');
-      resp = await fetch('https://api.openai.com/v1/images/generations', {
-        method: 'POST', headers, body: JSON.stringify(body)
-      });
+      resp = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers, body: JSON.stringify(body) });
     } else {
       throw new Error(`OpenAI ${resp.status}: ${errText.slice(0,300)}`);
     }
   }
-
   if (!resp.ok) {
     const t = await resp.text().catch(() => '');
     throw new Error(`OpenAI ${resp.status}: ${t.slice(0,300)}`);
   }
-
   const data = await resp.json();
   const item = data.data[0];
   if (item.b64_json) return { b64: item.b64_json, prompt };
   if (item.url) {
     const imgResp = await fetch(item.url);
     const blob = await imgResp.blob();
-    const b64 = await new Promise(res => {
-      const fr = new FileReader();
-      fr.onload = () => res(fr.result.split(',')[1]);
-      fr.readAsDataURL(blob);
-    });
+    const b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
     return { b64, prompt };
   }
   throw new Error('OpenAI response had neither b64_json nor url');
 }
 
-// Concurrency limiter
 async function generateAllImages() {
   const max = 3;
   let idx = 0;
@@ -604,19 +692,13 @@ async function generateAllImages() {
         const myIdx = idx++;
         const slide = state.slides[myIdx];
         if (slide.status === 'done') continue;
-        slide.status = 'generating';
-        slide.error = null;
+        slide.status = 'generating'; slide.error = null;
         renderStep4Slides();
         try {
           const { b64, prompt } = await generateSlideImage(slide);
-          slide.imageB64 = b64;
-          slide.imagePrompt = prompt;
-          slide.lastPrompt = prompt;
+          slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
           slide.status = 'done';
-        } catch (err) {
-          slide.status = 'error';
-          slide.error = err.message || String(err);
-        }
+        } catch (err) { slide.status = 'error'; slide.error = err.message || String(err); }
         renderStep4Slides();
       }
     })());
@@ -626,20 +708,15 @@ async function generateAllImages() {
 
 async function regenerateOne(idx, newPrompt) {
   const slide = state.slides[idx];
-  slide.status = 'generating';
-  slide.error = null;
+  slide.status = 'generating'; slide.error = null;
   renderStep4Slides();
   try {
     const { b64, prompt } = await generateSlideImage(slide, newPrompt);
-    slide.imageB64 = b64;
-    slide.imagePrompt = prompt;
-    slide.lastPrompt = prompt;
-    slide.status = 'done';
-    slide.regenCount++;
+    slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
+    slide.status = 'done'; slide.regenCount++;
     toast({ type: 'success', message: `Slide ${idx+1} regenerated` });
   } catch (err) {
-    slide.status = 'error';
-    slide.error = err.message || String(err);
+    slide.status = 'error'; slide.error = err.message || String(err);
     toast({ type: 'error', message: err.message });
   }
   renderStep4Slides();
@@ -651,21 +728,13 @@ function drawLogoPanel(ctx, canvas, logoImg, position) {
   const lw = Math.round(195 * scale);
   const aspect = logoImg.naturalHeight / logoImg.naturalWidth;
   const lh = Math.round(lw * aspect);
-  const padX = Math.round(20 * scale);
-  const padY = Math.round(14 * scale);
+  const padX = Math.round(20 * scale), padY = Math.round(14 * scale);
   let x, y;
-  if (position === 'right') {
-    x = canvas.width - Math.round(22 * scale) - lw;
-    y = Math.round(20 * scale);
-  } else {
-    x = Math.round(22 * scale);
-    y = Math.round(20 * scale);
-  }
+  if (position === 'right') { x = canvas.width - Math.round(22 * scale) - lw; y = Math.round(20 * scale); }
+  else { x = Math.round(22 * scale); y = Math.round(20 * scale); }
   ctx.save();
   ctx.fillStyle = '#080c1a';
-  const rx = x - padX, ry = y - padY;
-  const rw = lw + padX * 2, rh = lh + padY * 2;
-  const radius = Math.round(6 * scale);
+  const rx = x - padX, ry = y - padY, rw = lw + padX * 2, rh = lh + padY * 2, radius = Math.round(6 * scale);
   ctx.beginPath();
   ctx.moveTo(rx + radius, ry);
   ctx.lineTo(rx + rw - radius, ry);
@@ -676,12 +745,8 @@ function drawLogoPanel(ctx, canvas, logoImg, position) {
   ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
   ctx.lineTo(rx, ry + radius);
   ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-  ctx.closePath();
-  ctx.fill();
-  ctx.restore();
-  ctx.save();
-  ctx.drawImage(logoImg, x, y, lw, lh);
-  ctx.restore();
+  ctx.closePath(); ctx.fill(); ctx.restore();
+  ctx.save(); ctx.drawImage(logoImg, x, y, lw, lh); ctx.restore();
 }
 
 function loadImageFromB64(b64, mime) {
@@ -696,21 +761,12 @@ function loadImageFromB64(b64, mime) {
 async function stampLogos(slideBase64, dnLogoB64, customerLogoB64) {
   const slideImg = await loadImageFromB64(slideBase64, 'image/jpeg');
   const canvas = document.createElement('canvas');
-  canvas.width = slideImg.width;
-  canvas.height = slideImg.height;
+  canvas.width = slideImg.width; canvas.height = slideImg.height;
   const ctx = canvas.getContext('2d');
   ctx.drawImage(slideImg, 0, 0);
-  if (dnLogoB64) {
-    try { const dnImg = await loadImageFromB64(dnLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, dnImg, 'left'); } catch (e) { console.warn('DN logo stamp failed', e); }
-  }
-  if (customerLogoB64) {
-    try { const custImg = await loadImageFromB64(customerLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, custImg, 'right'); } catch (e) { console.warn('Customer logo stamp failed', e); }
-  }
+  if (dnLogoB64) { try { const dnImg = await loadImageFromB64(dnLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, dnImg, 'left'); } catch (e) { console.warn('DN logo stamp failed', e); } }
+  if (customerLogoB64) { try { const custImg = await loadImageFromB64(customerLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, custImg, 'right'); } catch (e) { console.warn('Customer logo stamp failed', e); } }
   return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
-}
-
-async function stampLogo(slideBase64, logoBase64) {
-  return stampLogos(slideBase64, logoBase64, null);
 }
 
 async function loadDefaultLogo() {
@@ -724,10 +780,7 @@ async function loadDefaultLogo() {
       fr.onerror = () => rej(new Error('FileReader failed'));
       fr.readAsDataURL(blob);
     });
-  } catch (e) {
-    console.warn('Default logo load failed', e);
-    return null;
-  }
+  } catch (e) { console.warn('Default logo load failed', e); return null; }
 }
 
 // ─── PPTX ASSEMBLY ─────────────────────────────────────────────────────
@@ -738,34 +791,22 @@ async function assemblePptx() {
   }
   const prs = new PptxGenJS();
   prs.layout = 'LAYOUT_WIDE';
-  const b = state.selectedBundle ? bundleById(state.selectedBundle) : null;
+  const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
   const deckTitle = b ? b.name : 'DN Deck';
-  prs.title = deckTitle;
-  prs.author = 'DN Deck Generator';
+  prs.title = deckTitle; prs.author = 'DN Deck Generator';
 
   const customerLogo = state.customerLogoEnabled ? state.customerLogoB64 : null;
-  const stampedSlides = [];
   for (let i = 0; i < state.slides.length; i++) {
     const slide = state.slides[i];
     if (!slide.imageB64) continue;
     let finalB64 = slide.imageB64;
     if (state.logoB64 || customerLogo) {
-      try {
-        finalB64 = await stampLogos(slide.imageB64, state.logoB64, customerLogo);
-      } catch (e) {
-        console.warn('Logo stamp failed for slide', i, e);
-      }
+      try { finalB64 = await stampLogos(slide.imageB64, state.logoB64, customerLogo); }
+      catch (e) { console.warn('Logo stamp failed for slide', i, e); }
     }
-    stampedSlides.push({ ...slide, finalB64 });
-  }
-
-  for (const s of stampedSlides) {
     const slideObj = prs.addSlide();
-    slideObj.addImage({
-      data: `data:image/jpeg;base64,${s.finalB64}`,
-      x: 0, y: 0, w: 13.3, h: 7.5
-    });
-    slideObj.addNotes(`${s.title}\n\n${s.body || ''}`);
+    slideObj.addImage({ data: `data:image/jpeg;base64,${finalB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
+    slideObj.addNotes(`${slide.title}\n\n${slide.body || ''}`);
   }
 
   const fileName = `${slugify(deckTitle)}-${dateStr()}.pptx`;
@@ -776,35 +817,25 @@ async function assemblePptx() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast({ type: 'success', html: `Downloaded <strong>${escapeHtml(fileName)}</strong> · ${(blob.size/1024).toFixed(0)} KB` });
-  if (state.customerLogoEnabled) {
-    safeClearCustomerLogo();
-    state.customerLogoB64 = null;
-    state.customerLogoEnabled = false;
-    toast({ type: 'info', message: 'Customer logo cleared after assembly' });
-  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// COMPOSE VIEW — 4-STEP FLOW
+// COMPOSE VIEW
 // ═══════════════════════════════════════════════════════════════════════
-
 function renderCompose() {
   const cont = document.getElementById('content');
   cont.innerHTML = `
     <div style="margin-bottom:24px">
       <div class="eyebrow" style="margin-bottom:8px">New deck</div>
       <div class="display">Compose a deck</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Paste your slide content, polish if you want, edit each slide, then generate images. AI helps where you ask — you stay in control of every slide.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Paste your slide content, polish if you want, edit each slide, then generate images. The bundle you pick drives the visual prompt.</div>
     </div>
     <div id="step1"></div>
     <div id="step2"></div>
     <div id="step3"></div>
     <div id="step4"></div>
   `;
-  renderStep1();
-  renderStep2();
-  renderStep3();
-  renderStep4();
+  renderStep1(); renderStep2(); renderStep3(); renderStep4();
 }
 
 function renderStep1() {
@@ -814,12 +845,13 @@ function renderStep1() {
   const isDone = state.composeStep > 1;
 
   if (!isActive && isDone) {
+    const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
     el.innerHTML = `
       <div class="step-card collapsed">
         <div class="step-header" id="step1Edit">
           <div class="step-num done">✓</div>
-          <div class="step-title">Pasted text</div>
-          <div class="step-desc">${state.slides.length} slides detected · ${state.rawText.length} chars</div>
+          <div class="step-title">Input</div>
+          <div class="step-desc">${b ? escapeHtml(b.name) + ' · ' : ''}${state.slides.length} slides · ${state.slideMin}–${state.slideMax} target</div>
           <button class="btn-ghost" style="margin-left:8px">Edit</button>
         </div>
       </div>`;
@@ -833,12 +865,10 @@ function renderStep1() {
 
 Example:
 ## Slide 1: Telecom Operations Are Reaching a Scaling Limit
-Operators face increasing network complexity, rising operational costs, and growing execution demands.
-Current OSS systems are disconnected — spreadsheets, dashboards, tickets, manual coordination.
+Operators face increasing network complexity and rising operational costs.
 ---
 ## Slide 2: The Industry Shift
-AI is rapidly improving in analysis, recommendations, prediction.
-But operators still struggle with orchestration, lifecycle coordination, governed execution.`;
+AI is rapidly improving but operators still struggle with governed execution.`;
 
   el.innerHTML = `
     <div class="step-card">
@@ -849,17 +879,30 @@ But operators still struggle with orchestration, lifecycle coordination, governe
       </div>
       <div class="step-body">
         <div class="field">
-          <label class="field-label">Bundle <span class="subtle">tags this deck — does not auto-generate text</span></label>
+          <label class="field-label">Bundle <span class="subtle">drives the visual prompt</span></label>
           <div class="template-select">
             <select class="select" id="bundleSel">
-              <option value="">— optional —</option>
-              ${state.bundles.map(b => `<option value="${b.id}" ${state.selectedBundle === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}
+              <option value="">— optional (uses fallback prompt) —</option>
+              ${db.bundles.map(b => `<option value="${b.id}" ${state.selectedBundleId === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('')}
             </select>
           </div>
         </div>
         <div class="field">
+          <label class="field-label">Slide count range <span class="subtle">enforced through the flow</span></label>
+          <div class="range-row">
+            <div>
+              <input class="input" type="number" id="slideMin" min="1" max="30" value="${state.slideMin}">
+              <div class="field-hint" style="margin-top:4px">Minimum</div>
+            </div>
+            <div>
+              <input class="input" type="number" id="slideMax" min="1" max="30" value="${state.slideMax}">
+              <div class="field-hint" style="margin-top:4px">Maximum</div>
+            </div>
+          </div>
+        </div>
+        <div class="field">
           <label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label>
-          <textarea class="textarea" id="rawText" rows="14" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state.rawText)}</textarea>
+          <textarea class="textarea" id="rawText" rows="12" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state.rawText)}</textarea>
         </div>
         <div class="field">
           <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
@@ -875,7 +918,6 @@ But operators still struggle with orchestration, lifecycle coordination, governe
                 ${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}
               </div>
             </div>
-            <div class="field-hint" style="margin-top:8px">Customer logo is cleared from storage after .pptx assembly. PNG with transparent background recommended.</div>
           </div>
         </div>
         <div id="step1Error"></div>
@@ -887,16 +929,25 @@ But operators still struggle with orchestration, lifecycle coordination, governe
     </div>`;
 
   const bundleSel = document.getElementById('bundleSel');
-  if (bundleSel) bundleSel.onchange = e => { state.selectedBundle = e.target.value || null; };
+  bundleSel.onchange = e => { state.selectedBundleId = e.target.value || null; };
+  document.getElementById('slideMin').onchange = e => {
+    let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
+    state.slideMin = v;
+    if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; }
+    renderStep1();
+  };
+  document.getElementById('slideMax').onchange = e => {
+    let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1));
+    state.slideMax = v;
+    if (state.slideMin > state.slideMax) { const swap = state.slideMin; state.slideMin = state.slideMax; state.slideMax = swap; }
+    renderStep1();
+  };
 
   const custChk = document.getElementById('custLogoChk');
-  if (custChk) custChk.onchange = e => {
+  custChk.onchange = e => {
     state.customerLogoEnabled = e.target.checked;
     document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none';
-    if (!e.target.checked) {
-      safeClearCustomerLogo();
-      state.customerLogoB64 = null;
-    }
+    if (!e.target.checked) state.customerLogoB64 = null;
     renderStep1();
   };
   const custUpload = document.getElementById('custUploadBtn');
@@ -907,53 +958,40 @@ But operators still struggle with orchestration, lifecycle coordination, governe
     if (!file) return;
     if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
     const fr = new FileReader();
-    fr.onload = () => {
-      const b64 = fr.result.split(',')[1];
-      state.customerLogoB64 = b64;
-      safeSetCustomerLogo(b64);
-      toast({ type: 'success', message: 'Customer logo uploaded' });
-      renderStep1();
-    };
+    fr.onload = () => { state.customerLogoB64 = fr.result.split(',')[1]; toast({ type: 'success', message: 'Customer logo uploaded' }); renderStep1(); };
     fr.readAsDataURL(file);
   };
   const custClear = document.getElementById('custClearBtn');
-  if (custClear) custClear.onclick = () => {
-    safeClearCustomerLogo();
-    state.customerLogoB64 = null;
-    toast({ type: 'info', message: 'Customer logo cleared' });
-    renderStep1();
-  };
+  if (custClear) custClear.onclick = () => { state.customerLogoB64 = null; renderStep1(); };
+
   const raw = document.getElementById('rawText');
-  raw.oninput = e => {
-    state.rawText = e.target.value;
-    document.getElementById('rawCount').textContent = e.target.value.length + ' chars';
-  };
+  raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; };
+
   document.getElementById('continueAsIsBtn').onclick = () => {
     const parsed = parseSlides(state.rawText);
     if (parsed === null) {
       document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg><div>Please add slide breaks (<span class="mono">---</span> or <span class="mono">## headings</span>) before continuing, or use Polish with AI to auto-split.</div></div>';
       return;
     }
-    if (parsed.length === 0) {
-      toast({ type: 'error', message: 'No slides found in text' });
+    if (parsed.length === 0) { toast({ type: 'error', message: 'No slides found in text' }); return; }
+    if (parsed.length < state.slideMin) {
+      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Your pasted text produced <strong>${parsed.length}</strong> slides, below your minimum of <strong>${state.slideMin}</strong>. Add slide breaks or use AI Polish to expand.</div></div>`;
+      return;
+    }
+    if (parsed.length > state.slideMax) {
+      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Your pasted text produced <strong>${parsed.length}</strong> slides, above your maximum of <strong>${state.slideMax}</strong>. Remove some slides or use AI Polish to shorten.</div></div>`;
       return;
     }
     state.slides = parsed;
-    state.composeStep = 3; // skip polish
+    state.composeStep = 3;
     renderCompose();
   };
   document.getElementById('polishBtn').onclick = () => {
     if (!state.apiKeys.anthropic) {
-      document.getElementById('step1Error').innerHTML = '<div class="info-banner" style="margin-top:12px"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" style="flex-shrink:0;margin-top:2px"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg><div>Paste your Anthropic API key in <button class="btn-ghost" id="goSettings" style="color:var(--info);padding:0;text-decoration:underline">Settings → Anthropic</button> to use AI polish, or click <strong>Continue with text as-is</strong>.</div></div>';
-      const gs = document.getElementById('goSettings');
-      if (gs) gs.onclick = () => { state.view = 'settings'; setActiveNav(); render(); };
+      document.getElementById('step1Error').innerHTML = '<div class="info-banner" style="margin-top:12px"><div>Paste your Anthropic API key in <strong>Settings → Anthropic</strong> to use AI polish, or click <strong>Continue with text as-is</strong>.</div></div>';
       return;
     }
-    if (!state.rawText.trim()) {
-      toast({ type: 'error', message: 'Paste some text first' });
-      return;
-    }
-    // Try parsing first; if no markers, mark for split mode
+    if (!state.rawText.trim()) { toast({ type: 'error', message: 'Paste some text first' }); return; }
     const parsed = parseSlides(state.rawText);
     state.slides = parsed || [];
     state.composeStep = 2;
@@ -968,21 +1006,8 @@ function renderStep2() {
   const isDone = state.composeStep > 2;
   const isFuture = state.composeStep < 2;
 
-  if (isFuture) {
-    el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI (optional)</div><div class="step-desc">shorten / expand / preserve</div></div></div>`;
-    return;
-  }
-  if (isDone) {
-    el.innerHTML = `
-      <div class="step-card collapsed">
-        <div class="step-header" id="step2Edit">
-          <div class="step-num done">✓</div>
-          <div class="step-title">Polish</div>
-          <div class="step-desc">${state.polishMode ? state.polishMode + ' applied' : 'skipped'}</div>
-        </div>
-      </div>`;
-    return;
-  }
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI (optional)</div><div class="step-desc">shorten / expand / split</div></div></div>`; return; }
+  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' applied' : 'skipped'}</div></div></div>`; return; }
 
   const hasMarkers = state.slides.length > 0;
   el.innerHTML = `
@@ -990,7 +1015,7 @@ function renderStep2() {
       <div class="step-header">
         <div class="step-num">2</div>
         <div class="step-title">Polish with AI</div>
-        <div class="step-desc">${hasMarkers ? state.slides.length + ' slides detected' : 'no markers — will auto-split'}</div>
+        <div class="step-desc">${hasMarkers ? state.slides.length + ' slides detected · target ' + state.slideMin + '–' + state.slideMax : 'no markers — will auto-split to ' + state.slideMin + '–' + state.slideMax}</div>
       </div>
       <div class="step-body">
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
@@ -1012,29 +1037,21 @@ function renderStep2() {
       </div>
     </div>`;
 
-  const shortenBtn = document.getElementById('shortenBtn');
-  if (shortenBtn) shortenBtn.onclick = () => runPolish('shorten');
-  const expandBtn = document.getElementById('expandBtn');
-  if (expandBtn) expandBtn.onclick = () => runPolish('expand');
-  const splitBtn = document.getElementById('splitBtn');
-  if (splitBtn) splitBtn.onclick = () => runPolish('split');
-  const preserveBtn = document.getElementById('preserveBtn');
-  if (preserveBtn) preserveBtn.onclick = () => { state.polishMode = 'preserve'; toast({ type: 'success', message: 'Text preserved' }); };
+  const shortenBtn = document.getElementById('shortenBtn'); if (shortenBtn) shortenBtn.onclick = () => runPolish('shorten');
+  const expandBtn = document.getElementById('expandBtn'); if (expandBtn) expandBtn.onclick = () => runPolish('expand');
+  const splitBtn = document.getElementById('splitBtn'); if (splitBtn) splitBtn.onclick = () => runPolish('split');
+  const preserveBtn = document.getElementById('preserveBtn'); if (preserveBtn) preserveBtn.onclick = () => { state.polishMode = 'preserve'; toast({ type: 'success', message: 'Text preserved' }); };
   document.getElementById('backTo1').onclick = () => { state.composeStep = 1; renderCompose(); };
   document.getElementById('toStep3').onclick = () => { state.composeStep = 3; renderCompose(); };
 }
 
 async function runPolish(mode) {
-  state.polishing = true;
-  state.polishMode = mode;
-  renderStep2();
+  state.polishing = true; state.polishMode = mode; renderStep2();
   try {
     const polished = await polishWithClaude(state.slides, mode);
     state.slides = polishedToSlides(polished);
     toast({ type: 'success', message: `${mode === 'split' ? 'Split' : mode === 'shorten' ? 'Shortened' : 'Expanded'} — ${state.slides.length} slides` });
-  } catch (e) {
-    toast({ type: 'error', message: e.message });
-  }
+  } catch (e) { toast({ type: 'error', message: e.message }); }
   state.polishing = false;
   renderStep2();
 }
@@ -1045,86 +1062,58 @@ function renderStep3() {
   const isActive = state.composeStep === 3;
   const isDone = state.composeStep > 3;
   const isFuture = state.composeStep < 3;
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Slide text preview &amp; edit</div><div class="step-desc">edit titles and body</div></div></div>`; return; }
+  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step3Edit"><div class="step-num done">✓</div><div class="step-title">Slide text</div><div class="step-desc">${state.slides.length} slides</div><button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button></div></div>`;
+    document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); }; return; }
 
-  if (isFuture) {
-    el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Slide text preview &amp; edit</div><div class="step-desc">edit titles and body</div></div></div>`;
-    return;
-  }
-  if (isDone) {
-    el.innerHTML = `
-      <div class="step-card collapsed">
-        <div class="step-header" id="step3Edit">
-          <div class="step-num done">✓</div>
-          <div class="step-title">Slide text</div>
-          <div class="step-desc">${state.slides.length} slides</div>
-          <button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button>
-        </div>
-      </div>`;
-    document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); };
-    return;
-  }
-
+  const n = state.slides.length;
+  const inRange = n >= state.slideMin && n <= state.slideMax;
   el.innerHTML = `
     <div class="step-card">
       <div class="step-header">
         <div class="step-num">3</div>
         <div class="step-title">Edit slide text</div>
-        <div class="step-desc">${state.slides.length} slides</div>
+        <div class="step-desc"><span class="slide-counter ${inRange ? 'in-range' : 'out-of-range'}">${n} of ${state.slideMin}–${state.slideMax} slides</span></div>
       </div>
       <div class="step-body">
         <div id="slideEditList">${state.slides.map((s, i) => renderSlideEditCard(s, i)).join('')}</div>
         <div style="display:flex;gap:8px;margin-top:12px">
-          <button class="btn-secondary" id="addSlideBtn">+ Add slide</button>
+          <button class="btn-secondary" id="addSlideBtn" ${n >= state.slideMax ? 'disabled title="Maximum slide count reached"' : ''}>+ Add slide</button>
         </div>
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
           <button class="btn-ghost" id="backTo2or1">← Back</button>
-          <button class="btn-primary lg" id="toStep4" ${state.slides.length === 0 ? 'disabled' : ''}>Generate images →</button>
+          <button class="btn-primary lg" id="toStep4" ${!inRange ? 'disabled title="Slide count must be within range"' : ''}>Generate images →</button>
         </div>
       </div>
     </div>`;
 
   state.slides.forEach((s, i) => bindSlideEditCard(i));
   document.getElementById('addSlideBtn').onclick = () => {
+    if (state.slides.length >= state.slideMax) return;
     state.slides.push({ title: 'New slide', body: '', imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0 });
     renderStep3();
   };
   document.getElementById('backTo2or1').onclick = () => { state.composeStep = state.polishMode ? 2 : 1; renderCompose(); };
   document.getElementById('toStep4').onclick = () => {
-    if (!state.apiKeys.openai) {
-      toast({ type: 'error', message: 'Add OpenAI API key in Settings first' });
-      return;
-    }
-    state.composeStep = 4;
-    renderCompose();
-    generateAllImages();
+    if (!state.apiKeys.openai) { toast({ type: 'error', message: 'Add OpenAI API key in Settings first' }); return; }
+    state.composeStep = 4; renderCompose(); generateAllImages();
   };
 }
 
 function renderSlideEditCard(s, i) {
+  const atMin = state.slides.length <= state.slideMin;
   return `
     <div class="slide-edit-card" data-idx="${i}">
       <div class="slide-edit-head">
         <span class="slide-edit-num">Slide ${i+1}</span>
         <div class="slide-edit-actions">
-          <button class="icon-btn-sm" disabled title="Move up (v2.0.5)" aria-label="Move up">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-          </button>
-          <button class="icon-btn-sm" disabled title="Move down (v2.0.5)" aria-label="Move down">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
-          </button>
-          <button class="icon-btn-sm" data-act="del" title="Delete slide" aria-label="Delete slide">
+          <button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled title="Minimum slide count reached"' : 'title="Delete slide"'} aria-label="Delete slide">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg>
           </button>
         </div>
       </div>
-      <div class="field">
-        <label class="field-label">Title</label>
-        <input class="input" data-act="title" value="${escapeHtml(s.title)}">
-      </div>
-      <div class="field" style="margin-bottom:0">
-        <label class="field-label">Body</label>
-        <textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea>
-      </div>
+      <div class="field"><label class="field-label">Title</label><input class="input" data-act="title" value="${escapeHtml(s.title)}"></div>
+      <div class="field" style="margin-bottom:0"><label class="field-label">Body</label><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea></div>
     </div>`;
 }
 
@@ -1137,7 +1126,7 @@ function bindSlideEditCard(i) {
   titleInp.oninput = e => { state.slides[i].title = e.target.value; };
   bodyInp.oninput = e => { state.slides[i].body = e.target.value; };
   delBtn.onclick = () => {
-    if (state.slides.length === 1) { toast({ type: 'error', message: 'At least one slide required' }); return; }
+    if (state.slides.length <= state.slideMin) return;
     state.slides.splice(i, 1);
     renderStep3();
   };
@@ -1146,14 +1135,8 @@ function bindSlideEditCard(i) {
 function renderStep4() {
   const el = document.getElementById('step4');
   if (!el) return;
-  const isActive = state.composeStep === 4;
   const isFuture = state.composeStep < 4;
-
-  if (isFuture) {
-    el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Generate images &amp; assemble</div><div class="step-desc">${state.imageModel}</div></div></div>`;
-    return;
-  }
-
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Generate images &amp; assemble</div><div class="step-desc">${state.imageModel}</div></div></div>`; return; }
   const allDone = state.slides.every(s => s.status === 'done');
   el.innerHTML = `
     <div class="step-card">
@@ -1170,7 +1153,6 @@ function renderStep4() {
         </div>
       </div>
     </div>`;
-
   state.slides.forEach((s, i) => bindImgCard(i));
   document.getElementById('backTo3').onclick = () => { state.composeStep = 3; renderCompose(); };
   document.getElementById('assembleBtn').onclick = () => assemblePptx();
@@ -1190,27 +1172,19 @@ function renderStep4Slides() {
 
 function renderImgCard(s, i) {
   let thumbContent = '';
-  if (s.status === 'generating') {
-    thumbContent = `<div class="placeholder"><span class="spinner-lg spinner"></span><div style="margin-top:10px">Generating…</div></div>`;
-  } else if (s.status === 'error') {
-    thumbContent = `<div class="err">${escapeHtml(s.error || 'Failed')}</div>`;
-  } else if (s.imageB64) {
-    thumbContent = `<img src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">`;
-  } else {
-    thumbContent = `<div class="placeholder">Queued</div>`;
-  }
-
+  if (s.status === 'generating') thumbContent = `<div class="placeholder"><span class="spinner-lg spinner"></span><div style="margin-top:10px">Generating…</div></div>`;
+  else if (s.status === 'error') thumbContent = `<div class="err">${escapeHtml(s.error || 'Failed')}</div>`;
+  else if (s.imageB64) thumbContent = `<img src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">`;
+  else thumbContent = `<div class="placeholder">Queued</div>`;
   const expanded = !!state.expandedRefine[i];
-  const cost = COST_PER_IMAGE_GEN;
-  const regenCost = (s.regenCount * cost).toFixed(2);
-
+  const regenCost = (s.regenCount * COST_PER_IMAGE_GEN).toFixed(2);
   return `
     <div class="slide-img-card" data-idx="${i}">
       <div class="slide-img-head">
         <span class="slide-edit-num">Slide ${i+1}</span>
         <div class="slide-img-title">${escapeHtml(s.title)}</div>
-        ${s.status === 'done' && s.regenCount === 0 ? `<span class="badge badge-neutral">Generated · ${COST_PER_IMAGE_GEN.toFixed(2)}</span>` : ''}
-        ${s.regenCount > 0 ? `<span class="badge badge-neutral">Regenerated ${s.regenCount}× · ${regenCost}</span>` : ''}
+        ${s.status === 'done' && s.regenCount === 0 ? `<span class="badge badge-neutral">Generated · $${COST_PER_IMAGE_GEN.toFixed(2)}</span>` : ''}
+        ${s.regenCount > 0 ? `<span class="badge badge-neutral">Regenerated ${s.regenCount}× · $${regenCost}</span>` : ''}
         ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
       </div>
@@ -1220,14 +1194,13 @@ function renderImgCard(s, i) {
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${s.status === 'error' ? `<button class="btn-secondary" data-act="retry">Retry</button>` : ''}
             ${s.status === 'done' ? `<button class="btn-secondary" data-act="enlarge">View full size</button>` : ''}
-            <button class="btn-ghost" disabled title="Coming in v2.0.5">Replace with upload</button>
           </div>
           <div class="refine-section">
             <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
             ${expanded ? `
               <div style="margin-top:10px">
                 <label class="field-label" style="margin-bottom:4px">Edit prompt</label>
-                <textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || buildImagePrompt(s))}</textarea>
+                <textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s, state.customerLogoEnabled))}</textarea>
                 <div style="display:flex;gap:6px;margin-top:8px">
                   <button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button>
                   <button class="btn-ghost" data-act="resetPrompt">Reset to default</button>
@@ -1244,33 +1217,15 @@ function bindImgCard(i) {
   const card = document.querySelector(`.slide-img-card[data-idx="${i}"]`);
   if (!card) return;
   const s = state.slides[i];
-
   const thumb = card.querySelector('[data-act="open"]');
   if (thumb && s.imageB64) thumb.onclick = () => openLightbox(i);
-
-  const enlarge = card.querySelector('[data-act="enlarge"]');
-  if (enlarge) enlarge.onclick = () => openLightbox(i);
-
-  const retry = card.querySelector('[data-act="retry"]');
-  if (retry) retry.onclick = () => regenerateOne(i);
-
-  const toggle = card.querySelector('[data-act="toggleRefine"]');
-  if (toggle) toggle.onclick = () => {
-    state.expandedRefine[i] = !state.expandedRefine[i];
-    renderStep4Slides();
-  };
-
-  const regen = card.querySelector('[data-act="regen"]');
-  if (regen) regen.onclick = () => {
+  const enlarge = card.querySelector('[data-act="enlarge"]'); if (enlarge) enlarge.onclick = () => openLightbox(i);
+  const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => regenerateOne(i);
+  const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep4Slides(); };
+  const regen = card.querySelector('[data-act="regen"]'); if (regen) regen.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); regenerateOne(i, ta ? ta.value : null); };
+  const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => {
     const ta = card.querySelector('[data-act="refinePrompt"]');
-    const newPrompt = ta ? ta.value : null;
-    regenerateOne(i, newPrompt);
-  };
-
-  const reset = card.querySelector('[data-act="resetPrompt"]');
-  if (reset) reset.onclick = () => {
-    const ta = card.querySelector('[data-act="refinePrompt"]');
-    if (ta) ta.value = buildImagePrompt(s);
+    if (ta) ta.value = composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s, state.customerLogoEnabled);
   };
 }
 
@@ -1287,20 +1242,17 @@ function openLightbox(i) {
     </div>
     <img class="lightbox-img" src="data:image/jpeg;base64,${s.imageB64}" alt="Slide ${i+1}">
     <div style="margin-top:16px">
-      <button class="refine-toggle" id="showPromptBtn">+ Show prompt used</button>
+      <button class="refine-toggle" id="showPromptBtn">+ Show composed prompt</button>
       <div id="promptBlock" style="display:none;margin-top:10px">
         <textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(s.lastPrompt || '')}</textarea>
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn-secondary" id="saveImgBtn">Save as PNG</button>
+      <button class="btn-secondary" id="saveImgBtn">Save as JPG</button>
       <button class="btn-primary" onclick="closeModal()">Close</button>
     </div>`;
   openModal(html, { xl: true });
-  document.getElementById('showPromptBtn').onclick = () => {
-    const pb = document.getElementById('promptBlock');
-    pb.style.display = pb.style.display === 'none' ? 'block' : 'none';
-  };
+  document.getElementById('showPromptBtn').onclick = () => { const pb = document.getElementById('promptBlock'); pb.style.display = pb.style.display === 'none' ? 'block' : 'none'; };
   document.getElementById('saveImgBtn').onclick = () => {
     const a = document.createElement('a');
     a.href = 'data:image/jpeg;base64,' + s.imageB64;
@@ -1310,72 +1262,380 @@ function openLightbox(i) {
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// BUNDLES VIEW
+// BUNDLES VIEW — CRUD
 // ═══════════════════════════════════════════════════════════════════════
 function renderBundles() {
   const cont = document.getElementById('content');
+  const search = state.bundlesSearch.toLowerCase();
+  const filtered = db.bundles.filter(b => !search || b.name.toLowerCase().includes(search) || (b.description||'').toLowerCase().includes(search));
   cont.innerHTML = `
     <div style="margin-bottom:20px">
       <div class="eyebrow" style="margin-bottom:8px">Library</div>
       <div class="display">Bundles</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:620px">Bundles tag a deck with House Style, Domain Pack, and Deck Type for organisation. In v2.0.4 they no longer auto-generate content — you paste your own text.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Bundles wire one House Style + one Domain Pack + one Deck Type. Selecting a bundle in Compose composes the three prompts into the request to gpt-image-2.</div>
     </div>
-    <div class="template-grid">
-      ${state.bundles.map(b => {
-        const hs = state.templates.house_style.find(t => t.id === b.house_style);
-        const dp = state.templates.domain_pack.find(t => t.id === b.domain_pack);
-        const dt = state.templates.deck_type.find(t => t.id === b.deck_type);
-        return `
-          <div class="template-card">
-            <div class="template-card-header">
-              <div class="template-card-name">${escapeHtml(b.name)}</div>
-              <span class="badge badge-info mono">v${b.version}</span>
+    <div class="section-header">
+      <input class="input" id="bundleSearch" placeholder="Search bundles…" value="${escapeHtml(state.bundlesSearch)}" style="max-width:320px">
+      <div style="display:flex;gap:8px;align-items:center">
+        ${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}
+        ${state.adminMode ? '<button class="btn-primary" id="newBundleBtn">+ New bundle</button>' : ''}
+      </div>
+    </div>
+    ${filtered.length === 0 ? `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div><div class="empty-title">No bundles match</div><div class="empty-desc">Try a different search, or create one.</div></div>`
+    : `<div class="template-grid">${filtered.map(b => {
+      const hs = templateById(b.house_style_template_id);
+      const dp = templateById(b.domain_pack_template_id);
+      const dt = templateById(b.deck_type_template_id);
+      return `
+        <div class="template-card">
+          <div class="template-card-header">
+            <div class="template-card-name"><span class="swatch-dot" style="background:${escapeHtml(b.swatch_color)}"></span>${escapeHtml(b.name)}</div>
+          </div>
+          <div class="template-card-desc">${escapeHtml(b.description || '')}</div>
+          <div style="font-size:11px;color:var(--text-muted);line-height:1.7;margin-bottom:10px">
+            <div><span class="layer-badge layer-house_style">HS</span> ${escapeHtml(hs ? hs.name : '— missing —')}</div>
+            <div style="margin-top:2px"><span class="layer-badge layer-domain_pack">DP</span> ${escapeHtml(dp ? dp.name : '— missing —')}</div>
+            <div style="margin-top:2px"><span class="layer-badge layer-deck_type">DT</span> ${escapeHtml(dt ? dt.name : '— missing —')}</div>
+          </div>
+          <div class="template-card-footer">
+            <span>${escapeHtml((b.updated_at || '').slice(0,10))}</span>
+            <div style="display:flex;gap:4px">
+              <button class="btn-ghost" data-act="viewBundle" data-id="${b.id}">View</button>
+              ${state.adminMode ? `<button class="btn-ghost" data-act="editBundle" data-id="${b.id}">Edit</button><button class="btn-ghost" data-act="delBundle" data-id="${b.id}" style="color:var(--danger)">Delete</button>` : ''}
             </div>
-            <div class="template-card-desc">${escapeHtml(b.description)}</div>
-            <div style="font-size:11px;color:var(--text-muted);line-height:1.7">
-              <div>Style: ${escapeHtml(hs ? hs.name : '—')}</div>
-              <div>Domain: ${escapeHtml(dp ? dp.name : '—')}</div>
-              <div>Type: ${escapeHtml(dt ? dt.name : '—')}</div>
-            </div>
-          </div>`;
-      }).join('')}
-    </div>`;
+          </div>
+        </div>`;
+    }).join('')}</div>`}
+  `;
+  document.getElementById('bundleSearch').oninput = e => { state.bundlesSearch = e.target.value; renderBundles(); };
+  if (state.adminMode) {
+    const nb = document.getElementById('newBundleBtn'); if (nb) nb.onclick = () => openBundleEditor(null);
+  }
+  document.querySelectorAll('[data-act="viewBundle"]').forEach(el => el.onclick = () => openBundleEditor(el.dataset.id, true));
+  document.querySelectorAll('[data-act="editBundle"]').forEach(el => el.onclick = () => openBundleEditor(el.dataset.id));
+  document.querySelectorAll('[data-act="delBundle"]').forEach(el => el.onclick = () => deleteBundle(el.dataset.id));
+}
+
+function openBundleEditor(id, readOnlyView) {
+  const editing = id ? bundleById(id) : null;
+  const draft = editing ? { ...editing } : {
+    id: null, name: '', description: '', swatch_color: '#47D1FF',
+    house_style_template_id: templatesByLayer('house_style')[0]?.id || '',
+    domain_pack_template_id: templatesByLayer('domain_pack')[0]?.id || '',
+    deck_type_template_id: templatesByLayer('deck_type')[0]?.id || ''
+  };
+  const ro = readOnlyView || !state.adminMode;
+
+  function buildHtml() {
+    const joined = {
+      ...draft,
+      house_style: templateById(draft.house_style_template_id),
+      domain_pack: templateById(draft.domain_pack_template_id),
+      deck_type: templateById(draft.deck_type_template_id),
+      name: draft.name || 'preview'
+    };
+    const preview = composeBundlePromptPreview(joined);
+    return `
+      <div class="modal-header">
+        <div>
+          <div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' bundle' : 'New bundle'}</div>
+          <div class="muted body-sm" style="margin-top:4px">${ro ? 'Read-only view of composed prompt.' : 'Three layers compose live below.'}</div>
+        </div>
+        <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
+      </div>
+      <div class="field"><label class="field-label">Name</label><input class="input" id="bName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div>
+      <div class="field"><label class="field-label">Description</label><textarea class="textarea prose" id="bDesc" rows="2" ${ro ? 'disabled' : ''}>${escapeHtml(draft.description || '')}</textarea></div>
+      <div class="field"><label class="field-label">Swatch colour</label><input class="input" type="color" id="bColor" value="${escapeHtml(draft.swatch_color)}" ${ro ? 'disabled' : ''} style="width:80px;height:32px;padding:2px"></div>
+      <div class="range-row" style="grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <div class="field"><label class="field-label"><span class="layer-badge layer-house_style">House Style</span></label>
+          <select class="select" id="bHS" ${ro ? 'disabled' : ''}>${templatesByLayer('house_style').map(t => `<option value="${t.id}" ${draft.house_style_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label class="field-label"><span class="layer-badge layer-domain_pack">Domain Pack</span></label>
+          <select class="select" id="bDP" ${ro ? 'disabled' : ''}>${templatesByLayer('domain_pack').map(t => `<option value="${t.id}" ${draft.domain_pack_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select>
+        </div>
+        <div class="field"><label class="field-label"><span class="layer-badge layer-deck_type">Deck Type</span></label>
+          <select class="select" id="bDT" ${ro ? 'disabled' : ''}>${templatesByLayer('deck_type').map(t => `<option value="${t.id}" ${draft.deck_type_template_id === t.id ? 'selected' : ''}>${escapeHtml(t.name)}</option>`).join('')}</select>
+        </div>
+      </div>
+      <div class="field">
+        <label class="field-label">Composed prompt preview <span class="subtle" id="composedCount">${preview.length} chars</span></label>
+        <div class="composed-preview" id="composedPreview">${escapeHtml(preview)}</div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>
+        ${!ro ? '<button class="btn-primary" id="bSaveBtn">' + (editing ? 'Save' : 'Create') + '</button>' : ''}
+      </div>`;
+  }
+  openModal(buildHtml(), { lg: true });
+
+  function refreshPreview() {
+    const joined = {
+      ...draft,
+      house_style: templateById(draft.house_style_template_id),
+      domain_pack: templateById(draft.domain_pack_template_id),
+      deck_type: templateById(draft.deck_type_template_id),
+      name: draft.name || 'preview'
+    };
+    const preview = composeBundlePromptPreview(joined);
+    const cp = document.getElementById('composedPreview');
+    const cc = document.getElementById('composedCount');
+    if (cp) cp.textContent = preview;
+    if (cc) cc.textContent = preview.length + ' chars';
+  }
+
+  if (!ro) {
+    document.getElementById('bName').oninput = e => { draft.name = e.target.value; };
+    document.getElementById('bDesc').oninput = e => { draft.description = e.target.value; };
+    document.getElementById('bColor').oninput = e => { draft.swatch_color = e.target.value; };
+    document.getElementById('bHS').onchange = e => { draft.house_style_template_id = e.target.value; refreshPreview(); };
+    document.getElementById('bDP').onchange = e => { draft.domain_pack_template_id = e.target.value; refreshPreview(); };
+    document.getElementById('bDT').onchange = e => { draft.deck_type_template_id = e.target.value; refreshPreview(); };
+    document.getElementById('bSaveBtn').onclick = () => {
+      if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
+      const now = nowIso();
+      if (editing) {
+        Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' });
+        toast({ type: 'success', message: 'Bundle saved' });
+      } else {
+        db.bundles.push({ ...draft, id: uuid(), is_active: true, created_at: now, updated_at: now, updated_by: 'admin' });
+        toast({ type: 'success', message: 'Bundle created' });
+      }
+      closeModal(); renderBundles();
+    };
+  }
+}
+
+function deleteBundle(id) {
+  const b = bundleById(id); if (!b) return;
+  const html = `
+    <div class="modal-header"><div><div class="h1">Delete bundle?</div><div class="muted body-sm" style="margin-top:4px">This cannot be undone.</div></div></div>
+    <div class="danger-banner"><div><strong>${escapeHtml(b.name)}</strong> will be permanently removed.</div></div>
+    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelBundle">Delete</button></div>`;
+  openModal(html);
+  document.getElementById('confirmDelBundle').onclick = () => {
+    db.bundles = db.bundles.filter(x => x.id !== id);
+    toast({ type: 'success', message: 'Bundle deleted' });
+    closeModal(); renderBundles();
+  };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// TEMPLATES VIEW
+// TEMPLATES VIEW — CRUD
 // ═══════════════════════════════════════════════════════════════════════
 function renderTemplates() {
   const cont = document.getElementById('content');
-  const tab = state.templatesTab;
-  const items = state.templates[tab];
+  const filter = state.templatesTab;
+  const search = state.templatesSearch.toLowerCase();
+  let items = db.templates.slice();
+  if (filter !== 'all') items = items.filter(t => t.layer === filter);
+  if (search) items = items.filter(t => t.name.toLowerCase().includes(search) || (t.description||'').toLowerCase().includes(search));
+  const counts = {
+    all: db.templates.length,
+    house_style: db.templates.filter(t => t.layer === 'house_style').length,
+    domain_pack: db.templates.filter(t => t.layer === 'domain_pack').length,
+    deck_type: db.templates.filter(t => t.layer === 'deck_type').length
+  };
+
+  const hint = !state.adminMode && !state.shownAdminHint ? `
+    <div class="info-banner" style="margin-bottom:16px">
+      <div>You're in <strong>read-only mode</strong>. To edit templates and bundles, click the <strong>Read-only</strong> badge in the header to toggle admin mode (interim — real auth comes later). <button class="btn-ghost" id="dismissAdminHint" style="margin-left:8px;color:var(--info);text-decoration:underline">Got it</button></div>
+    </div>` : '';
+
   cont.innerHTML = `
     <div style="margin-bottom:20px">
       <div class="eyebrow" style="margin-bottom:8px">Layer library</div>
       <div class="display">Templates</div>
-      <div class="muted body-sm" style="margin-top:8px">Reference templates for House Style, Domain Pack, and Deck Type. Read-only in this build.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">House Style, Domain Pack, and Deck Type templates. Each contains a prompt fragment composed into image generation requests via Bundles.</div>
     </div>
-    <div class="tabs">
-      <button class="tab ${tab === 'house_style' ? 'active' : ''}" data-tab="house_style">House Style <span class="subtle mono" style="margin-left:6px">${state.templates.house_style.length}</span></button>
-      <button class="tab ${tab === 'domain_pack' ? 'active' : ''}" data-tab="domain_pack">Domain Pack <span class="subtle mono" style="margin-left:6px">${state.templates.domain_pack.length}</span></button>
-      <button class="tab ${tab === 'deck_type' ? 'active' : ''}" data-tab="deck_type">Deck Type <span class="subtle mono" style="margin-left:6px">${state.templates.deck_type.length}</span></button>
+    ${hint}
+    <div class="section-header">
+      <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1">
+        <div class="filter-pills">
+          <button class="pill ${filter === 'all' ? 'active' : ''}" data-filter="all">All <span class="subtle mono" style="margin-left:4px">${counts.all}</span></button>
+          <button class="pill ${filter === 'house_style' ? 'active' : ''}" data-filter="house_style">House Style <span class="subtle mono" style="margin-left:4px">${counts.house_style}</span></button>
+          <button class="pill ${filter === 'domain_pack' ? 'active' : ''}" data-filter="domain_pack">Domain Pack <span class="subtle mono" style="margin-left:4px">${counts.domain_pack}</span></button>
+          <button class="pill ${filter === 'deck_type' ? 'active' : ''}" data-filter="deck_type">Deck Type <span class="subtle mono" style="margin-left:4px">${counts.deck_type}</span></button>
+        </div>
+        <input class="input" id="tSearch" placeholder="Search…" value="${escapeHtml(state.templatesSearch)}" style="max-width:260px">
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        ${!state.adminMode ? '<span class="badge badge-neutral">Read-only mode</span>' : ''}
+        ${state.adminMode ? '<button class="btn-primary" id="newTemplateBtn">+ New template</button>' : ''}
+      </div>
     </div>
-    <div class="template-grid">
-      ${items.map(t => `
-        <div class="template-card">
-          <div class="template-card-header">
-            <div class="template-card-name">${escapeHtml(t.name)}</div>
-            <span class="badge badge-info mono">v${t.version}</span>
-          </div>
-          <div class="template-card-desc">${escapeHtml(t.description)}</div>
-          ${tab === 'house_style' && t.palette ? `<div class="swatches" style="margin-bottom:10px">${t.palette.map(c => `<div class="swatch" style="background:${c}"></div>`).join('')}</div>` : ''}
-          <div class="template-card-footer">
-            <span>Updated ${escapeHtml(t.updated_at)}</span>
-            <span>${escapeHtml(t.id)}</span>
-          </div>
-        </div>`).join('')}
+    ${items.length === 0 ? `<div class="empty"><div class="empty-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">No templates match</div><div class="empty-desc">Try a different filter or search.</div></div>`
+    : `<div class="card" style="padding:0;overflow:hidden"><table>
+        <thead><tr><th>Name</th><th>Layer</th><th>Description</th><th>Used by</th><th>Updated</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody>${items.map(t => {
+          const usedBy = bundlesUsingTemplate(t.id).length;
+          const layerLabel = t.layer === 'house_style' ? 'House Style' : t.layer === 'domain_pack' ? 'Domain Pack' : 'Deck Type';
+          return `<tr>
+            <td><strong>${escapeHtml(t.name)}</strong></td>
+            <td><span class="layer-badge layer-${t.layer}">${layerLabel}</span></td>
+            <td class="muted" style="max-width:300px;font-size:12px">${escapeHtml((t.description||'').slice(0,100))}${(t.description||'').length>100?'…':''}</td>
+            <td class="mono" style="font-size:12px">${usedBy} bundle${usedBy===1?'':'s'}</td>
+            <td class="mono muted" style="font-size:12px">${escapeHtml((t.updated_at||'').slice(0,10))}</td>
+            <td style="text-align:right"><div style="display:inline-flex;gap:4px">
+              <button class="btn-ghost" data-act="viewTemplate" data-id="${t.id}">View</button>
+              ${state.adminMode ? `<button class="btn-ghost" data-act="editTemplate" data-id="${t.id}">Edit</button><button class="btn-ghost" data-act="versionsTemplate" data-id="${t.id}">Versions</button><button class="btn-ghost" data-act="delTemplate" data-id="${t.id}" style="color:var(--danger)">Delete</button>` : ''}
+            </div></td>
+          </tr>`;
+        }).join('')}</tbody></table></div>`}
+  `;
+
+  document.querySelectorAll('.pill').forEach(p => p.onclick = () => { state.templatesTab = p.dataset.filter; renderTemplates(); });
+  const ts = document.getElementById('tSearch'); if (ts) ts.oninput = e => { state.templatesSearch = e.target.value; renderTemplates(); };
+  const nt = document.getElementById('newTemplateBtn'); if (nt) nt.onclick = () => openTemplateEditor(null);
+  const dh = document.getElementById('dismissAdminHint'); if (dh) dh.onclick = () => { state.shownAdminHint = true; renderTemplates(); };
+  document.querySelectorAll('[data-act="viewTemplate"]').forEach(el => el.onclick = () => openTemplateEditor(el.dataset.id, true));
+  document.querySelectorAll('[data-act="editTemplate"]').forEach(el => el.onclick = () => openTemplateEditor(el.dataset.id));
+  document.querySelectorAll('[data-act="versionsTemplate"]').forEach(el => el.onclick = () => openVersions(el.dataset.id));
+  document.querySelectorAll('[data-act="delTemplate"]').forEach(el => el.onclick = () => deleteTemplate(el.dataset.id));
+}
+
+function openTemplateEditor(id, readOnlyView) {
+  const editing = id ? templateById(id) : null;
+  const draft = editing ? { ...editing } : {
+    id: null, name: '', layer: 'house_style', description: '', prompt: ''
+  };
+  const ro = readOnlyView || !state.adminMode;
+  const usedBy = editing ? bundlesUsingTemplate(editing.id) : [];
+  const layerLocked = !!editing && usedBy.length > 0;
+
+  const html = `
+    <div class="modal-header">
+      <div>
+        <div class="h1">${editing ? (ro ? 'View' : 'Edit') + ' template' : 'New template'}</div>
+        <div class="muted body-sm" style="margin-top:4px">${editing ? 'Used by ' + usedBy.length + ' bundle' + (usedBy.length===1?'':'s') : 'Create a new layer fragment.'}</div>
+      </div>
+      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
+    </div>
+    <div class="range-row">
+      <div class="field"><label class="field-label">Name</label><input class="input" id="tName" value="${escapeHtml(draft.name)}" ${ro ? 'disabled' : ''}></div>
+      <div class="field"><label class="field-label">Layer ${layerLocked ? '<span class="subtle">(locked — in use)</span>' : ''}</label>
+        <select class="select" id="tLayer" ${ro || layerLocked ? 'disabled' : ''}>
+          <option value="house_style" ${draft.layer==='house_style'?'selected':''}>House Style</option>
+          <option value="domain_pack" ${draft.layer==='domain_pack'?'selected':''}>Domain Pack</option>
+          <option value="deck_type" ${draft.layer==='deck_type'?'selected':''}>Deck Type</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label class="field-label">Description</label><textarea class="textarea prose" id="tDesc" rows="2" ${ro ? 'disabled' : ''}>${escapeHtml(draft.description || '')}</textarea></div>
+    <div class="field">
+      <label class="field-label">Prompt <span class="subtle" id="promptCount">${(draft.prompt||'').length} chars</span></label>
+      <textarea class="textarea" id="tPrompt" rows="14" ${ro ? 'disabled' : ''}>${escapeHtml(draft.prompt || '')}</textarea>
+    </div>
+    ${!ro && editing ? `<div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="tChangeNote" placeholder="e.g. tightened brand discipline language"></div>` : ''}
+    <div class="modal-footer">
+      <button class="btn-ghost" onclick="closeModal()">${ro ? 'Close' : 'Cancel'}</button>
+      ${!ro ? '<button class="btn-secondary" id="tSaveAsNew">Save as new</button><button class="btn-primary" id="tSaveBtn">Save</button>' : ''}
     </div>`;
-  document.querySelectorAll('.tab').forEach(el => el.onclick = () => { state.templatesTab = el.dataset.tab; renderTemplates(); });
+  openModal(html, { lg: true });
+
+  if (!ro) {
+    document.getElementById('tName').oninput = e => { draft.name = e.target.value; };
+    document.getElementById('tLayer').onchange = e => { draft.layer = e.target.value; };
+    document.getElementById('tDesc').oninput = e => { draft.description = e.target.value; };
+    document.getElementById('tPrompt').oninput = e => { draft.prompt = e.target.value; document.getElementById('promptCount').textContent = e.target.value.length + ' chars'; };
+    document.getElementById('tSaveBtn').onclick = () => {
+      if (!draft.name.trim() || !draft.prompt.trim()) { toast({ type: 'error', message: 'Name and prompt are required' }); return; }
+      const now = nowIso();
+      if (editing) {
+        Object.assign(editing, draft, { updated_at: now, updated_by: 'admin' });
+        const note = (document.getElementById('tChangeNote')?.value || '').trim() || 'Edit';
+        db.versions.push({ id: uuid(), template_id: editing.id, version_num: nextVersionNum(editing.id), prompt: draft.prompt, change_note: note, updated_by: 'admin', created_at: now });
+        toast({ type: 'success', message: 'Saved · new version recorded' });
+      } else {
+        const newId = uuid();
+        db.templates.push({ ...draft, id: newId, is_active: true, created_at: now, updated_at: now, updated_by: 'admin' });
+        db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: draft.prompt, change_note: 'Created', updated_by: 'admin', created_at: now });
+        toast({ type: 'success', message: 'Template created' });
+      }
+      closeModal(); renderTemplates();
+    };
+    document.getElementById('tSaveAsNew').onclick = () => {
+      if (!draft.name.trim() || !draft.prompt.trim()) { toast({ type: 'error', message: 'Name and prompt are required' }); return; }
+      const now = nowIso();
+      const newId = uuid();
+      const copy = { ...draft, id: newId, name: draft.name + ' (copy)', is_active: true, created_at: now, updated_at: now, updated_by: 'admin' };
+      db.templates.push(copy);
+      db.versions.push({ id: uuid(), template_id: newId, version_num: 1, prompt: copy.prompt, change_note: 'Copied from "' + (editing ? editing.name : 'new') + '"', updated_by: 'admin', created_at: now });
+      toast({ type: 'success', message: 'Saved as new template' });
+      closeModal(); renderTemplates();
+    };
+  }
+}
+
+function deleteTemplate(id) {
+  const t = templateById(id); if (!t) return;
+  const used = bundlesUsingTemplate(id);
+  if (used.length > 0) {
+    const html = `
+      <div class="modal-header"><div><div class="h1">Cannot delete</div><div class="muted body-sm" style="margin-top:4px">Template is referenced by ${used.length} bundle${used.length===1?'':'s'}.</div></div></div>
+      <div class="warning-banner"><div><strong>${escapeHtml(t.name)}</strong> is in use by:<ul style="margin:6px 0 0 18px">${used.map(b => '<li>' + escapeHtml(b.name) + '</li>').join('')}</ul>Remove from those bundles first.</div></div>
+      <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">OK</button></div>`;
+    openModal(html);
+    return;
+  }
+  const html = `
+    <div class="modal-header"><div><div class="h1">Delete template?</div><div class="muted body-sm" style="margin-top:4px">This cannot be undone. Version history will also be deleted.</div></div></div>
+    <div class="danger-banner"><div><strong>${escapeHtml(t.name)}</strong> will be permanently removed.</div></div>
+    <div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelT">Delete</button></div>`;
+  openModal(html);
+  document.getElementById('confirmDelT').onclick = () => {
+    db.templates = db.templates.filter(x => x.id !== id);
+    db.versions = db.versions.filter(v => v.template_id !== id);
+    toast({ type: 'success', message: 'Template deleted' });
+    closeModal(); renderTemplates();
+  };
+}
+
+function openVersions(id) {
+  const t = templateById(id); if (!t) return;
+  const versions = db.versions.filter(v => v.template_id === id).sort((a, b) => b.version_num - a.version_num);
+  const html = `
+    <div class="modal-header">
+      <div><div class="h1">Version history</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(t.name)} · ${versions.length} version${versions.length===1?'':'s'}</div></div>
+      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
+    </div>
+    <div style="max-height:520px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm)">
+      ${versions.map(v => `
+        <div class="version-row">
+          <div class="version-head">
+            <span class="version-num">v${v.version_num}</span>
+            <span class="muted" style="font-size:12px">${escapeHtml((v.created_at||'').slice(0,16).replace('T',' '))}</span>
+            <span class="muted" style="font-size:12px">· ${escapeHtml(v.updated_by || 'unknown')}</span>
+            <span class="muted" style="font-size:12px">· ${escapeHtml(v.change_note || '')}</span>
+            <div style="margin-left:auto;display:flex;gap:4px">
+              <button class="btn-ghost" data-act="vExpand" data-id="${v.id}">Expand</button>
+              ${state.adminMode ? `<button class="btn-secondary" data-act="vRestore" data-id="${v.id}">Restore</button>` : ''}
+            </div>
+          </div>
+          <div id="vBody_${v.id}" style="display:none;margin-top:8px"><textarea class="textarea" readonly rows="10" style="font-size:11px">${escapeHtml(v.prompt)}</textarea></div>
+          <div id="vPreview_${v.id}" class="muted" style="font-size:12px;font-family:var(--mono);margin-top:4px">${escapeHtml(v.prompt.slice(0, 200))}${v.prompt.length>200?'…':''}</div>
+        </div>`).join('')}
+    </div>
+    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`;
+  openModal(html, { lg: true });
+  document.querySelectorAll('[data-act="vExpand"]').forEach(el => el.onclick = () => {
+    const vid = el.dataset.id;
+    const body = document.getElementById('vBody_' + vid);
+    const prev = document.getElementById('vPreview_' + vid);
+    const showing = body.style.display !== 'none';
+    body.style.display = showing ? 'none' : 'block';
+    prev.style.display = showing ? 'block' : 'none';
+    el.textContent = showing ? 'Expand' : 'Collapse';
+  });
+  document.querySelectorAll('[data-act="vRestore"]').forEach(el => el.onclick = () => {
+    const vid = el.dataset.id;
+    const v = db.versions.find(x => x.id === vid); if (!v) return;
+    const tpl = templateById(v.template_id); if (!tpl) return;
+    const now = nowIso();
+    tpl.prompt = v.prompt; tpl.updated_at = now; tpl.updated_by = 'admin';
+    db.versions.push({ id: uuid(), template_id: tpl.id, version_num: nextVersionNum(tpl.id), prompt: v.prompt, change_note: 'Restored from version ' + v.version_num, updated_by: 'admin', created_at: now });
+    toast({ type: 'success', message: 'Restored to v' + v.version_num + ' · new version recorded' });
+    closeModal(); renderTemplates();
+  });
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -1389,7 +1649,20 @@ function renderSettings() {
     <div style="margin-bottom:24px">
       <div class="eyebrow" style="margin-bottom:8px">Configuration</div>
       <div class="display">Settings</div>
-      <div class="muted body-sm" style="margin-top:8px">API keys, logo, runtime configuration. Settings live in memory only (cleared on reload).</div>
+      <div class="muted body-sm" style="margin-top:8px">API keys, logo, admin mode, runtime configuration. Settings live in memory only.</div>
+    </div>
+
+    <div class="section">
+      <div class="section-header"><div class="h1">Admin mode</div></div>
+      <div class="card">
+        <div class="field">
+          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''} style="margin:0">
+            <span>Enable admin mode</span>
+          </label>
+          <div class="field-hint" style="margin-top:6px">Interim toggle. Real auth via Entra/Supabase comes in a later build. When enabled: New / Edit / Delete on Templates and Bundles tabs.</div>
+        </div>
+      </div>
     </div>
 
     <div class="section">
@@ -1405,7 +1678,7 @@ function renderSettings() {
               ${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset to default</button>' : ''}
             </div>
           </div>
-          <div class="field-hint" style="margin-top:10px">Logo is stamped onto each generated slide image at .pptx assembly time. Use a roughly 4:1 aspect ratio logo with cyan/white strokes for best results on dark backgrounds. ${state.logoB64 ? '<span class="badge badge-success" style="margin-left:6px">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:6px">No logo loaded</span>'}</div>
+          <div class="field-hint" style="margin-top:10px">Stamped onto each slide at .pptx assembly time. ${state.logoB64 ? '<span class="badge badge-success" style="margin-left:6px">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:6px">No logo loaded</span>'}</div>
         </div>
       </div>
     </div>
@@ -1435,7 +1708,7 @@ function renderSettings() {
             <button class="btn-secondary" id="saveKeyBtn">Save</button>
             ${state.apiKeys.openai ? '<button class="btn-ghost" id="clearKeyBtn">Clear</button>' : ''}
           </div>
-          <div class="field-hint">Default model: <span class="mono">gpt-image-2</span> with auto-fallback to <span class="mono">gpt-image-1</span> if unavailable. ${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div>
+          <div class="field-hint">Default model: <span class="mono">gpt-image-2</span> with auto-fallback to <span class="mono">gpt-image-1</span>. ${state.apiKeys.openai ? 'Current: <span class="mono">' + escapeHtml(oai) + '</span>' : 'Not set.'}</div>
         </div>
         <div class="field">
           <label class="field-label">Organization ID <span class="subtle">optional</span></label>
@@ -1451,7 +1724,6 @@ function renderSettings() {
             <option value="gpt-image-2" ${state.imageModel === 'gpt-image-2' ? 'selected' : ''}>gpt-image-2 (default)</option>
             <option value="gpt-image-1" ${state.imageModel === 'gpt-image-1' ? 'selected' : ''}>gpt-image-1 (fallback)</option>
           </select>
-          <div class="field-hint">Currently using <span class="mono">${state.imageModel}</span>${state.imageModelFellBack ? ' (auto-fell back from gpt-image-2)' : ''}</div>
         </div>
       </div>
     </div>
@@ -1460,98 +1732,74 @@ function renderSettings() {
       <div class="section-header"><div class="h1">Runtime</div></div>
       <div class="card">
         <dl class="kv">
-          <dt>Version</dt><dd><span class="mono">2.0.5</span> (build #12 — logo halo fix, cost captions, bundles, customer logo)</dd>
+          <dt>Version</dt><dd><span class="mono">2.0.6</span> (build #13 — bundles & templates CRUD, slide range, composed prompts)</dd>
           <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
           <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
           <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
-          <dt>Logo</dt><dd>${state.logoB64 ? '<span class="badge badge-success">Loaded</span>' : '<span class="badge badge-warning">Not loaded</span>'} ${state.logoIsCustom ? '(custom)' : '(default)'}</dd>
-          <dt>Storage</dt><dd>In-memory only · download via browser</dd>
-        </dl>
-      </div>
-    </div>
-
-    <div class="section">
-      <div class="section-header"><div class="h1">Out of scope (deferred)</div></div>
-      <div class="card">
-        <dl class="kv">
-          <dt>v2.0.5</dt><dt></dt><dd>Slide reordering · per-slide image upload · speaker notes editor · OneDrive upload</dd>
-          <dt>v2.1</dt><dd>Multi-LLM comparison</dd>
-          <dt>v2.2</dt><dd>Approval workflow</dd>
+          <dt>Templates</dt><dd>${db.templates.length} (${db.templates.filter(t=>t.layer==='house_style').length} HS · ${db.templates.filter(t=>t.layer==='domain_pack').length} DP · ${db.templates.filter(t=>t.layer==='deck_type').length} DT)</dd>
+          <dt>Bundles</dt><dd>${db.bundles.length}</dd>
+          <dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd>
         </dl>
       </div>
     </div>`;
 
+  document.getElementById('adminChk').onchange = e => { state.adminMode = e.target.checked; updateAdminBadge(); renderSettings(); };
   document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
   document.getElementById('logoFile').onchange = e => {
-    const file = e.target.files[0];
-    if (!file) return;
+    const file = e.target.files[0]; if (!file) return;
     if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
     const fr = new FileReader();
-    fr.onload = () => {
-      state.logoB64 = fr.result.split(',')[1];
-      state.logoIsCustom = true;
-      toast({ type: 'success', message: 'Logo uploaded' });
-      renderSettings();
-    };
+    fr.onload = () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; toast({ type: 'success', message: 'Logo uploaded' }); renderSettings(); };
     fr.readAsDataURL(file);
   };
   const clrLogo = document.getElementById('clearLogoBtn');
-  if (clrLogo) clrLogo.onclick = async () => {
-    state.logoIsCustom = false;
-    state.logoB64 = await loadDefaultLogo();
-    toast({ type: 'info', message: 'Reset to default DN logo' });
-    renderSettings();
-  };
+  if (clrLogo) clrLogo.onclick = async () => { state.logoIsCustom = false; state.logoB64 = await loadDefaultLogo(); toast({ type: 'info', message: 'Reset to default DN logo' }); renderSettings(); };
 
   document.getElementById('saveKeyBtn').onclick = () => {
     const v = (document.getElementById('openaiKey').value || '').trim();
     if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; }
     if (!v.startsWith('sk-')) { toast({ type: 'error', message: 'OpenAI key must start with sk-' }); return; }
-    state.apiKeys.openai = v;
-    toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` });
-    renderSettings();
+    state.apiKeys.openai = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings();
   };
-  const ck = document.getElementById('clearKeyBtn');
-  if (ck) ck.onclick = () => { state.apiKeys.openai = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-
+  const ck = document.getElementById('clearKeyBtn'); if (ck) ck.onclick = () => { state.apiKeys.openai = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
   document.getElementById('saveAntBtn').onclick = () => {
     const v = (document.getElementById('anthropicKey').value || '').trim();
     if (!v) { toast({ type: 'error', message: 'Enter a key' }); return; }
     if (!v.startsWith('sk-ant-')) { toast({ type: 'error', message: 'Anthropic key must start with sk-ant-' }); return; }
-    state.apiKeys.anthropic = v;
-    toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` });
-    renderSettings();
+    state.apiKeys.anthropic = v; toast({ type: 'success', message: `Saved · ends …${v.slice(-4)}` }); renderSettings();
   };
-  const ca = document.getElementById('clearAntBtn');
-  if (ca) ca.onclick = () => { state.apiKeys.anthropic = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-
-  document.getElementById('saveOrgBtn').onclick = () => {
-    state.apiKeys.openai_org = (document.getElementById('openaiOrg').value || '').trim();
-    toast({ type: 'success', message: 'Org saved' });
-    renderSettings();
-  };
-  const co = document.getElementById('clearOrgBtn');
-  if (co) co.onclick = () => { state.apiKeys.openai_org = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
-
-  document.getElementById('imgModelSel').onchange = e => {
-    state.imageModel = e.target.value;
-    state.imageModelFellBack = false;
-    toast({ type: 'info', message: `Image model set to ${state.imageModel}` });
-    renderSettings();
-  };
+  const ca = document.getElementById('clearAntBtn'); if (ca) ca.onclick = () => { state.apiKeys.anthropic = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('saveOrgBtn').onclick = () => { state.apiKeys.openai_org = (document.getElementById('openaiOrg').value || '').trim(); toast({ type: 'success', message: 'Org saved' }); renderSettings(); };
+  const co = document.getElementById('clearOrgBtn'); if (co) co.onclick = () => { state.apiKeys.openai_org = ''; renderSettings(); toast({ type: 'info', message: 'Cleared' }); };
+  document.getElementById('imgModelSel').onchange = e => { state.imageModel = e.target.value; state.imageModelFellBack = false; toast({ type: 'info', message: `Image model set to ${state.imageModel}` }); renderSettings(); };
 }
 
 // ═══════════════════════════════════════════════════════════════════════
-// MAIN ROUTING
+// ADMIN BADGE / ROUTING
 // ═══════════════════════════════════════════════════════════════════════
+function updateAdminBadge() {
+  const el = document.getElementById('adminBadge');
+  if (!el) return;
+  el.innerHTML = state.adminMode
+    ? '<span class="badge badge-accent" style="cursor:pointer" id="adminBadgeBtn" title="Click to disable admin mode">Admin</span>'
+    : '<span class="badge badge-neutral" style="cursor:pointer" id="adminBadgeBtn" title="Click to enable admin mode">Read-only</span>';
+  const btn = document.getElementById('adminBadgeBtn');
+  if (btn) btn.onclick = () => {
+    state.adminMode = !state.adminMode;
+    updateAdminBadge();
+    toast({ type: 'info', message: state.adminMode ? 'Admin mode enabled' : 'Admin mode disabled' });
+    if (state.view === 'templates') renderTemplates();
+    else if (state.view === 'bundles') renderBundles();
+    else if (state.view === 'settings') renderSettings();
+  };
+}
+
 document.getElementById('themeToggle').addEventListener('click', () => {
   state.theme = state.theme === 'dark' ? 'light' : 'dark';
   document.documentElement.dataset.theme = state.theme;
 });
 function setActiveNav() { document.querySelectorAll('.nav-btn').forEach(b => b.classList.toggle('active', b.dataset.view === state.view)); }
-document.querySelectorAll('.nav-btn').forEach(b => {
-  b.addEventListener('click', () => { state.view = b.dataset.view; setActiveNav(); render(); });
-});
+document.querySelectorAll('.nav-btn').forEach(b => { b.addEventListener('click', () => { state.view = b.dataset.view; setActiveNav(); render(); }); });
 function render() {
   if (state.view === 'compose') renderCompose();
   else if (state.view === 'bundles') renderBundles();
@@ -1559,20 +1807,12 @@ function render() {
   else renderSettings();
 }
 
-seedData();
-const _storedCustomerLogo = safeGetCustomerLogo();
-if (_storedCustomerLogo) {
-  state.customerLogoB64 = _storedCustomerLogo;
-  state.customerLogoEnabled = true;
-}
+seedIfEmpty();
+updateAdminBadge();
 render();
 loadDefaultLogo().then(b => {
-  if (b && !state.logoIsCustom) {
-    state.logoB64 = b;
-    console.log('Default DN logo loaded');
-  } else if (!b) {
-    console.warn('Default logo unavailable — upload one in Settings');
-  }
+  if (b && !state.logoIsCustom) { state.logoB64 = b; console.log('Default DN logo loaded'); }
+  else if (!b) { console.warn('Default logo unavailable — upload one in Settings'); }
 });
 </script>
 </body>
