@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.0.4</title>
+<title>DN Deck Generator v2.0.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -193,7 +193,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.0.4</div>
+      <div class="brand-version">v2.0.5</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -264,9 +264,11 @@ Do NOT create circular emblems, tree shapes, network graphs, or any symbol that 
 LOGO RESERVE ZONE — MANDATORY:
 Reserve a clean, dark, empty rectangular area in the EXACT TOP-LEFT CORNER of the slide.
 This zone must be: approximately 220px wide x 75px tall, positioned 20px from the left edge and 20px from the top edge.
-This zone must contain NO text, NO icons, NO decorative lines, NO gradients — only a flat dark background (matching the slide's dark background color).
-A company logo image will be composited into this exact zone after the slide is generated.
-If the slide background in that corner is not dark, add a subtle dark overlay rectangle in that zone only.
+ALSO reserve a matching clean, dark, empty rectangular area in the EXACT TOP-RIGHT CORNER of the slide.
+This right zone must be: approximately 220px wide x 75px tall, positioned 20px from the right edge and 20px from the top edge.
+Both zones must contain NO text, NO icons, NO decorative lines, NO gradients — only a flat dark background (matching the slide's dark background color).
+Company logos will be composited into these exact zones after the slide is generated.
+If the slide background in those corners is not dark, add subtle dark overlay rectangles in those zones only.
 
 ARCHITECTURE RULES:
 AI must NEVER connect directly to live network elements.
@@ -296,6 +298,18 @@ OUTPUT:
 Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No presenter notes.`;
 
 const DEFAULT_LOGO_URL = 'https://ai-dn.github.io/dn-platform/assets/dn-logo.png';
+const COST_PER_IMAGE_GEN = 0.04;
+const CUSTOMER_LOGO_STORAGE_KEY = 'dn_customer_logo_b64';
+
+function safeGetCustomerLogo() {
+  try { return (typeof localStorage !== 'undefined') ? localStorage.getItem(CUSTOMER_LOGO_STORAGE_KEY) : null; } catch (e) { return null; }
+}
+function safeSetCustomerLogo(v) {
+  try { if (typeof localStorage !== 'undefined') localStorage.setItem(CUSTOMER_LOGO_STORAGE_KEY, v); } catch (e) {}
+}
+function safeClearCustomerLogo() {
+  try { if (typeof localStorage !== 'undefined') localStorage.removeItem(CUSTOMER_LOGO_STORAGE_KEY); } catch (e) {}
+}
 
 const state = {
   theme: initialTheme,
@@ -309,6 +323,8 @@ const state = {
   imageModelFellBack: false,
   logoB64: null,
   logoIsCustom: false,
+  customerLogoB64: null,
+  customerLogoEnabled: false,
   // Compose flow state
   composeStep: 1,
   rawText: '',
@@ -380,7 +396,15 @@ function seedData() {
     { id: 'b_telco_pitch', name: 'Telco Sales Pitch',
       description: 'First-meeting deck for telco prospects.',
       house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_sales_pitch',
-      updated_at: '2026-01-12', version: 2 }
+      updated_at: '2026-01-12', version: 2 },
+    { id: 'b_technical_rca', name: 'Technical RCA',
+      description: 'Root-cause analysis deck for engineering reviews.',
+      house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_technical_deep',
+      updated_at: '2026-01-10', version: 1 },
+    { id: 'b_quarterly_review', name: 'Quarterly Review',
+      description: 'Quarterly business + ops review for execs.',
+      house_style: 'hs_dn_core', domain_pack: 'dp_telco_arch', deck_type: 'dt_sales_pitch',
+      updated_at: '2026-01-08', version: 1 }
   ];
 }
 
@@ -622,55 +646,71 @@ async function regenerateOne(idx, newPrompt) {
 }
 
 // ─── LOGO STAMPING ─────────────────────────────────────────────────────
-async function stampLogo(slideBase64, logoBase64) {
+function drawLogoPanel(ctx, canvas, logoImg, position) {
+  const scale = canvas.width / 1536;
+  const lw = Math.round(195 * scale);
+  const aspect = logoImg.naturalHeight / logoImg.naturalWidth;
+  const lh = Math.round(lw * aspect);
+  const padX = Math.round(20 * scale);
+  const padY = Math.round(14 * scale);
+  let x, y;
+  if (position === 'right') {
+    x = canvas.width - Math.round(22 * scale) - lw;
+    y = Math.round(20 * scale);
+  } else {
+    x = Math.round(22 * scale);
+    y = Math.round(20 * scale);
+  }
+  ctx.save();
+  ctx.fillStyle = '#080c1a';
+  const rx = x - padX, ry = y - padY;
+  const rw = lw + padX * 2, rh = lh + padY * 2;
+  const radius = Math.round(6 * scale);
+  ctx.beginPath();
+  ctx.moveTo(rx + radius, ry);
+  ctx.lineTo(rx + rw - radius, ry);
+  ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
+  ctx.lineTo(rx + rw, ry + rh - radius);
+  ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
+  ctx.lineTo(rx + radius, ry + rh);
+  ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
+  ctx.lineTo(rx, ry + radius);
+  ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.drawImage(logoImg, x, y, lw, lh);
+  ctx.restore();
+}
+
+function loadImageFromB64(b64, mime) {
   return new Promise((resolve, reject) => {
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const slideImg = new Image();
-    slideImg.onload = () => {
-      canvas.width = slideImg.width;
-      canvas.height = slideImg.height;
-      ctx.drawImage(slideImg, 0, 0);
-      const logoImg = new Image();
-      logoImg.onload = () => {
-        const scale = canvas.width / 1536;
-        const lw = Math.round(195 * scale);
-        const aspect = logoImg.naturalHeight / logoImg.naturalWidth;
-        const lh = Math.round(lw * aspect);
-        const x = Math.round(22 * scale);
-        const y = Math.round(20 * scale);
-        const padX = Math.round(14 * scale);
-        const padY = Math.round(10 * scale);
-        ctx.save();
-        ctx.fillStyle = 'rgba(0,0,0,0.55)';
-        const rx = x - padX, ry = y - padY;
-        const rw = lw + padX * 2, rh = lh + padY * 2;
-        const radius = Math.round(6 * scale);
-        ctx.beginPath();
-        ctx.moveTo(rx + radius, ry);
-        ctx.lineTo(rx + rw - radius, ry);
-        ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
-        ctx.lineTo(rx + rw, ry + rh - radius);
-        ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
-        ctx.lineTo(rx + radius, ry + rh);
-        ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
-        ctx.lineTo(rx, ry + radius);
-        ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-        ctx.closePath();
-        ctx.fill();
-        ctx.restore();
-        ctx.save();
-        ctx.globalCompositeOperation = 'screen';
-        ctx.drawImage(logoImg, x, y, lw, lh);
-        ctx.restore();
-        resolve(canvas.toDataURL('image/jpeg', 0.92).split(',')[1]);
-      };
-      logoImg.onerror = () => reject(new Error('Logo image failed to load'));
-      logoImg.src = 'data:image/png;base64,' + logoBase64;
-    };
-    slideImg.onerror = () => reject(new Error('Slide image failed to load'));
-    slideImg.src = 'data:image/jpeg;base64,' + slideBase64;
+    const img = new Image();
+    img.onload = () => resolve(img);
+    img.onerror = () => reject(new Error('Image failed to load'));
+    img.src = `data:${mime};base64,` + b64;
   });
+}
+
+async function stampLogos(slideBase64, dnLogoB64, customerLogoB64) {
+  const slideImg = await loadImageFromB64(slideBase64, 'image/jpeg');
+  const canvas = document.createElement('canvas');
+  canvas.width = slideImg.width;
+  canvas.height = slideImg.height;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(slideImg, 0, 0);
+  if (dnLogoB64) {
+    try { const dnImg = await loadImageFromB64(dnLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, dnImg, 'left'); } catch (e) { console.warn('DN logo stamp failed', e); }
+  }
+  if (customerLogoB64) {
+    try { const custImg = await loadImageFromB64(customerLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, custImg, 'right'); } catch (e) { console.warn('Customer logo stamp failed', e); }
+  }
+  return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+}
+
+async function stampLogo(slideBase64, logoBase64) {
+  return stampLogos(slideBase64, logoBase64, null);
 }
 
 async function loadDefaultLogo() {
@@ -703,14 +743,15 @@ async function assemblePptx() {
   prs.title = deckTitle;
   prs.author = 'DN Deck Generator';
 
+  const customerLogo = state.customerLogoEnabled ? state.customerLogoB64 : null;
   const stampedSlides = [];
   for (let i = 0; i < state.slides.length; i++) {
     const slide = state.slides[i];
     if (!slide.imageB64) continue;
     let finalB64 = slide.imageB64;
-    if (state.logoB64) {
+    if (state.logoB64 || customerLogo) {
       try {
-        finalB64 = await stampLogo(slide.imageB64, state.logoB64);
+        finalB64 = await stampLogos(slide.imageB64, state.logoB64, customerLogo);
       } catch (e) {
         console.warn('Logo stamp failed for slide', i, e);
       }
@@ -735,6 +776,12 @@ async function assemblePptx() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast({ type: 'success', html: `Downloaded <strong>${escapeHtml(fileName)}</strong> · ${(blob.size/1024).toFixed(0)} KB` });
+  if (state.customerLogoEnabled) {
+    safeClearCustomerLogo();
+    state.customerLogoB64 = null;
+    state.customerLogoEnabled = false;
+    toast({ type: 'info', message: 'Customer logo cleared after assembly' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -814,6 +861,23 @@ But operators still struggle with orchestration, lifecycle coordination, governe
           <label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label>
           <textarea class="textarea" id="rawText" rows="14" placeholder="${escapeHtml(placeholder)}">${escapeHtml(state.rawText)}</textarea>
         </div>
+        <div class="field">
+          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="custLogoChk" ${state.customerLogoEnabled ? 'checked' : ''} style="margin:0">
+            <span>Add customer logo (top-right of every slide)</span>
+          </label>
+          <div id="custLogoBlock" style="display:${state.customerLogoEnabled ? 'block' : 'none'};margin-top:8px">
+            <div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap">
+              <div class="logo-preview">${state.customerLogoB64 ? `<img src="data:image/png;base64,${state.customerLogoB64}" alt="customer logo">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div>
+              <div style="display:flex;gap:6px">
+                <input type="file" id="custLogoFile" accept=".png,image/png" style="display:none">
+                <button class="btn-secondary" id="custUploadBtn" type="button">Upload PNG</button>
+                ${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}
+              </div>
+            </div>
+            <div class="field-hint" style="margin-top:8px">Customer logo is cleared from storage after .pptx assembly. PNG with transparent background recommended.</div>
+          </div>
+        </div>
         <div id="step1Error"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
           <button class="btn-secondary" id="polishBtn">Polish with AI →</button>
@@ -824,6 +888,41 @@ But operators still struggle with orchestration, lifecycle coordination, governe
 
   const bundleSel = document.getElementById('bundleSel');
   if (bundleSel) bundleSel.onchange = e => { state.selectedBundle = e.target.value || null; };
+
+  const custChk = document.getElementById('custLogoChk');
+  if (custChk) custChk.onchange = e => {
+    state.customerLogoEnabled = e.target.checked;
+    document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none';
+    if (!e.target.checked) {
+      safeClearCustomerLogo();
+      state.customerLogoB64 = null;
+    }
+    renderStep1();
+  };
+  const custUpload = document.getElementById('custUploadBtn');
+  if (custUpload) custUpload.onclick = () => document.getElementById('custLogoFile').click();
+  const custFile = document.getElementById('custLogoFile');
+  if (custFile) custFile.onchange = e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
+    const fr = new FileReader();
+    fr.onload = () => {
+      const b64 = fr.result.split(',')[1];
+      state.customerLogoB64 = b64;
+      safeSetCustomerLogo(b64);
+      toast({ type: 'success', message: 'Customer logo uploaded' });
+      renderStep1();
+    };
+    fr.readAsDataURL(file);
+  };
+  const custClear = document.getElementById('custClearBtn');
+  if (custClear) custClear.onclick = () => {
+    safeClearCustomerLogo();
+    state.customerLogoB64 = null;
+    toast({ type: 'info', message: 'Customer logo cleared' });
+    renderStep1();
+  };
   const raw = document.getElementById('rawText');
   raw.oninput = e => {
     state.rawText = e.target.value;
@@ -1102,7 +1201,7 @@ function renderImgCard(s, i) {
   }
 
   const expanded = !!state.expandedRefine[i];
-  const cost = state.imageModel === 'gpt-image-2' ? 0.06 : 0.04;
+  const cost = COST_PER_IMAGE_GEN;
   const regenCost = (s.regenCount * cost).toFixed(2);
 
   return `
@@ -1110,7 +1209,8 @@ function renderImgCard(s, i) {
       <div class="slide-img-head">
         <span class="slide-edit-num">Slide ${i+1}</span>
         <div class="slide-img-title">${escapeHtml(s.title)}</div>
-        ${s.regenCount > 0 ? `<span class="badge badge-neutral">Regenerated ${s.regenCount}× · $${regenCost}</span>` : ''}
+        ${s.status === 'done' && s.regenCount === 0 ? `<span class="badge badge-neutral">Generated · ${COST_PER_IMAGE_GEN.toFixed(2)}</span>` : ''}
+        ${s.regenCount > 0 ? `<span class="badge badge-neutral">Regenerated ${s.regenCount}× · ${regenCost}</span>` : ''}
         ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
       </div>
@@ -1360,7 +1460,7 @@ function renderSettings() {
       <div class="section-header"><div class="h1">Runtime</div></div>
       <div class="card">
         <dl class="kv">
-          <dt>Version</dt><dd><span class="mono">2.0.4</span> (build #11 — user-controlled compose flow)</dd>
+          <dt>Version</dt><dd><span class="mono">2.0.5</span> (build #12 — logo halo fix, cost captions, bundles, customer logo)</dd>
           <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
           <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
           <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
@@ -1460,6 +1560,11 @@ function render() {
 }
 
 seedData();
+const _storedCustomerLogo = safeGetCustomerLogo();
+if (_storedCustomerLogo) {
+  state.customerLogoB64 = _storedCustomerLogo;
+  state.customerLogoEnabled = true;
+}
 render();
 loadDefaultLogo().then(b => {
   if (b && !state.logoIsCustom) {
