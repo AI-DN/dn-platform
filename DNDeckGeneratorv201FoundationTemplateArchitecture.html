@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.1.2 #20</title>
+<title>DN Deck Generator v2.1.4 #22</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -231,7 +231,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.1.2 #20</div>
+      <div class="brand-version">v2.1.4 #22</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -259,7 +259,7 @@ document.documentElement.dataset.theme = initialTheme;
 
 // ─── SUPABASE CONFIG ──────────────────────────────────────────────────
 const SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFlY3hob2hrY2x2ZWx1ZG1vcmJ2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzAwMDAwMDAsImV4cCI6MjA0NTU3NjAwMH0.PLACEHOLDER_ANON_KEY';
+const SUPABASE_ANON_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
 const OWNER_ID = 'philip.korf@digitatanetworks.com';
 
 // SECURITY NOTE (interim): user_settings rows are not RLS-scoped.
@@ -1599,7 +1599,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}" autocomplete="off"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? 'Current: <span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.1.2</span> (build #20 — persistent settings)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Templates</dt><dd>${db.templates.length}</dd><dt>Bundles</dt><dd>${db.bundles.length}</dd><dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.1.4</span> (build #22 — Supabase publishable key migration)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Templates</dt><dd>${db.templates.length}</dd><dt>Bundles</dt><dd>${db.bundles.length}</dd><dt>Admin mode</dt><dd>${state.adminMode ? '<span class="badge badge-success">Enabled</span>' : '<span class="badge badge-neutral">Read-only</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo from this browser AND from your synced account. You'll need to re-enter everything. Use when switching accounts or troubleshooting.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
