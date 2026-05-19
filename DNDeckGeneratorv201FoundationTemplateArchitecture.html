@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.0.6</title>
+<title>DN Deck Generator v2.0.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -210,7 +210,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.0.6</div>
+      <div class="brand-version">v2.0.7</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -263,8 +263,7 @@ Use the same visual language across slides:
 LAYOUT RULES:
 Use a strict 16:9 widescreen slide format (1536 pixels wide x 864 pixels tall equivalent).
 The slide must fill the entire canvas edge to edge — no letterboxing, no black bars, no borders.
-Use a consistent title area at the top, but keep the TOP-LEFT CORNER (220x75px from edges) completely empty — this is the logo reserve zone.
-Keep title large, bold, and centered or starting from center-left (not far left, to avoid the logo zone).
+Use a consistent title area at the top.
 Use one main visual system per slide.
 Use clear spacing between content blocks.
 Avoid tiny text. Avoid overcrowding.
@@ -280,11 +279,12 @@ BRANDING RULES — STRICTLY ENFORCED:
 Do NOT generate, draw, invent, or place any logo, wordmark, icon, badge, or brand symbol anywhere on the slide.
 Do NOT create circular emblems, tree shapes, network graphs, or any symbol that could be mistaken for a company logo.
 
-LOGO RESERVE ZONE — MANDATORY:
-Reserve a clean, dark, empty rectangular area in the EXACT TOP-LEFT CORNER of the slide.
-This zone must be: approximately 220px wide x 75px tall, positioned 20px from the left edge and 20px from the top edge.
-It must contain NO text, NO icons, NO decorative lines, NO gradients — only a flat dark background (matching the slide's dark background color).
-Company logos will be composited into this exact zone after the slide is generated.
+CORNER QUIET ZONES — IMPORTANT:
+Keep the TOP-LEFT and TOP-RIGHT corners visually quiet — do NOT place titles, headlines, prominent icons, or eye-catching decorative elements within approximately 250px wide x 100px tall of each top corner (measured 20px in from each edge).
+These quiet zones must blend seamlessly with the rest of the slide background — do NOT draw a visible rectangle, do NOT add a darker overlay panel, do NOT add an outline or border, do NOT add a different texture, do NOT add a gradient that differs from the slide.
+The corners should look like a natural continuation of the slide's overall dark background, just without important content there.
+Logos will be placed in these corners by PowerPoint after the image is generated, so the area must look clean and unmarked in the rendered image.
+Position the slide's headline to start from center-left or center (NOT far left, to avoid the top-left quiet zone).
 
 OUTPUT:
 Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No presenter notes.`;
@@ -317,6 +317,7 @@ const state = {
   logoIsCustom: false,
   customerLogoB64: null,
   customerLogoEnabled: false,
+  logoBacking: false,
   // Admin mode — in-memory only (real auth deferred). Toggle via header badge.
   adminMode: false,
   // Slide range
@@ -613,9 +614,6 @@ function composeBundlePrompt(bundleJoined, slide, customerLogoSet) {
   } else if (bundleJoined) {
     toastOnce('missing_dt_' + bundleJoined.id, { type: 'warning', message: `Bundle "${bundleJoined.name}" is missing a Deck Type — neutral tone applied.` });
   }
-  if (customerLogoSet) {
-    layers.push(`CUSTOMER LOGO RESERVE ZONE — MANDATORY: Reserve a clean, dark, empty rectangular area in the EXACT TOP-RIGHT CORNER of the slide. Approximately 220px wide x 75px tall, positioned 20px from the right edge and 20px from the top edge. Flat dark background only. A customer logo will be composited there after generation.`);
-  }
   if (slide) {
     layers.push(`SLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody content / talking points:\n${slide.body || '(no body content provided)'}\n\nRender this slide visually with the title prominent and the body content represented as clear structured visual elements (panels, bullets, diagrams) — NOT as direct text overlays unless short labels.`);
   }
@@ -623,7 +621,7 @@ function composeBundlePrompt(bundleJoined, slide, customerLogoSet) {
 }
 
 function composeBundlePromptPreview(bundleJoined) {
-  return composeBundlePrompt(bundleJoined, null, state.customerLogoEnabled);
+  return composeBundlePrompt(bundleJoined, null, false);
 }
 
 // ─── IMAGE GEN ────────────────────────────────────────────────────────
@@ -722,53 +720,6 @@ async function regenerateOne(idx, newPrompt) {
   renderStep4Slides();
 }
 
-// ─── LOGO STAMPING ─────────────────────────────────────────────────────
-function drawLogoPanel(ctx, canvas, logoImg, position) {
-  const scale = canvas.width / 1536;
-  const lw = Math.round(195 * scale);
-  const aspect = logoImg.naturalHeight / logoImg.naturalWidth;
-  const lh = Math.round(lw * aspect);
-  const padX = Math.round(20 * scale), padY = Math.round(14 * scale);
-  let x, y;
-  if (position === 'right') { x = canvas.width - Math.round(22 * scale) - lw; y = Math.round(20 * scale); }
-  else { x = Math.round(22 * scale); y = Math.round(20 * scale); }
-  ctx.save();
-  ctx.fillStyle = '#080c1a';
-  const rx = x - padX, ry = y - padY, rw = lw + padX * 2, rh = lh + padY * 2, radius = Math.round(6 * scale);
-  ctx.beginPath();
-  ctx.moveTo(rx + radius, ry);
-  ctx.lineTo(rx + rw - radius, ry);
-  ctx.quadraticCurveTo(rx + rw, ry, rx + rw, ry + radius);
-  ctx.lineTo(rx + rw, ry + rh - radius);
-  ctx.quadraticCurveTo(rx + rw, ry + rh, rx + rw - radius, ry + rh);
-  ctx.lineTo(rx + radius, ry + rh);
-  ctx.quadraticCurveTo(rx, ry + rh, rx, ry + rh - radius);
-  ctx.lineTo(rx, ry + radius);
-  ctx.quadraticCurveTo(rx, ry, rx + radius, ry);
-  ctx.closePath(); ctx.fill(); ctx.restore();
-  ctx.save(); ctx.drawImage(logoImg, x, y, lw, lh); ctx.restore();
-}
-
-function loadImageFromB64(b64, mime) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = () => reject(new Error('Image failed to load'));
-    img.src = `data:${mime};base64,` + b64;
-  });
-}
-
-async function stampLogos(slideBase64, dnLogoB64, customerLogoB64) {
-  const slideImg = await loadImageFromB64(slideBase64, 'image/jpeg');
-  const canvas = document.createElement('canvas');
-  canvas.width = slideImg.width; canvas.height = slideImg.height;
-  const ctx = canvas.getContext('2d');
-  ctx.drawImage(slideImg, 0, 0);
-  if (dnLogoB64) { try { const dnImg = await loadImageFromB64(dnLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, dnImg, 'left'); } catch (e) { console.warn('DN logo stamp failed', e); } }
-  if (customerLogoB64) { try { const custImg = await loadImageFromB64(customerLogoB64, 'image/png'); drawLogoPanel(ctx, canvas, custImg, 'right'); } catch (e) { console.warn('Customer logo stamp failed', e); } }
-  return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
-}
-
 async function loadDefaultLogo() {
   try {
     const r = await fetch(DEFAULT_LOGO_URL);
@@ -783,30 +734,81 @@ async function loadDefaultLogo() {
   } catch (e) { console.warn('Default logo load failed', e); return null; }
 }
 
-// ─── PPTX ASSEMBLY ─────────────────────────────────────────────────────
+// ─── PPTX ASSEMBLY (PowerPoint-native logo placement) ──────────────────
 async function assemblePptx() {
   if (!window.__pptxReady || typeof PptxGenJS === 'undefined') {
     toast({ type: 'error', message: 'PptxGenJS still loading — try again in a moment' });
     return;
   }
   const prs = new PptxGenJS();
-  prs.layout = 'LAYOUT_WIDE';
+  prs.layout = 'LAYOUT_WIDE'; // 13.3" x 7.5"
   const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
   const deckTitle = b ? b.name : 'DN Deck';
-  prs.title = deckTitle; prs.author = 'DN Deck Generator';
+  prs.title = deckTitle;
+  prs.subject = 'Digitata Networks Presentation';
+  prs.author = 'DN Deck Generator';
 
-  const customerLogo = state.customerLogoEnabled ? state.customerLogoB64 : null;
+  const dnLogoB64 = state.logoB64;
+  const customerLogoB64 = state.customerLogoEnabled ? state.customerLogoB64 : null;
+  const showLogoBacking = !!state.logoBacking;
+
+  // Logo placement constants (inches, calibrated for 13.3" wide slide)
+  const LOGO_X_LEFT = 0.19;
+  const LOGO_Y = 0.17;
+  const LOGO_W = 1.69;
+  const LOGO_H = 0.55;
+  const LOGO_X_RIGHT = 13.3 - LOGO_X_LEFT - LOGO_W;
+
   for (let i = 0; i < state.slides.length; i++) {
     const slide = state.slides[i];
     if (!slide.imageB64) continue;
-    let finalB64 = slide.imageB64;
-    if (state.logoB64 || customerLogo) {
-      try { finalB64 = await stampLogos(slide.imageB64, state.logoB64, customerLogo); }
-      catch (e) { console.warn('Logo stamp failed for slide', i, e); }
+    const s = prs.addSlide();
+
+    // Background image — full bleed, raw, no logo baked in
+    s.addImage({
+      data: `data:image/jpeg;base64,${slide.imageB64}`,
+      x: 0, y: 0, w: 13.3, h: 7.5
+    });
+
+    // Optional dark backing panels (native PPT shapes)
+    if (showLogoBacking) {
+      if (dnLogoB64) {
+        s.addShape(prs.ShapeType.roundRect, {
+          x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06,
+          w: LOGO_W + 0.16, h: LOGO_H + 0.12,
+          fill: { color: '080C1A' },
+          line: { color: '080C1A', width: 0 },
+          rectRadius: 0.05
+        });
+      }
+      if (customerLogoB64) {
+        s.addShape(prs.ShapeType.roundRect, {
+          x: LOGO_X_RIGHT - 0.08, y: LOGO_Y - 0.06,
+          w: LOGO_W + 0.16, h: LOGO_H + 0.12,
+          fill: { color: '080C1A' },
+          line: { color: '080C1A', width: 0 },
+          rectRadius: 0.05
+        });
+      }
     }
-    const slideObj = prs.addSlide();
-    slideObj.addImage({ data: `data:image/jpeg;base64,${finalB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
-    slideObj.addNotes(`${slide.title}\n\n${slide.body || ''}`);
+
+    // DN logo top-left as native PPT image
+    if (dnLogoB64) {
+      s.addImage({
+        data: `data:image/png;base64,${dnLogoB64}`,
+        x: LOGO_X_LEFT, y: LOGO_Y, w: LOGO_W, h: LOGO_H
+      });
+    }
+
+    // Customer logo top-right as native PPT image
+    if (customerLogoB64) {
+      s.addImage({
+        data: `data:image/png;base64,${customerLogoB64}`,
+        x: LOGO_X_RIGHT, y: LOGO_Y, w: LOGO_W, h: LOGO_H
+      });
+    }
+
+    s.addNotes(`${slide.title}\n\n${slide.body || ''}`);
   }
 
   const fileName = `${slugify(deckTitle)}-${dateStr()}.pptx`;
@@ -817,6 +819,13 @@ async function assemblePptx() {
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
   toast({ type: 'success', html: `Downloaded <strong>${escapeHtml(fileName)}</strong> · ${(blob.size/1024).toFixed(0)} KB` });
+
+  // After successful write, clear customer logo so it doesn't bleed into next deck
+  if (state.customerLogoB64) {
+    state.customerLogoB64 = null;
+    state.customerLogoEnabled = false;
+    toast({ type: 'info', message: 'Customer logo cleared for next deck' });
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════════════
@@ -918,6 +927,7 @@ AI is rapidly improving but operators still struggle with governed execution.`;
                 ${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}
               </div>
             </div>
+            <div class="field-hint" style="margin-top:8px">Transparent PNG recommended. Placed as a native PowerPoint image in the top-right corner — selectable / movable in PowerPoint. Cleared automatically after .pptx download.</div>
           </div>
         </div>
         <div id="step1Error"></div>
@@ -1678,7 +1688,14 @@ function renderSettings() {
               ${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset to default</button>' : ''}
             </div>
           </div>
-          <div class="field-hint" style="margin-top:10px">Stamped onto each slide at .pptx assembly time. ${state.logoB64 ? '<span class="badge badge-success" style="margin-left:6px">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:6px">No logo loaded</span>'}</div>
+          <div class="field-hint" style="margin-top:10px">Placed as a native PowerPoint image element on each slide at assembly time — selectable / movable / deletable in PowerPoint. ${state.logoB64 ? '<span class="badge badge-success" style="margin-left:6px">' + (state.logoIsCustom ? 'Custom logo' : 'Default DN logo') + '</span>' : '<span class="badge badge-warning" style="margin-left:6px">No logo loaded</span>'}</div>
+        </div>
+        <div class="field" style="margin-top:14px;padding-top:14px;border-top:1px solid var(--border)">
+          <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer">
+            <input type="checkbox" id="logoBackingChk" ${state.logoBacking ? 'checked' : ''} style="margin:0">
+            <span>Add dark backing panel behind logos in .pptx</span>
+          </label>
+          <div class="field-hint" style="margin-top:6px">For logos with light or coloured backgrounds. Defaults off — use a transparent PNG when possible for the cleanest look.</div>
         </div>
       </div>
     </div>
@@ -1732,7 +1749,7 @@ function renderSettings() {
       <div class="section-header"><div class="h1">Runtime</div></div>
       <div class="card">
         <dl class="kv">
-          <dt>Version</dt><dd><span class="mono">2.0.6</span> (build #13 — bundles & templates CRUD, slide range, composed prompts)</dd>
+          <dt>Version</dt><dd><span class="mono">2.0.7</span> (build #14 — PowerPoint-native logo placement, corner quiet zones)</dd>
           <dt>Polish model</dt><dd><span class="mono">claude-sonnet-4-5-20250929</span></dd>
           <dt>Image model</dt><dd><span class="mono">${state.imageModel}</span> · 1536×1024</dd>
           <dt>PPTX engine</dt><dd>PptxGenJS 3.12 (in-browser)</dd>
@@ -1744,6 +1761,8 @@ function renderSettings() {
     </div>`;
 
   document.getElementById('adminChk').onchange = e => { state.adminMode = e.target.checked; updateAdminBadge(); renderSettings(); };
+  const lbChk = document.getElementById('logoBackingChk');
+  if (lbChk) lbChk.onchange = e => { state.logoBacking = e.target.checked; toast({ type: 'info', message: e.target.checked ? 'Logo backing panel enabled' : 'Logo backing panel disabled' }); };
   document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
   document.getElementById('logoFile').onchange = e => {
     const file = e.target.files[0]; if (!file) return;
