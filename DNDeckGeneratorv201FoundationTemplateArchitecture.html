@@ -227,7 +227,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.3.3 #34</div>
+      <div class="brand-version">v2.4.0 #35</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -529,7 +529,7 @@ const state = {
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
   modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null },
-  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true }
+  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPages: 10, awaitingPageCount: false }
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -988,6 +988,20 @@ function renderWhitePaperPanel() {
   const mermaidOk = !!window.mermaid;
   const illustCost = 0.30;
   let body = '';
+  if (wp.awaitingPageCount) {
+    body = `
+      <div class="wp-panel-desc" style="margin-bottom:10px"><strong>How many pages should this white paper be?</strong></div>
+      <div class="muted body-sm" style="margin-bottom:10px">Claude will calibrate section depth, paragraph count, and detail level to hit this target. Typical range: 6–20 pages. Slide images from your deck will be reused as figures (no extra image-gen cost).</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <input class="input" type="number" id="wpPagesInput" min="3" max="40" value="${wp.targetPages}" style="max-width:100px">
+        <span class="muted body-sm">pages target</span>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap">
+        <button class="btn-primary" id="wpStartGenBtn">Generate white paper</button>
+        <button class="btn-ghost" id="wpCancelPagesBtn">Cancel</button>
+      </div>`;
+    return `<div class="wp-panel"><div class="wp-panel-head">📄 Companion white paper</div>${body}</div>`;
+  }
   if (wp.awaitingConfirm && wp.data) {
     const sections = wp.data.sections || [];
     const mermaidCount = sections.filter(s => s.figure && s.figure.type === 'mermaid').length;
@@ -1028,7 +1042,8 @@ function renderWhitePaperPanel() {
     body = `<div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Generated · ${sectionCount} sections · ${mermaidCount} diagram${mermaidCount===1?'':'s'} · ${illustCount} illustration${illustCount===1?'':'s'} · ${fmtUsd4(totalCost)}</div>
       <div style="display:flex;gap:8px"><button class="btn-primary" id="wpReDownloadBtn">Re-download .docx</button><button class="btn-secondary" id="wpGenBtn">Regenerate</button></div>`;
   } else {
-    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08</strong> text + up to ${state.maxIllustrations} illustration${state.maxIllustrations===1?'':'s'} × ${fmtUsd(illustCost)} = max <strong>${fmtUsd(0.08 + state.maxIllustrations * illustCost)}</strong>. You'll confirm the exact mix before any image-gen runs.${mermaidOk ? '' : ' <span style="color:var(--warning)">Mermaid library not loaded — diagrams will be text-only</span>'}</div>
+    const slidesWithImages = state.slides.filter(s => s.imageB64).length;
+    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08–$0.15</strong> Claude text only. <strong>${slidesWithImages} slide image${slidesWithImages===1?'':'s'}</strong> from this deck will be reused as figures — no extra image-gen cost. Mermaid diagrams (free) supplement where useful.${mermaidOk ? '' : ' <span style="color:var(--warning)">Mermaid library not loaded — diagrams will be text-only</span>'}</div>
       <button class="btn-primary" id="wpGenBtn">Generate companion white paper</button>`;
   }
   return `<div class="wp-panel">
@@ -1039,8 +1054,20 @@ function renderWhitePaperPanel() {
 }
 
 function bindWhitePaperPanel() {
+  const pagesInput = document.getElementById('wpPagesInput');
+  if (pagesInput) pagesInput.oninput = e => { const v = parseInt(e.target.value); if (!isNaN(v) && v >= 3 && v <= 40) state.whitePaper.targetPages = v; };
+  const startGen = document.getElementById('wpStartGenBtn');
+  if (startGen) startGen.onclick = () => {
+    const v = parseInt((document.getElementById('wpPagesInput') || {}).value);
+    if (isNaN(v) || v < 3 || v > 40) { toast({ type: 'error', message: 'Pages must be 3–40' }); return; }
+    state.whitePaper.targetPages = v;
+    state.whitePaper.awaitingPageCount = false;
+    generateWhitePaper();
+  };
+  const cancelPages = document.getElementById('wpCancelPagesBtn');
+  if (cancelPages) cancelPages.onclick = () => { state.whitePaper.awaitingPageCount = false; refreshWhitePaperPanel(); };
   const genBtn = document.getElementById('wpGenBtn');
-  if (genBtn) genBtn.onclick = () => generateWhitePaper();
+  if (genBtn) genBtn.onclick = () => { state.whitePaper.awaitingPageCount = true; refreshWhitePaperPanel(); };
   const reBtn = document.getElementById('wpReDownloadBtn');
   if (reBtn) reBtn.onclick = () => {
     if (state.whitePaper.blob) downloadWhitePaper(state.whitePaper.blob, state.whitePaper.deckTitle || state.whitePaper.data.title);
@@ -1065,6 +1092,40 @@ function refreshWhitePaperPanel() {
   if (!panel) return;
   panel.innerHTML = renderWhitePaperPanel();
   bindWhitePaperPanel();
+}
+
+function slideImageToPngBytes(b64) {
+  const binStr = atob(b64);
+  const bytes = new Uint8Array(binStr.length);
+  for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+  return bytes;
+}
+
+async function attachSlideImageFigures(paper) {
+  const sections = paper.sections || [];
+  for (const sec of sections) {
+    if (!sec.figure) continue;
+    if (sec.figure.type === 'slide_image') {
+      const idx = sec.figure.slideIndex;
+      if (typeof idx !== 'number' || idx < 0 || idx >= state.slides.length) {
+        sec.figure.renderError = 'Invalid slideIndex ' + idx;
+        continue;
+      }
+      const src = state.slides[idx];
+      if (!src || !src.imageB64) {
+        sec.figure.renderError = 'Slide ' + idx + ' has no image';
+        continue;
+      }
+      try {
+        sec.figure.pngBytes = slideImageToPngBytes(src.imageB64);
+        sec.figure.pngWidth = 1536;
+        sec.figure.pngHeight = 1024;
+      } catch (e) { sec.figure.renderError = e.message || String(e); }
+    } else if (sec.figure.type === 'illustration') {
+      // Defensive: demote any illustrations to null (should not be requested in this version)
+      sec.figure = null;
+    }
+  }
 }
 
 async function generateWhitePaper() {
@@ -1097,19 +1158,13 @@ async function generateWhitePaper() {
   try {
     const paper = await callClaudeForWhitePaper(key);
     state.whitePaper.data = paper;
-    // Enforce maxIllustrations cap defensively in case Claude exceeds it
-    const illustSections = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration');
-    if (illustSections.length > state.maxIllustrations) {
-      // Demote the excess to null
-      for (let i = state.maxIllustrations; i < illustSections.length; i++) {
-        illustSections[i].figure = null;
-      }
-      toast({ type: 'info', message: `Trimmed ${illustSections.length - state.maxIllustrations} excess illustration(s) to respect cap of ${state.maxIllustrations}` });
-    }
-    // Now show confirmation pre-flight
-    state.whitePaper.awaitingConfirm = true;
-    state.whitePaper.status = 'idle';
-    refreshWhitePaperPanel();
+    // Demote any illustration figures defensively (Claude was instructed not to use them)
+    (paper.sections || []).forEach(s => { if (s.figure && s.figure.type === 'illustration') s.figure = null; });
+    // Attach slide images directly (no separate confirm step needed — no cost)
+    await attachSlideImageFigures(paper);
+    state.whitePaper.includeIllustrations = false;
+    state.whitePaper.awaitingConfirm = false;
+    await continueWhitePaperBuild();
   } catch (e) {
     console.error('White paper generation failed:', e);
     state.whitePaper.status = 'error';
@@ -1124,27 +1179,17 @@ async function continueWhitePaperBuild() {
   if (!paper) return;
   state.whitePaper.status = 'generating';
   try {
-    // If not including illustrations, null them out so they're skipped
-    if (!state.whitePaper.includeIllustrations) {
-      (paper.sections || []).forEach(s => {
-        if (s.figure && s.figure.type === 'illustration') s.figure = null;
-      });
-    }
+    (paper.sections || []).forEach(s => { if (s.figure && s.figure.type === 'illustration') s.figure = null; });
     const mermaidFigs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.syntax);
-    const illustFigs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration' && s.figure.imagePrompt);
+    const slideImgFigs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'slide_image');
     state.whitePaper.figuresTotal = mermaidFigs.length;
-    state.whitePaper.illustTotal = illustFigs.length;
+    state.whitePaper.illustTotal = 0;
     if (mermaidFigs.length > 0) {
       state.whitePaper.statusMsg = `Stage 2: Rendering Mermaid diagrams… (0 of ${mermaidFigs.length})`;
       refreshWhitePaperPanel();
       await prerenderFigures(paper);
     }
-    if (illustFigs.length > 0) {
-      state.whitePaper.statusMsg = `Stage 3: Generating illustrations… (0 of ${illustFigs.length})`;
-      refreshWhitePaperPanel();
-      await pregenerateIllustrations(paper);
-    }
-    state.whitePaper.statusMsg = 'Stage 4: Assembling .docx with DN branding…';
+    state.whitePaper.statusMsg = `Stage 3: Assembling .docx (${slideImgFigs.length} slide image${slideImgFigs.length===1?'':'s'} reused)…`;
     refreshWhitePaperPanel();
     const blob = await assembleWhitePaperDocx(paper);
     state.whitePaper.blob = blob;
@@ -1153,8 +1198,8 @@ async function continueWhitePaperBuild() {
     refreshWhitePaperPanel();
     downloadWhitePaper(blob, state.whitePaper.deckTitle || paper.title);
     const renderedMermaid = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.pngBytes).length;
-    const renderedIllust = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration' && s.figure.pngBytes).length;
-    toast({ type: 'success', message: `White paper · ${renderedMermaid} diagram${renderedMermaid===1?'':'s'} · ${renderedIllust} illustration${renderedIllust===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost + state.whitePaper.illustCost)}` });
+    const renderedSlideImgs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'slide_image' && s.figure.pngBytes).length;
+    toast({ type: 'success', message: `White paper · ${state.whitePaper.targetPages}-page target · ${renderedMermaid} diagram${renderedMermaid===1?'':'s'} · ${renderedSlideImgs} slide image${renderedSlideImgs===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost)}` });
   } catch (e) {
     console.error('White paper build failed:', e);
     state.whitePaper.status = 'error';
@@ -1291,7 +1336,18 @@ async function pregenerateIllustrations(paper) {
 async function callClaudeForWhitePaper(key) {
   const deckTitle = state.whitePaper.deckTitle || (state.selectedSkillId ? (skillById(state.selectedSkillId) || {}).name : 'Untitled') || 'Untitled';
   const maxIll = state.maxIllustrations;
+  const targetPages = state.whitePaper.targetPages || 10;
+  const wordsPerPage = 400;
+  const totalWordTarget = targetPages * wordsPerPage;
+  const slideImageManifest = state.slides.map((s, i) => ({ index: i, title: s.title, hasImage: !!s.imageB64 })).filter(s => s.hasImage);
+  const slideImageList = slideImageManifest.map(s => `  - slide_image_${s.index}: "${s.title.replace(/"/g, '\\"')}"`).join('\n');
   const wpSystemPrompt = `You are a senior content strategist at Digitata Networks, a telco software and managed-services company. You write polished white papers that customers read AFTER a sales or technical meeting — readers who want depth beyond the slide deck.
+
+LENGTH TARGET: This paper must be approximately ${targetPages} pages long (~${totalWordTarget} words total at ~${wordsPerPage} words/page). Calibrate section depth accordingly:
+- Short papers (3–6 pages): tight, focused, one strong section per slide, minimal preamble
+- Medium papers (7–12 pages): standard depth per below, full intro/conclusion
+- Long papers (13–20+ pages): expand each section with sub-arguments, examples, counter-points, evidence
+Do NOT pad. Hit the target by adjusting depth and rigour, not filler.
 
 Voice and style:
 - Professional, evidence-led, confident but not boastful
@@ -1307,15 +1363,30 @@ Structure the paper as:
 4. Conclusion (~250 words) — synthesise the argument, leave the reader with a clear position
 5. About Digitata Networks (~150 words) — brief boilerplate: telco software + managed services, 25+ years, global telco customers, focus on revenue uplift and ops excellence
 
+WORD-COUNT BUDGET (adjust to hit ${targetPages}-page target):
+- Executive Summary: ~${Math.round(totalWordTarget * 0.08)} words
+- Introduction / Context: ~${Math.round(totalWordTarget * 0.10)} words
+- Per slide section: ~${Math.round((totalWordTarget * 0.65) / Math.max(state.slides.length, 1))} words each (×${state.slides.length} slides)
+- Conclusion: ~${Math.round(totalWordTarget * 0.10)} words
+- About DN: ~${Math.round(totalWordTarget * 0.07)} words
+
 Each section's expansion must:
 - Use the slide's title and body as the seed
 - Use the speakerNotes (if present) as additional context
 - NOT just rephrase the slide — expand it. Add the reasoning a presenter would say aloud, the implications a reader would want, the examples that make it concrete
 - Stay anchored to the slide's intent — do not invent unrelated claims
 
-FIGURES — three options per section: "mermaid", "illustration", or null.
+FIGURES — for each section, choose ONE of: "slide_image" (reuse a slide image from the deck), "mermaid" (free local diagram), or null (no figure).
 
-Use a MERMAID DIAGRAM (free) when the section describes:
+AVAILABLE SLIDE IMAGES (reference these by index — preferred for visual sections):
+${slideImageList || '  (no slide images available)'}
+
+Use SLIDE_IMAGE (free, preferred when visual support is needed) when:
+  - The section corresponds to or thematically echoes a slide in the deck
+  - You want to reinforce the deck's visual narrative in the paper
+  - The slide image is conceptually relevant (don't force-fit unrelated images)
+
+Use a MERMAID DIAGRAM (free, local render) when the section describes a structured process the slide images don't already cover:
   - A flow or process (use flowchart)
   - A sequence of interactions between systems or people (use sequenceDiagram)
   - A state machine or lifecycle (use stateDiagram-v2)
@@ -1324,17 +1395,14 @@ Use a MERMAID DIAGRAM (free) when the section describes:
   - A breakdown of proportions (use pie)
   - A timeline of activities (use gantt)
 
-Use an ILLUSTRATION (costs ~$0.30 each, BUDGET ${maxIll} MAX FOR WHOLE PAPER) when the section:
-  - Opens or closes the paper (Executive Summary, Conclusion) and would benefit from a hero image
-  - Discusses a conceptual or evocative topic where a diagram would feel reductive (e.g. customer experience, brand transformation, future-of-X)
-  - Would echo or complement a slide's visual style
-
 Use NO FIGURE (figure: null) when:
   - The content is short and self-contained (About DN boilerplate)
   - The text already paints a strong picture
   - Neither a diagram nor an illustration would add meaningful value
 
-CRITICAL BUDGET RULE: You may propose AT MOST ${maxIll} illustration${maxIll===1?'':'s'} in the entire paper. Pick the ${maxIll} sections where an illustration adds the most narrative value (typically Executive Summary, the most evocative deep section, and/or Conclusion). Mermaid diagrams are unlimited.
+PREFERRED FIGURE STRATEGY: Reuse slide images wherever they fit thematically. Mermaid diagrams supplement where slide images don't cover the concept. Each slide image MAY be reused, but try to spread different slide images across sections rather than reusing the same one repeatedly.
+
+DO NOT propose any "illustration" type figures. Image generation is disabled for white papers in this version — slide image reuse replaces it entirely.
 
 Mermaid syntax rules:
   - Keep diagrams readable: 5–12 nodes maximum
@@ -1363,10 +1431,10 @@ Output format: a strict JSON object with this shape:
       "heading": "string",
       "body": "string — paragraphs separated by \\n\\n",
       "figure": null OR {
-        "type": "mermaid" OR "illustration",
+        "type": "slide_image" OR "mermaid",
         "caption": "string — short caption shown below the figure",
-        "syntax": "string — valid Mermaid syntax (ONLY when type is mermaid)",
-        "imagePrompt": "string — image-gen prompt (ONLY when type is illustration; 30–80 words)"
+        "slideIndex": <integer — ONLY when type is slide_image; must match an available slide index from the manifest above>,
+        "syntax": "string — valid Mermaid syntax (ONLY when type is mermaid)"
       }
     }
   ]
@@ -1376,7 +1444,7 @@ No prose outside the JSON. No markdown fences. Just the JSON object.`;
   const slidesContext = state.slides.map((s, i) => {
     return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
   }).join('\n---\n\n');
-  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nFigure budget for this paper:\n- Mermaid diagrams: unlimited (free)\n- Illustrations: maximum ${maxIll} (each costs ~$0.30, so the user wants you to be selective)\n\nIf you propose more than ${maxIll} illustrations, the user will reject the paper. Pick the ${maxIll} sections where an illustration adds the most narrative value (typically Executive Summary, opening-of-deep-section, Conclusion).\n\nGenerate the companion white paper now. Return JSON only.`;
+  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nTarget length: ~${targetPages} pages (~${totalWordTarget} words total). Calibrate every section's depth to hit this target.\n\nFigure strategy:\n- Slide images: reuse from the manifest (free, preferred)\n- Mermaid diagrams: unlimited (free, local render)\n- Illustrations: DISABLED — do not propose any\n\nGenerate the companion white paper now. Return JSON only.`;
   const modelName = 'claude-sonnet-4-5-20250929';
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1474,7 +1542,7 @@ async function assembleWhitePaperDocx(paper) {
         ]
       }));
       if (sec.figure.caption) {
-        const figLabel = sec.figure.type === 'illustration' ? 'Illustration: ' : 'Figure: ';
+        const figLabel = sec.figure.type === 'slide_image' ? 'Figure (from deck): ' : 'Figure: ';
         sectionParas.push(new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 240 },
@@ -1484,7 +1552,7 @@ async function assembleWhitePaperDocx(paper) {
         }));
       }
     } else if (sec.figure && sec.figure.renderError) {
-      const figKind = sec.figure.type === 'illustration' ? 'Illustration' : 'Diagram';
+      const figKind = sec.figure.type === 'slide_image' ? 'Slide image' : 'Diagram';
       sectionParas.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 120, after: 240 },
