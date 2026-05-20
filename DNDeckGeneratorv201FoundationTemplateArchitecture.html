@@ -1,12 +1,12 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.3.1</title>
+<title>DN Deck Generator v2.3.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
-<script src="https://unpkg.com/docx@8.5.0/build/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -129,7 +129,7 @@ button { font-family: inherit; }
 .modal-lg { max-width: 920px; }
 .modal-xl { max-width: 1400px; }
 .modal-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 16px; }
-.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); }
+.modal-footer { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; padding-top: 14px; border-top: 1px solid var(--border); flex-wrap: wrap; }
 @keyframes fade-in { from { opacity: 0; } to { opacity: 1; } }
 .empty { padding: 48px 24px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 10px; }
 .empty-icon { opacity: 0.14; width: 44px; height: 44px; color: var(--text); }
@@ -214,6 +214,9 @@ tbody tr:hover { background: var(--surface-2); }
 .wp-panel-head { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
 .wp-panel-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
 .wp-status { padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+.wp-cost-table { width: 100%; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin: 10px 0; }
+.wp-cost-table td { padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13px; }
+.wp-cost-table tr:last-child td { border-bottom: none; font-weight: 600; background: var(--surface-2); }
 #mermaidStaging { position: absolute; left: -10000px; top: -10000px; width: 1400px; visibility: hidden; pointer-events: none; }
 @media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } .range-row { grid-template-columns: 1fr; } }
 </style>
@@ -224,7 +227,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.3.1 #32</div>
+      <div class="brand-version">v2.3.3 #34</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -323,7 +326,8 @@ const SETTING_MAP = {
   'favorite_skills': 'dn_favorite_skills',
   'selected_skill': 'dn_selected_skill',
   'favorite_models': 'dn_favorite_models',
-  'last_selected_model': 'dn_last_selected_model'
+  'last_selected_model': 'dn_last_selected_model',
+  'white_paper_max_illustrations': 'dn_wp_max_illust'
 };
 const REVERSE_MAP = Object.fromEntries(Object.entries(SETTING_MAP).map(([k,v]) => [v,k]));
 
@@ -501,9 +505,9 @@ function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,
 function nowIso() { return new Date().toISOString(); }
 
 const deckCost = {
-  polish: 0, outline: 0, image: 0, testImage: 0, whitePaper: 0, imageDetails: [],
-  total() { return this.polish + this.outline + this.image + this.testImage + this.whitePaper; },
-  reset() { this.polish = 0; this.outline = 0; this.image = 0; this.testImage = 0; this.whitePaper = 0; this.imageDetails = []; }
+  polish: 0, outline: 0, image: 0, testImage: 0, whitePaper: 0, whitePaperIllust: 0, imageDetails: [],
+  total() { return this.polish + this.outline + this.image + this.testImage + this.whitePaper + this.whitePaperIllust; },
+  reset() { this.polish = 0; this.outline = 0; this.image = 0; this.testImage = 0; this.whitePaper = 0; this.whitePaperIllust = 0; this.imageDetails = []; }
 };
 
 const state = {
@@ -519,12 +523,13 @@ const state = {
   customerLogoB64: null, customerLogoEnabled: false,
   logoBacking: false, adminMode: false,
   slideMin: 6, slideMax: 10,
+  maxIllustrations: 3,
   composeStep: 1, rawText: '', slides: [],
   polishMode: null, polishing: false, generating: false,
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
   modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null },
-  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0 }
+  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true }
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -553,6 +558,8 @@ function hydrateStateFromStorage() {
   if (favModels !== null) favoriteModelIds = new Set(favModels.split(',').filter(Boolean));
   const lastModel = get('dn_last_selected_model');
   if (lastModel) state.lastSelectedModel = lastModel;
+  const maxIll = get('dn_wp_max_illust');
+  if (maxIll) { const n = parseInt(maxIll); if (!isNaN(n) && n >= 0 && n <= 20) state.maxIllustrations = n; }
 }
 
 function toast(opts) {
@@ -921,9 +928,14 @@ async function assemblePptx() {
     state.whitePaper.status = 'idle';
     state.whitePaper.error = null;
     state.whitePaper.cost = 0;
+    state.whitePaper.illustCost = 0;
     state.whitePaper.statusMsg = '';
     state.whitePaper.figuresTotal = 0;
     state.whitePaper.figuresDone = 0;
+    state.whitePaper.illustTotal = 0;
+    state.whitePaper.illustDone = 0;
+    state.whitePaper.awaitingConfirm = false;
+    state.whitePaper.includeIllustrations = true;
   }
   showDeckReadyModal(fileName, blob.size);
   if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
@@ -954,7 +966,8 @@ function showDeckReadyModal(fileName, blobSize) {
         ${testCost > 0 ? `<tr><td>Test slide images <span class="subtle">(${testRows.length} model${testRows.length===1?'':'s'})</span></td><td class="mono" style="text-align:right">${fmtUsd4(testCost)}</td></tr>` : ''}
         <tr><td>Slide images <span class="subtle">(${slideImageRows.length}×)</span></td><td class="mono" style="text-align:right">${fmtUsd4(slideImageCost)}</td></tr>
         ${regenCost > 0 ? `<tr><td>Regenerations <span class="subtle">(${regenRows.length})</span></td><td class="mono" style="text-align:right">${fmtUsd4(regenCost)}</td></tr>` : ''}
-        ${deckCost.whitePaper > 0 ? `<tr><td>White paper (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.whitePaper)}</td></tr>` : ''}
+        ${deckCost.whitePaper > 0 ? `<tr><td>White paper text (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.whitePaper)}</td></tr>` : ''}
+        ${deckCost.whitePaperIllust > 0 ? `<tr><td>White paper illustrations</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.whitePaperIllust)}</td></tr>` : ''}
         <tr style="font-weight:600"><td>Total</td><td class="mono" style="text-align:right">${fmtUsd4(total)}</td></tr>
       </tbody></table>
     </div>
@@ -973,8 +986,35 @@ function renderWhitePaperPanel() {
   const wp = state.whitePaper;
   const hasPaper = !!wp.data && !!wp.blob;
   const mermaidOk = !!window.mermaid;
+  const illustCost = 0.30;
   let body = '';
-  if (wp.status === 'generating') {
+  if (wp.awaitingConfirm && wp.data) {
+    const sections = wp.data.sections || [];
+    const mermaidCount = sections.filter(s => s.figure && s.figure.type === 'mermaid').length;
+    const illustCount = sections.filter(s => s.figure && s.figure.type === 'illustration').length;
+    const noFigCount = sections.length - mermaidCount - illustCount;
+    const illustTotal = illustCount * illustCost;
+    const fullTotal = wp.cost + illustTotal;
+    body = `
+      <div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Stage 1 complete — Claude wrote the paper</div>
+      <div class="wp-panel-desc" style="margin-bottom:6px"><strong>Paper structure:</strong></div>
+      <ul class="muted body-sm" style="margin:0 0 10px 18px;line-height:1.7">
+        <li>${sections.length} sections total</li>
+        <li>${mermaidCount} Mermaid diagram${mermaidCount===1?'':'s'} <span class="subtle">(free, render locally)</span></li>
+        <li>${illustCount} illustration${illustCount===1?'':'s'} <span class="subtle">(${illustCount===0 ? 'none requested' : '~' + fmtUsd(illustCost) + ' each via image-gen'})</span></li>
+        <li>${noFigCount} section${noFigCount===1?'':'s'} without figures</li>
+      </ul>
+      <table class="wp-cost-table"><tbody>
+        <tr><td>Claude text (already incurred)</td><td class="mono" style="text-align:right">${fmtUsd4(wp.cost)}</td></tr>
+        ${illustCount > 0 ? `<tr><td>Illustrations (${illustCount} × ${fmtUsd(illustCost)})</td><td class="mono" style="text-align:right">${fmtUsd(illustTotal)}</td></tr>` : ''}
+        <tr><td>Total estimated</td><td class="mono" style="text-align:right">${fmtUsd4(fullTotal)}</td></tr>
+      </tbody></table>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">
+        ${illustCount > 0 ? `<button class="btn-primary" id="wpConfirmFullBtn">Generate illustrations &amp; build .docx</button>
+        <button class="btn-secondary" id="wpSkipIllustBtn">Skip illustrations (diagrams only)</button>` : `<button class="btn-primary" id="wpSkipIllustBtn">Build .docx</button>`}
+        <button class="btn-ghost" id="wpCancelBtn">Cancel</button>
+      </div>`;
+  } else if (wp.status === 'generating') {
     body = `<div class="wp-status"><span class="spinner"></span> <span id="wpStatusText">${escapeHtml(wp.statusMsg || 'Calling Claude…')}</span></div>
       <button class="btn-primary" disabled>Generating…</button>`;
   } else if (wp.status === 'error') {
@@ -982,16 +1022,18 @@ function renderWhitePaperPanel() {
       <button class="btn-primary" id="wpGenBtn">Retry</button>`;
   } else if (hasPaper) {
     const sectionCount = wp.data.sections ? wp.data.sections.length : 0;
-    const figCount = (wp.data.sections || []).filter(s => s.figure && s.figure.pngBytes).length;
-    body = `<div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Generated · ${sectionCount} sections · ${figCount} Mermaid diagram${figCount===1?'':'s'} · ${fmtUsd4(wp.cost)}</div>
+    const mermaidCount = (wp.data.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.pngBytes).length;
+    const illustCount = (wp.data.sections || []).filter(s => s.figure && s.figure.type === 'illustration' && s.figure.pngBytes).length;
+    const totalCost = wp.cost + wp.illustCost;
+    body = `<div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Generated · ${sectionCount} sections · ${mermaidCount} diagram${mermaidCount===1?'':'s'} · ${illustCount} illustration${illustCount===1?'':'s'} · ${fmtUsd4(totalCost)}</div>
       <div style="display:flex;gap:8px"><button class="btn-primary" id="wpReDownloadBtn">Re-download .docx</button><button class="btn-secondary" id="wpGenBtn">Regenerate</button></div>`;
   } else {
-    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08</strong> in Claude tokens · Mermaid diagrams render locally (free)${mermaidOk ? '' : ' · <span style="color:var(--warning)">Mermaid library not loaded — text-only fallback</span>'}</div>
+    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08</strong> text + up to ${state.maxIllustrations} illustration${state.maxIllustrations===1?'':'s'} × ${fmtUsd(illustCost)} = max <strong>${fmtUsd(0.08 + state.maxIllustrations * illustCost)}</strong>. You'll confirm the exact mix before any image-gen runs.${mermaidOk ? '' : ' <span style="color:var(--warning)">Mermaid library not loaded — diagrams will be text-only</span>'}</div>
       <button class="btn-primary" id="wpGenBtn">Generate companion white paper</button>`;
   }
   return `<div class="wp-panel">
     <div class="wp-panel-head">📄 Companion white paper</div>
-    <div class="wp-panel-desc">Turn this deck into a polished 8–12 page white paper with Mermaid diagrams where they fit. Same content, expanded into flowing prose with visual flows, sequences, and state machines on-brand in DN navy and cyan.</div>
+    <div class="wp-panel-desc">Turn this deck into a polished 8–12 page white paper. Claude picks between Mermaid diagrams (free), gpt-image illustrations (~${fmtUsd(0.30)}), or no figure per section. You confirm the mix before any illustrations are generated.</div>
     ${body}
   </div>`;
 }
@@ -1003,6 +1045,19 @@ function bindWhitePaperPanel() {
   if (reBtn) reBtn.onclick = () => {
     if (state.whitePaper.blob) downloadWhitePaper(state.whitePaper.blob, state.whitePaper.deckTitle || state.whitePaper.data.title);
   };
+  const confirmFull = document.getElementById('wpConfirmFullBtn');
+  if (confirmFull) confirmFull.onclick = () => { state.whitePaper.includeIllustrations = true; state.whitePaper.awaitingConfirm = false; continueWhitePaperBuild(); };
+  const skipIllust = document.getElementById('wpSkipIllustBtn');
+  if (skipIllust) skipIllust.onclick = () => { state.whitePaper.includeIllustrations = false; state.whitePaper.awaitingConfirm = false; continueWhitePaperBuild(); };
+  const cancelBtn = document.getElementById('wpCancelBtn');
+  if (cancelBtn) cancelBtn.onclick = () => {
+    state.whitePaper.awaitingConfirm = false;
+    state.whitePaper.status = 'idle';
+    state.whitePaper.data = null;
+    state.whitePaper.statusMsg = '';
+    refreshWhitePaperPanel();
+    toast({ type: 'info', message: 'White paper cancelled. Text cost (' + fmtUsd4(state.whitePaper.cost) + ') already billed.' });
+  };
 }
 
 function refreshWhitePaperPanel() {
@@ -1013,6 +1068,16 @@ function refreshWhitePaperPanel() {
 }
 
 async function generateWhitePaper() {
+  if (!window.docx) {
+    state.whitePaper.status = 'error';
+    state.whitePaper.error = 'docx library failed to load from CDN. Refresh the page and try again.';
+    refreshWhitePaperPanel();
+    toast({ type: 'error', message: 'docx library not loaded — refresh the page' });
+    return;
+  }
+  if (!window.mermaid) {
+    toast({ type: 'info', message: 'Mermaid library not loaded — diagrams will ship as text-only error placeholders' });
+  }
   const key = (state.apiKeys.anthropic || '').trim();
   if (!key) {
     state.whitePaper.status = 'error';
@@ -1024,28 +1089,27 @@ async function generateWhitePaper() {
   state.whitePaper.error = null;
   state.whitePaper.figuresTotal = 0;
   state.whitePaper.figuresDone = 0;
+  state.whitePaper.illustTotal = 0;
+  state.whitePaper.illustDone = 0;
+  state.whitePaper.illustCost = 0;
   state.whitePaper.statusMsg = 'Stage 1: Calling Claude to write paper sections…';
   refreshWhitePaperPanel();
   try {
     const paper = await callClaudeForWhitePaper(key);
-    const figs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.syntax);
-    state.whitePaper.figuresTotal = figs.length;
-    if (figs.length > 0) {
-      state.whitePaper.statusMsg = `Stage 2: Rendering Mermaid diagrams… (0 of ${figs.length})`;
-      refreshWhitePaperPanel();
-      await prerenderFigures(paper);
-    }
-    state.whitePaper.statusMsg = 'Stage 3: Assembling .docx with DN branding…';
-    refreshWhitePaperPanel();
-    const blob = await assembleWhitePaperDocx(paper);
     state.whitePaper.data = paper;
-    state.whitePaper.blob = blob;
-    state.whitePaper.status = 'done';
-    state.whitePaper.statusMsg = 'Stage 4: Download ready.';
+    // Enforce maxIllustrations cap defensively in case Claude exceeds it
+    const illustSections = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration');
+    if (illustSections.length > state.maxIllustrations) {
+      // Demote the excess to null
+      for (let i = state.maxIllustrations; i < illustSections.length; i++) {
+        illustSections[i].figure = null;
+      }
+      toast({ type: 'info', message: `Trimmed ${illustSections.length - state.maxIllustrations} excess illustration(s) to respect cap of ${state.maxIllustrations}` });
+    }
+    // Now show confirmation pre-flight
+    state.whitePaper.awaitingConfirm = true;
+    state.whitePaper.status = 'idle';
     refreshWhitePaperPanel();
-    downloadWhitePaper(blob, state.whitePaper.deckTitle || paper.title);
-    const renderedFigs = (paper.sections || []).filter(s => s.figure && s.figure.pngBytes).length;
-    toast({ type: 'success', message: `White paper · ${renderedFigs} diagram${renderedFigs===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost)}` });
   } catch (e) {
     console.error('White paper generation failed:', e);
     state.whitePaper.status = 'error';
@@ -1053,6 +1117,67 @@ async function generateWhitePaper() {
     refreshWhitePaperPanel();
     toast({ type: 'error', message: e.message || 'White paper failed' });
   }
+}
+
+async function continueWhitePaperBuild() {
+  const paper = state.whitePaper.data;
+  if (!paper) return;
+  state.whitePaper.status = 'generating';
+  try {
+    // If not including illustrations, null them out so they're skipped
+    if (!state.whitePaper.includeIllustrations) {
+      (paper.sections || []).forEach(s => {
+        if (s.figure && s.figure.type === 'illustration') s.figure = null;
+      });
+    }
+    const mermaidFigs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.syntax);
+    const illustFigs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration' && s.figure.imagePrompt);
+    state.whitePaper.figuresTotal = mermaidFigs.length;
+    state.whitePaper.illustTotal = illustFigs.length;
+    if (mermaidFigs.length > 0) {
+      state.whitePaper.statusMsg = `Stage 2: Rendering Mermaid diagrams… (0 of ${mermaidFigs.length})`;
+      refreshWhitePaperPanel();
+      await prerenderFigures(paper);
+    }
+    if (illustFigs.length > 0) {
+      state.whitePaper.statusMsg = `Stage 3: Generating illustrations… (0 of ${illustFigs.length})`;
+      refreshWhitePaperPanel();
+      await pregenerateIllustrations(paper);
+    }
+    state.whitePaper.statusMsg = 'Stage 4: Assembling .docx with DN branding…';
+    refreshWhitePaperPanel();
+    const blob = await assembleWhitePaperDocx(paper);
+    state.whitePaper.blob = blob;
+    state.whitePaper.status = 'done';
+    state.whitePaper.statusMsg = 'Stage 5: Download ready.';
+    refreshWhitePaperPanel();
+    downloadWhitePaper(blob, state.whitePaper.deckTitle || paper.title);
+    const renderedMermaid = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.pngBytes).length;
+    const renderedIllust = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration' && s.figure.pngBytes).length;
+    toast({ type: 'success', message: `White paper · ${renderedMermaid} diagram${renderedMermaid===1?'':'s'} · ${renderedIllust} illustration${renderedIllust===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost + state.whitePaper.illustCost)}` });
+  } catch (e) {
+    console.error('White paper build failed:', e);
+    state.whitePaper.status = 'error';
+    state.whitePaper.error = e.message || String(e);
+    refreshWhitePaperPanel();
+    toast({ type: 'error', message: e.message || 'White paper build failed' });
+  }
+}
+
+function injectSvgDimensions(svgString, targetWidth) {
+  const vbMatch = svgString.match(/viewBox\s*=\s*["']([^"']+)["']/i);
+  let aspectRatio = 0.75;
+  if (vbMatch) {
+    const parts = vbMatch[1].split(/[\s,]+/).map(Number);
+    if (parts.length === 4 && parts[2] > 0) {
+      aspectRatio = parts[3] / parts[2];
+    }
+  }
+  const targetHeight = Math.round(targetWidth * aspectRatio);
+  let s = svgString.replace(/<svg([^>]*)\swidth\s*=\s*["'][^"']*["']/i, '<svg$1');
+  s = s.replace(/<svg([^>]*)\sheight\s*=\s*["'][^"']*["']/i, '<svg$1');
+  s = s.replace(/<svg([^>]*)>/i, '<svg$1 width="' + targetWidth + '" height="' + targetHeight + '">');
+  return { svg: s, width: targetWidth, height: targetHeight };
 }
 
 async function renderMermaidToPng(syntax, targetWidthPx) {
@@ -1066,51 +1191,39 @@ async function renderMermaidToPng(syntax, targetWidthPx) {
   } catch (e) {
     throw new Error('Mermaid parse error: ' + (e.message || String(e)));
   }
-  // Ensure SVG has explicit width/height so naturalWidth resolves correctly when loaded as <img>
-  try {
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(svgString, 'image/svg+xml');
-    const svgEl = doc.documentElement;
-    if (svgEl && svgEl.tagName.toLowerCase() === 'svg') {
-      const vb = svgEl.getAttribute('viewBox');
-      let vbW = 0, vbH = 0;
-      if (vb) { const parts = vb.split(/[\s,]+/).map(Number); if (parts.length === 4) { vbW = parts[2]; vbH = parts[3]; } }
-      if (!svgEl.getAttribute('width') && vbW) svgEl.setAttribute('width', String(vbW));
-      if (!svgEl.getAttribute('height') && vbH) svgEl.setAttribute('height', String(vbH));
-      svgString = new XMLSerializer().serializeToString(svgEl);
-    }
-  } catch (e) { /* non-fatal — fall back to original SVG */ }
+  const sized = injectSvgDimensions(svgString, targetWidthPx);
+  const dataUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(sized.svg)));
   return new Promise(function(resolve, reject) {
-    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
+    const timeoutId = setTimeout(function() {
+      reject(new Error('SVG rasterization timed out after 10s'));
+    }, 10000);
     const img = new Image();
     img.onload = function() {
-      const naturalW = img.naturalWidth || img.width || 800;
-      const naturalH = img.naturalHeight || img.height || 600;
-      const scale = targetWidthPx / naturalW;
-      const canvas = document.createElement('canvas');
-      canvas.width = targetWidthPx;
-      canvas.height = Math.round(naturalH * scale);
-      const ctx = canvas.getContext('2d');
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(function(pngBlob) {
-        URL.revokeObjectURL(url);
-        if (!pngBlob) return reject(new Error('Canvas toBlob returned null'));
-        const reader = new FileReader();
-        reader.onload = function() {
-          resolve({ bytes: new Uint8Array(reader.result), width: canvas.width, height: canvas.height });
-        };
-        reader.onerror = function() { reject(new Error('FileReader failed')); };
-        reader.readAsArrayBuffer(pngBlob);
-      }, 'image/png');
+      clearTimeout(timeoutId);
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = sized.width;
+        canvas.height = sized.height;
+        const ctx = canvas.getContext('2d');
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob(function(pngBlob) {
+          if (!pngBlob) return reject(new Error('Canvas toBlob returned null'));
+          const reader = new FileReader();
+          reader.onload = function() {
+            resolve({ bytes: new Uint8Array(reader.result), width: sized.width, height: sized.height });
+          };
+          reader.onerror = function() { reject(new Error('FileReader failed')); };
+          reader.readAsArrayBuffer(pngBlob);
+        }, 'image/png');
+      } catch (err) { reject(err); }
     };
     img.onerror = function() {
-      URL.revokeObjectURL(url);
-      reject(new Error('SVG-to-image rasterisation failed'));
+      clearTimeout(timeoutId);
+      reject(new Error('Image load failed for Mermaid SVG'));
     };
-    img.src = url;
+    img.src = dataUrl;
   });
 }
 
@@ -1136,8 +1249,48 @@ async function prerenderFigures(paper) {
   }
 }
 
+async function generateWhitePaperIllustration(prompt) {
+  const modelId = state.lastSelectedModel || state.defaultModel || 'openai:gpt-image-2:high';
+  const spec = parseModelSpec(modelId) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' };
+  const augmentedPrompt = prompt + '\n\nStyle: editorial white-paper figure, dark navy and cyan colour palette, professional, clean composition, single focal subject, no text overlays, no logos.';
+  const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, augmentedPrompt);
+  const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
+  return { b64, cost, spec };
+}
+
+async function pregenerateIllustrations(paper) {
+  const sections = (paper.sections || []).filter(s => s.figure && s.figure.type === 'illustration' && s.figure.imagePrompt);
+  let done = 0;
+  for (const sec of sections) {
+    try {
+      const { b64, cost, spec } = await generateWhitePaperIllustration(sec.figure.imagePrompt);
+      const binStr = atob(b64);
+      const bytes = new Uint8Array(binStr.length);
+      for (let i = 0; i < binStr.length; i++) bytes[i] = binStr.charCodeAt(i);
+      sec.figure.imageBase64 = b64;
+      sec.figure.pngBytes = bytes;
+      sec.figure.pngWidth = 1536;
+      sec.figure.pngHeight = 1024;
+      sec.figure.modelUsed = spec;
+      state.whitePaper.illustCost += cost;
+      deckCost.whitePaperIllust += cost;
+      deckCost.imageDetails.push({ ...spec, cost, kind: 'wp-illust' });
+      renderCostBadge();
+    } catch (e) {
+      console.warn('Illustration gen failed for section "' + sec.heading + '":', e);
+      sec.figure.renderError = e.message || String(e);
+    }
+    done++;
+    state.whitePaper.illustDone = done;
+    state.whitePaper.statusMsg = `Stage 3: Generating illustrations… (${done} of ${state.whitePaper.illustTotal})`;
+    const el = document.getElementById('wpStatusText');
+    if (el) el.textContent = state.whitePaper.statusMsg;
+  }
+}
+
 async function callClaudeForWhitePaper(key) {
   const deckTitle = state.whitePaper.deckTitle || (state.selectedSkillId ? (skillById(state.selectedSkillId) || {}).name : 'Untitled') || 'Untitled';
+  const maxIll = state.maxIllustrations;
   const wpSystemPrompt = `You are a senior content strategist at Digitata Networks, a telco software and managed-services company. You write polished white papers that customers read AFTER a sales or technical meeting — readers who want depth beyond the slide deck.
 
 Voice and style:
@@ -1160,9 +1313,9 @@ Each section's expansion must:
 - NOT just rephrase the slide — expand it. Add the reasoning a presenter would say aloud, the implications a reader would want, the examples that make it concrete
 - Stay anchored to the slide's intent — do not invent unrelated claims
 
-FIGURES — per-section decision:
-For each section, decide whether a diagram would meaningfully clarify the content.
-Use a Mermaid figure when the section describes:
+FIGURES — three options per section: "mermaid", "illustration", or null.
+
+Use a MERMAID DIAGRAM (free) when the section describes:
   - A flow or process (use flowchart)
   - A sequence of interactions between systems or people (use sequenceDiagram)
   - A state machine or lifecycle (use stateDiagram-v2)
@@ -1171,11 +1324,17 @@ Use a Mermaid figure when the section describes:
   - A breakdown of proportions (use pie)
   - A timeline of activities (use gantt)
 
-DO NOT include a Mermaid diagram when:
-  - The section is purely narrative or argumentative (Executive Summary, Conclusion, About DN — these should have figure: null)
-  - The content is best shown as continuous prose
-  - You cannot construct a meaningful, accurate diagram from the source material
-  - The section already conveys the structure clearly in prose
+Use an ILLUSTRATION (costs ~$0.30 each, BUDGET ${maxIll} MAX FOR WHOLE PAPER) when the section:
+  - Opens or closes the paper (Executive Summary, Conclusion) and would benefit from a hero image
+  - Discusses a conceptual or evocative topic where a diagram would feel reductive (e.g. customer experience, brand transformation, future-of-X)
+  - Would echo or complement a slide's visual style
+
+Use NO FIGURE (figure: null) when:
+  - The content is short and self-contained (About DN boilerplate)
+  - The text already paints a strong picture
+  - Neither a diagram nor an illustration would add meaningful value
+
+CRITICAL BUDGET RULE: You may propose AT MOST ${maxIll} illustration${maxIll===1?'':'s'} in the entire paper. Pick the ${maxIll} sections where an illustration adds the most narrative value (typically Executive Summary, the most evocative deep section, and/or Conclusion). Mermaid diagrams are unlimited.
 
 Mermaid syntax rules:
   - Keep diagrams readable: 5–12 nodes maximum
@@ -1187,7 +1346,13 @@ Mermaid syntax rules:
   - DO NOT use HTML inside Mermaid labels
   - Test mentally: the diagram should be parseable by mermaid.js v10
 
-If unsure whether to include a diagram, set figure: null. Better no diagram than a confusing one.
+Illustration prompt rules:
+  - Write 30–80 words in the same style as the slide image prompts
+  - Focus on mood, composition, and core visual concept — not literal depiction of the text
+  - Anchor to DN brand palette: dark navy, cyan accents, professional editorial style
+  - Single subject preferred — avoid busy compositions
+  - No quotes inside the prompt string
+  - No text overlays, no logos
 
 Output format: a strict JSON object with this shape:
 {
@@ -1198,9 +1363,10 @@ Output format: a strict JSON object with this shape:
       "heading": "string",
       "body": "string — paragraphs separated by \\n\\n",
       "figure": null OR {
-        "type": "mermaid",
-        "caption": "string — short caption shown below the diagram",
-        "syntax": "string — valid Mermaid syntax"
+        "type": "mermaid" OR "illustration",
+        "caption": "string — short caption shown below the figure",
+        "syntax": "string — valid Mermaid syntax (ONLY when type is mermaid)",
+        "imagePrompt": "string — image-gen prompt (ONLY when type is illustration; 30–80 words)"
       }
     }
   ]
@@ -1210,7 +1376,7 @@ No prose outside the JSON. No markdown fences. Just the JSON object.`;
   const slidesContext = state.slides.map((s, i) => {
     return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
   }).join('\n---\n\n');
-  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nGenerate the companion white paper now. Decide per section whether a Mermaid diagram fits. Return JSON only.`;
+  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nFigure budget for this paper:\n- Mermaid diagrams: unlimited (free)\n- Illustrations: maximum ${maxIll} (each costs ~$0.30, so the user wants you to be selective)\n\nIf you propose more than ${maxIll} illustrations, the user will reject the paper. Pick the ${maxIll} sections where an illustration adds the most narrative value (typically Executive Summary, opening-of-deep-section, Conclusion).\n\nGenerate the companion white paper now. Return JSON only.`;
   const modelName = 'claude-sonnet-4-5-20250929';
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1296,7 +1462,7 @@ async function assembleWhitePaperDocx(paper) {
       const w = sec.figure.pngWidth || 1200;
       const h = sec.figure.pngHeight || 900;
       const ratio = h / w;
-      const targetHeightPts = Math.max(120, Math.min(600, Math.round(targetWidthPts * ratio)));
+      const targetHeightPts = Math.max(80, Math.min(650, Math.round(targetWidthPts * ratio)));
       sectionParas.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 240, after: 120 },
@@ -1308,20 +1474,22 @@ async function assembleWhitePaperDocx(paper) {
         ]
       }));
       if (sec.figure.caption) {
+        const figLabel = sec.figure.type === 'illustration' ? 'Illustration: ' : 'Figure: ';
         sectionParas.push(new Paragraph({
           alignment: AlignmentType.CENTER,
           spacing: { after: 240 },
           children: [
-            new TextRun({ text: 'Figure: ' + sec.figure.caption, font: 'DM Sans', size: 18, color: '6B7280', italics: true })
+            new TextRun({ text: figLabel + sec.figure.caption, font: 'DM Sans', size: 18, color: '6B7280', italics: true })
           ]
         }));
       }
     } else if (sec.figure && sec.figure.renderError) {
+      const figKind = sec.figure.type === 'illustration' ? 'Illustration' : 'Diagram';
       sectionParas.push(new Paragraph({
         alignment: AlignmentType.CENTER,
         spacing: { before: 120, after: 240 },
         children: [
-          new TextRun({ text: '[Diagram could not be rendered: ' + sec.figure.renderError + ']', font: 'DM Sans', size: 16, color: 'D14343', italics: true })
+          new TextRun({ text: '[' + figKind + ' could not be rendered: ' + sec.figure.renderError + ']', font: 'DM Sans', size: 16, color: 'D14343', italics: true })
         ]
       }));
     }
@@ -2185,6 +2353,10 @@ function renderSettings() {
       <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="skipPickerChk" ${state.skipModelPicker ? 'checked' : ''}><span>Skip the model comparison step</span></label>
     </div></div>
 
+    <div class="section"><div class="section-header"><div class="h1">White paper</div></div><div class="card">
+      <div class="field" style="margin-bottom:0"><label class="field-label">Maximum illustrations per white paper</label><input class="input" type="number" id="maxIllustInput" min="0" max="20" value="${state.maxIllustrations}" style="max-width:120px"><div class="field-hint" style="margin-top:4px">Mermaid diagrams are free (render locally). Illustrations cost ~$0.30 each via gpt-image. Default: 3. Set to 0 to disable illustrations entirely.</div></div>
+    </div></div>
+
     <div class="section"><div class="section-header"><div class="h1">Brand logo</div></div><div class="card">
       <div class="field"><label class="field-label">Logo image</label><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="logo-preview">${state.logoB64 ? `<img src="data:image/png;base64,${state.logoB64}">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div><div style="display:flex;gap:6px"><input type="file" id="logoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="uploadLogoBtn">Upload PNG</button>${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset</button>' : ''}</div></div></div>
       <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"><input type="checkbox" id="logoBackingChk" ${state.logoBacking ? 'checked' : ''}><span>Dark backing panel behind logos</span></label>
@@ -2196,7 +2368,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.3.1</span> (build #32 — Mermaid diagrams)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.3.2</span> (build #33 — illustration figures)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -2205,6 +2377,7 @@ function renderSettings() {
   const dms = document.getElementById('defaultModelSel'); if (dms) dms.onchange = async e => { state.defaultModel = e.target.value; await persistSetting('dn_default_model', state.defaultModel); toast({ type: 'info', message: 'Default updated' }); renderSettings(); };
   document.getElementById('qualitySel').onchange = async e => { state.imageQuality = e.target.value; await persistSetting('dn_image_quality', state.imageQuality); };
   document.getElementById('skipPickerChk').onchange = async e => { state.skipModelPicker = e.target.checked; await persistSetting('dn_skip_model_picker', String(state.skipModelPicker)); };
+  const maxIll = document.getElementById('maxIllustInput'); if (maxIll) maxIll.onchange = async e => { let v = Math.max(0, Math.min(20, parseInt(e.target.value) || 0)); state.maxIllustrations = v; e.target.value = v; await persistSetting('dn_wp_max_illust', String(v)); toast({ type: 'info', message: `Max illustrations: ${v}` }); };
   const lbChk = document.getElementById('logoBackingChk'); if (lbChk) lbChk.onchange = async e => { state.logoBacking = e.target.checked; await persistSetting('dn_logo_backing', String(state.logoBacking)); };
   document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
   document.getElementById('logoFile').onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = async () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; await persistSetting('dn_logo_b64', state.logoB64); toast({ type: 'success', message: 'Logo uploaded' }); renderSettings(); }; fr.readAsDataURL(file); };
@@ -2225,6 +2398,7 @@ function renderSettings() {
       state.imageQuality = 'high'; state.defaultModel = 'openai:gpt-image-2:high';
       state.skipModelPicker = false; state.logoBacking = false; state.adminMode = false;
       state.slideMin = 6; state.slideMax = 10; state.logoB64 = null; state.logoIsCustom = false;
+      state.maxIllustrations = 3;
       favoriteSkillIds = new Set();
       const b = await loadDefaultLogo(); if (b) state.logoB64 = b;
       toast({ type: 'success', message: 'Settings cleared' });
