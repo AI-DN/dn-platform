@@ -866,6 +866,12 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 
     <div class="settings-panel-section">AI</div>
     <div class="sfield"><label>Anthropic API key</label><input type="password" id="inp-claude" placeholder="sk-ant-..."></div>
+    <div class="sfield"><label>Build agent model <span style="opacity:0.6;font-size:11px;">(auto-falls back on 529 overload)</span></label><select id="inp-build-model" style="width:100%;padding:8px;background:rgba(7,9,26,0.7);border:1px solid var(--border);color:var(--text);border-radius:6px;font:inherit;">
+      <option value="">Auto — Opus 4.7 → Sonnet 4.6 → Sonnet 4.5 (default)</option>
+      <option value="claude-opus-4-7">Force Opus 4.7 (no fallback below this)</option>
+      <option value="claude-sonnet-4-6">Force Sonnet 4.6 (skip Opus entirely)</option>
+      <option value="claude-sonnet-4-5-20250929">Force Sonnet 4.5</option>
+    </select></div>
 
     <div class="settings-panel-section">Database</div>
     <div class="sfield"><label>Supabase URL</label><input type="text" id="inp-supa-url" placeholder="https://xxx.supabase.co"></div>
@@ -1821,6 +1827,9 @@ function showSettingsToast(msg) {
 
 function saveSettings() {
   const c = document.getElementById('inp-claude').value.trim();
+  const bmEl = document.getElementById('inp-build-model');
+  const bm = bmEl ? bmEl.value : '';
+  if (bm) localStorage.setItem('dn_build_model_override', bm); else localStorage.removeItem('dn_build_model_override');
   const ghToken = document.getElementById('inp-gh-token').value.trim();
   const ghRepo = document.getElementById('inp-gh-repo').value.trim();
   if (ghToken) localStorage.setItem('dn_gh_token', ghToken); else localStorage.removeItem('dn_gh_token');
@@ -1841,6 +1850,9 @@ function loadSettings() {
   const u = localStorage.getItem('dn_supa_url') || '';
   const k = localStorage.getItem('dn_supa_key') || '';
   if (c) document.getElementById('inp-claude').value = c;
+  const bm = localStorage.getItem('dn_build_model_override') || '';
+  const bmEl2 = document.getElementById('inp-build-model');
+  if (bmEl2) bmEl2.value = bm;
   const ghToken = localStorage.getItem('dn_gh_token') || '';
   const ghRepo = localStorage.getItem('dn_gh_repo') || '';
   if (ghToken) document.getElementById('inp-gh-token').value = ghToken;
@@ -3186,29 +3198,58 @@ async function buildRequest(reqId) {
       ? [{ type: 'text', text: prompt }].concat(mediaBlocks)
       : prompt;
 
-    const resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true',
-        'content-type': 'application/json'
-      },
-      body: JSON.stringify({
-        // Build agent — high-stakes, low-frequency. Use Opus for best
-        // instruction-following (patches must match the previous artifact
-        // byte-for-byte; older / smaller models paraphrase, which breaks
-        // the patch system) and the largest synchronous output ceiling
-        // available. See docs.claude.com/en/docs/about-claude/models/overview.
-        model: 'claude-opus-4-7',
-        max_tokens: 128000,
-        messages: [{ role: 'user', content: userContent }]
-      })
-    });
+    // Build agent model fallback chain — Opus first, then Sonnet fallbacks
+    // when Opus is overloaded (529) or otherwise temporarily unavailable.
+    // User can override the primary model via Settings → "Build agent model".
+    // Note: fallback models have weaker patch-fidelity discipline, so this
+    // is a last-resort path. Auto-fallback fires only on 529/503/502.
+    const userBuildModelOverride = localStorage.getItem('dn_build_model_override') || '';
+    const defaultBuildChain = ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-sonnet-4-5-20250929'];
+    const buildChain = userBuildModelOverride
+      ? [userBuildModelOverride].concat(defaultBuildChain.filter(function(m) { return m !== userBuildModelOverride; }))
+      : defaultBuildChain.slice();
 
-    if (!resp.ok) {
+    let resp;
+    let usedBuildModel = null;
+    let lastBuildErrText = '';
+    for (let mi = 0; mi < buildChain.length; mi++) {
+      const tryModel = buildChain[mi];
+      console.log('Build agent: trying ' + tryModel + (mi > 0 ? ' (fallback ' + mi + ')' : ''));
+      resp = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: {
+          'x-api-key': apiKey,
+          'anthropic-version': '2023-06-01',
+          'anthropic-dangerous-direct-browser-access': 'true',
+          'content-type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: tryModel,
+          max_tokens: 128000,
+          messages: [{ role: 'user', content: userContent }]
+        })
+      });
+      if (resp.ok) {
+        usedBuildModel = tryModel;
+        if (mi > 0) {
+          console.warn('Build agent: primary models overloaded; succeeded on fallback ' + tryModel);
+          try { showToast && showToast('Build ran on fallback model: ' + tryModel + ' (primary was overloaded)'); } catch(e) {}
+        }
+        break;
+      }
+      // Capacity / transient errors → try next model in chain
+      if ((resp.status === 529 || resp.status === 503 || resp.status === 502) && mi < buildChain.length - 1) {
+        lastBuildErrText = 'API ' + resp.status + ' on ' + tryModel + ' — falling back to ' + buildChain[mi + 1];
+        console.warn('Build agent: ' + lastBuildErrText);
+        try { await resp.text(); } catch(e) {}
+        continue;
+      }
+      // Non-retryable or final attempt — surface the real error
       const errText = await resp.text();
-      throw new Error('API error (' + resp.status + '): ' + errText.slice(0, 300));
+      throw new Error('API error (' + resp.status + ') on ' + tryModel + ': ' + errText.slice(0, 300));
+    }
+    if (!resp || !resp.ok) {
+      throw new Error('All build models exhausted. ' + lastBuildErrText);
     }
 
     const data = await resp.json();
