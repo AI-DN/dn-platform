@@ -1,11 +1,12 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.2.0</title>
+<title>DN Deck Generator v2.3.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://unpkg.com/docx@8.5.0/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 window.__pptxReady = false;
@@ -208,6 +209,10 @@ tbody tr:hover { background: var(--surface-2); }
 .skill-desc { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .skill-actions { display: flex; gap: 4px; flex-shrink: 0; }
 .skill-meta { font-size: 11px; color: var(--text-subtle); font-family: var(--mono); flex-shrink: 0; }
+.wp-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-top: 14px; }
+.wp-panel-head { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
+.wp-panel-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
+.wp-status { padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
 @media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } .range-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -217,7 +222,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.2.3 #30</div>
+      <div class="brand-version">v2.3.0 #31</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -330,7 +335,6 @@ async function loadAllSkills() {
     if (error) throw error;
     allSkills = data || [];
     window.allSkills = allSkills;
-    console.log(`Loaded ${allSkills.length} skills`);
   } catch (e) {
     console.warn('Failed to load skills:', e);
     throw e;
@@ -339,7 +343,7 @@ async function loadAllSkills() {
 
 async function loadAllReferenceData() {
   const sb = getSupabaseClient();
-  if (!sb) { console.warn('Supabase client unavailable — using minimal fallback'); setMinimalFallback(); return; }
+  if (!sb) { setMinimalFallback(); return; }
   dataLoadState.status = 'loading';
   try {
     const [skillsRes, imageCostsRes, anthropicCostsRes] = await Promise.all([
@@ -355,9 +359,8 @@ async function loadAllReferenceData() {
     window.allImageModels = allImageModels;
     dataLoadState.status = 'ok';
     dataLoadState.counts = { skills: allSkills.length, models: allImageModels.length };
-    console.log(`Loaded: ${allSkills.length} skills, ${allImageModels.length} image models`);
   } catch (e) {
-    console.error('Failed to load reference data from Supabase:', e);
+    console.error('Failed to load reference data:', e);
     dataLoadState.status = 'err'; dataLoadState.error = e.message || String(e);
     setMinimalFallback();
   }
@@ -475,9 +478,9 @@ function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,
 function nowIso() { return new Date().toISOString(); }
 
 const deckCost = {
-  polish: 0, outline: 0, image: 0, testImage: 0, imageDetails: [],
-  total() { return this.polish + this.outline + this.image + this.testImage; },
-  reset() { this.polish = 0; this.outline = 0; this.image = 0; this.testImage = 0; this.imageDetails = []; }
+  polish: 0, outline: 0, image: 0, testImage: 0, whitePaper: 0, imageDetails: [],
+  total() { return this.polish + this.outline + this.image + this.testImage + this.whitePaper; },
+  reset() { this.polish = 0; this.outline = 0; this.image = 0; this.testImage = 0; this.whitePaper = 0; this.imageDetails = []; }
 };
 
 const state = {
@@ -497,7 +500,8 @@ const state = {
   polishMode: null, polishing: false, generating: false,
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
-  modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null }
+  modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null },
+  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, deckTitle: '', statusMsg: '' }
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -887,6 +891,15 @@ async function assemblePptx() {
   const a = document.createElement('a'); a.href = url; a.download = fileName;
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(() => URL.revokeObjectURL(url), 1000);
+  if (state.whitePaper.deckTitle !== deckTitle) {
+    state.whitePaper.deckTitle = deckTitle;
+    state.whitePaper.data = null;
+    state.whitePaper.blob = null;
+    state.whitePaper.status = 'idle';
+    state.whitePaper.error = null;
+    state.whitePaper.cost = 0;
+    state.whitePaper.statusMsg = '';
+  }
   showDeckReadyModal(fileName, blob.size);
   if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
 }
@@ -916,6 +929,7 @@ function showDeckReadyModal(fileName, blobSize) {
         ${testCost > 0 ? `<tr><td>Test slide images <span class="subtle">(${testRows.length} model${testRows.length===1?'':'s'})</span></td><td class="mono" style="text-align:right">${fmtUsd4(testCost)}</td></tr>` : ''}
         <tr><td>Slide images <span class="subtle">(${slideImageRows.length}×)</span></td><td class="mono" style="text-align:right">${fmtUsd4(slideImageCost)}</td></tr>
         ${regenCost > 0 ? `<tr><td>Regenerations <span class="subtle">(${regenRows.length})</span></td><td class="mono" style="text-align:right">${fmtUsd4(regenCost)}</td></tr>` : ''}
+        ${deckCost.whitePaper > 0 ? `<tr><td>White paper (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.whitePaper)}</td></tr>` : ''}
         <tr style="font-weight:600"><td>Total</td><td class="mono" style="text-align:right">${fmtUsd4(total)}</td></tr>
       </tbody></table>
     </div>
@@ -923,9 +937,270 @@ function showDeckReadyModal(fileName, blobSize) {
     <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
       <table><tbody>${notesRows}</tbody></table>
     </div>
-    <div class="muted body-sm">${slideCount} slides generated. Notes embedded in PowerPoint's native speaker-notes field.</div>
+    <div id="wpPanel">${renderWhitePaperPanel()}</div>
+    <div class="muted body-sm" style="margin-top:14px">${slideCount} slides generated. Notes embedded in PowerPoint's native speaker-notes field.</div>
     <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Done</button></div>`;
   openModal(html, { lg: true });
+  bindWhitePaperPanel();
+}
+
+function renderWhitePaperPanel() {
+  const wp = state.whitePaper;
+  const hasPaper = !!wp.data && !!wp.blob;
+  let body = '';
+  if (wp.status === 'generating') {
+    body = `<div class="wp-status"><span class="spinner"></span> <span id="wpStatusText">${escapeHtml(wp.statusMsg || 'Calling Claude…')}</span></div>
+      <button class="btn-primary" disabled>Generating…</button>`;
+  } else if (wp.status === 'error') {
+    body = `<div class="danger-banner"><div><strong>Generation failed.</strong><br>${escapeHtml(wp.error || 'Unknown error')}</div></div>
+      <button class="btn-primary" id="wpGenBtn">Retry</button>`;
+  } else if (hasPaper) {
+    const sectionCount = wp.data.sections ? wp.data.sections.length : 0;
+    body = `<div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Generated · ${sectionCount} sections · ${fmtUsd4(wp.cost)}</div>
+      <div style="display:flex;gap:8px"><button class="btn-primary" id="wpReDownloadBtn">Re-download .docx</button><button class="btn-secondary" id="wpGenBtn">Regenerate</button></div>`;
+  } else {
+    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08</strong> in Claude tokens</div>
+      <button class="btn-primary" id="wpGenBtn">Generate companion white paper</button>`;
+  }
+  return `<div class="wp-panel">
+    <div class="wp-panel-head">📄 Companion white paper</div>
+    <div class="wp-panel-desc">Turn this deck into a polished 8–12 page white paper. Same content, expanded into flowing prose for readers who want depth beyond the slides.</div>
+    ${body}
+  </div>`;
+}
+
+function bindWhitePaperPanel() {
+  const genBtn = document.getElementById('wpGenBtn');
+  if (genBtn) genBtn.onclick = () => generateWhitePaper();
+  const reBtn = document.getElementById('wpReDownloadBtn');
+  if (reBtn) reBtn.onclick = () => {
+    if (state.whitePaper.blob) downloadWhitePaper(state.whitePaper.blob, state.whitePaper.deckTitle || state.whitePaper.data.title);
+  };
+}
+
+function refreshWhitePaperPanel() {
+  const panel = document.getElementById('wpPanel');
+  if (!panel) return;
+  panel.innerHTML = renderWhitePaperPanel();
+  bindWhitePaperPanel();
+}
+
+async function generateWhitePaper() {
+  const key = (state.apiKeys.anthropic || '').trim();
+  if (!key) {
+    state.whitePaper.status = 'error';
+    state.whitePaper.error = 'NO_ANTHROPIC_KEY: Set Anthropic API key in Settings.';
+    refreshWhitePaperPanel();
+    return;
+  }
+  state.whitePaper.status = 'generating';
+  state.whitePaper.error = null;
+  state.whitePaper.statusMsg = 'Stage 1: Calling Claude to write paper sections…';
+  refreshWhitePaperPanel();
+  try {
+    const paper = await callClaudeForWhitePaper(key);
+    state.whitePaper.statusMsg = 'Stage 2: Assembling .docx with DN branding…';
+    refreshWhitePaperPanel();
+    const blob = await assembleWhitePaperDocx(paper);
+    state.whitePaper.data = paper;
+    state.whitePaper.blob = blob;
+    state.whitePaper.status = 'done';
+    state.whitePaper.statusMsg = 'Stage 3: Download ready.';
+    refreshWhitePaperPanel();
+    downloadWhitePaper(blob, state.whitePaper.deckTitle || paper.title);
+    toast({ type: 'success', message: `White paper generated · ${fmtUsd4(state.whitePaper.cost)}` });
+  } catch (e) {
+    console.error('White paper generation failed:', e);
+    state.whitePaper.status = 'error';
+    state.whitePaper.error = e.message || String(e);
+    refreshWhitePaperPanel();
+    toast({ type: 'error', message: e.message || 'White paper failed' });
+  }
+}
+
+async function callClaudeForWhitePaper(key) {
+  const deckTitle = state.whitePaper.deckTitle || (state.selectedSkillId ? (skillById(state.selectedSkillId) || {}).name : 'Untitled') || 'Untitled';
+  const wpSystemPrompt = `You are a senior content strategist at Digitata Networks, a telco software and managed-services company. You write polished white papers that customers read AFTER a sales or technical meeting — readers who want depth beyond the slide deck.
+
+Voice and style:
+- Professional, evidence-led, confident but not boastful
+- Telco/enterprise vocabulary used precisely, no marketing fluff
+- Concrete, specific, anchored in operational reality
+- Short paragraphs (3–5 sentences). Vary sentence length.
+- British English spelling (Digitata Networks is South Africa-based serving global telcos)
+
+Structure the paper as:
+1. Executive Summary (~200 words) — what the paper argues, who should read it, the takeaway
+2. Introduction / Context (~250 words) — the landscape, why this topic matters now
+3. One section per slide (each ~350–500 words) — slide title becomes the section heading; expand the slide content into a flowing argument with examples, implications, and evidence-led reasoning
+4. Conclusion (~250 words) — synthesise the argument, leave the reader with a clear position
+5. About Digitata Networks (~150 words) — brief boilerplate: telco software + managed services, 25+ years, global telco customers, focus on revenue uplift and ops excellence
+
+Each section's expansion must:
+- Use the slide's title and body as the seed
+- Use the speakerNotes (if present) as additional context
+- NOT just rephrase the slide — expand it. Add the reasoning a presenter would say aloud, the implications a reader would want, the examples that make it concrete
+- Stay anchored to the slide's intent — do not invent unrelated claims
+
+Output format: a strict JSON object with this shape:
+{
+  "title": "string — the paper's title (use deck title)",
+  "subtitle": "string — short tagline, optional",
+  "sections": [
+    { "heading": "Executive Summary", "body": "string — paragraphs separated by \\n\\n" },
+    { "heading": "Introduction", "body": "string" },
+    { "heading": "{slide 1 title}", "body": "string" },
+    ...one per slide...
+    { "heading": "Conclusion", "body": "string" },
+    { "heading": "About Digitata Networks", "body": "string" }
+  ]
+}
+
+No prose outside the JSON. No markdown fences. Just the JSON object.`;
+  const slidesContext = state.slides.map((s, i) => {
+    return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
+  }).join('\n---\n\n');
+  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nGenerate the companion white paper now. Return JSON only.`;
+  const modelName = 'claude-sonnet-4-5-20250929';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({ model: modelName, max_tokens: 16000, system: wpSystemPrompt, messages: [{ role: 'user', content: wpUserPrompt }] })
+  });
+  if (!resp.ok) { const err = await resp.text(); throw new Error(`Claude ${resp.status}: ${err.slice(0,400)}`); }
+  const data = await resp.json();
+  if (data.usage) {
+    const cost = getAnthropicCost(modelName, data.usage.input_tokens || 0, data.usage.output_tokens || 0);
+    state.whitePaper.cost = cost;
+    deckCost.whitePaper += cost;
+    renderCostBadge();
+  }
+  const reply = data.content[0].text || '';
+  return parseWhitePaper(reply);
+}
+
+function parseWhitePaper(reply) {
+  const cleaned = reply.trim().replace(/^```(?:json)?\s*/, '').replace(/```\s*$/, '');
+  try {
+    const obj = JSON.parse(cleaned);
+    if (!obj.sections || !Array.isArray(obj.sections)) throw new Error('Missing sections array');
+    return obj;
+  } catch (e) {
+    console.error('Failed to parse white paper response:', e, cleaned.slice(0, 500));
+    throw new Error('Claude returned malformed white paper JSON. Try again or check the console for details.');
+  }
+}
+
+async function assembleWhitePaperDocx(paper) {
+  if (!window.docx) throw new Error('docx library not loaded');
+  const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
+          Footer, Header, ImageRun, PageNumber, NumberFormat } = window.docx;
+
+  const logoB64Raw = safeStorage.getItem('dn_logo_b64') || state.logoB64 || '';
+  const logoB64 = logoB64Raw.replace(/^data:image\/\w+;base64,/, '');
+  let logoBytes = null;
+  if (logoB64) {
+    try { logoBytes = Uint8Array.from(atob(logoB64), c => c.charCodeAt(0)); } catch (e) { console.warn('Logo decode failed', e); logoBytes = null; }
+  }
+
+  const titleParas = [
+    new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { before: 600, after: 200 },
+      children: [
+        new TextRun({ text: paper.title || 'Companion White Paper', font: 'Syne', bold: true, size: 56, color: '07091A' })
+      ]
+    })
+  ];
+  if (paper.subtitle) {
+    titleParas.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      spacing: { after: 600 },
+      children: [
+        new TextRun({ text: paper.subtitle, font: 'DM Sans', size: 24, color: '6B7280', italics: true })
+      ]
+    }));
+  }
+
+  const sectionParas = [];
+  paper.sections.forEach((sec) => {
+    sectionParas.push(new Paragraph({
+      heading: HeadingLevel.HEADING_1,
+      spacing: { before: 480, after: 200 },
+      children: [
+        new TextRun({ text: sec.heading, font: 'Syne', bold: true, size: 32, color: '07091A' })
+      ]
+    }));
+    const bodyParas = (sec.body || '').split(/\n\n+/).filter(p => p.trim());
+    bodyParas.forEach(p => {
+      sectionParas.push(new Paragraph({
+        spacing: { after: 200, line: 320 },
+        children: [
+          new TextRun({ text: p.trim(), font: 'DM Sans', size: 22, color: '1F2937' })
+        ]
+      }));
+    });
+  });
+
+  const headerChildren = [];
+  if (logoBytes) {
+    headerChildren.push(new Paragraph({
+      alignment: AlignmentType.LEFT,
+      children: [
+        new ImageRun({ data: logoBytes, transformation: { width: 100, height: 35 } })
+      ]
+    }));
+  }
+
+  const footerPara = new Paragraph({
+    alignment: AlignmentType.CENTER,
+    children: [
+      new TextRun({
+        text: `© ${new Date().getFullYear()} Digitata Networks. All rights reserved. — Page `,
+        font: 'DM Sans', size: 16, color: '9CA3AF'
+      }),
+      new TextRun({ children: [PageNumber.CURRENT], font: 'DM Sans', size: 16, color: '9CA3AF' }),
+      new TextRun({ text: ' of ', font: 'DM Sans', size: 16, color: '9CA3AF' }),
+      new TextRun({ children: [PageNumber.TOTAL_PAGES], font: 'DM Sans', size: 16, color: '9CA3AF' })
+    ]
+  });
+
+  const doc = new Document({
+    creator: 'Digitata Networks',
+    title: paper.title || 'Companion White Paper',
+    description: 'Generated by DN Deck Generator',
+    styles: {
+      default: {
+        document: { run: { font: 'DM Sans', size: 22 } }
+      }
+    },
+    sections: [{
+      properties: {
+        page: {
+          margin: { top: 1080, bottom: 1080, left: 1080, right: 1080 },
+          pageNumbers: { start: 1, formatType: NumberFormat.DECIMAL }
+        }
+      },
+      headers: { default: new Header({ children: headerChildren }) },
+      footers: { default: new Footer({ children: [footerPara] }) },
+      children: [...titleParas, ...sectionParas]
+    }]
+  });
+
+  const blob = await Packer.toBlob(doc);
+  return blob;
+}
+
+function downloadWhitePaper(blob, title) {
+  const slug = (title || 'companion-white-paper').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `${slug}-white-paper.docx`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
 function renderCompose() {
@@ -1174,7 +1449,6 @@ function enterStep35() {
   state.modelPicker.inFlight = false;
   state.modelPicker.mode = 'know';
   state.modelPicker.selectedToMockup = new Set();
-  // Pick default single-pick model: last used > default > first favorite > first available
   let defaultPick = null;
   const tryModel = (id) => state.modelPicker.candidates.find(c => `${c.provider}:${c.model}:${c.quality}` === id);
   if (state.lastSelectedModel && tryModel(state.lastSelectedModel)) defaultPick = state.lastSelectedModel;
@@ -1274,7 +1548,7 @@ function renderStep35() {
             <div style="margin-top:12px;padding-left:24px">
               <div class="field"><label class="field-label">Test slide</label><select class="select" id="testSlideSel">${state.slides.map((s, i) => `<option value="${i}" ${i === state.modelPicker.testSlideIdx ? 'selected' : ''}>${i+1}. ${escapeHtml(s.title.slice(0,60))}</option>`).join('')}</select></div>
               <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px">
-                ${sortedCands.map((c, i) => {
+                ${sortedCands.map((c) => {
                   const id = `${c.provider}:${c.model}:${c.quality}`;
                   const checked = selectedToMockup.has(id);
                   const fav = favoriteModelIds.has(id);
@@ -1390,31 +1664,6 @@ function bindModelCard(idx) {
   const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => runSingleTest(idx);
   const sel = card.querySelector('[data-act="select"]'); if (sel) sel.onclick = () => selectModel(idx);
   const openSet = card.querySelector('[data-act="openSettings"]'); if (openSet) openSet.onclick = e => { e.preventDefault(); state.view = 'settings'; setActiveNav(); render(); };
-}
-async function runTestGenerations() {
-  if (state.modelPicker.inFlight) return;
-  const slide = state.slides[state.modelPicker.testSlideIdx];
-  if (!slide) { toast({ type: 'error', message: 'No test slide' }); return; }
-  const eligible = state.modelPicker.candidates.filter(c => c.keyAvailable);
-  if (eligible.length === 0) { toast({ type: 'error', message: 'No providers configured.' }); return; }
-  state.modelPicker.inFlight = true;
-  eligible.forEach(c => { c.status = 'generating'; c.error = null; });
-  renderStep35();
-  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
-  const prompt = composeSkillPrompt(skill, slide);
-  await Promise.all(eligible.map(async c => {
-    try {
-      const b64 = await generateImageWithProvider(c.provider, c.model, c.quality, prompt);
-      c.imageB64 = b64; c.status = 'done';
-      deckCost.testImage += c.cost_per_image;
-      deckCost.imageDetails.push({ provider: c.provider, model: c.model, quality: c.quality, cost: c.cost_per_image, kind: 'test' });
-      renderCostBadge();
-    } catch (err) { c.status = 'error'; c.error = err.message || String(err); }
-    renderStep35();
-  }));
-  state.modelPicker.inFlight = false;
-  renderStep35();
-  toast({ type: 'success', message: `Test images ready · ${fmtUsd4(deckCost.testImage)}` });
 }
 async function runSingleTest(idx) {
   const c = state.modelPicker.candidates[idx]; if (!c) return;
@@ -1636,7 +1885,7 @@ function openSkillEditor(id) {
       <div class="modal-header"><div><div class="h1">${existing ? 'Edit skill' : 'New skill'}</div><div class="muted body-sm" style="margin-top:4px">${existing ? 'Saving creates a new version row for rollback' : 'A skill is one self-contained visual prompt'}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
       <div class="field"><label class="field-label">Name <span class="subtle">required</span></label><input class="input" id="skName" value="${escapeHtml(draft.name)}" placeholder="e.g. DN Telco Sales Pitch — Dark"></div>
       <div class="field"><label class="field-label">Description</label><input class="input" id="skDesc" value="${escapeHtml(draft.description || '')}" placeholder="One-line summary shown in dropdowns"></div>
-      <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model. Anything from a 50-char hint to a 5000-char brand passport.">${escapeHtml(draft.prompt || '')}</textarea></div>
+      <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model.">${escapeHtml(draft.prompt || '')}</textarea></div>
       <div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="skChange" placeholder="What changed in this version?"></div>
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal()">Cancel</button>
@@ -1669,7 +1918,6 @@ function openSkillEditor(id) {
 async function saveSkill(skill) {
   const sb = getSupabaseClient();
   if (!sb) {
-    // local-only fallback
     if (skill.id) {
       const idx = allSkills.findIndex(s => s.id === skill.id);
       if (idx >= 0) allSkills[idx] = { ...allSkills[idx], name: skill.name, description: skill.description, prompt: skill.prompt, updated_at: new Date().toISOString() };
@@ -1692,7 +1940,6 @@ async function saveSkill(skill) {
   if (skill.id) payload.id = skill.id;
   const { data: saved, error } = await sb.from('deck_templates').upsert(payload).select().single();
   if (error) throw error;
-  // version row (best-effort)
   try {
     const { data: versionsExisting } = await sb.from('template_versions').select('version_num').eq('template_id', saved.id).order('version_num', { ascending: false }).limit(1);
     const nextVersion = (versionsExisting && versionsExisting[0] && versionsExisting[0].version_num || 0) + 1;
@@ -1711,7 +1958,7 @@ async function duplicateSkill(id) {
 }
 function confirmDeleteSkill(id) {
   const s = skillById(id); if (!s) return;
-  openModal(`<div class="modal-header"><div><div class="h1">Delete "${escapeHtml(s.name)}"?</div></div></div><div class="danger-banner"><div>The skill will be deactivated (soft delete). Past decks that used it are unaffected.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelSkill">Delete</button></div>`);
+  openModal(`<div class="modal-header"><div><div class="h1">Delete "${escapeHtml(s.name)}"?</div></div></div><div class="danger-banner"><div>The skill will be deactivated (soft delete).</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelSkill">Delete</button></div>`);
   document.getElementById('confirmDelSkill').onclick = async () => {
     try {
       const sb = getSupabaseClient();
@@ -1764,7 +2011,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.2.0</span> (build #27 — Skills model)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.3.0</span> (build #31 — Companion white paper)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
