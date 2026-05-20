@@ -147,6 +147,11 @@ button { font-family: inherit; }
 .kv dt { color: var(--text-muted); font-size: 12px; }
 .kv dd { color: var(--text); word-break: break-all; }
 .slide-edit-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; margin-bottom: 10px; }
+.slide-edit-card.dragging { opacity: 0.5; cursor: grabbing; }
+.slide-edit-card.drag-over { border: 1px dashed var(--accent); background: var(--accent-bg); }
+.drag-handle { cursor: grab; opacity: 0.4; transition: opacity 150ms ease; display: inline-flex; align-items: center; color: var(--text-muted); padding: 2px 4px; user-select: none; }
+.drag-handle:hover { opacity: 1; }
+.drag-handle:active { cursor: grabbing; }
 .slide-edit-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
 .slide-edit-num { font-family: var(--mono); font-size: 11px; color: var(--text-muted); background: var(--surface-2); padding: 2px 8px; border-radius: 10px; border: 1px solid var(--border); }
 .slide-edit-actions { margin-left: auto; display: flex; gap: 4px; }
@@ -212,7 +217,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.2.2 #29</div>
+      <div class="brand-version">v2.2.3 #30</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1078,9 +1083,11 @@ function renderStep3() {
 }
 function renderSlideEditCard(s, i) {
   const atMin = state.slides.length <= state.slideMin;
+  const isFirst = i === 0;
+  const isLast = i === state.slides.length - 1;
   return `
-    <div class="slide-edit-card" data-idx="${i}">
-      <div class="slide-edit-head"><span class="slide-edit-num">Slide ${i+1}</span><div class="slide-edit-actions"><button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled' : ''} aria-label="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>
+    <div class="slide-edit-card" data-idx="${i}" draggable="true">
+      <div class="slide-edit-head"><span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span><span class="slide-edit-num">Slide ${i+1}</span><div class="slide-edit-actions"><button class="icon-btn-sm" data-act="up" ${isFirst ? 'disabled' : ''} aria-label="Move up" title="${isFirst ? 'Already at top' : 'Move up'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button><button class="icon-btn-sm" data-act="down" ${isLast ? 'disabled' : ''} aria-label="Move down" title="${isLast ? 'Already at bottom' : 'Move down'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button><button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled' : ''} aria-label="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>
       <div class="field"><label class="field-label">Title</label><input class="input" data-act="title" value="${escapeHtml(s.title)}"></div>
       <div class="field" style="margin-bottom:0"><label class="field-label">Body</label><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea><div class="field-hint" style="margin-top:4px">This body text becomes the default speaker notes on Step 5. Edit there if you want different notes than what appears on the slide.</div></div>
     </div>`;
@@ -1090,6 +1097,43 @@ function bindSlideEditCard(i) {
   card.querySelector('[data-act="title"]').oninput = e => { state.slides[i].title = e.target.value; };
   card.querySelector('[data-act="body"]').oninput = e => { state.slides[i].body = e.target.value; };
   card.querySelector('[data-act="del"]').onclick = () => { if (state.slides.length <= state.slideMin) return; state.slides.splice(i, 1); renderStep3(); };
+  const upBtn = card.querySelector('[data-act="up"]'); if (upBtn) upBtn.onclick = () => moveSlideUp(i);
+  const dnBtn = card.querySelector('[data-act="down"]'); if (dnBtn) dnBtn.onclick = () => moveSlideDown(i);
+  card.addEventListener('dragstart', e => {
+    if (e.target.closest('input, textarea, button')) { e.preventDefault(); return; }
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(i));
+    card.classList.add('dragging');
+  });
+  card.addEventListener('dragend', () => {
+    card.classList.remove('dragging');
+    document.querySelectorAll('.slide-edit-card.drag-over').forEach(c => c.classList.remove('drag-over'));
+  });
+  card.addEventListener('dragover', e => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; card.classList.add('drag-over'); });
+  card.addEventListener('dragleave', e => { if (e.target === card) card.classList.remove('drag-over'); });
+  card.addEventListener('drop', e => {
+    e.preventDefault();
+    card.classList.remove('drag-over');
+    const fromIdx = parseInt(e.dataTransfer.getData('text/plain'), 10);
+    const toIdx = parseInt(card.dataset.idx, 10);
+    if (isNaN(fromIdx) || isNaN(toIdx) || fromIdx === toIdx) return;
+    const [moved] = state.slides.splice(fromIdx, 1);
+    state.slides.splice(toIdx, 0, moved);
+    renderStep3();
+  });
+}
+
+function moveSlideUp(idx) {
+  if (idx <= 0) return;
+  const s = state.slides;
+  [s[idx - 1], s[idx]] = [s[idx], s[idx - 1]];
+  renderStep3();
+}
+function moveSlideDown(idx) {
+  const s = state.slides;
+  if (idx >= s.length - 1) return;
+  [s[idx], s[idx + 1]] = [s[idx + 1], s[idx]];
+  renderStep3();
 }
 
 function providerKeyAvailable(provider) {
