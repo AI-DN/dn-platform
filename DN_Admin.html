@@ -3267,7 +3267,10 @@ async function buildRequest(reqId) {
     const validationErrors = await validateBuiltArtifact(html);
     if (validationErrors.length > 0) {
       const errSummary = validationErrors.slice(0, 5).map(function(e) {
-        return '• ' + e.message + (e.line ? ' (line ' + e.line + ')' : '');
+        var msg = e.message || 'Unknown error';
+        var loc = e.line ? ' (line ' + e.line + (e.column ? ':' + e.column : '') + ')' : '';
+        var stackLine = e.stack ? '\n   ' + e.stack : '';
+        return '• ' + msg + loc + stackLine;
       }).join('\n');
       const more = validationErrors.length > 5 ? '\n... and ' + (validationErrors.length - 5) + ' more' : '';
       // Save the artifact in a "build_failed" state with errors attached as notes
@@ -3710,7 +3713,18 @@ async function validateBuiltArtifact(html) {
     // read iframe.contentWindow.__buildErrors after parse.
     const guardScript =
       '<script>window.__buildErrors=[];' +
-      'window.addEventListener("error",function(e){window.__buildErrors.push({message:e.message,line:e.lineno,column:e.colno,source:e.filename});},true);' +
+      'window.addEventListener("error",function(e){' +
+        'var msg=e.message;' +
+        'if((!msg||msg==="Script error.")&&e.error){msg=(e.error.name?e.error.name+": ":"")+(e.error.message||String(e.error));}' +
+        'if(!msg)msg="Unknown error (line "+(e.lineno||"?")+")";' +
+        'var stack=e.error&&e.error.stack?String(e.error.stack).split("\\n").slice(0,3).join(" | ").slice(0,400):"";' +
+        'window.__buildErrors.push({message:msg,line:e.lineno,column:e.colno,source:e.filename,stack:stack});' +
+      '},true);' +
+      'window.addEventListener("unhandledrejection",function(e){' +
+        'var r=e.reason;' +
+        'var msg="Unhandled rejection: "+(r&&r.message?r.message:String(r||"unknown"));' +
+        'window.__buildErrors.push({message:msg,line:null});' +
+      '});' +
       '<' + '/script>';
     let wrappedHtml;
     if (/<head[^>]*>/i.test(html)) {
