@@ -3847,8 +3847,8 @@ DN_HOUSE_STYLE.trim() + '\n' +
   if (isRebuild) {
     prompt +=
 'THIS IS A REBUILD.\n\n' +
-'You will respond with a single complete HTML document — NOT patches, NOT find/replace operations, NOT a JSON patches array. Patches are FORBIDDEN in all rebuilds. The previous HTML appears below for context only — emit a new complete HTML document with the requested changes applied to it.\n\n' +
-'PREVIOUS VERSION HTML (this is context only — your output will REPLACE this entire document):\n' +
+'The previous version of this app exists below. You can respond in either of two formats — choose the one that best fits the requested change. Read the guidance carefully before deciding.\n\n' +
+'PREVIOUS VERSION HTML (read carefully — your output will modify or replace this):\n' +
 '```html\n' + previousHtml + '\n```\n\n';
 
     // Pending capabilities = user-requested additions since the last build
