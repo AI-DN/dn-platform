@@ -1,12 +1,13 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.3.0</title>
+<title>DN Deck Generator v2.3.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
 <script src="https://unpkg.com/docx@8.5.0/build/index.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 window.__pptxReady = false;
@@ -213,6 +214,7 @@ tbody tr:hover { background: var(--surface-2); }
 .wp-panel-head { font-size: 13px; font-weight: 600; color: var(--text); margin-bottom: 6px; }
 .wp-panel-desc { font-size: 12px; color: var(--text-muted); line-height: 1.5; margin-bottom: 10px; }
 .wp-status { padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; gap: 8px; }
+#mermaidStaging { position: absolute; left: -10000px; top: -10000px; width: 1400px; visibility: hidden; pointer-events: none; }
 @media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } .range-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -222,7 +224,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.3.0 #31</div>
+      <div class="brand-version">v2.3.1 #32</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -243,9 +245,30 @@ tbody tr:hover { background: var(--surface-2); }
 </div>
 <div id="toastContainer" class="toast-container"></div>
 <div id="modalRoot"></div>
+<div id="mermaidStaging"></div>
 <script>
 const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 document.documentElement.dataset.theme = initialTheme;
+
+if (window.mermaid) {
+  try {
+    window.mermaid.initialize({
+      startOnLoad: false,
+      theme: 'base',
+      themeVariables: {
+        primaryColor: '#1a2b4a',
+        primaryTextColor: '#ffffff',
+        primaryBorderColor: '#47d1ff',
+        lineColor: '#6b7280',
+        secondaryColor: '#07091a',
+        tertiaryColor: '#f3f4f6',
+        fontFamily: 'DM Sans, sans-serif'
+      },
+      fontFamily: 'DM Sans, sans-serif',
+      securityLevel: 'loose'
+    });
+  } catch (e) { console.warn('Mermaid init failed:', e); }
+}
 
 const SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
 const SUPABASE_ANON_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
@@ -501,7 +524,7 @@ const state = {
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
   modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null },
-  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, deckTitle: '', statusMsg: '' }
+  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0 }
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -899,6 +922,8 @@ async function assemblePptx() {
     state.whitePaper.error = null;
     state.whitePaper.cost = 0;
     state.whitePaper.statusMsg = '';
+    state.whitePaper.figuresTotal = 0;
+    state.whitePaper.figuresDone = 0;
   }
   showDeckReadyModal(fileName, blob.size);
   if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
@@ -947,6 +972,7 @@ function showDeckReadyModal(fileName, blobSize) {
 function renderWhitePaperPanel() {
   const wp = state.whitePaper;
   const hasPaper = !!wp.data && !!wp.blob;
+  const mermaidOk = !!window.mermaid;
   let body = '';
   if (wp.status === 'generating') {
     body = `<div class="wp-status"><span class="spinner"></span> <span id="wpStatusText">${escapeHtml(wp.statusMsg || 'Calling Claude…')}</span></div>
@@ -956,15 +982,16 @@ function renderWhitePaperPanel() {
       <button class="btn-primary" id="wpGenBtn">Retry</button>`;
   } else if (hasPaper) {
     const sectionCount = wp.data.sections ? wp.data.sections.length : 0;
-    body = `<div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Generated · ${sectionCount} sections · ${fmtUsd4(wp.cost)}</div>
+    const figCount = (wp.data.sections || []).filter(s => s.figure && s.figure.pngBytes).length;
+    body = `<div class="wp-status" style="background:var(--success-bg);border-color:var(--success);color:var(--success)">✓ Generated · ${sectionCount} sections · ${figCount} Mermaid diagram${figCount===1?'':'s'} · ${fmtUsd4(wp.cost)}</div>
       <div style="display:flex;gap:8px"><button class="btn-primary" id="wpReDownloadBtn">Re-download .docx</button><button class="btn-secondary" id="wpGenBtn">Regenerate</button></div>`;
   } else {
-    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08</strong> in Claude tokens</div>
+    body = `<div class="muted body-sm" style="margin-bottom:10px">Estimated cost: <strong>~$0.08</strong> in Claude tokens · Mermaid diagrams render locally (free)${mermaidOk ? '' : ' · <span style="color:var(--warning)">Mermaid library not loaded — text-only fallback</span>'}</div>
       <button class="btn-primary" id="wpGenBtn">Generate companion white paper</button>`;
   }
   return `<div class="wp-panel">
     <div class="wp-panel-head">📄 Companion white paper</div>
-    <div class="wp-panel-desc">Turn this deck into a polished 8–12 page white paper. Same content, expanded into flowing prose for readers who want depth beyond the slides.</div>
+    <div class="wp-panel-desc">Turn this deck into a polished 8–12 page white paper with Mermaid diagrams where they fit. Same content, expanded into flowing prose with visual flows, sequences, and state machines on-brand in DN navy and cyan.</div>
     ${body}
   </div>`;
 }
@@ -995,26 +1022,117 @@ async function generateWhitePaper() {
   }
   state.whitePaper.status = 'generating';
   state.whitePaper.error = null;
+  state.whitePaper.figuresTotal = 0;
+  state.whitePaper.figuresDone = 0;
   state.whitePaper.statusMsg = 'Stage 1: Calling Claude to write paper sections…';
   refreshWhitePaperPanel();
   try {
     const paper = await callClaudeForWhitePaper(key);
-    state.whitePaper.statusMsg = 'Stage 2: Assembling .docx with DN branding…';
+    const figs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.syntax);
+    state.whitePaper.figuresTotal = figs.length;
+    if (figs.length > 0) {
+      state.whitePaper.statusMsg = `Stage 2: Rendering Mermaid diagrams… (0 of ${figs.length})`;
+      refreshWhitePaperPanel();
+      await prerenderFigures(paper);
+    }
+    state.whitePaper.statusMsg = 'Stage 3: Assembling .docx with DN branding…';
     refreshWhitePaperPanel();
     const blob = await assembleWhitePaperDocx(paper);
     state.whitePaper.data = paper;
     state.whitePaper.blob = blob;
     state.whitePaper.status = 'done';
-    state.whitePaper.statusMsg = 'Stage 3: Download ready.';
+    state.whitePaper.statusMsg = 'Stage 4: Download ready.';
     refreshWhitePaperPanel();
     downloadWhitePaper(blob, state.whitePaper.deckTitle || paper.title);
-    toast({ type: 'success', message: `White paper generated · ${fmtUsd4(state.whitePaper.cost)}` });
+    const renderedFigs = (paper.sections || []).filter(s => s.figure && s.figure.pngBytes).length;
+    toast({ type: 'success', message: `White paper · ${renderedFigs} diagram${renderedFigs===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost)}` });
   } catch (e) {
     console.error('White paper generation failed:', e);
     state.whitePaper.status = 'error';
     state.whitePaper.error = e.message || String(e);
     refreshWhitePaperPanel();
     toast({ type: 'error', message: e.message || 'White paper failed' });
+  }
+}
+
+async function renderMermaidToPng(syntax, targetWidthPx) {
+  if (!window.mermaid) throw new Error('Mermaid library not loaded');
+  targetWidthPx = targetWidthPx || 1200;
+  const id = 'mermaid-' + Math.random().toString(36).slice(2);
+  let svgString;
+  try {
+    const result = await window.mermaid.render(id, syntax);
+    svgString = result.svg;
+  } catch (e) {
+    throw new Error('Mermaid parse error: ' + (e.message || String(e)));
+  }
+  // Ensure SVG has explicit width/height so naturalWidth resolves correctly when loaded as <img>
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgString, 'image/svg+xml');
+    const svgEl = doc.documentElement;
+    if (svgEl && svgEl.tagName.toLowerCase() === 'svg') {
+      const vb = svgEl.getAttribute('viewBox');
+      let vbW = 0, vbH = 0;
+      if (vb) { const parts = vb.split(/[\s,]+/).map(Number); if (parts.length === 4) { vbW = parts[2]; vbH = parts[3]; } }
+      if (!svgEl.getAttribute('width') && vbW) svgEl.setAttribute('width', String(vbW));
+      if (!svgEl.getAttribute('height') && vbH) svgEl.setAttribute('height', String(vbH));
+      svgString = new XMLSerializer().serializeToString(svgEl);
+    }
+  } catch (e) { /* non-fatal — fall back to original SVG */ }
+  return new Promise(function(resolve, reject) {
+    const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const img = new Image();
+    img.onload = function() {
+      const naturalW = img.naturalWidth || img.width || 800;
+      const naturalH = img.naturalHeight || img.height || 600;
+      const scale = targetWidthPx / naturalW;
+      const canvas = document.createElement('canvas');
+      canvas.width = targetWidthPx;
+      canvas.height = Math.round(naturalH * scale);
+      const ctx = canvas.getContext('2d');
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(pngBlob) {
+        URL.revokeObjectURL(url);
+        if (!pngBlob) return reject(new Error('Canvas toBlob returned null'));
+        const reader = new FileReader();
+        reader.onload = function() {
+          resolve({ bytes: new Uint8Array(reader.result), width: canvas.width, height: canvas.height });
+        };
+        reader.onerror = function() { reject(new Error('FileReader failed')); };
+        reader.readAsArrayBuffer(pngBlob);
+      }, 'image/png');
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('SVG-to-image rasterisation failed'));
+    };
+    img.src = url;
+  });
+}
+
+async function prerenderFigures(paper) {
+  let done = 0;
+  for (const sec of paper.sections) {
+    if (sec.figure && sec.figure.type === 'mermaid' && sec.figure.syntax) {
+      try {
+        const out = await renderMermaidToPng(sec.figure.syntax, 1200);
+        sec.figure.pngBytes = out.bytes;
+        sec.figure.pngWidth = out.width;
+        sec.figure.pngHeight = out.height;
+      } catch (e) {
+        console.warn('Mermaid render failed for section "' + sec.heading + '":', e.message);
+        sec.figure.renderError = e.message;
+      }
+      done++;
+      state.whitePaper.figuresDone = done;
+      state.whitePaper.statusMsg = `Stage 2: Rendering Mermaid diagrams… (${done} of ${state.whitePaper.figuresTotal})`;
+      const el = document.getElementById('wpStatusText');
+      if (el) el.textContent = state.whitePaper.statusMsg;
+    }
   }
 }
 
@@ -1042,17 +1160,49 @@ Each section's expansion must:
 - NOT just rephrase the slide — expand it. Add the reasoning a presenter would say aloud, the implications a reader would want, the examples that make it concrete
 - Stay anchored to the slide's intent — do not invent unrelated claims
 
+FIGURES — per-section decision:
+For each section, decide whether a diagram would meaningfully clarify the content.
+Use a Mermaid figure when the section describes:
+  - A flow or process (use flowchart)
+  - A sequence of interactions between systems or people (use sequenceDiagram)
+  - A state machine or lifecycle (use stateDiagram-v2)
+  - A data model or entity relationships (use erDiagram)
+  - A user journey (use journey)
+  - A breakdown of proportions (use pie)
+  - A timeline of activities (use gantt)
+
+DO NOT include a Mermaid diagram when:
+  - The section is purely narrative or argumentative (Executive Summary, Conclusion, About DN — these should have figure: null)
+  - The content is best shown as continuous prose
+  - You cannot construct a meaningful, accurate diagram from the source material
+  - The section already conveys the structure clearly in prose
+
+Mermaid syntax rules:
+  - Keep diagrams readable: 5–12 nodes maximum
+  - Use clear labels (short phrases, not full sentences)
+  - Use --> for directional flow, --- for undirected connections
+  - For flowcharts, use direction TB (top-to-bottom) by default; LR (left-to-right) for wider concepts
+  - For sequenceDiagram, use 3–7 actors maximum
+  - Escape any quotes inside labels — Mermaid breaks on raw quotes
+  - DO NOT use HTML inside Mermaid labels
+  - Test mentally: the diagram should be parseable by mermaid.js v10
+
+If unsure whether to include a diagram, set figure: null. Better no diagram than a confusing one.
+
 Output format: a strict JSON object with this shape:
 {
   "title": "string — the paper's title (use deck title)",
   "subtitle": "string — short tagline, optional",
   "sections": [
-    { "heading": "Executive Summary", "body": "string — paragraphs separated by \\n\\n" },
-    { "heading": "Introduction", "body": "string" },
-    { "heading": "{slide 1 title}", "body": "string" },
-    ...one per slide...
-    { "heading": "Conclusion", "body": "string" },
-    { "heading": "About Digitata Networks", "body": "string" }
+    {
+      "heading": "string",
+      "body": "string — paragraphs separated by \\n\\n",
+      "figure": null OR {
+        "type": "mermaid",
+        "caption": "string — short caption shown below the diagram",
+        "syntax": "string — valid Mermaid syntax"
+      }
+    }
   ]
 }
 
@@ -1060,7 +1210,7 @@ No prose outside the JSON. No markdown fences. Just the JSON object.`;
   const slidesContext = state.slides.map((s, i) => {
     return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
   }).join('\n---\n\n');
-  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nGenerate the companion white paper now. Return JSON only.`;
+  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nGenerate the companion white paper now. Decide per section whether a Mermaid diagram fits. Return JSON only.`;
   const modelName = 'claude-sonnet-4-5-20250929';
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1140,6 +1290,41 @@ async function assembleWhitePaperDocx(paper) {
         ]
       }));
     });
+
+    if (sec.figure && sec.figure.pngBytes) {
+      const targetWidthPts = 500;
+      const w = sec.figure.pngWidth || 1200;
+      const h = sec.figure.pngHeight || 900;
+      const ratio = h / w;
+      const targetHeightPts = Math.max(120, Math.min(600, Math.round(targetWidthPts * ratio)));
+      sectionParas.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 240, after: 120 },
+        children: [
+          new ImageRun({
+            data: sec.figure.pngBytes,
+            transformation: { width: targetWidthPts, height: targetHeightPts }
+          })
+        ]
+      }));
+      if (sec.figure.caption) {
+        sectionParas.push(new Paragraph({
+          alignment: AlignmentType.CENTER,
+          spacing: { after: 240 },
+          children: [
+            new TextRun({ text: 'Figure: ' + sec.figure.caption, font: 'DM Sans', size: 18, color: '6B7280', italics: true })
+          ]
+        }));
+      }
+    } else if (sec.figure && sec.figure.renderError) {
+      sectionParas.push(new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 120, after: 240 },
+        children: [
+          new TextRun({ text: '[Diagram could not be rendered: ' + sec.figure.renderError + ']', font: 'DM Sans', size: 16, color: 'D14343', italics: true })
+        ]
+      }));
+    }
   });
 
   const headerChildren = [];
@@ -1990,7 +2175,7 @@ function renderSettings() {
     <div style="margin-bottom:24px"><div class="eyebrow" style="margin-bottom:8px">Configuration</div><div class="display">Settings</div></div>
     <div style="margin-bottom:20px"><span id="syncPill" class="sync-pill">💾 Settings sync with Supabase</span> <span class="muted body-sm">owner: <span class="mono">${escapeHtml(OWNER_ID)}</span></span></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Reference data</div></div><div class="card"><dl class="kv"><dt>Skills</dt><dd><span class="mono">${allSkills.length}</span> loaded · <span class="mono">${favoriteSkillIds.size}</span> favorited</dd><dt>Image models</dt><dd><span class="mono">${allImageModels.length}</span> active</dd><dt>Status</dt><dd>${dataLoadState.status === 'ok' ? '<span class="badge badge-success">OK</span>' : dataLoadState.status === 'err' ? '<span class="badge badge-danger">Error: ' + escapeHtml(dataLoadState.error || '') + '</span>' : '<span class="badge badge-neutral">Loading…</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Reference data</div></div><div class="card"><dl class="kv"><dt>Skills</dt><dd><span class="mono">${allSkills.length}</span> loaded · <span class="mono">${favoriteSkillIds.size}</span> favorited</dd><dt>Image models</dt><dd><span class="mono">${allImageModels.length}</span> active</dd><dt>Mermaid</dt><dd>${window.mermaid ? '<span class="badge badge-success">Loaded</span>' : '<span class="badge badge-warning">Not loaded — white papers will be text-only</span>'}</dd><dt>Status</dt><dd>${dataLoadState.status === 'ok' ? '<span class="badge badge-success">OK</span>' : dataLoadState.status === 'err' ? '<span class="badge badge-danger">Error: ' + escapeHtml(dataLoadState.error || '') + '</span>' : '<span class="badge badge-neutral">Loading…</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1">Admin mode</div></div><div class="card"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''}><span>Enable admin mode (allows creating, editing, deleting skills)</span></label></div></div>
 
@@ -2011,7 +2196,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.3.0</span> (build #31 — Companion white paper)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.3.1</span> (build #32 — Mermaid diagrams)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
