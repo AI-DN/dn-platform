@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.1.7</title>
+<title>DN Deck Generator v2.2.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -174,31 +174,6 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-nu
 thead th { text-align: left; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); padding: 8px 12px; border-bottom: 1px solid var(--border); }
 tbody td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: middle; }
 tbody tr:hover { background: var(--surface-2); }
-.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 24px; }
-.tab { padding: 8px 14px; font-size: 13px; font-weight: 500; color: var(--text-muted); background: transparent; border: none; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; transition: all 150ms ease; font-family: inherit; }
-.tab:hover { color: var(--text); }
-.tab.active { color: var(--text); border-bottom-color: var(--accent); }
-.template-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
-.template-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 14px; transition: all 150ms ease; position: relative; }
-.template-card:hover { background: var(--surface-2); border-color: var(--border-strong); }
-.template-card-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 6px; gap: 8px; }
-.template-card-name { font-size: 14px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 8px; }
-.template-card-desc { font-size: 12px; color: var(--text-muted); line-height: 1.55; margin-bottom: 10px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
-.template-card-footer { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-subtle); font-family: var(--mono); gap: 8px; }
-.swatch-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; border: 1px solid var(--border); }
-.filter-pills { display: flex; gap: 4px; flex-wrap: wrap; }
-.pill { padding: 4px 10px; font-size: 12px; font-weight: 500; color: var(--text-muted); background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 150ms ease; font-family: inherit; }
-.pill:hover { color: var(--text); }
-.pill.active { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
-.layer-badge { font-size: 10px; font-weight: 500; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; letter-spacing: 0.04em; }
-.layer-house_style { background: rgba(94,106,210,0.10); color: #5e6ad2; }
-.layer-domain_pack { background: rgba(217,119,6,0.10); color: #d97706; }
-.layer-deck_type { background: rgba(22,163,74,0.10); color: #16a34a; }
-.layer-missing { background: rgba(220,38,38,0.10); color: #dc2626; }
-[data-theme="dark"] .layer-house_style { background: rgba(123,133,227,0.15); color: #7b85e3; }
-[data-theme="dark"] .layer-domain_pack { background: rgba(245,158,11,0.15); color: #f59e0b; }
-[data-theme="dark"] .layer-deck_type { background: rgba(34,197,94,0.15); color: #22c55e; }
-[data-theme="dark"] .layer-missing { background: rgba(239,68,68,0.15); color: #ef4444; }
 .composed-preview { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 12px; font-family: var(--mono); font-size: 11px; line-height: 1.55; color: var(--text-muted); max-height: 280px; overflow-y: auto; white-space: pre-wrap; }
 .range-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .slide-counter { font-size: 12px; font-weight: 500; padding: 4px 10px; border-radius: 12px; font-family: var(--mono); }
@@ -218,6 +193,16 @@ tbody tr:hover { background: var(--surface-2); }
 .model-card-cost { display: flex; justify-content: space-between; font-family: var(--mono); color: var(--text-muted); }
 .model-card-cost strong { color: var(--text); }
 .model-card-actions { padding: 0 12px 12px 12px; display: flex; gap: 6px; }
+.skill-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--border); border-radius: var(--radius-md); background: var(--surface); margin-bottom: 8px; transition: all 150ms ease; }
+.skill-row:hover { background: var(--surface-2); border-color: var(--border-strong); }
+.skill-star { background: transparent; border: none; cursor: pointer; padding: 4px; color: var(--text-subtle); display: flex; align-items: center; transition: color 150ms ease; }
+.skill-star:hover { color: var(--warning); }
+.skill-star.active { color: var(--warning); }
+.skill-main { flex: 1; min-width: 0; }
+.skill-name { font-size: 14px; font-weight: 600; color: var(--text); margin-bottom: 2px; }
+.skill-desc { font-size: 12px; color: var(--text-muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.skill-actions { display: flex; gap: 4px; flex-shrink: 0; }
+.skill-meta { font-size: 11px; color: var(--text-subtle); font-family: var(--mono); flex-shrink: 0; }
 @media (max-width: 640px) { .content { padding: 18px; } .header { padding: 10px 14px; } .nav { display: none; } .kv { grid-template-columns: 1fr; } .range-row { grid-template-columns: 1fr; } }
 </style>
 </head>
@@ -227,12 +212,11 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.1.7 #25</div>
+      <div class="brand-version">v2.2.2 #29</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
-      <button class="nav-btn" data-view="bundles">Bundles</button>
-      <button class="nav-btn" data-view="templates">Templates</button>
+      <button class="nav-btn" data-view="skills">Skills</button>
       <button class="nav-btn" data-view="settings">Settings</button>
     </nav>
     <div class="header-right">
@@ -265,13 +249,12 @@ function getSupabaseClient() {
   return _supabaseClient;
 }
 
-// === Module-scope live data (populated from Supabase on boot) ===
-let allBundles = [];
-let allTemplates = [];
+let allSkills = [];
 let allImageModels = [];
 let allAnthropicCosts = [];
-window.allBundles = allBundles;
-window.allTemplates = allTemplates;
+let favoriteSkillIds = new Set();
+let favoriteModelIds = new Set(['openai:gpt-image-2:high']);
+window.allSkills = allSkills;
 window.allImageModels = allImageModels;
 
 const memStore = {};
@@ -303,7 +286,11 @@ const SETTING_MAP = {
   'logo_backing_enabled': 'dn_logo_backing',
   'skip_model_picker': 'dn_skip_model_picker',
   'is_admin': 'dn_admin',
-  'dn_logo_b64': 'dn_logo_b64'
+  'dn_logo_b64': 'dn_logo_b64',
+  'favorite_skills': 'dn_favorite_skills',
+  'selected_skill': 'dn_selected_skill',
+  'favorite_models': 'dn_favorite_models',
+  'last_selected_model': 'dn_last_selected_model'
 };
 const REVERSE_MAP = Object.fromEntries(Object.entries(SETTING_MAP).map(([k,v]) => [v,k]));
 
@@ -325,35 +312,45 @@ async function bootstrapSettings() {
   } catch (e) { console.warn('bootstrapSettings failed:', e); syncState.status = 'err'; syncState.lastError = e.message || String(e); }
 }
 
+async function loadAllSkills() {
+  const sb = getSupabaseClient();
+  if (!sb) { setMinimalFallback(); return; }
+  try {
+    const { data, error } = await sb
+      .from('deck_templates')
+      .select('*')
+      .eq('is_skill', true)
+      .eq('is_active', true)
+      .order('name', { ascending: true });
+    if (error) throw error;
+    allSkills = data || [];
+    window.allSkills = allSkills;
+    console.log(`Loaded ${allSkills.length} skills`);
+  } catch (e) {
+    console.warn('Failed to load skills:', e);
+    throw e;
+  }
+}
+
 async function loadAllReferenceData() {
   const sb = getSupabaseClient();
-  if (!sb) { console.warn('Supabase client unavailable — using minimal hardcoded fallback'); setMinimalFallback(); return; }
+  if (!sb) { console.warn('Supabase client unavailable — using minimal fallback'); setMinimalFallback(); return; }
   dataLoadState.status = 'loading';
   try {
-    const [templatesRes, bundlesRes, imageCostsRes, anthropicCostsRes] = await Promise.all([
-      sb.from('deck_templates').select('*').eq('is_active', true),
-      sb.from('template_bundles').select('*').eq('is_active', true),
+    const [skillsRes, imageCostsRes, anthropicCostsRes] = await Promise.all([
+      sb.from('deck_templates').select('*').eq('is_skill', true).eq('is_active', true).order('name', { ascending: true }),
       sb.from('image_model_costs').select('*').eq('is_active', true).order('cost_per_image', { ascending: true }),
       sb.from('anthropic_token_costs').select('*').eq('is_active', true)
     ]);
-    if (templatesRes.error) throw templatesRes.error;
-    if (bundlesRes.error) throw bundlesRes.error;
-    allTemplates = templatesRes.data || [];
+    if (skillsRes.error) throw skillsRes.error;
+    allSkills = skillsRes.data || [];
     allImageModels = (imageCostsRes.error ? [] : (imageCostsRes.data || []));
     allAnthropicCosts = (anthropicCostsRes.error ? [] : (anthropicCostsRes.data || []));
-    const tplById = Object.fromEntries(allTemplates.map(t => [t.id, t]));
-    allBundles = (bundlesRes.data || []).map(b => ({
-      ...b,
-      house_style: tplById[b.house_style_template_id] || null,
-      domain_pack: tplById[b.domain_pack_template_id] || null,
-      deck_type: tplById[b.deck_type_template_id] || null
-    }));
-    window.allBundles = allBundles;
-    window.allTemplates = allTemplates;
+    window.allSkills = allSkills;
     window.allImageModels = allImageModels;
     dataLoadState.status = 'ok';
-    dataLoadState.counts = { templates: allTemplates.length, bundles: allBundles.length, models: allImageModels.length };
-    console.log(`Loaded: ${allTemplates.length} templates, ${allBundles.length} bundles, ${allImageModels.length} image models`);
+    dataLoadState.counts = { skills: allSkills.length, models: allImageModels.length };
+    console.log(`Loaded: ${allSkills.length} skills, ${allImageModels.length} image models`);
   } catch (e) {
     console.error('Failed to load reference data from Supabase:', e);
     dataLoadState.status = 'err'; dataLoadState.error = e.message || String(e);
@@ -362,18 +359,15 @@ async function loadAllReferenceData() {
 }
 
 function setMinimalFallback() {
-  if (allTemplates.length === 0) {
-    const hsId = 'fallback-hs', dpId = 'fallback-dp', dtId = 'fallback-dt';
-    allTemplates = [
-      { id: hsId, name: 'DN House Style — Brand Passport', layer: 'house_style', description: 'Fallback brand passport.', prompt: MASTER_PROMPT_FALLBACK, is_active: true, updated_at: new Date().toISOString() },
-      { id: dpId, name: 'DN Telco Operations', layer: 'domain_pack', description: 'Fallback telco domain.', prompt: 'Domain: telecommunications network operations.', is_active: true, updated_at: new Date().toISOString() },
-      { id: dtId, name: 'Sales Pitch', layer: 'deck_type', description: 'Fallback sales pitch.', prompt: 'Deck type: sales pitch.', is_active: true, updated_at: new Date().toISOString() }
-    ];
-    allBundles = [{
-      id: 'fallback-bundle', name: 'Telco Sales Pitch (fallback)', description: 'Offline fallback bundle.', swatch_color: '#47D1FF',
-      house_style_template_id: hsId, domain_pack_template_id: dpId, deck_type_template_id: dtId,
-      house_style: allTemplates[0], domain_pack: allTemplates[1], deck_type: allTemplates[2],
-      is_active: true, updated_at: new Date().toISOString()
+  if (allSkills.length === 0) {
+    allSkills = [{
+      id: 'fallback-skill-1',
+      name: 'DN Telco Sales Pitch — Dark',
+      description: 'Fallback skill — premium enterprise telecom presentation.',
+      prompt: MASTER_PROMPT_FALLBACK,
+      is_skill: true,
+      is_active: true,
+      updated_at: new Date().toISOString()
     }];
   }
   if (allImageModels.length === 0) {
@@ -385,7 +379,8 @@ function setMinimalFallback() {
   if (allAnthropicCosts.length === 0) {
     allAnthropicCosts = [{ model: 'claude-sonnet-4-5-20250929', cost_per_million_input: 3.00, cost_per_million_output: 15.00, is_active: true }];
   }
-  window.allBundles = allBundles; window.allTemplates = allTemplates; window.allImageModels = allImageModels;
+  window.allSkills = allSkills;
+  window.allImageModels = allImageModels;
 }
 
 async function persistSetting(localStorageKey, value) {
@@ -482,8 +477,8 @@ const deckCost = {
 
 const state = {
   theme: initialTheme, view: 'compose',
-  templatesTab: 'all', templatesSearch: '', bundlesSearch: '',
-  selectedBundleId: null,
+  skillsSearch: '',
+  selectedSkillId: null,
   apiKeys: { openai: '', anthropic: '', gemini: '', openai_org: '' },
   imageQuality: 'high',
   defaultModel: 'openai:gpt-image-2:high',
@@ -496,7 +491,8 @@ const state = {
   composeStep: 1, rawText: '', slides: [],
   polishMode: null, polishing: false, generating: false,
   expandedRefine: {}, toastOnceKeys: {},
-  modelPicker: { testSlideIdx: 0, candidates: [], inFlight: false }
+  lastSelectedModel: null,
+  modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null }
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -517,6 +513,14 @@ function hydrateStateFromStorage() {
   if (get('dn_skip_model_picker')) state.skipModelPicker = get('dn_skip_model_picker') === 'true';
   if (get('dn_admin')) state.adminMode = get('dn_admin') === 'true';
   const logo = get('dn_logo_b64'); if (logo) { state.logoB64 = logo; state.logoIsCustom = true; }
+  const favs = get('dn_favorite_skills');
+  if (favs) favoriteSkillIds = new Set(favs.split(',').filter(Boolean));
+  const sel = get('dn_selected_skill');
+  if (sel) state.selectedSkillId = sel;
+  const favModels = get('dn_favorite_models');
+  if (favModels !== null) favoriteModelIds = new Set(favModels.split(',').filter(Boolean));
+  const lastModel = get('dn_last_selected_model');
+  if (lastModel) state.lastSelectedModel = lastModel;
 }
 
 function toast(opts) {
@@ -542,17 +546,36 @@ function openModal(content, opts) {
 function closeModal() { document.getElementById('modalRoot').innerHTML = ''; document.removeEventListener('keydown', escClose); }
 function escClose(e) { if (e.key === 'Escape') closeModal(); }
 
-function templateById(id) { return allTemplates.find(t => t.id === id); }
-function bundleById(id) { return allBundles.find(b => b.id === id); }
-function templatesByLayer(layer) { return allTemplates.filter(t => t.layer === layer); }
-function bundlesUsingTemplate(tid) {
-  return allBundles.filter(b => b.house_style_template_id === tid || b.domain_pack_template_id === tid || b.deck_type_template_id === tid);
+function skillById(id) { return allSkills.find(s => s.id === id); }
+function sortedSkills() {
+  const arr = allSkills.slice();
+  arr.sort((a, b) => {
+    const aFav = favoriteSkillIds.has(a.id) ? 0 : 1;
+    const bFav = favoriteSkillIds.has(b.id) ? 0 : 1;
+    if (aFav !== bFav) return aFav - bFav;
+    return (a.name || '').localeCompare(b.name || '');
+  });
+  return arr;
 }
-function joinBundle(b) {
-  if (!b) return null;
-  if (b.house_style || b.domain_pack || b.deck_type) return b;
-  return { ...b, house_style: templateById(b.house_style_template_id) || null, domain_pack: templateById(b.domain_pack_template_id) || null, deck_type: templateById(b.deck_type_template_id) || null };
+function defaultSkillId() {
+  if (state.selectedSkillId && skillById(state.selectedSkillId)) return state.selectedSkillId;
+  const sorted = sortedSkills();
+  return sorted.length ? sorted[0].id : null;
 }
+async function toggleFavoriteSkill(id) {
+  if (favoriteSkillIds.has(id)) favoriteSkillIds.delete(id);
+  else favoriteSkillIds.add(id);
+  const csv = Array.from(favoriteSkillIds).join(',');
+  await persistSetting('dn_favorite_skills', csv);
+}
+
+async function toggleFavoriteModel(modelId) {
+  if (favoriteModelIds.has(modelId)) favoriteModelIds.delete(modelId);
+  else favoriteModelIds.add(modelId);
+  const csv = Array.from(favoriteModelIds).join(',');
+  await persistSetting('dn_favorite_models', csv);
+}
+
 function dateStr() { return new Date().toISOString().slice(0,10); }
 function getImageDimensions(base64) {
   return new Promise(resolve => {
@@ -566,9 +589,9 @@ function slugify(s) { return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-')
 
 const FOOTER_TEMPLATE = '© Digitata Networks, {YEAR}. Private & Confidential.';
 function getFooterText() { return FOOTER_TEMPLATE.replace('{YEAR}', new Date().getFullYear()); }
-function getFooterColor(bundle) {
-  const hsName = (bundle && bundle.house_style && bundle.house_style.name || '').toLowerCase();
-  if (hsName.includes('light')) return '6b7280';
+function getFooterColor(skill) {
+  const name = (skill && skill.name || '').toLowerCase();
+  if (name.includes('light')) return '6b7280';
   return 'a0aec0';
 }
 
@@ -622,7 +645,7 @@ function parseSlidesDetected(text) {
       } else return { slides: null, pattern: null };
     }
   }
-  const slides = chunks.map(c => ({ title: c.title, body: c.bodyLines.join('\n').trim(), imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }));
+  const slides = chunks.map(c => ({ title: c.title, body: c.bodyLines.join('\n').trim(), speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }));
   return { slides, pattern };
 }
 
@@ -672,23 +695,16 @@ function polishedToSlides(polished) {
     let body = '';
     if (typeof p.body === 'string' && p.body.trim()) body = p.body.replace(/^\s*\*\s+/gm, '• ');
     else { const parts = []; if (p.subheadline) parts.push(p.subheadline); if (Array.isArray(p.bullets) && p.bullets.length) parts.push(...p.bullets.map(b => '• ' + b)); body = parts.join('\n'); }
-    return { title: p.title || 'Untitled', body, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null };
+    return { title: p.title || 'Untitled', body, speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null };
   });
 }
 
-function composeBundlePrompt(bundleJoined, slide) {
-  const layers = [];
-  const b = bundleJoined;
-  if (b && b.house_style && b.house_style.prompt) layers.push(b.house_style.prompt);
-  else { if (b) console.warn(`Bundle "${b.name}" is missing its house_style template — using fallback`); layers.push(MASTER_PROMPT_FALLBACK); }
-  if (b && b.domain_pack && b.domain_pack.prompt) layers.push(b.domain_pack.prompt);
-  else if (b) console.warn(`Bundle "${b.name}" is missing its domain_pack template — using fallback`);
-  if (b && b.deck_type && b.deck_type.prompt) layers.push(b.deck_type.prompt);
-  else if (b) console.warn(`Bundle "${b.name}" is missing its deck_type template — using fallback`);
-  if (slide) layers.push(`SLIDE-SPECIFIC CONTENT:\nTitle: ${slide.title}\n\nBody:\n${slide.body || '(no body)'}\n\nRender visually with title prominent, body as structured elements.`);
-  return layers.join('\n\n');
+function composeSkillPrompt(skill, slide) {
+  const base = (skill && skill.prompt) ? skill.prompt : MASTER_PROMPT_FALLBACK;
+  if (!slide) return base;
+  return base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.';
 }
-function composeBundlePromptPreview(bundleJoined) { return composeBundlePrompt(bundleJoined, null); }
+function composeSkillPromptPreview(skill) { return composeSkillPrompt(skill, null); }
 
 function blobToBase64(blob) { return new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); }); }
 
@@ -764,8 +780,8 @@ function parseModelSpec(spec) { if (!spec) return null; const parts = spec.split
 function currentEffectiveModel() { return parseModelSpec(state.selectedModel || state.defaultModel) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' }; }
 
 async function generateSlideImage(slide, customPromptOverride, overrideSpec) {
-  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
-  const prompt = customPromptOverride || composeBundlePrompt(bundle, slide);
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const prompt = customPromptOverride || composeSkillPrompt(skill, slide);
   const spec = overrideSpec || currentEffectiveModel();
   const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, prompt);
   const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
@@ -830,9 +846,8 @@ async function assemblePptx() {
   if (!window.__pptxReady || typeof PptxGenJS === 'undefined') { toast({ type: 'error', message: 'PptxGenJS still loading' }); return; }
   const prs = new PptxGenJS();
   prs.layout = 'LAYOUT_WIDE';
-  const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
-  const currentBundle = b ? joinBundle(b) : null;
-  const deckTitle = b ? b.name : 'DN Deck';
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const deckTitle = skill ? skill.name : 'DN Deck';
   prs.title = deckTitle; prs.subject = 'Digitata Networks'; prs.author = 'DN Deck Generator';
   const dnLogoB64 = state.logoB64;
   const customerLogoB64 = state.customerLogoEnabled ? state.customerLogoB64 : null;
@@ -856,9 +871,10 @@ async function assemblePptx() {
     }
     if (dnLogoB64) s.addImage({ data: `data:image/png;base64,${dnLogoB64}`, x: LOGO_X_LEFT, y: LOGO_Y, w: dnW, h: dnH });
     if (customerLogoB64) s.addImage({ data: `data:image/png;base64,${customerLogoB64}`, x: LOGO_X_RIGHT, y: LOGO_Y, w: custW, h: custH });
-    const footerColor = getFooterColor(currentBundle);
+    const footerColor = getFooterColor(skill);
     s.addText(getFooterText(), { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
-    s.addNotes(`${slide.title}\n\n${slide.body || ''}`);
+    const notesText = (slide.speakerNotes && slide.speakerNotes.trim()) ? slide.speakerNotes : (slide.body || '');
+    if (notesText && notesText.trim()) s.addNotes(notesText);
   }
   const fileName = `${slugify(deckTitle)}-${dateStr()}.pptx`;
   const blob = await prs.write({ outputType: 'blob' });
@@ -879,6 +895,7 @@ function showDeckReadyModal(fileName, blobSize) {
   const regenCost = regenRows.reduce((s, r) => s + r.cost, 0);
   const testCost = testRows.reduce((s, r) => s + r.cost, 0);
   const total = deckCost.total();
+  const notesRows = state.slides.map((s, i) => { const wc = countWords(s.speakerNotes); const has = wc > 0; return `<tr><td style="width:60px" class="mono subtle">Slide ${i+1}</td><td>${escapeHtml(s.title)}</td><td style="text-align:right">${has ? `<span class="badge badge-success">📝 ${wc} word${wc===1?'':'s'}</span>` : '<span class="badge badge-warning">🔇 No notes</span>'}</td></tr>`; }).join('');
   const html = `
     <div class="modal-header">
       <div>
@@ -897,7 +914,11 @@ function showDeckReadyModal(fileName, blobSize) {
         <tr style="font-weight:600"><td>Total</td><td class="mono" style="text-align:right">${fmtUsd4(total)}</td></tr>
       </tbody></table>
     </div>
-    <div class="muted body-sm">${slideCount} slides generated.</div>
+    <div class="h2" style="margin-bottom:8px">Speaker notes</div>
+    <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+      <table><tbody>${notesRows}</tbody></table>
+    </div>
+    <div class="muted body-sm">${slideCount} slides generated. Notes embedded in PowerPoint's native speaker-notes field.</div>
     <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Done</button></div>`;
   openModal(html, { lg: true });
 }
@@ -908,30 +929,37 @@ function renderCompose() {
     <div style="margin-bottom:24px">
       <div class="eyebrow" style="margin-bottom:8px">New deck</div>
       <div class="display">Compose a deck</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Paste your slide content, polish if you want, edit each slide, compare image models side by side, then generate.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Pick a skill, paste your slide content, polish if you want, edit each slide, compare image models side by side, then generate.</div>
     </div>
     <div id="step1"></div><div id="step2"></div><div id="step3"></div><div id="step35"></div><div id="step5"></div>`;
   renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
 }
 
+function starSvg(filled) {
+  return `<svg width="14" height="14" viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+}
+
 function renderStep1() {
   const el = document.getElementById('step1'); if (!el) return;
-  const isActive = state.composeStep === 1;
   const isDone = state.composeStep > 1;
-  if (!isActive && isDone) {
-    const b = state.selectedBundleId ? bundleById(state.selectedBundleId) : null;
-    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step1Edit"><div class="step-num done">✓</div><div class="step-title">Input</div><div class="step-desc">${b ? escapeHtml(b.name) + ' · ' : ''}${state.slides.length} slides · ${state.slideMin}–${state.slideMax}</div><button class="btn-ghost" style="margin-left:8px">Edit</button></div></div>`;
+  if (isDone) {
+    const sk = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step1Edit"><div class="step-num done">✓</div><div class="step-title">Input</div><div class="step-desc">${sk ? escapeHtml(sk.name) + ' · ' : ''}${state.slides.length} slides · ${state.slideMin}–${state.slideMax}</div><button class="btn-ghost" style="margin-left:8px">Edit</button></div></div>`;
     document.getElementById('step1Edit').onclick = () => { state.composeStep = 1; renderCompose(); };
     return;
   }
-  const bundleOptions = allBundles.length === 0
-    ? '<option value="">— no bundles available —</option>'
-    : '<option value="">— optional (uses fallback prompt) —</option>' + allBundles.map(b => `<option value="${b.id}" ${state.selectedBundleId === b.id ? 'selected' : ''}>${escapeHtml(b.name)}</option>`).join('');
+  if (!state.selectedSkillId) state.selectedSkillId = defaultSkillId();
+  const skills = sortedSkills();
+  const skillOptions = skills.length === 0
+    ? '<option value="">— no skills available —</option>'
+    : skills.map(s => `<option value="${s.id}" ${state.selectedSkillId === s.id ? 'selected' : ''}>${favoriteSkillIds.has(s.id) ? '★ ' : ''}${escapeHtml(s.name)}</option>`).join('');
+  const currentSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const isFav = currentSkill && favoriteSkillIds.has(currentSkill.id);
   el.innerHTML = `
     <div class="step-card">
       <div class="step-header"><div class="step-num">1</div><div class="step-title">Paste your deck wording</div><div class="step-desc">Markers: # · Slide N · ## · ---</div></div>
       <div class="step-body">
-        <div class="field"><label class="field-label">Bundle <span class="subtle">drives the visual prompt</span></label><div class="template-select"><select class="select" id="bundleSel">${bundleOptions}</select></div>${allBundles.length === 0 ? '<div class="field-hint" style="color:var(--warning);margin-top:4px">No bundles loaded from Supabase yet.</div>' : ''}</div>
+        <div class="field"><label class="field-label">Skill <span class="subtle">drives the visual prompt</span></label><div style="display:flex;gap:8px;align-items:center"><div class="template-select" style="flex:1"><select class="select" id="skillSel">${skillOptions}</select></div>${currentSkill ? `<button class="skill-star ${isFav ? 'active' : ''}" id="favBtn" title="${isFav ? 'Unfavorite' : 'Favorite'}">${starSvg(!!isFav)}</button>` : ''}</div>${currentSkill && currentSkill.description ? `<div class="field-hint" style="margin-top:4px">${escapeHtml(currentSkill.description)}</div>` : ''}${skills.length === 0 ? '<div class="field-hint" style="color:var(--warning);margin-top:4px">No skills loaded from Supabase yet.</div>' : ''}</div>
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="30" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="30" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
         <div class="field"><label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label><textarea class="textarea" id="rawText" rows="12" placeholder="Paste content. Markers: # H1, Slide N — Title, ## H2, or ---">${escapeHtml(state.rawText)}</textarea><div id="patternIndicator" class="field-hint" style="margin-top:6px"></div></div>
         <div class="field"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="custLogoChk" ${state.customerLogoEnabled ? 'checked' : ''} style="margin:0"><span>Add customer logo (top-right)</span></label><div id="custLogoBlock" style="display:${state.customerLogoEnabled ? 'block' : 'none'};margin-top:8px"><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="logo-preview">${state.customerLogoB64 ? `<img src="data:image/png;base64,${state.customerLogoB64}">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div><div style="display:flex;gap:6px"><input type="file" id="custLogoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="custUploadBtn" type="button">Upload PNG</button>${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}</div></div></div></div>
@@ -939,7 +967,8 @@ function renderStep1() {
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="polishBtn">Polish with AI →</button><button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button></div>
       </div>
     </div>`;
-  document.getElementById('bundleSel').onchange = e => { state.selectedBundleId = e.target.value || null; };
+  document.getElementById('skillSel').onchange = async e => { state.selectedSkillId = e.target.value || null; await persistSetting('dn_selected_skill', state.selectedSkillId || ''); renderStep1(); };
+  const favBtn = document.getElementById('favBtn'); if (favBtn) favBtn.onclick = async () => { if (state.selectedSkillId) { await toggleFavoriteSkill(state.selectedSkillId); renderStep1(); } };
   document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(30, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('custLogoChk').onchange = e => { state.customerLogoEnabled = e.target.checked; document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none'; if (!e.target.checked) state.customerLogoB64 = null; renderStep1(); };
@@ -980,7 +1009,7 @@ function renderStep1() {
 
 function renderStep2() {
   const el = document.getElementById('step2'); if (!el) return;
-  const isActive = state.composeStep === 2; const isDone = state.composeStep > 2; const isFuture = state.composeStep < 2;
+  const isDone = state.composeStep > 2; const isFuture = state.composeStep < 2;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">optional</div></div></div>`; return; }
   if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' · ' + fmtUsd4(deckCost.polish) : 'skipped'}</div></div></div>`; return; }
   const hasMarkers = state.slides.length > 0;
@@ -1013,7 +1042,7 @@ async function runPolish(mode) {
 
 function renderStep3() {
   const el = document.getElementById('step3'); if (!el) return;
-  const isActive = state.composeStep === 3; const isDone = state.composeStep > 3; const isFuture = state.composeStep < 3;
+  const isDone = state.composeStep > 3; const isFuture = state.composeStep < 3;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Edit slide text</div><div class="step-desc">titles and body</div></div></div>`; return; }
   if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step3Edit"><div class="step-num done">✓</div><div class="step-title">Slide text</div><div class="step-desc">${state.slides.length} slides</div><button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button></div></div>`; document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); }; return; }
   const n = state.slides.length;
@@ -1031,14 +1060,17 @@ function renderStep3() {
       </div>
     </div>`;
   state.slides.forEach((s, i) => bindSlideEditCard(i));
-  document.getElementById('addSlideBtn').onclick = () => { if (state.slides.length >= state.slideMax) return; state.slides.push({ title: 'New slide', body: '', imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }); renderStep3(); };
+  document.getElementById('addSlideBtn').onclick = () => { if (state.slides.length >= state.slideMax) return; state.slides.push({ title: 'New slide', body: '', speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }); renderStep3(); };
   document.getElementById('backTo2or1').onclick = () => { state.composeStep = state.polishMode ? 2 : 1; renderCompose(); };
   document.getElementById('toStep35').onclick = () => {
     if (state.skipModelPicker) {
-      const spec = parseModelSpec(state.defaultModel);
+      const pick = state.lastSelectedModel || state.defaultModel;
+      const spec = parseModelSpec(pick);
       if (!spec || !providerKeyAvailable(spec.provider)) { toast({ type: 'error', message: 'No key for default model.' }); return; }
-      state.selectedModel = state.defaultModel;
-      state.composeStep = 5; renderCompose(); generateAllImages();
+      state.selectedModel = pick;
+      state.composeStep = 5; renderCompose();
+      toast({ type: 'info', message: `Using ${modelLabel(spec.provider, spec.model, spec.quality)} (skip enabled). Toggle in Settings.` });
+      generateAllImages();
       return;
     }
     enterStep35();
@@ -1050,7 +1082,7 @@ function renderSlideEditCard(s, i) {
     <div class="slide-edit-card" data-idx="${i}">
       <div class="slide-edit-head"><span class="slide-edit-num">Slide ${i+1}</span><div class="slide-edit-actions"><button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled' : ''} aria-label="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>
       <div class="field"><label class="field-label">Title</label><input class="input" data-act="title" value="${escapeHtml(s.title)}"></div>
-      <div class="field" style="margin-bottom:0"><label class="field-label">Body</label><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea></div>
+      <div class="field" style="margin-bottom:0"><label class="field-label">Body</label><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea><div class="field-hint" style="margin-top:4px">This body text becomes the default speaker notes on Step 5. Edit there if you want different notes than what appears on the slide.</div></div>
     </div>`;
 }
 function bindSlideEditCard(i) {
@@ -1094,46 +1126,195 @@ function enterStep35() {
   state.slides.forEach((s, i) => { const len = (s.body || '').length; if (len > maxLen) { maxLen = len; idx = i; } });
   if (maxLen <= 0 && state.slides.length > 1) idx = 1;
   state.modelPicker.testSlideIdx = idx;
-  state.modelPicker.candidates = buildModelCandidates();
+  state.modelPicker.candidates = buildModelCandidates().filter(c => c.keyAvailable);
   state.modelPicker.inFlight = false;
+  state.modelPicker.mode = 'know';
+  state.modelPicker.selectedToMockup = new Set();
+  // Pick default single-pick model: last used > default > first favorite > first available
+  let defaultPick = null;
+  const tryModel = (id) => state.modelPicker.candidates.find(c => `${c.provider}:${c.model}:${c.quality}` === id);
+  if (state.lastSelectedModel && tryModel(state.lastSelectedModel)) defaultPick = state.lastSelectedModel;
+  else if (tryModel(state.defaultModel)) defaultPick = state.defaultModel;
+  else {
+    const favCand = state.modelPicker.candidates.find(c => favoriteModelIds.has(`${c.provider}:${c.model}:${c.quality}`));
+    if (favCand) defaultPick = `${favCand.provider}:${favCand.model}:${favCand.quality}`;
+    else if (state.modelPicker.candidates[0]) {
+      const c = state.modelPicker.candidates[0];
+      defaultPick = `${c.provider}:${c.model}:${c.quality}`;
+    }
+  }
+  state.modelPicker.singlePickModel = defaultPick;
   state.composeStep = 3.5;
   renderCompose();
 }
+
+function sortedModelCandidates(candidates) {
+  const arr = candidates.slice();
+  arr.sort((a, b) => {
+    const aId = `${a.provider}:${a.model}:${a.quality}`;
+    const bId = `${b.provider}:${b.model}:${b.quality}`;
+    const aFav = favoriteModelIds.has(aId) ? 0 : 1;
+    const bFav = favoriteModelIds.has(bId) ? 0 : 1;
+    if (aFav !== bFav) return aFav - bFav;
+    return (a.cost_per_image || 0) - (b.cost_per_image || 0);
+  });
+  return arr;
+}
 function renderStep35() {
   const el = document.getElementById('step35'); if (!el) return;
-  const isActive = state.composeStep === 3.5; const isDone = state.composeStep > 3.5; const isFuture = state.composeStep < 3.5;
-  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">side-by-side comparison</div></div></div>`; return; }
+  const isDone = state.composeStep > 3.5; const isFuture = state.composeStep < 3.5;
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">choose default or compare</div></div></div>`; return; }
   if (isDone) {
     const spec = currentEffectiveModel();
     el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step35Edit"><div class="step-num done">✓</div><div class="step-title">Model</div><div class="step-desc">${escapeHtml(modelLabel(spec.provider, spec.model, spec.quality))} · ${fmtUsd(getImageCost(spec.provider, spec.model, '1536x1024', spec.quality))}/image</div><button class="btn-ghost" style="margin-left:8px">Change</button></div></div>`;
     document.getElementById('step35Edit').onclick = () => { state.composeStep = 3.5; renderCompose(); };
     return;
   }
-  const slide = state.slides[state.modelPicker.testSlideIdx] || state.slides[0];
   const slideCount = state.slides.length;
+  const candidates = state.modelPicker.candidates;
+  if (candidates.length === 0) {
+    el.innerHTML = `<div class="step-card"><div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div></div><div class="step-body"><div class="warning-banner"><div>Configure at least one provider in Settings.</div></div><div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px"><button class="btn-ghost" id="backTo3">← Back</button><button class="btn-primary" id="openSettingsBtn">Open Settings →</button></div></div></div>`;
+    document.getElementById('backTo3').onclick = () => { state.composeStep = 3; renderCompose(); };
+    document.getElementById('openSettingsBtn').onclick = () => { state.view = 'settings'; setActiveNav(); render(); };
+    return;
+  }
+  const mode = state.modelPicker.mode;
+  const sortedCands = sortedModelCandidates(candidates);
+  const singleSpec = state.modelPicker.singlePickModel ? parseModelSpec(state.modelPicker.singlePickModel) : null;
+  const singleCost = singleSpec ? getImageCost(singleSpec.provider, singleSpec.model, '1536x1024', singleSpec.quality) : 0;
+  const singleLabel = singleSpec ? modelLabel(singleSpec.provider, singleSpec.model, singleSpec.quality) : '—';
+  const selectedToMockup = state.modelPicker.selectedToMockup;
+  const mockupTotal = Array.from(selectedToMockup).reduce((sum, id) => {
+    const c = candidates.find(x => `${x.provider}:${x.model}:${x.quality}` === id);
+    return sum + (c ? c.cost_per_image : 0);
+  }, 0);
+  const dropdownOptions = sortedCands.map(c => {
+    const id = `${c.provider}:${c.model}:${c.quality}`;
+    const fav = favoriteModelIds.has(id);
+    const deckTotal = c.cost_per_image * slideCount;
+    return `<option value="${id}" ${state.modelPicker.singlePickModel === id ? 'selected' : ''}>${fav ? '★ ' : ''}${escapeHtml(c.label)} — ${fmtUsd(c.cost_per_image)}/image · ${fmtUsd(deckTotal)} for ${slideCount}-slide deck</option>`;
+  }).join('');
+  const currentFav = state.modelPicker.singlePickModel && favoriteModelIds.has(state.modelPicker.singlePickModel);
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">${state.modelPicker.candidates.length} candidates · test slide ${state.modelPicker.testSlideIdx + 1}</div></div>
+      <div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">${candidates.length} model${candidates.length===1?'':'s'} available</div></div>
       <div class="step-body">
-        <div class="muted body-sm" style="margin-bottom:12px">Same prompt sent to every model in parallel. Compare quality and cost, pick one.</div>
-        <div class="field"><label class="field-label">Test slide</label><select class="select" id="testSlideSel">${state.slides.map((s, i) => `<option value="${i}" ${i === state.modelPicker.testSlideIdx ? 'selected' : ''}>${i+1}. ${escapeHtml(s.title.slice(0,60))}</option>`).join('')}</select></div>
-        <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap"><button class="btn-primary" id="runTestBtn" ${state.modelPicker.inFlight ? 'disabled' : ''}>${state.modelPicker.inFlight ? '<span class="spinner"></span> Generating…' : 'Generate test images'}</button><span class="muted body-sm" style="align-self:center">${slideCount} slide deck</span></div>
-        ${state.modelPicker.candidates.length === 0 ? '<div class="empty"><div class="empty-title">No image models</div><div class="empty-desc">No active image models found. Check Supabase image_model_costs table.</div></div>' : `<div class="model-grid" id="modelGrid">${state.modelPicker.candidates.map((c, i) => renderModelCard(c, i, slideCount)).join('')}</div>`}
-        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
-          <button class="btn-ghost" id="backTo3">← Back</button>
-          <button class="btn-secondary" id="useDefaultBtn">Skip — use default →</button>
+        <div class="card" style="padding:14px;margin-bottom:10px;border-color:${mode==='know'?'var(--accent)':'var(--border)'}">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="radio" name="pickMode" value="know" id="modeKnow" ${mode==='know'?'checked':''} style="margin-top:3px">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:14px;color:var(--text)">I know what model I want</div>
+              <div class="muted body-sm" style="margin-top:2px">Default: ${escapeHtml(singleLabel)} — ${fmtUsd(singleCost)}/image · ${fmtUsd(singleCost*slideCount)} for ${slideCount}-slide deck</div>
+            </div>
+          </label>
+          ${mode==='know' ? `
+            <div style="margin-top:12px;padding-left:24px">
+              <div style="display:flex;gap:8px;align-items:center">
+                <div class="template-select" style="flex:1"><select class="select" id="singlePickSel">${dropdownOptions}</select></div>
+                <button class="skill-star ${currentFav?'active':''}" id="singlePickFav" title="${currentFav?'Unfavorite':'Favorite'}">${starSvg(!!currentFav)}</button>
+              </div>
+              <div style="display:flex;justify-content:flex-end;margin-top:12px">
+                <button class="btn-primary" id="continueSingleBtn" ${!state.modelPicker.singlePickModel?'disabled':''}>Continue with selected model →</button>
+              </div>
+            </div>` : ''}
+        </div>
+        <div class="card" style="padding:14px;margin-bottom:10px;border-color:${mode==='compare'?'var(--accent)':'var(--border)'}">
+          <label style="display:flex;align-items:flex-start;gap:10px;cursor:pointer">
+            <input type="radio" name="pickMode" value="compare" id="modeCompare" ${mode==='compare'?'checked':''} style="margin-top:3px">
+            <div style="flex:1">
+              <div style="font-weight:600;font-size:14px;color:var(--text)">Help me decide — generate mockup slides first</div>
+              <div class="muted body-sm" style="margin-top:2px">Compare multiple models against the same test prompt. Cost shown upfront.</div>
+            </div>
+          </label>
+          ${mode==='compare' ? `
+            <div style="margin-top:12px;padding-left:24px">
+              <div class="field"><label class="field-label">Test slide</label><select class="select" id="testSlideSel">${state.slides.map((s, i) => `<option value="${i}" ${i === state.modelPicker.testSlideIdx ? 'selected' : ''}>${i+1}. ${escapeHtml(s.title.slice(0,60))}</option>`).join('')}</select></div>
+              <div style="border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden;margin-bottom:10px">
+                ${sortedCands.map((c, i) => {
+                  const id = `${c.provider}:${c.model}:${c.quality}`;
+                  const checked = selectedToMockup.has(id);
+                  const fav = favoriteModelIds.has(id);
+                  return `<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface)">
+                    <input type="checkbox" data-mockup-id="${id}" ${checked?'checked':''}>
+                    <button class="skill-star ${fav?'active':''}" data-fav-id="${id}" title="Favorite">${starSvg(fav)}</button>
+                    <div style="flex:1;font-size:13px">${escapeHtml(c.label)}</div>
+                    <div class="mono" style="font-size:12px;color:var(--text-muted)">${fmtUsd(c.cost_per_image)}/image</div>
+                  </div>`;
+                }).join('')}
+              </div>
+              <div class="muted body-sm" style="margin-bottom:10px">Selected: <strong>${selectedToMockup.size}</strong> mockup${selectedToMockup.size===1?'':'s'} × 1 test slide = <strong>${fmtUsd(mockupTotal)}</strong> to generate</div>
+              <div style="display:flex;justify-content:flex-end">
+                <button class="btn-primary" id="runMockupsBtn" ${selectedToMockup.size===0||state.modelPicker.inFlight?'disabled':''}>${state.modelPicker.inFlight?'<span class="spinner"></span> Generating…':'Generate mockups →'}</button>
+              </div>
+              ${sortedCands.some(c => c.imageB64 || c.status === 'generating' || c.status === 'error') ? `<div class="model-grid" id="modelGrid" style="margin-top:14px">${sortedCands.filter(c => selectedToMockup.has(`${c.provider}:${c.model}:${c.quality}`) || c.imageB64 || c.status==='generating' || c.status==='error').map((c) => { const origIdx = candidates.findIndex(x => x.provider===c.provider && x.model===c.model && x.quality===c.quality); return renderModelCard(c, origIdx, slideCount); }).join('')}</div>` : ''}
+            </div>` : ''}
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-start;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+          <button class="btn-ghost" id="backTo3">← Back to slide edit</button>
         </div>
       </div>
     </div>`;
-  document.getElementById('testSlideSel').onchange = e => { state.modelPicker.testSlideIdx = parseInt(e.target.value) || 0; renderStep35(); };
-  document.getElementById('runTestBtn').onclick = () => runTestGenerations();
+  document.getElementById('modeKnow').onchange = () => { state.modelPicker.mode = 'know'; renderStep35(); };
+  document.getElementById('modeCompare').onchange = () => { state.modelPicker.mode = 'compare'; renderStep35(); };
   document.getElementById('backTo3').onclick = () => { state.composeStep = 3; renderCompose(); };
-  document.getElementById('useDefaultBtn').onclick = () => {
-    const spec = parseModelSpec(state.defaultModel);
-    if (!spec || !providerKeyAvailable(spec.provider)) { toast({ type: 'error', message: 'No API key for default.' }); return; }
-    state.selectedModel = state.defaultModel; state.composeStep = 5; renderCompose(); generateAllImages();
-  };
-  state.modelPicker.candidates.forEach((c, i) => bindModelCard(i));
+  if (mode === 'know') {
+    const sel = document.getElementById('singlePickSel');
+    if (sel) sel.onchange = e => { state.modelPicker.singlePickModel = e.target.value; renderStep35(); };
+    const favBtn = document.getElementById('singlePickFav');
+    if (favBtn) favBtn.onclick = async () => { if (state.modelPicker.singlePickModel) { await toggleFavoriteModel(state.modelPicker.singlePickModel); renderStep35(); } };
+    const contBtn = document.getElementById('continueSingleBtn');
+    if (contBtn) contBtn.onclick = async () => {
+      if (!state.modelPicker.singlePickModel) return;
+      state.selectedModel = state.modelPicker.singlePickModel;
+      state.lastSelectedModel = state.selectedModel;
+      await persistSetting('dn_last_selected_model', state.selectedModel);
+      state.composeStep = 5; renderCompose(); generateAllImages();
+    };
+  } else {
+    const tss = document.getElementById('testSlideSel');
+    if (tss) tss.onchange = e => { state.modelPicker.testSlideIdx = parseInt(e.target.value) || 0; renderStep35(); };
+    document.querySelectorAll('[data-mockup-id]').forEach(cb => {
+      cb.onchange = e => {
+        const id = cb.dataset.mockupId;
+        if (e.target.checked) state.modelPicker.selectedToMockup.add(id);
+        else state.modelPicker.selectedToMockup.delete(id);
+        renderStep35();
+      };
+    });
+    document.querySelectorAll('[data-fav-id]').forEach(btn => {
+      btn.onclick = async () => { await toggleFavoriteModel(btn.dataset.favId); renderStep35(); };
+    });
+    const runBtn = document.getElementById('runMockupsBtn');
+    if (runBtn) runBtn.onclick = () => runMockupGenerations();
+    candidates.forEach((c, i) => bindModelCard(i));
+  }
+}
+
+async function runMockupGenerations() {
+  if (state.modelPicker.inFlight) return;
+  const slide = state.slides[state.modelPicker.testSlideIdx];
+  if (!slide) { toast({ type: 'error', message: 'No test slide' }); return; }
+  const ids = Array.from(state.modelPicker.selectedToMockup);
+  const eligible = state.modelPicker.candidates.filter(c => ids.includes(`${c.provider}:${c.model}:${c.quality}`));
+  if (eligible.length === 0) { toast({ type: 'error', message: 'Select at least one model' }); return; }
+  state.modelPicker.inFlight = true;
+  eligible.forEach(c => { c.status = 'generating'; c.error = null; c.imageB64 = null; });
+  renderStep35();
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const prompt = composeSkillPrompt(skill, slide);
+  await Promise.all(eligible.map(async c => {
+    try {
+      const b64 = await generateImageWithProvider(c.provider, c.model, c.quality, prompt);
+      c.imageB64 = b64; c.status = 'done';
+      deckCost.testImage += c.cost_per_image;
+      deckCost.imageDetails.push({ provider: c.provider, model: c.model, quality: c.quality, cost: c.cost_per_image, kind: 'test' });
+      renderCostBadge();
+    } catch (err) { c.status = 'error'; c.error = err.message || String(err); }
+    renderStep35();
+  }));
+  state.modelPicker.inFlight = false;
+  renderStep35();
+  toast({ type: 'success', message: `Mockups ready · ${fmtUsd4(eligible.reduce((s,c)=>s+(c.status==='done'?c.cost_per_image:0),0))}` });
 }
 function renderModelCard(c, idx, slideCount) {
   const isSelected = state.selectedModel === `${c.provider}:${c.model}:${c.quality}`;
@@ -1175,8 +1356,8 @@ async function runTestGenerations() {
   state.modelPicker.inFlight = true;
   eligible.forEach(c => { c.status = 'generating'; c.error = null; });
   renderStep35();
-  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
-  const prompt = composeBundlePrompt(bundle, slide);
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const prompt = composeSkillPrompt(skill, slide);
   await Promise.all(eligible.map(async c => {
     try {
       const b64 = await generateImageWithProvider(c.provider, c.model, c.quality, prompt);
@@ -1195,8 +1376,8 @@ async function runSingleTest(idx) {
   const c = state.modelPicker.candidates[idx]; if (!c) return;
   const slide = state.slides[state.modelPicker.testSlideIdx];
   c.status = 'generating'; c.error = null; renderStep35();
-  const bundle = state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null;
-  const prompt = composeBundlePrompt(bundle, slide);
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const prompt = composeSkillPrompt(skill, slide);
   try {
     const b64 = await generateImageWithProvider(c.provider, c.model, c.quality, prompt);
     c.imageB64 = b64; c.status = 'done';
@@ -1209,6 +1390,8 @@ async function runSingleTest(idx) {
 function selectModel(idx) {
   const c = state.modelPicker.candidates[idx]; if (!c) return;
   state.selectedModel = `${c.provider}:${c.model}:${c.quality}`;
+  state.lastSelectedModel = state.selectedModel;
+  persistSetting('dn_last_selected_model', state.selectedModel);
   state.modelPicker.candidates.forEach((other, i) => { if (i !== idx) other.imageB64 = null; });
   toast({ type: 'success', message: `Selected ${c.label}` });
   state.composeStep = 5; renderCompose(); generateAllImages();
@@ -1221,10 +1404,41 @@ function openImageLightbox(b64, title) {
   openModal(html, { xl: true });
 }
 
+function ensureSpeakerNotes() {
+  state.slides.forEach(s => { if (s.speakerNotes == null || s.speakerNotes === '') s.speakerNotes = s.body || ''; });
+}
+function countWords(s) { if (!s) return 0; const m = String(s).trim().match(/\S+/g); return m ? m.length : 0; }
+
+async function rewriteNotesWithClaude(idx) {
+  const slide = state.slides[idx]; if (!slide) return;
+  const key = (state.apiKeys.anthropic || '').trim();
+  if (!key) { toast({ type: 'error', message: 'Set Anthropic API key in Settings.' }); return; }
+  slide.rewritingNotes = true; renderStep5Slides();
+  const systemPrompt = 'You are a presentation coach. Rewrite the following slide content as natural speaker notes — flowing presenter language a person would actually say aloud while presenting. Convert bullets to sentences. Keep the same facts and order. Stay under 150 words. Return only the rewritten notes, no preamble.';
+  const userPrompt = `Slide title: ${slide.title}\n\nSlide content:\n${slide.speakerNotes || slide.body || ''}`;
+  const modelName = 'claude-sonnet-4-5-20250929';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: modelName, max_tokens: 800, system: systemPrompt, messages: [{ role: 'user', content: userPrompt }] })
+    });
+    if (!resp.ok) { const err = await resp.text(); throw new Error(`Claude ${resp.status}: ${err.slice(0,300)}`); }
+    const data = await resp.json();
+    if (data.usage) { const cost = getAnthropicCost(modelName, data.usage.input_tokens || 0, data.usage.output_tokens || 0); deckCost.polish += cost; renderCostBadge(); }
+    const newText = (data.content[0].text || '').trim();
+    slide.prevSpeakerNotes = slide.speakerNotes;
+    slide.speakerNotes = newText;
+    toast({ type: 'success', message: `Notes rewritten · slide ${idx+1}` });
+  } catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+  slide.rewritingNotes = false; renderStep5Slides();
+}
+
 function renderStep5() {
   const el = document.getElementById('step5'); if (!el) return;
   const isFuture = state.composeStep < 5;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">5</div><div class="step-title">Generate &amp; assemble</div><div class="step-desc">${escapeHtml(modelLabel(currentEffectiveModel().provider, currentEffectiveModel().model, currentEffectiveModel().quality))}</div></div></div>`; return; }
+  ensureSpeakerNotes();
   const allDone = state.slides.every(s => s.status === 'done');
   const spec = currentEffectiveModel();
   el.innerHTML = `
@@ -1257,6 +1471,7 @@ function renderImgCard(s, i) {
   else thumbContent = `<div class="placeholder">Queued</div>`;
   const expanded = !!state.expandedRefine[i];
   const modelTag = s.modelUsed ? modelLabel(s.modelUsed.provider, s.modelUsed.model, s.modelUsed.quality) : '';
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
   return `
     <div class="slide-img-card" data-idx="${i}">
       <div class="slide-img-head">
@@ -1276,7 +1491,11 @@ function renderImgCard(s, i) {
           </div>
           <div class="refine-section">
             <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
-            ${expanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label><textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s))}</textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div></div>` : ''}
+            ${expanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label><textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeSkillPrompt(skill, s))}</textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div></div>` : ''}
+          </div>
+          <div class="refine-section">
+            <button class="refine-toggle" data-act="toggleNotes">${s.notesExpanded ? '−' : '+'} Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})</button>
+            ${s.notesExpanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">What to say while presenting</label><textarea class="textarea prose" data-act="notesText" rows="6" placeholder="Speaker notes — pre-filled from slide body. Edit freely.">${escapeHtml(s.speakerNotes || '')}</textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-secondary" data-act="aiNotes" ${s.rewritingNotes ? 'disabled' : ''}>${s.rewritingNotes ? '<span class="spinner"></span> Rewriting…' : 'Make presenter-friendly with AI'}</button>${s.prevSpeakerNotes != null ? '<button class="btn-ghost" data-act="restoreNotes">Restore previous</button>' : ''}<span class="muted body-sm" style="margin-left:auto;align-self:center;font-size:11px">~$0.01 per rewrite</span></div></div>` : ''}
           </div>
         </div>
       </div>
@@ -1290,7 +1509,11 @@ function bindImgCard(i) {
   const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => regenerateOne(i);
   const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep5Slides(); };
   const regen = card.querySelector('[data-act="regen"]'); if (regen) regen.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); regenerateOne(i, ta ? ta.value : null); };
-  const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); if (ta) ta.value = composeBundlePrompt(state.selectedBundleId ? joinBundle(bundleById(state.selectedBundleId)) : null, s); };
+  const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null; if (ta) ta.value = composeSkillPrompt(skill, s); };
+  const toggleN = card.querySelector('[data-act="toggleNotes"]'); if (toggleN) toggleN.onclick = () => { s.notesExpanded = !s.notesExpanded; renderStep5Slides(); };
+  const notesTa = card.querySelector('[data-act="notesText"]'); if (notesTa) notesTa.oninput = e => { s.speakerNotes = e.target.value; const btn = card.querySelector('[data-act="toggleNotes"]'); if (btn) btn.textContent = `− Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})`; };
+  const aiBtn = card.querySelector('[data-act="aiNotes"]'); if (aiBtn) aiBtn.onclick = () => rewriteNotesWithClaude(i);
+  const restoreBtn = card.querySelector('[data-act="restoreNotes"]'); if (restoreBtn) restoreBtn.onclick = () => { if (s.prevSpeakerNotes != null) { s.speakerNotes = s.prevSpeakerNotes; s.prevSpeakerNotes = null; renderStep5Slides(); toast({ type: 'info', message: 'Notes restored' }); } };
 }
 function openLightbox(i) {
   const s = state.slides[i]; if (!s.imageB64) return;
@@ -1303,62 +1526,163 @@ function openLightbox(i) {
   document.getElementById('saveImgBtn').onclick = () => { const a = document.createElement('a'); a.href = 'data:image/jpeg;base64,' + s.imageB64; a.download = `slide-${i+1}-${slugify(s.title)}.jpg`; document.body.appendChild(a); a.click(); document.body.removeChild(a); };
 }
 
-function renderBundles() {
+function renderSkills() {
   const cont = document.getElementById('content');
-  const search = state.bundlesSearch.toLowerCase();
-  const filtered = allBundles.filter(b => !search || (b.name||'').toLowerCase().includes(search) || (b.description||'').toLowerCase().includes(search));
-  const loadingNote = dataLoadState.status === 'loading' ? '<div class="info-banner"><div>Loading bundles from Supabase…</div></div>' : '';
+  const search = state.skillsSearch.toLowerCase();
+  const filtered = sortedSkills().filter(s => !search || (s.name||'').toLowerCase().includes(search) || (s.description||'').toLowerCase().includes(search));
+  const loadingNote = dataLoadState.status === 'loading' ? '<div class="info-banner"><div>Loading skills from Supabase…</div></div>' : '';
   const errorNote = dataLoadState.status === 'err' ? `<div class="warning-banner"><div>Could not load from Supabase: ${escapeHtml(dataLoadState.error || '')} — showing fallback.</div></div>` : '';
   cont.innerHTML = `
-    <div style="margin-bottom:20px"><div class="eyebrow" style="margin-bottom:8px">Library</div><div class="display">Bundles</div><div class="muted body-sm" style="margin-top:8px;max-width:680px">House Style + Domain Pack + Deck Type. <span class="mono">${allBundles.length}</span> bundle${allBundles.length===1?'':'s'} loaded.</div></div>
-    ${loadingNote}${errorNote}
-    <div class="section-header"><input class="input" id="bundleSearch" placeholder="Search…" value="${escapeHtml(state.bundlesSearch)}" style="max-width:320px"><div style="display:flex;gap:8px">${!state.adminMode ? '<span class="badge badge-neutral">Read-only</span>' : ''}</div></div>
-    ${filtered.length === 0 ? `<div class="empty"><div class="empty-title">No bundles</div><div class="empty-desc">${dataLoadState.status === 'loading' ? 'Loading from Supabase…' : 'No bundles match your search.'}</div></div>` : `<div class="template-grid">${filtered.map(b => {
-      const hs = b.house_style; const dp = b.domain_pack; const dt = b.deck_type;
-      return `<div class="template-card"><div class="template-card-header"><div class="template-card-name"><span class="swatch-dot" style="background:${escapeHtml(b.swatch_color || '#999')}"></span>${escapeHtml(b.name)}</div></div><div class="template-card-desc">${escapeHtml(b.description || '')}</div><div style="font-size:11px;line-height:1.7;margin-bottom:10px"><div><span class="layer-badge ${hs ? 'layer-house_style' : 'layer-missing'}">HS</span> <span class="${hs ? 'muted' : ''}" style="${hs ? '' : 'color:var(--danger)'}">${escapeHtml(hs ? hs.name : '(missing)')}</span></div><div><span class="layer-badge ${dp ? 'layer-domain_pack' : 'layer-missing'}">DP</span> <span class="${dp ? 'muted' : ''}" style="${dp ? '' : 'color:var(--danger)'}">${escapeHtml(dp ? dp.name : '(missing)')}</span></div><div><span class="layer-badge ${dt ? 'layer-deck_type' : 'layer-missing'}">DT</span> <span class="${dt ? 'muted' : ''}" style="${dt ? '' : 'color:var(--danger)'}">${escapeHtml(dt ? dt.name : '(missing)')}</span></div></div><div class="template-card-footer"><span>${escapeHtml((b.updated_at || '').slice(0,10))}</span><div style="display:flex;gap:4px"><button class="btn-ghost" data-act="viewBundle" data-id="${b.id}">View</button></div></div></div>`;
-    }).join('')}</div>`}`;
-  document.getElementById('bundleSearch').oninput = e => { state.bundlesSearch = e.target.value; renderBundles(); };
-  document.querySelectorAll('[data-act="viewBundle"]').forEach(el => el.onclick = () => openBundleViewer(el.dataset.id));
-}
-function openBundleViewer(id) {
-  const b = bundleById(id);
-  if (!b) return;
-  const joined = joinBundle(b);
-  const preview = composeBundlePromptPreview(joined);
-  openModal(`<div class="modal-header"><div><div class="h1">${escapeHtml(b.name)}</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(b.description || '')}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
-    <div class="range-row" style="grid-template-columns:1fr 1fr 1fr">
-      <div class="field"><label class="field-label"><span class="layer-badge layer-house_style">HS</span></label><div class="mono" style="font-size:12px">${escapeHtml(joined.house_style ? joined.house_style.name : '(missing)')}</div></div>
-      <div class="field"><label class="field-label"><span class="layer-badge layer-domain_pack">DP</span></label><div class="mono" style="font-size:12px">${escapeHtml(joined.domain_pack ? joined.domain_pack.name : '(missing)')}</div></div>
-      <div class="field"><label class="field-label"><span class="layer-badge layer-deck_type">DT</span></label><div class="mono" style="font-size:12px">${escapeHtml(joined.deck_type ? joined.deck_type.name : '(missing)')}</div></div>
+    <div style="margin-bottom:20px">
+      <div class="eyebrow" style="margin-bottom:8px">Library</div>
+      <div class="display">Skills</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Each skill is one self-contained visual prompt. <span class="mono">${allSkills.length}</span> skill${allSkills.length===1?'':'s'} loaded · <span class="mono">${favoriteSkillIds.size}</span> favorited.</div>
     </div>
-    <div class="field"><label class="field-label">Composed prompt preview</label><div class="composed-preview">${escapeHtml(preview)}</div></div>
-    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
+    ${loadingNote}${errorNote}
+    <div class="section-header">
+      <input class="input" id="skillsSearch" placeholder="Search skills…" value="${escapeHtml(state.skillsSearch)}" style="max-width:320px">
+      <div style="display:flex;gap:8px">
+        ${state.adminMode ? '<button class="btn-primary" id="newSkillBtn">+ New skill</button>' : '<span class="badge badge-neutral">Read-only</span>'}
+      </div>
+    </div>
+    ${filtered.length === 0 ? `<div class="empty"><div class="empty-title">No skills</div><div class="empty-desc">${dataLoadState.status === 'loading' ? 'Loading from Supabase…' : (state.adminMode ? 'Click "New skill" to create one.' : 'No skills match your search.')}</div></div>` : `<div>${filtered.map(s => renderSkillRow(s)).join('')}</div>`}
+  `;
+  document.getElementById('skillsSearch').oninput = e => { state.skillsSearch = e.target.value; renderSkills(); };
+  const newBtn = document.getElementById('newSkillBtn'); if (newBtn) newBtn.onclick = () => openSkillEditor(null);
+  document.querySelectorAll('[data-skill-act]').forEach(el => {
+    const act = el.dataset.skillAct; const id = el.dataset.id;
+    if (act === 'fav') el.onclick = async () => { await toggleFavoriteSkill(id); renderSkills(); };
+    else if (act === 'edit') el.onclick = () => openSkillEditor(id);
+    else if (act === 'dup') el.onclick = () => duplicateSkill(id);
+    else if (act === 'del') el.onclick = () => confirmDeleteSkill(id);
+    else if (act === 'view') el.onclick = () => openSkillViewer(id);
+  });
+}
+function renderSkillRow(s) {
+  const isFav = favoriteSkillIds.has(s.id);
+  const promptLen = (s.prompt || '').length;
+  return `
+    <div class="skill-row">
+      <button class="skill-star ${isFav ? 'active' : ''}" data-skill-act="fav" data-id="${s.id}" title="${isFav ? 'Unfavorite' : 'Favorite'}" aria-label="Toggle favorite">${starSvg(isFav)}</button>
+      <div class="skill-main">
+        <div class="skill-name">${escapeHtml(s.name)}</div>
+        <div class="skill-desc">${escapeHtml(s.description || '(no description)')}</div>
+      </div>
+      <div class="skill-meta">${promptLen.toLocaleString()} chars</div>
+      <div class="skill-actions">
+        <button class="btn-ghost" data-skill-act="view" data-id="${s.id}">View</button>
+        ${state.adminMode ? `<button class="btn-secondary" data-skill-act="edit" data-id="${s.id}">Edit</button><button class="btn-ghost" data-skill-act="dup" data-id="${s.id}">Duplicate</button><button class="btn-ghost" data-skill-act="del" data-id="${s.id}" style="color:var(--danger)">Delete</button>` : ''}
+      </div>
+    </div>`;
+}
+function openSkillViewer(id) {
+  const s = skillById(id); if (!s) return;
+  openModal(`<div class="modal-header"><div><div class="h1">${escapeHtml(s.name)}</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(s.description || '')}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
+    <div class="field"><label class="field-label">Prompt <span class="subtle">${(s.prompt||'').length} chars</span></label><div class="composed-preview" style="max-height:420px">${escapeHtml(s.prompt || '')}</div></div>
+    <div class="modal-footer">${state.adminMode ? `<button class="btn-secondary" id="editFromView">Edit</button>` : ''}<button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
+  const eb = document.getElementById('editFromView'); if (eb) eb.onclick = () => { closeModal(); openSkillEditor(id); };
+}
+function openSkillEditor(id) {
+  if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
+  const existing = id ? skillById(id) : null;
+  const draft = { id: existing ? existing.id : null, name: existing ? existing.name : '', description: existing ? existing.description : '', prompt: existing ? existing.prompt : '' };
+  const renderEditor = () => {
+    const promptLen = (draft.prompt || '').length;
+    const html = `
+      <div class="modal-header"><div><div class="h1">${existing ? 'Edit skill' : 'New skill'}</div><div class="muted body-sm" style="margin-top:4px">${existing ? 'Saving creates a new version row for rollback' : 'A skill is one self-contained visual prompt'}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
+      <div class="field"><label class="field-label">Name <span class="subtle">required</span></label><input class="input" id="skName" value="${escapeHtml(draft.name)}" placeholder="e.g. DN Telco Sales Pitch — Dark"></div>
+      <div class="field"><label class="field-label">Description</label><input class="input" id="skDesc" value="${escapeHtml(draft.description || '')}" placeholder="One-line summary shown in dropdowns"></div>
+      <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model. Anything from a 50-char hint to a 5000-char brand passport.">${escapeHtml(draft.prompt || '')}</textarea></div>
+      <div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="skChange" placeholder="What changed in this version?"></div>
+      <div class="modal-footer">
+        <button class="btn-ghost" onclick="closeModal()">Cancel</button>
+        ${existing ? '<button class="btn-secondary" id="saveAsNewBtn">Save as new skill</button>' : ''}
+        <button class="btn-primary" id="saveSkillBtn">Save</button>
+      </div>`;
+    openModal(html, { lg: true });
+    document.getElementById('skName').oninput = e => { draft.name = e.target.value; };
+    document.getElementById('skDesc').oninput = e => { draft.description = e.target.value; };
+    document.getElementById('skPrompt').oninput = e => { draft.prompt = e.target.value; document.getElementById('skPromptCount').textContent = e.target.value.length.toLocaleString() + ' chars'; };
+    document.getElementById('saveSkillBtn').onclick = async () => {
+      if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
+      if (!draft.prompt.trim()) { toast({ type: 'error', message: 'Prompt is required' }); return; }
+      const note = document.getElementById('skChange').value || null;
+      try { await saveSkill({ ...draft, change_note: note }); closeModal(); toast({ type: 'success', message: 'Skill saved' }); renderSkills(); }
+      catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+    };
+    const sasn = document.getElementById('saveAsNewBtn');
+    if (sasn) sasn.onclick = async () => {
+      if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
+      if (!draft.prompt.trim()) { toast({ type: 'error', message: 'Prompt is required' }); return; }
+      const note = document.getElementById('skChange').value || null;
+      try { await saveSkill({ id: null, name: draft.name + ' (copy)', description: draft.description, prompt: draft.prompt, change_note: note }); closeModal(); toast({ type: 'success', message: 'New skill created' }); renderSkills(); }
+      catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+    };
+  };
+  renderEditor();
 }
 
-function renderTemplates() {
-  const cont = document.getElementById('content');
-  const filter = state.templatesTab; const search = state.templatesSearch.toLowerCase();
-  let items = allTemplates.slice();
-  if (filter !== 'all') items = items.filter(t => t.layer === filter);
-  if (search) items = items.filter(t => (t.name||'').toLowerCase().includes(search) || (t.description||'').toLowerCase().includes(search));
-  const counts = { all: allTemplates.length, house_style: allTemplates.filter(t => t.layer === 'house_style').length, domain_pack: allTemplates.filter(t => t.layer === 'domain_pack').length, deck_type: allTemplates.filter(t => t.layer === 'deck_type').length };
-  const loadingNote = dataLoadState.status === 'loading' ? '<div class="info-banner"><div>Loading templates from Supabase…</div></div>' : '';
-  cont.innerHTML = `
-    <div style="margin-bottom:20px"><div class="eyebrow" style="margin-bottom:8px">Layer library</div><div class="display">Templates</div><div class="muted body-sm" style="margin-top:8px"><span class="mono">${allTemplates.length}</span> template${allTemplates.length===1?'':'s'} loaded.</div></div>
-    ${loadingNote}
-    <div class="section-header"><div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;flex:1"><div class="filter-pills"><button class="pill ${filter === 'all' ? 'active' : ''}" data-filter="all">All <span class="subtle mono">${counts.all}</span></button><button class="pill ${filter === 'house_style' ? 'active' : ''}" data-filter="house_style">House Style <span class="subtle mono">${counts.house_style}</span></button><button class="pill ${filter === 'domain_pack' ? 'active' : ''}" data-filter="domain_pack">Domain Pack <span class="subtle mono">${counts.domain_pack}</span></button><button class="pill ${filter === 'deck_type' ? 'active' : ''}" data-filter="deck_type">Deck Type <span class="subtle mono">${counts.deck_type}</span></button></div><input class="input" id="tSearch" placeholder="Search…" value="${escapeHtml(state.templatesSearch)}" style="max-width:260px"></div><div>${!state.adminMode ? '<span class="badge badge-neutral">Read-only</span>' : ''}</div></div>
-    ${items.length === 0 ? `<div class="empty"><div class="empty-title">No templates</div><div class="empty-desc">${dataLoadState.status === 'loading' ? 'Loading…' : 'No templates match this filter.'}</div></div>` : `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Name</th><th>Layer</th><th>Description</th><th>Used by</th><th>Updated</th><th></th></tr></thead><tbody>${items.map(t => { const usedBy = bundlesUsingTemplate(t.id).length; const layerLabel = t.layer === 'house_style' ? 'House Style' : t.layer === 'domain_pack' ? 'Domain Pack' : 'Deck Type'; return `<tr><td><strong>${escapeHtml(t.name)}</strong></td><td><span class="layer-badge layer-${t.layer}">${layerLabel}</span></td><td class="muted" style="font-size:12px">${escapeHtml((t.description||'').slice(0,80))}</td><td class="mono" style="font-size:12px">${usedBy}</td><td class="mono muted" style="font-size:12px">${escapeHtml((t.updated_at||'').slice(0,10))}</td><td style="text-align:right"><button class="btn-ghost" data-act="viewTemplate" data-id="${t.id}">View</button></td></tr>`; }).join('')}</tbody></table></div>`}`;
-  document.querySelectorAll('.pill').forEach(p => p.onclick = () => { state.templatesTab = p.dataset.filter; renderTemplates(); });
-  const ts = document.getElementById('tSearch'); if (ts) ts.oninput = e => { state.templatesSearch = e.target.value; renderTemplates(); };
-  document.querySelectorAll('[data-act="viewTemplate"]').forEach(el => el.onclick = () => openTemplateViewer(el.dataset.id));
+async function saveSkill(skill) {
+  const sb = getSupabaseClient();
+  if (!sb) {
+    // local-only fallback
+    if (skill.id) {
+      const idx = allSkills.findIndex(s => s.id === skill.id);
+      if (idx >= 0) allSkills[idx] = { ...allSkills[idx], name: skill.name, description: skill.description, prompt: skill.prompt, updated_at: new Date().toISOString() };
+    } else {
+      allSkills.push({ id: uuid(), name: skill.name, description: skill.description, prompt: skill.prompt, is_skill: true, is_active: true, updated_at: new Date().toISOString() });
+    }
+    window.allSkills = allSkills;
+    return;
+  }
+  const payload = {
+    name: skill.name,
+    description: skill.description || null,
+    prompt: skill.prompt,
+    is_skill: true,
+    is_active: true,
+    layer: null,
+    updated_at: new Date().toISOString(),
+    updated_by: OWNER_ID
+  };
+  if (skill.id) payload.id = skill.id;
+  const { data: saved, error } = await sb.from('deck_templates').upsert(payload).select().single();
+  if (error) throw error;
+  // version row (best-effort)
+  try {
+    const { data: versionsExisting } = await sb.from('template_versions').select('version_num').eq('template_id', saved.id).order('version_num', { ascending: false }).limit(1);
+    const nextVersion = (versionsExisting && versionsExisting[0] && versionsExisting[0].version_num || 0) + 1;
+    await sb.from('template_versions').insert({ template_id: saved.id, version_num: nextVersion, prompt: saved.prompt, change_note: skill.change_note || null, updated_by: OWNER_ID });
+  } catch (ve) { console.warn('Version row insert failed (non-fatal):', ve); }
+  await loadAllSkills();
 }
-function openTemplateViewer(id) {
-  const t = templateById(id); if (!t) return;
-  const usedBy = bundlesUsingTemplate(t.id);
-  openModal(`<div class="modal-header"><div><div class="h1">${escapeHtml(t.name)}</div><div class="muted body-sm" style="margin-top:4px"><span class="layer-badge layer-${t.layer}">${escapeHtml(t.layer)}</span> · used by ${usedBy.length} bundle${usedBy.length===1?'':'s'}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
-    <div class="field"><label class="field-label">Description</label><div class="muted body-sm">${escapeHtml(t.description || '')}</div></div>
-    <div class="field"><label class="field-label">Prompt</label><div class="composed-preview" style="max-height:380px">${escapeHtml(t.prompt || '')}</div></div>
-    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
+
+async function duplicateSkill(id) {
+  const s = skillById(id); if (!s) return;
+  try {
+    await saveSkill({ id: null, name: s.name + ' (copy)', description: s.description, prompt: s.prompt, change_note: 'Duplicated from ' + s.name });
+    toast({ type: 'success', message: 'Skill duplicated' });
+    renderSkills();
+  } catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+}
+function confirmDeleteSkill(id) {
+  const s = skillById(id); if (!s) return;
+  openModal(`<div class="modal-header"><div><div class="h1">Delete "${escapeHtml(s.name)}"?</div></div></div><div class="danger-banner"><div>The skill will be deactivated (soft delete). Past decks that used it are unaffected.</div></div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelSkill">Delete</button></div>`);
+  document.getElementById('confirmDelSkill').onclick = async () => {
+    try {
+      const sb = getSupabaseClient();
+      if (sb) {
+        const { error } = await sb.from('deck_templates').update({ is_active: false, updated_at: new Date().toISOString() }).eq('id', id);
+        if (error) throw error;
+      }
+      allSkills = allSkills.filter(x => x.id !== id);
+      window.allSkills = allSkills;
+      if (state.selectedSkillId === id) state.selectedSkillId = defaultSkillId();
+      closeModal();
+      toast({ type: 'success', message: 'Skill deleted' });
+      renderSkills();
+    } catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+  };
 }
 
 function renderSettings() {
@@ -1375,9 +1699,9 @@ function renderSettings() {
     <div style="margin-bottom:24px"><div class="eyebrow" style="margin-bottom:8px">Configuration</div><div class="display">Settings</div></div>
     <div style="margin-bottom:20px"><span id="syncPill" class="sync-pill">💾 Settings sync with Supabase</span> <span class="muted body-sm">owner: <span class="mono">${escapeHtml(OWNER_ID)}</span></span></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Reference data</div></div><div class="card"><dl class="kv"><dt>Templates</dt><dd><span class="mono">${allTemplates.length}</span> loaded</dd><dt>Bundles</dt><dd><span class="mono">${allBundles.length}</span> loaded</dd><dt>Image models</dt><dd><span class="mono">${allImageModels.length}</span> active</dd><dt>Status</dt><dd>${dataLoadState.status === 'ok' ? '<span class="badge badge-success">OK</span>' : dataLoadState.status === 'err' ? '<span class="badge badge-danger">Error: ' + escapeHtml(dataLoadState.error || '') + '</span>' : '<span class="badge badge-neutral">Loading…</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Reference data</div></div><div class="card"><dl class="kv"><dt>Skills</dt><dd><span class="mono">${allSkills.length}</span> loaded · <span class="mono">${favoriteSkillIds.size}</span> favorited</dd><dt>Image models</dt><dd><span class="mono">${allImageModels.length}</span> active</dd><dt>Status</dt><dd>${dataLoadState.status === 'ok' ? '<span class="badge badge-success">OK</span>' : dataLoadState.status === 'err' ? '<span class="badge badge-danger">Error: ' + escapeHtml(dataLoadState.error || '') + '</span>' : '<span class="badge badge-neutral">Loading…</span>'}</dd></dl></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Admin mode</div></div><div class="card"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''}><span>Enable admin mode</span></label></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Admin mode</div></div><div class="card"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="adminChk" ${state.adminMode ? 'checked' : ''}><span>Enable admin mode (allows creating, editing, deleting skills)</span></label></div></div>
 
     <div class="section"><div class="section-header"><div class="h1">Image models &amp; cost</div></div><div class="card">
       <div class="field"><label class="field-label">Default image model</label><select class="select" id="defaultModelSel">${modelOptions}</select><div class="field-hint">Cost: <strong>${fmtUsd(defaultCost)}</strong> per image</div></div>
@@ -1396,7 +1720,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.1.7</span> (build #25 — live Supabase data)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.2.0</span> (build #27 — Skills model)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -1425,6 +1749,7 @@ function renderSettings() {
       state.imageQuality = 'high'; state.defaultModel = 'openai:gpt-image-2:high';
       state.skipModelPicker = false; state.logoBacking = false; state.adminMode = false;
       state.slideMin = 6; state.slideMax = 10; state.logoB64 = null; state.logoIsCustom = false;
+      favoriteSkillIds = new Set();
       const b = await loadDefaultLogo(); if (b) state.logoB64 = b;
       toast({ type: 'success', message: 'Settings cleared' });
       renderSettings(); updateAdminBadge();
@@ -1436,7 +1761,7 @@ function updateAdminBadge() {
   const el = document.getElementById('adminBadge'); if (!el) return;
   el.innerHTML = state.adminMode ? '<span class="badge badge-accent" style="cursor:pointer" id="adminBadgeBtn">Admin</span>' : '<span class="badge badge-neutral" style="cursor:pointer" id="adminBadgeBtn">Read-only</span>';
   const btn = document.getElementById('adminBadgeBtn');
-  if (btn) btn.onclick = async () => { state.adminMode = !state.adminMode; await persistSetting('dn_admin', String(state.adminMode)); updateAdminBadge(); if (state.view === 'templates') renderTemplates(); else if (state.view === 'bundles') renderBundles(); else if (state.view === 'settings') renderSettings(); };
+  if (btn) btn.onclick = async () => { state.adminMode = !state.adminMode; await persistSetting('dn_admin', String(state.adminMode)); updateAdminBadge(); if (state.view === 'skills') renderSkills(); else if (state.view === 'settings') renderSettings(); };
 }
 function renderCostBadge() {
   const el = document.getElementById('costBadge'); if (!el) return;
@@ -1450,8 +1775,7 @@ function setActiveNav() { document.querySelectorAll('.nav-btn').forEach(b => b.c
 document.querySelectorAll('.nav-btn').forEach(b => { b.addEventListener('click', () => { state.view = b.dataset.view; setActiveNav(); render(); }); });
 function render() {
   if (state.view === 'compose') renderCompose();
-  else if (state.view === 'bundles') renderBundles();
-  else if (state.view === 'templates') renderTemplates();
+  else if (state.view === 'skills') renderSkills();
   else renderSettings();
   renderCostBadge();
 }
@@ -1460,6 +1784,7 @@ async function initApp() {
   await bootstrapSettings();
   await loadAllReferenceData();
   hydrateStateFromStorage();
+  if (!state.selectedSkillId || !skillById(state.selectedSkillId)) state.selectedSkillId = defaultSkillId();
   updateAdminBadge();
   render();
   setInterval(updateSyncPill, 30000);
