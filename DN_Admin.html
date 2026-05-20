@@ -3847,7 +3847,7 @@ DN_HOUSE_STYLE.trim() + '\n' +
   if (isRebuild) {
     prompt +=
 'THIS IS A REBUILD.\n\n' +
-'The previous version of this app exists below. You can respond in either of two formats — choose the one that best fits the requested change. Read the guidance carefully before deciding.\n\n' +
+'The previous version of this app exists below. CRITICAL OUTPUT POLICY: your DEFAULT response is FULL HTML — respond with {"html": "<!DOCTYPE html>..."} containing the complete updated document. Patches are RESERVED for trivial single-region changes (under 5 lines, find strings copied verbatim). For ANY multi-region change, ANY new capability, ANY feature addition, or whenever the QA reviewer mentions full HTML — emit FULL HTML, never patches. When in any doubt at all, emit FULL HTML.\n\n' +
 'PREVIOUS VERSION HTML (read carefully — your output will modify or replace this):\n' +
 '```html\n' + previousHtml + '\n```\n\n';
 
