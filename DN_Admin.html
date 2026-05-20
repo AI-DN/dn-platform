@@ -3712,8 +3712,14 @@ async function validateBuiltArtifact(html) {
     // Since the iframe is same-origin (sandboxed but with allow-same-origin), we can
     // read iframe.contentWindow.__buildErrors after parse.
     const guardScript =
-      '<script>window.__buildErrors=[];' +
+      '<script>window.__buildErrors=[];window.__buildResourceFails=[];' +
       'window.addEventListener("error",function(e){' +
+        'if(e.target&&e.target!==window&&e.target.tagName){' +
+          'var src=e.target.src||e.target.href||"";' +
+          'var tag=e.target.tagName.toLowerCase();' +
+          'window.__buildResourceFails.push({message:"Resource failed to load: <"+tag+"> "+src,tag:tag,src:src});' +
+          'return;' +
+        '}' +
         'var msg=e.message;' +
         'if((!msg||msg==="Script error.")&&e.error){msg=(e.error.name?e.error.name+": ":"")+(e.error.message||String(e.error));}' +
         'if(!msg)msg="Unknown error (line "+(e.lineno||"?")+")";' +
@@ -3733,13 +3739,16 @@ async function validateBuiltArtifact(html) {
       wrappedHtml = guardScript + html;
     }
 
-    // After settle, also drain __buildErrors
+    // After settle, also drain __buildErrors and __buildResourceFails
     const origFinish = finish;
     const finalFinish = function() {
       try {
         const w = iframe.contentWindow;
         if (w && w.__buildErrors && Array.isArray(w.__buildErrors)) {
           w.__buildErrors.forEach(function(err) { errors.push(err); });
+        }
+        if (w && w.__buildResourceFails && Array.isArray(w.__buildResourceFails)) {
+          w.__buildResourceFails.forEach(function(err) { errors.push(err); });
         }
       } catch(e) {}
       origFinish();
