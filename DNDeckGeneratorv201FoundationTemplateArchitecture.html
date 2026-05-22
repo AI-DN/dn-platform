@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.6.2</title>
+<title>DN Deck Generator v2.6.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -513,6 +513,17 @@ tbody tr:hover { background: var(--surface-2); }
 .subtext-row .sr-text { flex: 1; font-size: 13px; word-break: break-word; }
 .subtext-row .sr-del { color: var(--text-subtle); background: transparent; border: none; cursor: pointer; padding: 4px 8px; font-size: 14px; }
 .subtext-row .sr-del:hover { color: var(--danger); }
+/* ===== Build #46 — skill row thumbnail + edit modal preview ===== */
+.skill-row-thumb { width: 88px; height: 56px; border-radius: var(--radius-sm); overflow: hidden; background: var(--surface-2); border: 1px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.skill-row-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.skill-row-thumb .ph { color: var(--text-subtle); font-size: 9px; font-family: var(--mono); text-align: center; line-height: 1.3; }
+.skill-edit-preview { margin-bottom: 14px; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-md); display: flex; gap: 14px; align-items: center; }
+.skill-edit-preview .sep-thumb { width: 180px; aspect-ratio: 16/10.5; background: var(--bg); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; display: flex; align-items: center; justify-content: center; border: 1px solid var(--border); }
+.skill-edit-preview .sep-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.skill-edit-preview .sep-thumb .ph { color: var(--text-subtle); font-size: 11px; font-family: var(--mono); text-align: center; padding: 12px; }
+.skill-edit-preview .sep-info { flex: 1; }
+.skill-edit-preview .sep-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
+.skill-edit-preview .sep-meta { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -521,7 +532,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.6.2 #45</div>
+      <div class="brand-version">v2.6.3 #46</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1196,7 +1207,12 @@ async function assemblePptx() {
   const prs = new PptxGenJS();
   prs.layout = 'LAYOUT_WIDE';
   const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
-  const deckTitle = skill ? skill.name : 'DN Deck';
+  // Build #46 — file name from the deck\'s actual theme (first slide title), not the skill
+  const firstSlideTitle = (state.slides[0] && state.slides[0].title || '').trim();
+  const deckThemeTitle = firstSlideTitle && firstSlideTitle.toLowerCase() !== 'title' && firstSlideTitle.toLowerCase() !== 'untitled'
+    ? firstSlideTitle
+    : (skill ? skill.name : 'DN Deck');
+  const deckTitle = deckThemeTitle;
   prs.title = deckTitle; prs.subject = 'Digitata Networks'; prs.author = 'DN Deck Generator';
   const dnLogoB64 = state.logoB64;
   // Build #43 — resolve selected customer logo from brand library
@@ -2842,6 +2858,7 @@ function renderSkills() {
     else if (act === 'dup') el.onclick = () => duplicateSkill(id);
     else if (act === 'del') el.onclick = () => confirmDeleteSkill(id);
     else if (act === 'view') el.onclick = () => openSkillViewer(id);
+    else if (act === 'regenprev') el.onclick = () => regenerateSkillPreview(id);
   });
 }
 function renderSkillRow(s) {
@@ -2850,6 +2867,7 @@ function renderSkillRow(s) {
   return `
     <div class="skill-row">
       <button class="skill-star ${isFav ? 'active' : ''}" data-skill-act="fav" data-id="${s.id}" title="${isFav ? 'Unfavorite' : 'Favorite'}" aria-label="Toggle favorite">${starSvg(isFav)}</button>
+      <div class="skill-row-thumb">${s.preview_image_b64 ? `<img src="data:image/jpeg;base64,${s.preview_image_b64}" alt="">` : '<span class="ph">no<br>preview</span>'}</div>
       <div class="skill-main">
         <div class="skill-name">${escapeHtml(s.name)}</div>
         <div class="skill-desc">${escapeHtml(s.description || '(no description)')}</div>
@@ -2857,7 +2875,7 @@ function renderSkillRow(s) {
       <div class="skill-meta">${promptLen.toLocaleString()} chars</div>
       <div class="skill-actions">
         <button class="btn-ghost" data-skill-act="view" data-id="${s.id}">View</button>
-        ${state.adminMode ? `<button class="btn-secondary" data-skill-act="edit" data-id="${s.id}">Edit</button><button class="btn-ghost" data-skill-act="dup" data-id="${s.id}">Duplicate</button><button class="btn-ghost" data-skill-act="del" data-id="${s.id}" style="color:var(--danger)">Delete</button>` : ''}
+        ${state.adminMode ? `<button class="btn-secondary" data-skill-act="edit" data-id="${s.id}">Edit</button><button class="btn-ghost" data-skill-act="regenprev" data-id="${s.id}" title="Regenerate preview">\u{1F504} Preview</button><button class="btn-ghost" data-skill-act="dup" data-id="${s.id}">Duplicate</button><button class="btn-ghost" data-skill-act="del" data-id="${s.id}" style="color:var(--danger)">Delete</button>` : ''}
       </div>
     </div>`;
 }
@@ -2870,12 +2888,14 @@ function openSkillViewer(id) {
 }
 function openSkillEditor(id) {
   if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
+  window.__currentEditSkillId = id || null;
   const existing = id ? skillById(id) : null;
   const draft = { id: existing ? existing.id : null, name: existing ? existing.name : '', description: existing ? existing.description : '', prompt: existing ? existing.prompt : '' };
   const renderEditor = () => {
     const promptLen = (draft.prompt || '').length;
     const html = `
       <div class="modal-header"><div><div class="h1">${existing ? 'Edit skill' : 'New skill'}</div><div class="muted body-sm" style="margin-top:4px">${existing ? 'Saving creates a new version row for rollback' : 'A skill is one self-contained visual prompt'}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
+      ${existing ? `<div class="skill-edit-preview"><div class="sep-thumb">${existing.preview_image_b64 ? `<img src="data:image/jpeg;base64,${existing.preview_image_b64}" alt="">` : '<span class="ph">No preview generated yet.<br>Click \u201cRegenerate preview\u201d below.</span>'}</div><div class="sep-info"><div class="sep-title">${existing.preview_image_b64 ? 'Current preview' : 'No preview yet'}</div><div class="sep-meta">${existing.preview_image_b64 ? 'Click <strong>Regenerate preview</strong> to make a fresh sample slide with the current prompt. Cost: ~$0.02\u2013$0.30 depending on your default model.' : 'Saving the skill will trigger auto-preview. Or click <strong>Regenerate preview</strong> below if it already exists but didn\'t generate.'}</div></div></div>` : ''}
       <div class="field"><label class="field-label">Name <span class="subtle">required</span></label><input class="input" id="skName" value="${escapeHtml(draft.name)}" placeholder="e.g. DN Telco Sales Pitch — Dark"></div>
       <div class="field"><label class="field-label">Description</label><input class="input" id="skDesc" value="${escapeHtml(draft.description || '')}" placeholder="One-line summary shown in dropdowns"></div>
       <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model.">${escapeHtml(draft.prompt || '')}</textarea></div>
@@ -2930,10 +2950,31 @@ async function regenerateSkillPreview(skillId) {
     skill.preview_image_b64 = result.b64;
     deckCost.testImage += result.cost; renderCostBadge();
     const sb = getSupabaseClient();
-    if (sb) { await sb.from('deck_templates').update({ preview_image_b64: result.b64 }).eq('id', skillId); }
-    toast({ type: 'success', message: 'Preview generated \u00b7 ' + fmtUsd4(result.cost) });
+    if (sb) {
+      const upd = await sb.from('deck_templates').update({ preview_image_b64: result.b64 }).eq('id', skillId);
+      if (upd && upd.error) {
+        // Most likely the SQL migration wasn\'t run yet
+        const msg = upd.error.message || String(upd.error);
+        if (/column.*preview_image_b64/i.test(msg) || /schema cache/i.test(msg)) {
+          toast({ type: 'error', message: 'Preview generated but DB save failed: column `preview_image_b64` missing. Run the build #44 SQL migration.' });
+        } else {
+          toast({ type: 'error', message: 'Preview saved in memory only (DB error: ' + msg.slice(0, 80) + ')' });
+        }
+        // Still show locally
+      } else {
+        toast({ type: 'success', message: 'Preview generated \u00b7 ' + fmtUsd4(result.cost) });
+      }
+    } else {
+      toast({ type: 'success', message: 'Preview generated (Supabase offline) \u00b7 ' + fmtUsd4(result.cost) });
+    }
     if (state.view === 'skills') renderSkills();
     if (state.view === 'compose') renderStep1();
+    // If skill editor modal is open for this id, refresh it so the new thumbnail shows
+    if (document.getElementById('skName') && typeof window.__currentEditSkillId === 'string' && window.__currentEditSkillId === skillId) {
+      // Reopen editor to refresh preview pane
+      closeModal();
+      openSkillEditor(skillId);
+    }
   } catch (e) { toast({ type: 'error', message: 'Preview generation failed: ' + (e.message || String(e)) }); }
 }
 // ===== end Build #44 helpers =====
@@ -3127,7 +3168,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.2</span> (build #45 — full-width layout + Brand tab)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.3</span> (build #46 — skill preview visibility + theme filenames)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
