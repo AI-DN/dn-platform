@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.5.0</title>
+<title>DN Deck Generator v2.5.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -400,6 +400,72 @@ tbody tr:hover { background: var(--surface-2); }
   .range-row { grid-template-columns: 1fr; }
   .display { font-size: 26px; }
 }
+/* ===== Build #41 — Collapsible step columns ===== */
+.compose-grid { display: grid; grid-template-columns: 240px 1fr; gap: 18px; align-items: start; }
+.compose-rail { position: sticky; top: 78px; }
+@media (max-width: 1180px) { .compose-grid { grid-template-columns: 1fr; } .compose-rail { position: static; } }
+.step-columns { display: flex; gap: 10px; align-items: stretch; min-height: 560px; }
+@media (max-width: 900px) { .step-columns { flex-direction: column; align-items: stretch; min-height: 0; } }
+.step-column {
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-lg);
+  transition: flex 320ms cubic-bezier(.4,0,.2,1), background 200ms ease, border-color 200ms ease, box-shadow 200ms ease;
+}
+.step-column.collapsed { flex: 0 0 60px; cursor: pointer; }
+.step-column.collapsed:hover { background: var(--surface); border-color: var(--border-strong); box-shadow: var(--shadow-1); }
+.step-column.expanded { flex: 1 1 0; min-width: 320px; background: var(--surface); box-shadow: var(--shadow-1); }
+.step-column.is-future.collapsed { opacity: 0.55; cursor: not-allowed; }
+.step-column.is-future.collapsed:hover { background: var(--surface-2); border-color: var(--border); box-shadow: none; }
+@media (max-width: 900px) {
+  .step-column { flex: 0 0 auto !important; min-width: 0; }
+  .step-column.collapsed { padding: 0; }
+  .step-column.collapsed .step-column-spine { flex-direction: row; padding: 12px 18px; gap: 12px; }
+  .step-column.collapsed .spine-title { writing-mode: horizontal-tb !important; transform: none !important; font-size: 13px !important; text-transform: none !important; letter-spacing: -0.005em !important; color: var(--text) !important; }
+}
+.step-column-spine {
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  padding: 16px 0; user-select: none; cursor: pointer; position: relative;
+}
+.step-column.expanded .step-column-spine {
+  flex-direction: row; justify-content: flex-start; align-items: center;
+  padding: 14px 22px; border-bottom: 1px solid var(--border); gap: 12px;
+}
+.step-column.is-future.collapsed .step-column-spine { cursor: not-allowed; }
+.spine-num {
+  width: 28px; height: 28px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 500; font-family: var(--mono); flex-shrink: 0;
+  background: var(--accent-bg); color: var(--accent-strong);
+}
+[data-theme="dark"] .spine-num { color: var(--accent); }
+.step-column.is-done .spine-num { background: var(--success-bg); color: var(--success); }
+.step-column.is-active .spine-num { background: var(--text); color: var(--bg); }
+.step-column.is-future .spine-num { background: var(--surface-2); color: var(--text-subtle); border: 1px solid var(--border); }
+.spine-title {
+  font-size: 11px; font-weight: 500; color: var(--text-muted);
+  writing-mode: vertical-rl; transform: rotate(180deg);
+  letter-spacing: 0.10em; text-transform: uppercase;
+}
+.step-column.expanded .spine-title {
+  writing-mode: horizontal-tb; transform: none;
+  font-size: 14px; font-weight: 500; color: var(--text);
+  text-transform: none; letter-spacing: -0.005em;
+}
+.spine-status { font-size: 16px; color: var(--text-subtle); }
+.step-column.is-done .spine-status { color: var(--success); }
+.step-column.expanded .spine-status { margin-left: auto; font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+.step-column-body { padding: 18px 22px 24px; flex: 1; overflow: visible; }
+/* Hide the step-card chrome inside columns — column provides it */
+.step-column-body .step-card { background: transparent; border: none; box-shadow: none; margin-bottom: 0; }
+.step-column-body .step-card:hover { box-shadow: none; }
+.step-column-body .step-card.future { display: none; }
+.step-column-body .step-card.collapsed { background: transparent; }
+.step-column-body .step-card .step-header { display: none; } /* spine replaces it */
+.step-column-body .step-body { padding: 0; }
+.step-column.collapsed .step-column-body { display: none; }
+
+/* Past Decks rail tweaks */
+.compose-rail .step-card { margin-bottom: 0; }
 </style>
 </head>
 <body>
@@ -408,7 +474,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.5.0 #40</div>
+      <div class="brand-version">v2.5.1 #41</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1839,18 +1905,69 @@ function downloadWhitePaper(blob, title) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function columnStateClass(stepNum) {
+  const cs = state.composeStep;
+  if (cs === stepNum) return 'is-active';
+  if (cs > stepNum) return 'is-done';
+  return 'is-future';
+}
+function columnExpandedClass(stepNum) {
+  const expanded = (typeof state.expandedStep === 'number') ? state.expandedStep : state.composeStep;
+  return expanded === stepNum ? 'expanded' : 'collapsed';
+}
+function expandColumn(stepNum) {
+  const stateCls = columnStateClass(stepNum);
+  if (stateCls === 'is-future') { toast({ type: 'info', message: 'Complete the previous steps to unlock this one' }); return; }
+  state.expandedStep = stepNum;
+  renderCompose();
+}
 function renderCompose() {
   const cont = document.getElementById('content');
+  if (typeof state.expandedStep !== 'number') state.expandedStep = state.composeStep;
+  // If user advanced workflow, snap expansion forward
+  if (state.expandedStep < state.composeStep) state.expandedStep = state.composeStep;
+  const stepsMeta = [
+    { num: 1,   id: 'step1',  title: 'Input',    desc: 'Skill, range, text' },
+    { num: 2,   id: 'step2',  title: 'Polish',   desc: 'AI shape to count' },
+    { num: 3,   id: 'step3',  title: 'Edit',     desc: 'Titles & body' },
+    { num: 3.5, id: 'step35', title: 'Model',    desc: 'Pick image model' },
+    { num: 5,   id: 'step5',  title: 'Generate', desc: 'Render & assemble' }
+  ];
+  const columnsHtml = stepsMeta.map(s => {
+    const stateCls = columnStateClass(s.num);
+    const expCls = columnExpandedClass(s.num);
+    const statusGlyph = stateCls === 'is-done' ? '✓' : stateCls === 'is-active' ? '●' : '';
+    return `
+      <div class="step-column ${stateCls} ${expCls}" data-step-col="${s.num}">
+        <div class="step-column-spine" data-spine="${s.num}">
+          <span class="spine-num">${s.num === 3.5 ? '3' : s.num}${s.num === 3.5 ? '<sub style="font-size:8px">.5</sub>' : ''}</span>
+          <span class="spine-title">${s.title}</span>
+          <span class="spine-status">${statusGlyph}</span>
+        </div>
+        <div class="step-column-body"><div id="${s.id}"></div></div>
+      </div>`;
+  }).join('');
   cont.innerHTML = `
     <div style="margin-bottom:24px">
       <div class="eyebrow" style="margin-bottom:8px">New deck</div>
       <div class="display">Compose a deck</div>
-      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Pick a skill, paste your slide content, polish if you want, edit each slide, compare image models side by side, then generate.</div>
+      <div class="muted body-sm" style="margin-top:8px;max-width:680px">Click any step\u2019s spine to expand it. Completed steps stay reachable; future steps unlock as you progress.</div>
     </div>
-    <div id="pastDecksPanel">${state.composeStep === 1 ? renderPastDecksPanel() : ''}</div>
-    <div id="step1"></div><div id="step2"></div><div id="step3"></div><div id="step35"></div><div id="step5"></div>`;
+    <div class="compose-grid">
+      <div class="compose-rail">
+        <div id="pastDecksPanel">${renderPastDecksPanel()}</div>
+      </div>
+      <div class="step-columns">${columnsHtml}</div>
+    </div>`;
   renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
   bindPastDecksPanel();
+  // Bind spine clicks
+  document.querySelectorAll('[data-spine]').forEach(el => {
+    el.onclick = () => {
+      const n = parseFloat(el.getAttribute('data-spine'));
+      if (!isNaN(n)) expandColumn(n);
+    };
+  });
 }
 
 function starSvg(filled) {
@@ -2702,7 +2819,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.5.0</span> (build #40 — premium UX refresh)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.5.1</span> (build #41 — collapsible step columns)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
