@@ -227,7 +227,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.4.0 #37</div>
+      <div class="brand-version">v2.4.0 #38</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1732,18 +1732,26 @@ function renderStep2() {
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">optional</div></div></div>`; return; }
   if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' · ' + fmtUsd4(deckCost.polish) : 'skipped'}</div></div></div>`; return; }
   const hasMarkers = state.slides.length > 0;
+  // Build #38 — Step 2 must enforce range before letting user proceed
+  const n2 = state.slides.length;
+  const inRange2 = n2 > 0 && n2 >= state.slideMin && n2 <= state.slideMax;
+  const overBudget = n2 > state.slideMax;
+  const underBudget = n2 > 0 && n2 < state.slideMin;
+  const recommended = overBudget ? 'shorten' : underBudget ? 'expand' : null;
+  const banner = !inRange2 && hasMarkers ? `<div class="warning-banner" style="margin-bottom:12px"><div><strong>${n2} slides — outside your ${state.slideMin}–${state.slideMax} range.</strong> Click <strong>${overBudget ? 'Shorten' : 'Expand'}</strong> below to ${overBudget ? 'consolidate' : 'expand'} the deck to your target count, then Continue.</div></div>` : '';
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">${hasMarkers ? state.slides.length + ' slides · ' + state.slideMin + '–' + state.slideMax : 'will auto-split'}</div></div>
+      <div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">${hasMarkers ? n2 + ' slides · ' + state.slideMin + '–' + state.slideMax + (inRange2 ? ' ✓' : ' ⚠') : 'will auto-split'}</div></div>
       <div class="step-body">
+        ${banner}
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
           ${!hasMarkers ? `<button class="btn-secondary" id="splitBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='split' ? '<span class="spinner"></span> Splitting…' : 'Auto-split into slides'}</button>` : ''}
-          ${hasMarkers ? `<button class="btn-secondary" id="shortenBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='shorten' ? '<span class="spinner"></span> Shortening…' : 'Shorten'}</button>
-          <button class="btn-secondary" id="expandBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='expand' ? '<span class="spinner"></span> Expanding…' : 'Expand'}</button>
+          ${hasMarkers ? `<button class="${recommended==='shorten' ? 'btn-primary' : 'btn-secondary'}" id="shortenBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='shorten' ? '<span class="spinner"></span> Shortening…' : recommended==='shorten' ? '★ Shorten' : 'Shorten'}</button>
+          <button class="${recommended==='expand' ? 'btn-primary' : 'btn-secondary'}" id="expandBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='expand' ? '<span class="spinner"></span> Expanding…' : recommended==='expand' ? '★ Expand' : 'Expand'}</button>
           <button class="btn-secondary" id="preserveBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='preserve' ? '<span class="spinner"></span> Reshaping…' : 'Preserve text'}</button>` : ''}
         </div>
-        ${state.slides.length > 0 ? `<div class="caption" style="margin-bottom:8px">${state.slides.length} slides</div><div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `<div class="slide-edit-card" style="margin-bottom:6px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div><div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div></div>`).join('')}</div>` : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong>.</div></div>'}
-        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px"><button class="btn-ghost" id="backTo1">← Back</button><button class="btn-primary" id="toStep3" ${state.slides.length === 0 ? 'disabled' : ''}>Continue →</button></div>
+        ${n2 > 0 ? `<div class="caption" style="margin-bottom:8px">${n2} slides</div><div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `<div class="slide-edit-card" style="margin-bottom:6px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div><div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div></div>`).join('')}</div>` : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong>.</div></div>'}
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px"><button class="btn-ghost" id="backTo1">← Back</button><button class="btn-primary" id="toStep3" ${(n2 === 0 || !inRange2) ? 'disabled' : ''} title="${!inRange2 && n2>0 ? 'Slide count must be within ' + state.slideMin + '-' + state.slideMax + ' before continuing' : ''}">Continue →</button></div>
       </div>
     </div>`;
   const sb = document.getElementById('shortenBtn'); if (sb) sb.onclick = () => runPolish('shorten');
@@ -2454,7 +2462,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.4.0</span> (build #37 — slide-count gate · white paper word budget · past decks)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.4.0</span> (build #38 — Step 2 Continue gate)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
