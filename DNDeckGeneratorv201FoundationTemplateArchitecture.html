@@ -3120,13 +3120,13 @@ function renderPastDecksPanel() {
   const rows = state.savedDecks.slice(0, 12).map(d => {
     let when = '';
     try { when = new Date(d.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) {}
-    return '<div class="card" style="padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
-      '<div style="flex:1;min-width:0">' +
-        '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(d.title || 'Untitled') + '</div>' +
-        '<div class="muted body-sm" style="font-size:11px;margin-top:2px">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' · ' + escapeHtml(d.skill_name) : '') + ' · ' + when + '</div>' +
+    return '<div class="past-deck-card">' +
+      '<div class="past-deck-title">' + escapeHtml(d.title || 'Untitled') + '</div>' +
+      '<div class="past-deck-meta">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' · ' + escapeHtml(d.skill_name) : '') + ' · ' + when + '</div>' +
+      '<div class="past-deck-actions">' +
+        '<button class="btn-secondary" data-load-deck="' + d.id + '">Load → pick model</button>' +
+        '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">✕</button>' +
       '</div>' +
-      '<button class="btn-secondary" data-load-deck="' + d.id + '">Load → pick model</button>' +
-      '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">✕</button>' +
     '</div>';
   }).join('');
   return '<div class="step-card" style="margin-bottom:12px">' +
