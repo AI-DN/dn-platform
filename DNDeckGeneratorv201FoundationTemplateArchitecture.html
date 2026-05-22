@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.5.1</title>
+<title>DN Deck Generator v2.6.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -474,7 +474,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.5.1 #41</div>
+      <div class="brand-version">v2.6.0 #43</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -570,6 +570,7 @@ const SETTING_MAP = {
   'skip_model_picker': 'dn_skip_model_picker',
   'is_admin': 'dn_admin',
   'dn_logo_b64': 'dn_logo_b64',
+  'dn_brand_lib': 'dn_brand_lib',  // Build #43
   'favorite_skills': 'dn_favorite_skills',
   'selected_skill': 'dn_selected_skill',
   'favorite_models': 'dn_favorite_models',
@@ -768,6 +769,10 @@ const state = {
   skipModelPicker: false,
   logoB64: null, logoIsCustom: false,
   customerLogoB64: null, customerLogoEnabled: false,
+  // Build #43 — brand library (customer logos + subtext templates)
+  brandLib: { customerLogos: [], subtexts: [] },
+  deckCustomerLogoId: null,
+  deckSubtextId: null,
   logoBacking: false, adminMode: false,
   slideMin: 6, slideMax: 10,
   maxIllustrations: 3,
@@ -776,7 +781,7 @@ const state = {
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
   modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null },
-  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPages: 10, awaitingPageCount: true },
+  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPagesMin: 6, targetPagesMax: 10, targetPages: 8, awaitingPageCount: true },
   // Build #37 — saved_decks persistence
   savedDecks: [], savedDecksLoaded: false, savedDecksError: null, savingDeck: false, lastSavedDeckId: null,
   // Build #39 — UX flags
@@ -809,6 +814,9 @@ function hydrateStateFromStorage() {
   if (favModels !== null) favoriteModelIds = new Set(favModels.split(',').filter(Boolean));
   const lastModel = get('dn_last_selected_model');
   if (lastModel) state.lastSelectedModel = lastModel;
+  // Build #43 — brand library
+  const bl = get('dn_brand_lib');
+  if (bl) { try { const parsed = JSON.parse(bl); if (parsed && typeof parsed === 'object') { state.brandLib.customerLogos = Array.isArray(parsed.customerLogos) ? parsed.customerLogos : []; state.brandLib.subtexts = Array.isArray(parsed.subtexts) ? parsed.subtexts : []; } } catch (e) { console.warn('brand lib parse failed', e); } }
   const maxIll = get('dn_wp_max_illust');
   if (maxIll) { const n = parseInt(maxIll); if (!isNaN(n) && n >= 0 && n <= 20) state.maxIllustrations = n; }
 }
@@ -1143,6 +1151,11 @@ async function assemblePptx() {
   const deckTitle = skill ? skill.name : 'DN Deck';
   prs.title = deckTitle; prs.subject = 'Digitata Networks'; prs.author = 'DN Deck Generator';
   const dnLogoB64 = state.logoB64;
+  // Build #43 — resolve selected customer logo from brand library
+  if (state.deckCustomerLogoId) {
+    const sel = brandLibLogoById(state.deckCustomerLogoId);
+    if (sel) { state.customerLogoB64 = sel.b64; state.customerLogoEnabled = true; }
+  }
   const customerLogoB64 = state.customerLogoEnabled ? state.customerLogoB64 : null;
   const showLogoBacking = !!state.logoBacking;
   const dnDims = dnLogoB64 ? await getImageDimensions(dnLogoB64) : null;
@@ -1165,7 +1178,13 @@ async function assemblePptx() {
     if (dnLogoB64) s.addImage({ data: `data:image/png;base64,${dnLogoB64}`, x: LOGO_X_LEFT, y: LOGO_Y, w: dnW, h: dnH });
     if (customerLogoB64) s.addImage({ data: `data:image/png;base64,${customerLogoB64}`, x: LOGO_X_RIGHT, y: LOGO_Y, w: custW, h: custH });
     const footerColor = getFooterColor(skill);
-    s.addText(getFooterText(), { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
+    // Build #43 — append selected footer subtext if set
+    let footerText = getFooterText();
+    if (state.deckSubtextId) {
+      const sub = brandLibSubtextById(state.deckSubtextId);
+      if (sub && sub.text) footerText = sub.text + '  ·  ' + footerText;
+    }
+    s.addText(footerText, { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
     const notesText = (slide.speakerNotes && slide.speakerNotes.trim()) ? slide.speakerNotes : (slide.body || '');
     if (notesText && notesText.trim()) s.addNotes(notesText);
   }
@@ -1246,23 +1265,38 @@ function renderWhitePaperPanel() {
   const illustCost = 0.30;
   let body = '';
   if (wp.awaitingPageCount) {
-    // Build #39 — dynamic description based on current targetPages
-    const pages = wp.targetPages || 10;
-    const wordTotal = pages * 400;
-    let depthLabel, depthDesc;
-    if (pages <= 5) { depthLabel = 'Short brief'; depthDesc = `~${wordTotal.toLocaleString()} words. Tight, focused — one strong section per slide, minimal preamble. Best for executive briefings.`; }
-    else if (pages <= 12) { depthLabel = 'Standard white paper'; depthDesc = `~${wordTotal.toLocaleString()} words. Full intro and conclusion, balanced depth per slide section. Best for sales follow-ups and technical decision-makers.`; }
-    else if (pages <= 25) { depthLabel = 'Long-form analysis'; depthDesc = `~${wordTotal.toLocaleString()} words. Deep treatment per slide with sub-arguments, examples, and counter-points. Best for strategic positioning documents.`; }
-    else { depthLabel = 'Comprehensive treatise'; depthDesc = `~${wordTotal.toLocaleString()} words. Extended analysis with evidence-led reasoning across every section. Best for thought-leadership pieces.`; }
+    // Build #42 — range picker (min-max) + dynamic depth + slide consolidation preview
+    const pMin = wp.targetPagesMin || 6;
+    const pMax = wp.targetPagesMax || 10;
+    const pMid = Math.round((pMin + pMax) / 2);
+    const wordTotalMid = pMid * 400;
+    const numSlides = state.slides.length || 1;
+    // Smart section count: aim for ~180 words per body section minimum
+    const perSlideBudgetIfAll = Math.round((wordTotalMid * 0.65) / numSlides);
+    const idealBodyWords = 180;
+    const numBodySections = perSlideBudgetIfAll < idealBodyWords
+      ? Math.max(2, Math.min(numSlides, Math.floor((wordTotalMid * 0.65) / idealBodyWords)))
+      : numSlides;
+    const consolidationNote = numBodySections < numSlides
+      ? `Your ${numSlides} slides will be grouped into <strong>${numBodySections} themed sections</strong> (each ~${Math.round((wordTotalMid * 0.65) / numBodySections)} words) to fit the page budget.`
+      : `One section per slide — <strong>${numSlides} body sections</strong> (each ~${Math.round((wordTotalMid * 0.65) / numSlides)} words).`;
+    let depthLabel;
+    if (pMax <= 5) depthLabel = 'Short brief';
+    else if (pMax <= 12) depthLabel = 'Standard white paper';
+    else if (pMax <= 25) depthLabel = 'Long-form analysis';
+    else depthLabel = 'Comprehensive treatise';
     const slidesWithImages2 = state.slides.filter(s => s.imageB64).length;
     body = `
-      <div class="wp-panel-desc" style="margin-bottom:10px"><strong>How many pages should this white paper be?</strong></div>
-      <div style="display:flex;gap:12px;align-items:center;margin-bottom:10px">
-        <input class="input" type="number" id="wpPagesInput" min="3" max="50" value="${pages}" style="max-width:100px">
-        <span class="muted body-sm">pages target</span>
-        <span class="badge badge-accent" id="wpDepthBadge">${depthLabel}</span>
+      <div class="wp-panel-desc" style="margin-bottom:10px"><strong>How long should this white paper be?</strong></div>
+      <div class="range-row" style="margin-bottom:10px;max-width:340px">
+        <div><input class="input" type="number" id="wpPagesMin" min="1" max="50" value="${pMin}"><div class="field-hint" style="margin-top:4px">Min pages</div></div>
+        <div><input class="input" type="number" id="wpPagesMax" min="1" max="50" value="${pMax}"><div class="field-hint" style="margin-top:4px">Max pages</div></div>
       </div>
-      <div class="muted body-sm" id="wpDepthDesc" style="margin-bottom:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border)">${depthDesc}</div>
+      <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
+        <span class="badge badge-accent" id="wpDepthBadge">${depthLabel}</span>
+        <span class="muted body-sm" id="wpRangeSummary">target ${pMin}–${pMax} pages · ${wordTotalMid.toLocaleString()} words mid</span>
+      </div>
+      <div class="muted body-sm" id="wpConsolidationNote" style="margin-bottom:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);border:1px solid var(--border)">${consolidationNote}</div>
       <div class="muted body-sm" style="margin-bottom:12px;font-size:11px">${slidesWithImages2} slide image${slidesWithImages2===1?'':'s'} from this deck will be reused as figures (no extra image-gen cost). Mermaid diagrams supplement where useful.</div>
       <div style="display:flex;gap:8px;flex-wrap:wrap">
         <button class="btn-primary" id="wpStartGenBtn">Generate white paper</button>
@@ -1321,26 +1355,53 @@ function renderWhitePaperPanel() {
 }
 
 function bindWhitePaperPanel() {
-  const pagesInput = document.getElementById('wpPagesInput');
-  if (pagesInput) pagesInput.oninput = e => {
-    const v = parseInt(e.target.value);
-    if (isNaN(v) || v < 3 || v > 50) return;
-    state.whitePaper.targetPages = v;
-    // Build #39 — recompute label + description live without full re-render
-    const wordTotal = v * 400;
-    let lbl, desc;
-    if (v <= 5) { lbl = 'Short brief'; desc = `~${wordTotal.toLocaleString()} words. Tight, focused — one strong section per slide, minimal preamble. Best for executive briefings.`; }
-    else if (v <= 12) { lbl = 'Standard white paper'; desc = `~${wordTotal.toLocaleString()} words. Full intro and conclusion, balanced depth per slide section. Best for sales follow-ups and technical decision-makers.`; }
-    else if (v <= 25) { lbl = 'Long-form analysis'; desc = `~${wordTotal.toLocaleString()} words. Deep treatment per slide with sub-arguments, examples, and counter-points. Best for strategic positioning documents.`; }
-    else { lbl = 'Comprehensive treatise'; desc = `~${wordTotal.toLocaleString()} words. Extended analysis with evidence-led reasoning across every section. Best for thought-leadership pieces.`; }
-    const badge = document.getElementById('wpDepthBadge'); if (badge) badge.textContent = lbl;
-    const descEl = document.getElementById('wpDepthDesc'); if (descEl) descEl.textContent = desc;
+  // Build #42 — range inputs: live update + smart consolidation preview
+  function recomputeWpPreview() {
+    const pMin = state.whitePaper.targetPagesMin || 6;
+    const pMax = state.whitePaper.targetPagesMax || 10;
+    const pMid = Math.round((pMin + pMax) / 2);
+    state.whitePaper.targetPages = pMid;
+    const wordTotalMid = pMid * 400;
+    const numSlides = state.slides.length || 1;
+    const perSlideBudgetIfAll = Math.round((wordTotalMid * 0.65) / numSlides);
+    const idealBodyWords = 180;
+    const numBodySections = perSlideBudgetIfAll < idealBodyWords
+      ? Math.max(2, Math.min(numSlides, Math.floor((wordTotalMid * 0.65) / idealBodyWords)))
+      : numSlides;
+    const consolidationNote = numBodySections < numSlides
+      ? 'Your ' + numSlides + ' slides will be grouped into <strong>' + numBodySections + ' themed sections</strong> (each ~' + Math.round((wordTotalMid * 0.65) / numBodySections) + ' words) to fit the page budget.'
+      : 'One section per slide — <strong>' + numSlides + ' body sections</strong> (each ~' + Math.round((wordTotalMid * 0.65) / numSlides) + ' words).';
+    let depthLabel;
+    if (pMax <= 5) depthLabel = 'Short brief';
+    else if (pMax <= 12) depthLabel = 'Standard white paper';
+    else if (pMax <= 25) depthLabel = 'Long-form analysis';
+    else depthLabel = 'Comprehensive treatise';
+    const badge = document.getElementById('wpDepthBadge'); if (badge) badge.textContent = depthLabel;
+    const sum = document.getElementById('wpRangeSummary'); if (sum) sum.textContent = 'target ' + pMin + '–' + pMax + ' pages · ' + wordTotalMid.toLocaleString() + ' words mid';
+    const note = document.getElementById('wpConsolidationNote'); if (note) note.innerHTML = consolidationNote;
+  }
+  const pMinInput = document.getElementById('wpPagesMin');
+  if (pMinInput) pMinInput.oninput = e => {
+    let v = parseInt(e.target.value); if (isNaN(v)) return;
+    v = Math.max(1, Math.min(50, v));
+    state.whitePaper.targetPagesMin = v;
+    if (v > state.whitePaper.targetPagesMax) { state.whitePaper.targetPagesMax = v; const mx = document.getElementById('wpPagesMax'); if (mx) mx.value = v; }
+    recomputeWpPreview();
+  };
+  const pMaxInput = document.getElementById('wpPagesMax');
+  if (pMaxInput) pMaxInput.oninput = e => {
+    let v = parseInt(e.target.value); if (isNaN(v)) return;
+    v = Math.max(1, Math.min(50, v));
+    state.whitePaper.targetPagesMax = v;
+    if (v < state.whitePaper.targetPagesMin) { state.whitePaper.targetPagesMin = v; const mn = document.getElementById('wpPagesMin'); if (mn) mn.value = v; }
+    recomputeWpPreview();
   };
   const startGen = document.getElementById('wpStartGenBtn');
   if (startGen) startGen.onclick = () => {
-    const v = parseInt((document.getElementById('wpPagesInput') || {}).value);
-    if (isNaN(v) || v < 3 || v > 50) { toast({ type: 'error', message: 'Pages must be 3–50' }); return; }
-    state.whitePaper.targetPages = v;
+    const pMin = state.whitePaper.targetPagesMin || 6;
+    const pMax = state.whitePaper.targetPagesMax || 10;
+    if (pMin < 1 || pMax > 50 || pMin > pMax) { toast({ type: 'error', message: 'Pages must be 1–50 and min ≤ max' }); return; }
+    state.whitePaper.targetPages = Math.round((pMin + pMax) / 2);
     state.whitePaper.awaitingPageCount = false;
     generateWhitePaper();
   };
@@ -1479,7 +1540,7 @@ async function continueWhitePaperBuild() {
     downloadWhitePaper(blob, state.whitePaper.deckTitle || paper.title);
     const renderedMermaid = (paper.sections || []).filter(s => s.figure && s.figure.type === 'mermaid' && s.figure.pngBytes).length;
     const renderedSlideImgs = (paper.sections || []).filter(s => s.figure && s.figure.type === 'slide_image' && s.figure.pngBytes).length;
-    toast({ type: 'success', message: `White paper · ${state.whitePaper.targetPages}-page target · ${renderedMermaid} diagram${renderedMermaid===1?'':'s'} · ${renderedSlideImgs} slide image${renderedSlideImgs===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost)}` });
+    toast({ type: 'success', message: `White paper · ${state.whitePaper.targetPagesMin}\u2013${state.whitePaper.targetPagesMax}-page target · ${renderedMermaid} diagram${renderedMermaid===1?'':'s'} · ${renderedSlideImgs} slide image${renderedSlideImgs===1?'':'s'} · ${fmtUsd4(state.whitePaper.cost)}` });
   } catch (e) {
     console.error('White paper build failed:', e);
     state.whitePaper.status = 'error';
@@ -1616,13 +1677,27 @@ async function pregenerateIllustrations(paper) {
 async function callClaudeForWhitePaper(key) {
   const deckTitle = state.whitePaper.deckTitle || (state.selectedSkillId ? (skillById(state.selectedSkillId) || {}).name : 'Untitled') || 'Untitled';
   const maxIll = state.maxIllustrations;
-  const targetPages = state.whitePaper.targetPages || 10;
+  // Build #42 — range-based length + smart slide consolidation
+  const pMin = state.whitePaper.targetPagesMin || 6;
+  const pMax = state.whitePaper.targetPagesMax || 10;
+  const targetPages = state.whitePaper.targetPages || Math.round((pMin + pMax) / 2);
   const wordsPerPage = 400;
   const totalWordTarget = targetPages * wordsPerPage;
+  const wordMin = pMin * wordsPerPage;
+  const wordMax = pMax * wordsPerPage;
   const slideImageManifest = state.slides.map((s, i) => ({ index: i, title: s.title, hasImage: !!s.imageB64 })).filter(s => s.hasImage);
   const slideImageList = slideImageManifest.map(s => `  - slide_image_${s.index}: "${s.title.replace(/"/g, '\\"')}"`).join('\n');
-  // Build #36 — pre-compute per-section word budgets, ONE source of truth in the prompt
-  const perSlideBudget = Math.round((totalWordTarget * 0.65) / Math.max(state.slides.length, 1));
+  const numSlides = Math.max(state.slides.length, 1);
+  const idealBodyWords = 180;
+  const perSlideIfAll = Math.round((totalWordTarget * 0.65) / numSlides);
+  // Smart consolidation: if per-slide budget < ~180 words, group slides into fewer themed sections
+  const numBodySections = perSlideIfAll < idealBodyWords
+    ? Math.max(2, Math.min(numSlides, Math.floor((totalWordTarget * 0.65) / idealBodyWords)))
+    : numSlides;
+  const perBodyBudget = Math.round((totalWordTarget * 0.65) / numBodySections);
+  const consolidationGuidance = numBodySections < numSlides
+    ? `The ${numSlides} slides MUST be grouped into ${numBodySections} themed body sections (each ~${perBodyBudget} words). Identify themes that span multiple slides — e.g., "Architecture" might bundle slides 3, 4, 7. Each themed section must reference and integrate the content from ALL the slides it covers. Do NOT write one section per slide.`
+    : `Write one body section per slide — ${numSlides} sections, each ~${perBodyBudget} words. Use the slide title as the section heading.`;
   const execBudget = Math.round(totalWordTarget * 0.08);
   const introBudget = Math.round(totalWordTarget * 0.10);
   const conclBudget = Math.round(totalWordTarget * 0.10);
@@ -1630,10 +1705,17 @@ async function callClaudeForWhitePaper(key) {
   const wpSystemPrompt = `You are a senior content strategist at Digitata Networks, a telco software and managed-services company. You write polished white papers that customers read AFTER a sales or technical meeting — readers who want depth beyond the slide deck.
 
 ===========================================================
-HARD LENGTH TARGET — MUST HIT: ${targetPages} pages ≈ ${totalWordTarget} words total
+HARD LENGTH TARGET — MUST land between ${pMin} and ${pMax} pages
+That equals ${wordMin}–${wordMax} words total (mid-point: ${totalWordTarget}).
 ===========================================================
 
-This is the single most important constraint. Tolerance is ±15% of the total word count. Calibrate every section to land on target. Hit the target by adjusting DEPTH (more reasoning, examples, counter-points, evidence) — never by padding with filler.
+This is the single most important constraint. Your output WILL be measured and rejected if it falls outside the ${wordMin}–${wordMax} word range. Hit the target by adjusting STRUCTURE first (number of sections), then DEPTH per section.
+
+═══════════════════════════════════════════════════════════
+SECTION COUNT — NON-NEGOTIABLE: write exactly ${numBodySections} body sections (plus the 4 fixed framing sections)
+═══════════════════════════════════════════════════════════
+
+${consolidationGuidance}
 
 Voice and style:
 - Professional, evidence-led, confident but not boastful
@@ -1645,17 +1727,19 @@ Voice and style:
 PER-SECTION WORD-COUNT BUDGET — each section MUST be within ±20% of its target:
 - Executive Summary: ${execBudget} words — what the paper argues, who should read it, the takeaway
 - Introduction / Context: ${introBudget} words — the landscape, why this topic matters now
-- One section per deck slide (×${state.slides.length}): ${perSlideBudget} words each — slide title becomes the section heading; expand the slide content into a flowing argument with examples, implications, and evidence-led reasoning
+- ${numBodySections} body section${numBodySections===1?'':'s'} (one per theme): ${perBodyBudget} words each
 - Conclusion: ${conclBudget} words — synthesise the argument, leave the reader with a clear position
 - About Digitata Networks: ${aboutBudget} words — brief boilerplate: telco software + managed services, 25+ years, global telco customers, focus on revenue uplift and ops excellence
 
-DO NOT use any example word counts you have seen elsewhere. Use ONLY the numeric budgets above. If your draft sections come in significantly shorter than these numbers, you have not gone deep enough — expand reasoning, examples, evidence. If significantly longer, you are padding — tighten.
+TOTAL EXPECTED OUTPUT: ${totalWordTarget} words ± 15%. After writing, mentally sum your section bodies — if the total is < ${wordMin} or > ${wordMax}, you have FAILED the brief.
 
-Each section's expansion must:
-- Use the slide's title and body as the seed
-- Use the speakerNotes (if present) as additional context
-- NOT just rephrase the slide — expand it. Add the reasoning a presenter would say aloud, the implications a reader would want, the examples that make it concrete
-- Stay anchored to the slide's intent — do not invent unrelated claims
+DO NOT use any example word counts you have seen elsewhere. Use ONLY the numeric budgets above. DO NOT write one section per slide if that exceeds the section count specified above.
+
+Each body section must:
+- Cover one coherent THEME, even if that theme spans multiple slides
+- Integrate the title, body, and speakerNotes from EVERY slide the theme covers
+- NOT merely rephrase slides — synthesise across them: add reasoning, implications, examples
+- Stay anchored to the slides' intent — do not invent unrelated claims
 
 FIGURES — for each section, choose ONE of: "slide_image" (reuse a slide image from the deck), "mermaid" (free local diagram), or null (no figure).
 
@@ -1725,7 +1809,7 @@ No prose outside the JSON. No markdown fences. Just the JSON object.`;
   const slidesContext = state.slides.map((s, i) => {
     return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
   }).join('\n---\n\n');
-  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nHARD LENGTH TARGET: ${targetPages} pages = ${totalWordTarget} words total (±15%). Each section MUST hit its per-section budget from the system prompt (±20%). Per-slide section budget: ~${perSlideBudget} words × ${state.slides.length} slide sections.\n\nFigure strategy:\n- Slide images: reuse from the manifest (free, preferred)\n- Mermaid diagrams: unlimited (free, local render)\n- Illustrations: DISABLED — do not propose any\n\nBefore writing, mentally allocate the ${totalWordTarget}-word budget across all sections. After writing, your section bodies summed should equal approximately ${totalWordTarget} words. Generate the companion white paper now. Return JSON only.`;
+  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nHARD LENGTH TARGET: ${pMin}\u2013${pMax} pages = ${wordMin}\u2013${wordMax} words total. Write exactly ${numBodySections} body sections (each ~${perBodyBudget} words) plus the 4 framing sections. ${numBodySections < state.slides.length ? 'Group the ' + state.slides.length + ' slides into ' + numBodySections + ' themed sections.' : 'One section per slide.'}\n\nFigure strategy:\n- Slide images: reuse from the manifest (free, preferred)\n- Mermaid diagrams: unlimited (free, local render)\n- Illustrations: DISABLED — do not propose any\n\nBefore writing, mentally allocate the ${totalWordTarget}-word budget across all sections. After writing, your section bodies summed should be between ${wordMin} and ${wordMax} words. Generate the companion white paper now. Return JSON only.`;
   const modelName = 'claude-sonnet-4-5-20250929';
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1997,7 +2081,22 @@ function renderStep1() {
         <div class="field"><label class="field-label">Skill <span class="subtle">drives the visual prompt</span></label><div style="display:flex;gap:8px;align-items:center"><div class="template-select" style="flex:1"><select class="select" id="skillSel">${skillOptions}</select></div>${currentSkill ? `<button class="skill-star ${isFav ? 'active' : ''}" id="favBtn" title="${isFav ? 'Unfavorite' : 'Favorite'}">${starSvg(!!isFav)}</button>` : ''}</div>${currentSkill && currentSkill.description ? `<div class="field-hint" style="margin-top:4px">${escapeHtml(currentSkill.description)}</div>` : ''}${skills.length === 0 ? '<div class="field-hint" style="color:var(--warning);margin-top:4px">No skills loaded from Supabase yet.</div>' : ''}</div>
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="50" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="50" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
         <div class="field"><label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label><textarea class="textarea" id="rawText" rows="12" placeholder="Paste content. Markers: # H1, Slide N — Title, ## H2, or ---">${escapeHtml(state.rawText)}</textarea><div id="patternIndicator" class="field-hint" style="margin-top:6px"></div></div>
-        <div class="field"><label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer"><input type="checkbox" id="custLogoChk" ${state.customerLogoEnabled ? 'checked' : ''} style="margin:0"><span>Add customer logo (top-right)</span></label><div id="custLogoBlock" style="display:${state.customerLogoEnabled ? 'block' : 'none'};margin-top:8px"><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="logo-preview">${state.customerLogoB64 ? `<img src="data:image/png;base64,${state.customerLogoB64}">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div><div style="display:flex;gap:6px"><input type="file" id="custLogoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="custUploadBtn" type="button">Upload PNG</button>${state.customerLogoB64 ? '<button class="btn-ghost" id="custClearBtn" type="button">Clear</button>' : ''}</div></div></div></div>
+        <div class="field"><label class="field-label">Customer logo <span class="subtle">top-right corner</span></label>
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="template-select" style="flex:1"><select class="select" id="deckCustLogoSel">
+              <option value="">— none —</option>
+              ${(state.brandLib.customerLogos || []).map(l => `<option value="${l.id}" ${state.deckCustomerLogoId === l.id ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('')}
+            </select></div>
+            <button class="btn-secondary" id="manageBrandBtn" type="button" title="Manage brand library">Manage…</button>
+          </div>
+          ${state.deckCustomerLogoId && brandLibLogoById(state.deckCustomerLogoId) ? `<div class="logo-preview" style="margin-top:8px"><img src="data:image/png;base64,${brandLibLogoById(state.deckCustomerLogoId).b64}"></div>` : ''}
+        </div>
+        <div class="field"><label class="field-label">Footer subtext <span class="subtle">appears beside the copyright line</span></label>
+          <div class="template-select"><select class="select" id="deckSubtextSel">
+            <option value="">— none —</option>
+            ${(state.brandLib.subtexts || []).map(s => `<option value="${s.id}" ${state.deckSubtextId === s.id ? 'selected' : ''}>${escapeHtml(s.text)}</option>`).join('')}
+          </select></div>
+        </div>
         <div id="step1Error"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="polishBtn">Polish with AI →</button><button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button></div>
       </div>
@@ -2006,10 +2105,23 @@ function renderStep1() {
   const favBtn = document.getElementById('favBtn'); if (favBtn) favBtn.onclick = async () => { if (state.selectedSkillId) { await toggleFavoriteSkill(state.selectedSkillId); renderStep1(); } };
   document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
-  document.getElementById('custLogoChk').onchange = e => { state.customerLogoEnabled = e.target.checked; document.getElementById('custLogoBlock').style.display = e.target.checked ? 'block' : 'none'; if (!e.target.checked) state.customerLogoB64 = null; renderStep1(); };
-  const custUpload = document.getElementById('custUploadBtn'); if (custUpload) custUpload.onclick = () => document.getElementById('custLogoFile').click();
-  const custFile = document.getElementById('custLogoFile'); if (custFile) custFile.onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = () => { state.customerLogoB64 = fr.result.split(',')[1]; toast({ type: 'success', message: 'Customer logo uploaded' }); renderStep1(); }; fr.readAsDataURL(file); };
-  const custClear = document.getElementById('custClearBtn'); if (custClear) custClear.onclick = () => { state.customerLogoB64 = null; renderStep1(); };
+  // Build #43 — brand library dropdowns
+  const deckCustSel = document.getElementById('deckCustLogoSel');
+  if (deckCustSel) deckCustSel.onchange = e => {
+    state.deckCustomerLogoId = e.target.value || null;
+    // Sync legacy state.customerLogoB64 for assemblePptx compatibility
+    const sel = state.deckCustomerLogoId ? brandLibLogoById(state.deckCustomerLogoId) : null;
+    state.customerLogoB64 = sel ? sel.b64 : null;
+    state.customerLogoEnabled = !!state.customerLogoB64;
+    renderStep1();
+  };
+  const deckSubSel = document.getElementById('deckSubtextSel');
+  if (deckSubSel) deckSubSel.onchange = e => {
+    state.deckSubtextId = e.target.value || null;
+    renderStep1();
+  };
+  const mgrBtn = document.getElementById('manageBrandBtn');
+  if (mgrBtn) mgrBtn.onclick = () => { state.view = 'settings'; setActiveNav(); render(); setTimeout(() => { const el = document.getElementById('brandLibSection'); if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100); };
   const raw = document.getElementById('rawText');
   function updatePatternIndicator() {
     const ind = document.getElementById('patternIndicator'); if (!ind) return;
@@ -2808,6 +2920,26 @@ function renderSettings() {
       <div class="field" style="margin-bottom:0"><label class="field-label">Maximum illustrations per white paper</label><input class="input" type="number" id="maxIllustInput" min="0" max="20" value="${state.maxIllustrations}" style="max-width:120px"><div class="field-hint" style="margin-top:4px">Mermaid diagrams are free (render locally). Illustrations cost ~$0.30 each via gpt-image. Default: 3. Set to 0 to disable illustrations entirely.</div></div>
     </div></div>
 
+    <div class="section" id="brandLibSection"><div class="section-header"><div class="h1">Brand library</div></div><div class="card">
+      <div class="h2" style="margin-bottom:10px">Customer logos</div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <input class="input" type="text" id="newCustLogoName" placeholder="Customer name (e.g. Acme Corp)" style="max-width:280px">
+        <input type="file" id="newCustLogoFile" accept=".png,image/png" style="display:none">
+        <button class="btn-secondary" id="newCustLogoBtn" type="button">Upload logo PNG</button>
+      </div>
+      <div id="custLogoList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:18px">
+        ${(state.brandLib.customerLogos || []).length === 0 ? '<div class="muted body-sm">No customer logos yet. Upload PNGs labelled with the customer name; they\'ll appear in the Compose dropdown.</div>' : (state.brandLib.customerLogos || []).map(l => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md)"><div class="logo-preview" style="width:120px;min-height:36px;max-height:48px;padding:4px"><img src="data:image/png;base64,${l.b64}" style="max-height:36px"></div><div style="flex:1;font-size:13px;font-weight:500">${escapeHtml(l.name)}</div><button class="btn-ghost" data-rm-cust-logo="${l.id}" title="Delete">\u2715</button></div>`).join('')}
+      </div>
+      <div class="h2" style="margin-bottom:10px">Subtext lines <span class="subtle body-sm">appended to footer</span></div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <input class="input" type="text" id="newSubtextInput" placeholder="e.g. Q3 2026 · Customer Roadmap" style="max-width:380px">
+        <button class="btn-secondary" id="newSubtextBtn" type="button">Add subtext</button>
+      </div>
+      <div id="subtextList" style="display:flex;flex-direction:column;gap:6px">
+        ${(state.brandLib.subtexts || []).length === 0 ? '<div class="muted body-sm">No subtexts yet. Add reusable footer lines like &ldquo;Confidential&rdquo;, &ldquo;Q3 2026 Sales Deck&rdquo;, etc.</div>' : (state.brandLib.subtexts || []).map(s => `<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md)"><div style="flex:1;font-size:13px">${escapeHtml(s.text)}</div><button class="btn-ghost" data-rm-subtext="${s.id}" title="Delete">\u2715</button></div>`).join('')}
+      </div>
+    </div></div>
+
     <div class="section"><div class="section-header"><div class="h1">Brand logo</div></div><div class="card">
       <div class="field"><label class="field-label">Logo image</label><div style="display:flex;gap:14px;align-items:center;flex-wrap:wrap"><div class="logo-preview">${state.logoB64 ? `<img src="data:image/png;base64,${state.logoB64}">` : '<span class="subtle" style="color:#71717a;font-size:11px;font-family:var(--mono)">no logo</span>'}</div><div style="display:flex;gap:6px"><input type="file" id="logoFile" accept=".png,image/png" style="display:none"><button class="btn-secondary" id="uploadLogoBtn">Upload PNG</button>${state.logoIsCustom ? '<button class="btn-ghost" id="clearLogoBtn">Reset</button>' : ''}</div></div></div>
       <label class="field-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;margin-top:14px;padding-top:14px;border-top:1px solid var(--border)"><input type="checkbox" id="logoBackingChk" ${state.logoBacking ? 'checked' : ''}><span>Dark backing panel behind logos</span></label>
@@ -2819,7 +2951,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.5.1</span> (build #41 — collapsible step columns)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.1</span> (build #44 — skills visual gallery + auto preview)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -2829,6 +2961,36 @@ function renderSettings() {
   document.getElementById('qualitySel').onchange = async e => { state.imageQuality = e.target.value; await persistSetting('dn_image_quality', state.imageQuality); };
   document.getElementById('skipPickerChk').onchange = async e => { state.skipModelPicker = e.target.checked; await persistSetting('dn_skip_model_picker', String(state.skipModelPicker)); };
   const maxIll = document.getElementById('maxIllustInput'); if (maxIll) maxIll.onchange = async e => { let v = Math.max(0, Math.min(20, parseInt(e.target.value) || 0)); state.maxIllustrations = v; e.target.value = v; await persistSetting('dn_wp_max_illust', String(v)); toast({ type: 'info', message: `Max illustrations: ${v}` }); };
+  // Build #43 — Brand library bindings
+  const newCustLogoBtn = document.getElementById('newCustLogoBtn');
+  if (newCustLogoBtn) newCustLogoBtn.onclick = () => document.getElementById('newCustLogoFile').click();
+  const newCustLogoFile = document.getElementById('newCustLogoFile');
+  if (newCustLogoFile) newCustLogoFile.onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; }
+    const name = (document.getElementById('newCustLogoName').value || '').trim() || file.name.replace(/\.png$/i, '');
+    const fr = new FileReader();
+    fr.onload = async () => {
+      const b64 = fr.result.split(',')[1];
+      await addCustomerLogo(name, b64);
+      toast({ type: 'success', message: 'Added "' + name + '" to customer logos' });
+      renderSettings();
+    };
+    fr.readAsDataURL(file);
+  };
+  document.querySelectorAll('[data-rm-cust-logo]').forEach(b => { b.onclick = async () => { const id = b.getAttribute('data-rm-cust-logo'); await removeCustomerLogo(id); renderSettings(); }; });
+  const newSubBtn = document.getElementById('newSubtextBtn');
+  if (newSubBtn) newSubBtn.onclick = async () => {
+    const inp = document.getElementById('newSubtextInput');
+    const v = (inp.value || '').trim();
+    if (!v) { toast({ type: 'error', message: 'Type some text first' }); return; }
+    if (v.length > 80) { toast({ type: 'error', message: 'Keep subtexts under 80 chars' }); return; }
+    await addSubtext(v);
+    inp.value = '';
+    toast({ type: 'success', message: 'Subtext added' });
+    renderSettings();
+  };
+  document.querySelectorAll('[data-rm-subtext]').forEach(b => { b.onclick = async () => { const id = b.getAttribute('data-rm-subtext'); await removeSubtext(id); renderSettings(); }; });
   const lbChk = document.getElementById('logoBackingChk'); if (lbChk) lbChk.onchange = async e => { state.logoBacking = e.target.checked; await persistSetting('dn_logo_backing', String(state.logoBacking)); };
   document.getElementById('uploadLogoBtn').onclick = () => document.getElementById('logoFile').click();
   document.getElementById('logoFile').onchange = e => { const file = e.target.files[0]; if (!file) return; if (!/png/i.test(file.type)) { toast({ type: 'error', message: 'PNG only' }); return; } const fr = new FileReader(); fr.onload = async () => { state.logoB64 = fr.result.split(',')[1]; state.logoIsCustom = true; await persistSetting('dn_logo_b64', state.logoB64); toast({ type: 'success', message: 'Logo uploaded' }); renderSettings(); }; fr.readAsDataURL(file); };
@@ -2909,7 +3071,7 @@ async function saveCurrentDeckToSupabase() {
 function loadSavedDeckIntoState(deck) {
   if (!deck) return;
   deckCost.reset();
-  state.whitePaper = { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPages: 10, awaitingPageCount: true };
+  state.whitePaper = { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPagesMin: 6, targetPagesMax: 10, targetPages: 8, awaitingPageCount: true };
   if (deck.skill_id && skillById(deck.skill_id)) state.selectedSkillId = deck.skill_id;
   if (typeof deck.slide_min === 'number') state.slideMin = deck.slide_min;
   if (typeof deck.slide_max === 'number') state.slideMax = deck.slide_max;
@@ -2978,6 +3140,40 @@ function bindPastDecksPanel() {
   document.querySelectorAll('[data-del-deck]').forEach(b => { b.onclick = () => { const id = b.getAttribute('data-del-deck'); openModal('<div class="modal-header"><div><div class="h1">Remove from history?</div></div></div><div class="muted body-sm" style="margin-bottom:14px">This deletes the saved deck record only. The .pptx you already downloaded is untouched.</div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelDeck">Remove</button></div>'); document.getElementById('confirmDelDeck').onclick = async () => { closeModal(); await deleteSavedDeck(id); }; }; });
 }
 // ===== end Build #37 =====
+
+// ===== Build #43 — brand library helpers =====
+async function persistBrandLib() {
+  await persistSetting('dn_brand_lib', JSON.stringify(state.brandLib));
+}
+function brandLibLogoById(id) {
+  return (state.brandLib.customerLogos || []).find(l => l.id === id) || null;
+}
+function brandLibSubtextById(id) {
+  return (state.brandLib.subtexts || []).find(s => s.id === id) || null;
+}
+async function addCustomerLogo(name, b64) {
+  const id = 'cl_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  state.brandLib.customerLogos.push({ id: id, name: name || 'Untitled', b64: b64 });
+  await persistBrandLib();
+  return id;
+}
+async function removeCustomerLogo(id) {
+  state.brandLib.customerLogos = state.brandLib.customerLogos.filter(l => l.id !== id);
+  if (state.deckCustomerLogoId === id) state.deckCustomerLogoId = null;
+  await persistBrandLib();
+}
+async function addSubtext(text) {
+  const id = 'st_' + Date.now().toString(36) + Math.random().toString(36).slice(2,6);
+  state.brandLib.subtexts.push({ id: id, text: String(text || '').trim() });
+  await persistBrandLib();
+  return id;
+}
+async function removeSubtext(id) {
+  state.brandLib.subtexts = state.brandLib.subtexts.filter(s => s.id !== id);
+  if (state.deckSubtextId === id) state.deckSubtextId = null;
+  await persistBrandLib();
+}
+// ===== end Build #43 helpers =====
 
 function updateAdminBadge() {
   const el = document.getElementById('adminBadge'); if (!el) return;
