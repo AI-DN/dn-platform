@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.6.5</title>
+<title>DN Deck Generator v2.6.7</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -553,6 +553,13 @@ tbody tr:hover { background: var(--surface-2); }
 [data-theme="dark"] .skill-card-thumb.is-loading::after { background: rgba(0,0,0,0.6); }
 .skill-card-thumb.is-loading .loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; }
 .skill-card-thumb.is-loading .loading-overlay .spinner { width: 20px; height: 20px; border-width: 2.5px; }
+/* ===== Build #50 — past decks as column + free nav meta column ===== */
+.step-column.is-meta { background: var(--surface); border-color: var(--border-strong); }
+.step-column.is-meta .spine-num { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.step-column.is-meta .step-column-spine { padding: 16px 0; }
+@media (max-width: 900px) {
+  .step-column.is-meta .step-column-spine { padding: 12px 18px; }
+}
 </style>
 </head>
 <body>
@@ -561,7 +568,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.6.5 #48</div>
+      <div class="brand-version">v2.6.7 #50</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -861,6 +868,8 @@ const state = {
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
   skillsGenerating: new Set(),
+  // Build #50 — bulk notes rewrite + past decks filter
+  bulkRewritingNotes: false, bulkRewriteProgress: null, pastDecksFilter: '',
   deckCustomerLogoId: null,
   deckSubtextId: null,
   logoBacking: false, adminMode: false,
@@ -1444,7 +1453,7 @@ function renderWhitePaperPanel() {
   }
   return `<div class="wp-panel">
     <div class="wp-panel-head">📄 Companion white paper</div>
-    <div class="wp-panel-desc">Turn this deck into a polished 8–12 page white paper. Claude picks between Mermaid diagrams (free), gpt-image illustrations (~${fmtUsd(0.30)}), or no figure per section. You confirm the mix before any illustrations are generated.</div>
+    <div class="wp-panel-desc">Turn this deck into a polished ${(wp.targetPagesMin || 6)}–${(wp.targetPagesMax || 10)} page white paper. Claude picks between Mermaid diagrams (free) and reusing your slide images (also free) per section. ${state.slides.length} slide${state.slides.length===1?'':'s'} available as figures.</div>
     ${body}
   </div>`;
 }
@@ -2084,7 +2093,8 @@ function downloadWhitePaper(blob, title) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-function columnStateClass(stepNum) {
+function columnStateClass(stepNum, workflow) {
+  if (workflow === false) return ''; // Past Decks: no workflow gating
   const cs = state.composeStep;
   if (cs === stepNum) return 'is-active';
   if (cs > stepNum) return 'is-done';
@@ -2095,8 +2105,12 @@ function columnExpandedClass(stepNum) {
   return expanded === stepNum ? 'expanded' : 'collapsed';
 }
 function expandColumn(stepNum) {
-  const stateCls = columnStateClass(stepNum);
-  if (stateCls === 'is-future') { toast({ type: 'info', message: 'Complete the previous steps to unlock this one' }); return; }
+  // Find the meta entry to check workflow flag
+  const isPastDecks = stepNum === -1;
+  if (!isPastDecks) {
+    const cs = state.composeStep;
+    if (cs < stepNum) { toast({ type: 'info', message: 'Complete the previous steps to unlock this one' }); return; }
+  }
   state.expandedStep = stepNum;
   renderCompose();
 }
@@ -2107,21 +2121,23 @@ function renderCompose() {
   // If user advanced workflow, snap expansion forward
   if (state.expandedStep < state.composeStep) state.expandedStep = state.composeStep;
   const stepsMeta = [
-    { num: 0,   id: 'step0',  title: 'Skill',    desc: 'Choose template' },
-    { num: 1,   id: 'step1',  title: 'Input',    desc: 'Text, range, logos' },
-    { num: 2,   id: 'step2',  title: 'Polish',   desc: 'AI shape to count' },
-    { num: 3,   id: 'step3',  title: 'Edit',     desc: 'Titles & body' },
-    { num: 3.5, id: 'step35', title: 'Model',    desc: 'Pick image model' },
-    { num: 5,   id: 'step5',  title: 'Generate', desc: 'Render & assemble' }
+    { num: -1,  id: 'pastDecksCol', title: 'Decks',    desc: 'Past decks', workflow: false },
+    { num: 0,   id: 'step0',        title: 'Skill',    desc: 'Choose template' },
+    { num: 1,   id: 'step1',        title: 'Input',    desc: 'Text, range, logos' },
+    { num: 2,   id: 'step2',        title: 'Polish',   desc: 'AI shape to count' },
+    { num: 3,   id: 'step3',        title: 'Edit',     desc: 'Titles & body' },
+    { num: 3.5, id: 'step35',       title: 'Model',    desc: 'Pick image model' },
+    { num: 5,   id: 'step5',        title: 'Generate', desc: 'Render & assemble' }
   ];
   const columnsHtml = stepsMeta.map((s, idx) => {
-    const stateCls = columnStateClass(s.num);
+    const stateCls = columnStateClass(s.num, s.workflow);
     const expCls = columnExpandedClass(s.num);
-    const statusGlyph = stateCls === 'is-done' ? '✓' : stateCls === 'is-active' ? '●' : '';
+    const statusGlyph = stateCls === 'is-done' ? '\u2713' : stateCls === 'is-active' ? '\u25CF' : '';
+    // Display number: idx (0-based) so Past Decks = 0, Skill = 1, ... Generate = 6
     return `
-      <div class="step-column ${stateCls} ${expCls}" data-step-col="${s.num}">
+      <div class="step-column ${stateCls} ${expCls} ${s.workflow === false ? 'is-meta' : ''}" data-step-col="${s.num}">
         <div class="step-column-spine" data-spine="${s.num}">
-          <span class="spine-num">${idx + 1}</span>
+          <span class="spine-num">${idx}</span>
           <span class="spine-title">${s.title}</span>
           <span class="spine-status">${statusGlyph}</span>
         </div>
@@ -2134,13 +2150,8 @@ function renderCompose() {
       <div class="display">Compose a deck</div>
       <div class="muted body-sm" style="margin-top:8px;max-width:680px">Click any step\u2019s spine to expand it. Completed steps stay reachable; future steps unlock as you progress.</div>
     </div>
-    <div class="compose-grid">
-      <div class="compose-rail">
-        <div id="pastDecksPanel">${renderPastDecksPanel()}</div>
-      </div>
-      <div class="step-columns">${columnsHtml}</div>
-    </div>`;
-  renderStep0(); renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
+    <div class="step-columns">${columnsHtml}</div>`;
+  renderPastDecksCol(); renderStep0(); renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
   bindPastDecksPanel();
   // Bind spine clicks
   document.querySelectorAll('[data-spine]').forEach(el => {
@@ -2159,7 +2170,8 @@ function starSvg(filled) {
 function renderStep0() {
   const el = document.getElementById('step0'); if (!el) return;
   const isDone = state.composeStep > 0;
-  if (isDone) {
+  const isExpanded = state.expandedStep === 0;
+  if (isDone && !isExpanded) {
     const sk = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
     el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step0Edit"><div class="step-num done">\u2713</div><div class="step-title">Skill</div><div class="step-desc">${sk ? escapeHtml(sk.name) : 'none selected'}</div><button class="btn-ghost" style="margin-left:8px">Change</button></div></div>`;
     document.getElementById('step0Edit').onclick = () => { state.composeStep = 0; state.expandedStep = 0; renderCompose(); };
@@ -2216,8 +2228,9 @@ function renderStep1() {
   const el = document.getElementById('step1'); if (!el) return;
   const isDone = state.composeStep > 1;
   const isFuture = state.composeStep < 1;
+  const isExpanded = state.expandedStep === 1;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Input</div><div class="step-desc">pick a skill first</div></div></div>`; return; }
-  if (isDone) {
+  if (isDone && !isExpanded) {
     el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step1Edit"><div class="step-num done">\u2713</div><div class="step-title">Input</div><div class="step-desc">${state.slides.length} slides · ${state.slideMin}\u2013${state.slideMax}</div><button class="btn-ghost" style="margin-left:8px">Edit</button></div></div>`;
     document.getElementById('step1Edit').onclick = () => { state.composeStep = 1; state.expandedStep = 1; renderCompose(); };
     return;
@@ -2313,8 +2326,9 @@ function renderStep1() {
 function renderStep2() {
   const el = document.getElementById('step2'); if (!el) return;
   const isDone = state.composeStep > 2; const isFuture = state.composeStep < 2;
+  const isExpanded = state.expandedStep === 2;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">optional</div></div></div>`; return; }
-  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' · ' + fmtUsd4(deckCost.polish) : 'skipped'}</div></div></div>`; return; }
+  if (isDone && !isExpanded) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header"><div class="step-num done">✓</div><div class="step-title">Polish</div><div class="step-desc">${state.polishMode ? state.polishMode + ' · ' + fmtUsd4(deckCost.polish) : 'skipped'}</div></div></div>`; return; }
   const hasMarkers = state.slides.length > 0;
   // Build #38 — Step 2 must enforce range before letting user proceed
   const n2 = state.slides.length;
@@ -2387,8 +2401,9 @@ async function addSlideWithAi() {
 function renderStep3() {
   const el = document.getElementById('step3'); if (!el) return;
   const isDone = state.composeStep > 3; const isFuture = state.composeStep < 3;
+  const isExpanded = state.expandedStep === 3;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">3</div><div class="step-title">Edit slide text</div><div class="step-desc">titles and body</div></div></div>`; return; }
-  if (isDone) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step3Edit"><div class="step-num done">✓</div><div class="step-title">Slide text</div><div class="step-desc">${state.slides.length} slides</div><button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button></div></div>`; document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); }; return; }
+  if (isDone && !isExpanded) { el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step3Edit"><div class="step-num done">✓</div><div class="step-title">Slide text</div><div class="step-desc">${state.slides.length} slides</div><button class="btn-ghost" style="margin-left:8px" id="step3EditBtn">Edit</button></div></div>`; document.getElementById('step3EditBtn').onclick = () => { state.composeStep = 3; renderCompose(); }; return; }
   const n = state.slides.length;
   const inRange = n >= state.slideMin && n <= state.slideMax;
   el.innerHTML = `
@@ -2545,6 +2560,7 @@ function sortedModelCandidates(candidates) {
 function renderStep35() {
   const el = document.getElementById('step35'); if (!el) return;
   const isDone = state.composeStep > 3.5; const isFuture = state.composeStep < 3.5;
+  const isExpanded = state.expandedStep === 3.5;
   if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">4</div><div class="step-title">Pick image model</div><div class="step-desc">choose default or compare</div></div></div>`; return; }
   if (isDone) {
     const spec = currentEffectiveModel();
@@ -2791,6 +2807,34 @@ async function rewriteNotesWithClaude(idx) {
   slide.rewritingNotes = false; renderStep5Slides();
 }
 
+// Build #50 — bulk rewrite all slide notes
+async function rewriteAllNotesWithClaude() {
+  const key = (state.apiKeys.anthropic || '').trim();
+  if (!key) { toast({ type: 'error', message: 'Set Anthropic API key in Settings.' }); return; }
+  if (state.bulkRewritingNotes) { toast({ type: 'info', message: 'Already running' }); return; }
+  state.bulkRewritingNotes = true;
+  const total = state.slides.length;
+  let done = 0, failed = 0;
+  ensureSpeakerNotes();
+  renderStep5();
+  for (let i = 0; i < total; i++) {
+    state.bulkRewriteProgress = { done: i, total: total, current: i + 1 };
+    renderStep5();
+    try {
+      await rewriteNotesWithClaude(i);
+      done++;
+    } catch (e) {
+      failed++;
+      console.warn('Slide ' + (i+1) + ' rewrite failed:', e);
+    }
+  }
+  state.bulkRewritingNotes = false;
+  state.bulkRewriteProgress = null;
+  renderStep5();
+  toast({ type: failed === 0 ? 'success' : 'info', message: 'Bulk rewrite complete \u00b7 ' + done + ' of ' + total + ' slides' + (failed ? ' \u00b7 ' + failed + ' failed' : '') });
+}
+
+
 function renderStep5() {
   const el = document.getElementById('step5'); if (!el) return;
   const isFuture = state.composeStep < 5;
@@ -2802,12 +2846,21 @@ function renderStep5() {
     <div class="step-card">
       <div class="step-header"><div class="step-num">5</div><div class="step-title">Generate &amp; refine</div><div class="step-desc">${escapeHtml(modelLabel(spec.provider, spec.model, spec.quality))} · ${state.slides.filter(s => s.status === 'done').length}/${state.slides.length} done</div></div>
       <div class="step-body">
+        <div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-bottom:14px;padding:10px 12px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md)">
+          <div style="display:flex;flex-direction:column;gap:2px">
+            <div style="font-size:13px;font-weight:500">\u2728 Make all slides presenter-friendly</div>
+            <div class="muted body-sm" style="font-size:11px">Claude rewrites every slide\u2019s speaker notes into natural presenter language. ~$0.01 per slide.</div>
+          </div>
+          <button class="btn-primary" id="bulkRewriteNotesBtn" ${state.bulkRewritingNotes ? 'disabled' : ''}>${state.bulkRewritingNotes ? `<span class="spinner"></span> Rewriting ${(state.bulkRewriteProgress || {}).current || '?'} of ${(state.bulkRewriteProgress || {}).total || state.slides.length}\u2026` : 'Rewrite all ' + state.slides.length + ' slides'}</button>
+        </div>
         <div id="step5Slides">${state.slides.map((s, i) => renderImgCard(s, i)).join('')}</div>
-        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)"><button class="btn-ghost" id="backTo3from5">← Back</button><button class="btn-primary lg" id="assembleBtn" ${(allDone && !state.assembling) ? '' : 'disabled'}>${state.assembling ? '<span class="spinner"></span> Assembling .pptx…' : 'Assemble .pptx'}</button></div>
+        <div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)"><button class="btn-ghost" id="backTo3from5">\u2190 Back</button><button class="btn-primary lg" id="assembleBtn" ${(allDone && !state.assembling) ? '' : 'disabled'}>${state.assembling ? '<span class="spinner"></span> Assembling .pptx\u2026' : 'Assemble .pptx'}</button></div>
       </div>
     </div>`;
   state.slides.forEach((s, i) => bindImgCard(i));
-  document.getElementById('backTo3from5').onclick = () => { state.composeStep = 3; renderCompose(); };
+  document.getElementById('backTo3from5').onclick = () => { state.composeStep = 3; state.expandedStep = 3; renderCompose(); };
+  const brn = document.getElementById('bulkRewriteNotesBtn');
+  if (brn) brn.onclick = () => rewriteAllNotesWithClaude();
   document.getElementById('assembleBtn').onclick = async () => { state.assembling = true; renderStep5(); try { await assemblePptx(); } finally { state.assembling = false; renderStep5(); } };
 }
 function renderStep5Slides() {
@@ -3247,7 +3300,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.5</span> (build #48 — Step 0 Skill picker; Step 1 = Input)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.7</span> (build #50 — bulk presenter-friendly + past decks col + free nav)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -3406,6 +3459,43 @@ async function deleteSavedDeck(id) {
     toast({ type: 'success', message: 'Deck removed from history' });
     if (state.view === 'compose' && (state.composeStep === 0 || state.composeStep === 1)) renderCompose();
   } catch (e) { toast({ type: 'error', message: 'Delete failed: ' + (e.message || String(e)) }); }
+}
+
+function renderPastDecksCol() {
+  const el = document.getElementById('pastDecksCol'); if (!el) return;
+  const filter = (state.pastDecksFilter || '').toLowerCase();
+  const all = (state.savedDecks || []);
+  const filtered = filter
+    ? all.filter(d => (d.title || '').toLowerCase().includes(filter) || (d.skill_name || '').toLowerCase().includes(filter))
+    : all;
+  let body = '';
+  if (!state.savedDecksLoaded) {
+    body = '<div class="muted body-sm" style="padding:20px 16px;text-align:center">Loading past decks\u2026</div>';
+  } else if (state.savedDecksError) {
+    body = '<div class="muted body-sm" style="padding:20px 16px;color:var(--warning)">Past decks unavailable: ' + escapeHtml(state.savedDecksError) + '</div>';
+  } else if (!all.length) {
+    body = '<div class="muted body-sm" style="padding:20px 16px"><div style="font-weight:500;margin-bottom:6px">No past decks yet</div>Completed decks save automatically here. Once you finish a deck, you can reload it to skip Steps 1\u20134 and jump straight to the model picker.</div>';
+  } else {
+    const rows = filtered.slice(0, 50).map(d => {
+      let when = '';
+      try { when = new Date(d.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) {}
+      return '<div class="past-deck-card">' +
+        '<div class="past-deck-title">' + escapeHtml(d.title || 'Untitled') + '</div>' +
+        '<div class="past-deck-meta">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' \u00b7 ' + escapeHtml(d.skill_name) : '') + ' \u00b7 ' + when + '</div>' +
+        '<div class="past-deck-actions">' +
+          '<button class="btn-secondary" data-load-deck="' + d.id + '">Load \u2192 pick model</button>' +
+          '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">\u2715</button>' +
+        '</div>' +
+      '</div>';
+    }).join('');
+    body = '<div style="margin-bottom:12px"><input class="input" type="text" id="pastDecksFilterInput" placeholder="\u{1F50D} Filter by title or skill\u2026" value="' + escapeHtml(filter) + '"></div>' +
+      '<div class="muted body-sm" style="font-size:11px;margin-bottom:8px">' + filtered.length + ' of ' + all.length + ' deck' + (all.length===1?'':'s') + '</div>' +
+      '<div style="max-height:540px;overflow-y:auto;padding-right:4px">' + rows + '</div>' +
+      (filtered.length === 0 ? '<div class="muted body-sm" style="padding:20px;text-align:center">No matches</div>' : '');
+  }
+  el.innerHTML = '<div class="step-card"><div class="step-header"><div class="step-num">0</div><div class="step-title">\u{1F4C1} Past decks</div><div class="step-desc">' + (all.length || 0) + ' saved</div></div><div class="step-body">' + body + '</div></div>';
+  const fi = document.getElementById('pastDecksFilterInput');
+  if (fi) fi.oninput = e => { state.pastDecksFilter = e.target.value; renderPastDecksCol(); };
 }
 
 function renderPastDecksPanel() {
