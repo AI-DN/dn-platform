@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.7.2</title>
+<title>DN Deck Generator v2.7.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -572,7 +572,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.7.2 #54</div>
+      <div class="brand-version">v2.7.3 #55</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -3243,11 +3243,24 @@ async function backfillDeckThumbnails() {
     try {
       const title = d.title || 'Untitled deck';
       const sub = d.skill_name || '';
-      // Build #54 — use the deck's original skill prompt when available, else generic
+      // Build #55 — prefer the actual first-slide prompt for fidelity
+      // Priority: 1) slides[0].lastPrompt  2) composeSkillPrompt(skill, slides[0])  3) generic
+      const firstSlide = (d.slides && d.slides[0]) ? d.slides[0] : null;
       const skill = d.skill_id ? skillById(d.skill_id) : null;
       let prompt;
-      if (skill && skill.prompt) {
-        const sampleSlide = { title: title, body: 'A presentation cover slide representing the theme of this deck.' };
+      if (firstSlide && firstSlide.lastPrompt) {
+        // Exact original prompt — thumbnail will closely match the original first slide
+        prompt = firstSlide.lastPrompt;
+      } else if (skill && skill.prompt && firstSlide) {
+        // Use the real first-slide title+body so the skill prompt has actual content to anchor to
+        const realSlide = {
+          title: firstSlide.title || title,
+          body: firstSlide.body || ''
+        };
+        prompt = composeSkillPrompt(skill, realSlide);
+      } else if (skill && skill.prompt) {
+        // Skill exists but no slide content saved — use deck title as sample title
+        const sampleSlide = { title: title, body: '' };
         prompt = composeSkillPrompt(skill, sampleSlide);
       } else {
         prompt = 'Professional presentation cover image themed around "' + title + '"' +
@@ -3489,7 +3502,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.7.2</span> (build #54 — gpt-image-2 thumbnail backfill)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.7.3</span> (build #55 — backfill uses real first-slide prompt)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
