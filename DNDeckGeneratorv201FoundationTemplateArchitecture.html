@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.7.3</title>
+<title>DN Deck Generator v2.8.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -572,7 +572,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.7.3 #55</div>
+      <div class="brand-version">v2.8.0 #56</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -947,6 +947,36 @@ function openModal(content, opts) {
 }
 function closeModal() { document.getElementById('modalRoot').innerHTML = ''; document.removeEventListener('keydown', escClose); }
 function escClose(e) { if (e.key === 'Escape') closeModal(); }
+
+// ===== Build #56 — generic large-textarea editor =====
+// opts: { title, label, value, rows, saveLabel, cancelLabel, onSave(value) }
+function openTextZoomEditor(opts) {
+  opts = opts || {};
+  const eid = 'zoomEd' + Math.random().toString(36).slice(2, 9);
+  const rows = opts.rows || 22;
+  const html = '<div class="modal-header"><div><div class="h1">' + escapeHtml(opts.title || 'Edit') + '</div>' +
+    (opts.label ? '<div class="muted body-sm" style="margin-top:4px">' + escapeHtml(opts.label) + '</div>' : '') +
+    '</div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">\u00d7</button></div>' +
+    '<div class="modal-body" style="padding:18px 22px">' +
+      '<textarea id="' + eid + '" class="textarea" rows="' + rows + '" style="width:100%;font-size:14px;line-height:1.55">' + escapeHtml(opts.value || '') + '</textarea>' +
+    '</div>' +
+    '<div class="modal-footer">' +
+      '<button class="btn-ghost" id="' + eid + '_cancel">' + escapeHtml(opts.cancelLabel || 'Cancel') + '</button>' +
+      '<button class="btn-primary" id="' + eid + '_save">' + escapeHtml(opts.saveLabel || 'Save') + '</button>' +
+    '</div>';
+  openModal(html, { lg: true });
+  const ta = document.getElementById(eid);
+  if (ta) { setTimeout(() => { try { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); } catch (e) {} }, 40); }
+  const saveBtn = document.getElementById(eid + '_save');
+  const cancelBtn = document.getElementById(eid + '_cancel');
+  if (saveBtn) saveBtn.onclick = () => {
+    const newVal = ta ? ta.value : '';
+    closeModal();
+    if (typeof opts.onSave === 'function') opts.onSave(newVal);
+  };
+  if (cancelBtn) cancelBtn.onclick = () => { closeModal(); if (typeof opts.onCancel === 'function') opts.onCancel(); };
+}
+// ===== end Build #56 helper =====
 
 function skillById(id) { return allSkills.find(s => s.id === id); }
 function sortedSkills() {
@@ -2905,11 +2935,17 @@ function renderImgCard(s, i) {
             ${s.status === 'done' ? `<button class="btn-secondary" data-act="enlarge">View full size</button>` : ''}
           </div>
           <div class="refine-section">
-            <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
+              <button class="btn-ghost" data-act="zoomPrompt" title="Open prompt in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button>
+            </div>
             ${expanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label><textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeSkillPrompt(skill, s))}</textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div></div>` : ''}
           </div>
           <div class="refine-section">
-            <button class="refine-toggle" data-act="toggleNotes">${s.notesExpanded ? '−' : '+'} Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})</button>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <button class="refine-toggle" data-act="toggleNotes">${s.notesExpanded ? '−' : '+'} Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})</button>
+              <button class="btn-ghost" data-act="zoomNotes" title="Open notes in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button>
+            </div>
             ${s.notesExpanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">What to say while presenting</label><textarea class="textarea prose" data-act="notesText" rows="6" placeholder="Speaker notes — pre-filled from slide body. Edit freely.">${escapeHtml(s.speakerNotes || '')}</textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-secondary" data-act="aiNotes" ${s.rewritingNotes ? 'disabled' : ''}>${s.rewritingNotes ? '<span class="spinner"></span> Rewriting…' : 'Make presenter-friendly with AI'}</button>${s.prevSpeakerNotes != null ? '<button class="btn-ghost" data-act="restoreNotes">Restore previous</button>' : ''}<span class="muted body-sm" style="margin-left:auto;align-self:center;font-size:11px">~$0.01 per rewrite</span></div></div>` : ''}
           </div>
         </div>
@@ -2929,6 +2965,42 @@ function bindImgCard(i) {
   const notesTa = card.querySelector('[data-act="notesText"]'); if (notesTa) notesTa.oninput = e => { s.speakerNotes = e.target.value; const btn = card.querySelector('[data-act="toggleNotes"]'); if (btn) btn.textContent = `− Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})`; };
   const aiBtn = card.querySelector('[data-act="aiNotes"]'); if (aiBtn) aiBtn.onclick = () => rewriteNotesWithClaude(i);
   const restoreBtn = card.querySelector('[data-act="restoreNotes"]'); if (restoreBtn) restoreBtn.onclick = () => { if (s.prevSpeakerNotes != null) { s.speakerNotes = s.prevSpeakerNotes; s.prevSpeakerNotes = null; renderStep5Slides(); toast({ type: 'info', message: 'Notes restored' }); } };
+  // Build #56 — zoom-edit prompt
+  const zoomP = card.querySelector('[data-act="zoomPrompt"]');
+  if (zoomP) zoomP.onclick = () => {
+    const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    const ta = card.querySelector('[data-act="refinePrompt"]');
+    const initial = ta ? ta.value : (s.lastPrompt || composeSkillPrompt(skill, s));
+    openTextZoomEditor({
+      title: 'Slide ' + (i+1) + ' — Image prompt',
+      label: 'Edit the prompt. Saving will regenerate this slide\'s image.',
+      value: initial,
+      rows: 22,
+      saveLabel: 'Save & regenerate',
+      onSave: (newVal) => {
+        const ta2 = card.querySelector('[data-act="refinePrompt"]');
+        if (ta2) ta2.value = newVal;
+        regenerateOne(i, newVal);
+      }
+    });
+  };
+  // Build #56 — zoom-edit speaker notes
+  const zoomN = card.querySelector('[data-act="zoomNotes"]');
+  if (zoomN) zoomN.onclick = () => {
+    openTextZoomEditor({
+      title: 'Slide ' + (i+1) + ' — Speaker notes',
+      label: 'Edit the speaker notes for this slide.',
+      value: s.speakerNotes || '',
+      rows: 22,
+      saveLabel: 'Save',
+      onSave: (newVal) => {
+        s.prevSpeakerNotes = s.speakerNotes;
+        s.speakerNotes = newVal;
+        renderStep5Slides();
+        toast({ type: 'success', message: 'Speaker notes updated' });
+      }
+    });
+  };
 }
 function openLightbox(i) {
   const s = state.slides[i]; if (!s.imageB64) return;
@@ -3502,7 +3574,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.7.3</span> (build #55 — backfill uses real first-slide prompt)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.8.0</span> (build #56 — expand-edit modal for prompts & notes)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
