@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.6.7</title>
+<title>DN Deck Generator v2.6.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -568,7 +568,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.6.7 #50</div>
+      <div class="brand-version">v2.6.8 #51</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -2119,7 +2119,7 @@ function renderCompose() {
   cont.className = 'content';
   if (typeof state.expandedStep !== 'number') state.expandedStep = state.composeStep;
   // If user advanced workflow, snap expansion forward
-  if (state.expandedStep < state.composeStep) state.expandedStep = state.composeStep;
+  if (state.expandedStep >= 0 && state.expandedStep < state.composeStep) state.expandedStep = state.composeStep;
   const stepsMeta = [
     { num: -1,  id: 'pastDecksCol', title: 'Decks',    desc: 'Past decks', workflow: false },
     { num: 0,   id: 'step0',        title: 'Skill',    desc: 'Choose template' },
@@ -3300,7 +3300,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.7</span> (build #50 — bulk presenter-friendly + past decks col + free nav)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.8</span> (build #51 — past decks fix + theme title)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -3385,7 +3385,12 @@ async function saveCurrentDeckToSupabase() {
   if (!sb) return null;
   if (!state.slides || state.slides.length === 0) return null;
   const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
-  const title = (skill && skill.name) ? skill.name : (state.slides[0] && state.slides[0].title) || 'Untitled deck';
+  // Build #51 — name saved deck after its theme (first slide title), matching the .pptx filename
+  const firstSlideTitle = (state.slides[0] && state.slides[0].title || '').trim();
+  const themedTitle = firstSlideTitle && firstSlideTitle.toLowerCase() !== 'title' && firstSlideTitle.toLowerCase() !== 'untitled'
+    ? firstSlideTitle
+    : (skill && skill.name ? skill.name : 'Untitled deck');
+  const title = themedTitle;
   const slidesPayload = state.slides.map(s => ({
     title: s.title || '',
     body: s.body || '',
