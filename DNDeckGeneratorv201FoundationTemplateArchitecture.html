@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.7.1</title>
+<title>DN Deck Generator v2.7.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -572,7 +572,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.7.1 #53</div>
+      <div class="brand-version">v2.7.2 #54</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -3212,7 +3212,12 @@ async function uploadDeckThumbnail(deckId, blob) {
   const pubRes = sb.storage.from('dn-deck-thumbnails').getPublicUrl(path);
   return (pubRes && pubRes.data && pubRes.data.publicUrl) || null;
 }
-// ===== Build #53 — thumbnail backfill =====
+// ===== Build #53/#54 — thumbnail backfill =====
+function backfillThumbCostEstimate(count) {
+  // Build #54 — gpt-image-2 low at 1536x1024 (price from cost table, fallback ~$0.022)
+  const per = getImageCost('openai', 'gpt-image-2', '1536x1024', 'low') || 0.022;
+  return { perImage: per, total: per * count };
+}
 async function backfillDeckThumbnails() {
   if (state.backfillingThumbs) return;
   const sb = getSupabaseClient();
@@ -3222,16 +3227,38 @@ async function backfillDeckThumbnails() {
     toast({ type: 'info', message: 'All decks already have thumbnails' });
     return;
   }
+  const est = backfillThumbCostEstimate(missing.length);
+  const proceed = window.confirm(
+    'Generate ' + missing.length + ' thumbnail' + (missing.length === 1 ? '' : 's') +
+    ' using OpenAI gpt-image-2 (low)?\n\nEstimated cost: $' + est.total.toFixed(3) +
+    ' (~$' + est.perImage.toFixed(3) + ' each)'
+  );
+  if (!proceed) return;
   state.backfillingThumbs = true;
-  state.backfillProgress = { done: 0, total: missing.length };
+  state.backfillProgress = { done: 0, total: missing.length, cost: 0 };
   if (typeof renderPastDecksCol === 'function') renderPastDecksCol();
-  let okCount = 0, failCount = 0;
+  let okCount = 0, failCount = 0, accumulatedCost = 0;
   for (let i = 0; i < missing.length; i++) {
     const d = missing[i];
     try {
       const title = d.title || 'Untitled deck';
       const sub = d.skill_name || '';
-      const blob = await generateDeckThumbnail({ title: title, sub: sub, sourceB64: null });
+      // Build #54 — use the deck's original skill prompt when available, else generic
+      const skill = d.skill_id ? skillById(d.skill_id) : null;
+      let prompt;
+      if (skill && skill.prompt) {
+        const sampleSlide = { title: title, body: 'A presentation cover slide representing the theme of this deck.' };
+        prompt = composeSkillPrompt(skill, sampleSlide);
+      } else {
+        prompt = 'Professional presentation cover image themed around "' + title + '"' +
+                 (sub ? ', styled as ' + sub : '') +
+                 '. Clean modern abstract business graphic suitable as a 16:9 thumbnail. High visual impact, no text overlay.';
+      }
+      // Generate via gpt-image-2 low
+      const apiB64 = await generateImageWithProvider('openai', 'gpt-image-2', 'low', prompt);
+      accumulatedCost += est.perImage;
+      // Pass through canvas resize/WebP pipeline
+      const blob = await generateDeckThumbnail({ sourceB64: apiB64 });
       if (!blob) { failCount++; continue; }
       const url = await uploadDeckThumbnail(d.id, blob);
       if (!url) { failCount++; continue; }
@@ -3246,15 +3273,26 @@ async function backfillDeckThumbnails() {
       failCount++;
     }
     state.backfillProgress.done = i + 1;
+    state.backfillProgress.cost = accumulatedCost;
     if (typeof renderPastDecksCol === 'function') renderPastDecksCol();
     await new Promise(r => setTimeout(r, 10));
+  }
+  // Roll cost into the deck cost badge
+  if (typeof deckCost !== 'undefined' && typeof deckCost.testImage === 'number') {
+    deckCost.testImage += accumulatedCost;
+    if (typeof renderCostBadge === 'function') renderCostBadge();
   }
   state.backfillingThumbs = false;
   state.backfillProgress = null;
   if (typeof renderPastDecksCol === 'function') renderPastDecksCol();
-  toast({ type: failCount ? 'info' : 'success', message: 'Backfill done: ' + okCount + ' generated' + (failCount ? ', ' + failCount + ' failed' : '') });
+  toast({
+    type: failCount ? 'info' : 'success',
+    message: 'Backfill: ' + okCount + ' generated' +
+             (failCount ? ', ' + failCount + ' failed' : '') +
+             ' \u00b7 $' + accumulatedCost.toFixed(3)
+  });
 }
-// ===== end Build #53 =====
+// ===== end Build #53/#54 =====
 
 // ===== end Build #52 helpers =====
 
@@ -3451,7 +3489,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.7.1</span> (build #53 — thumbnail backfill)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.7.2</span> (build #54 — gpt-image-2 thumbnail backfill)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -3666,13 +3704,15 @@ function renderPastDecksCol() {
         '</div>' +
       '</div>';
     }).join('');
-    // Build #53 — backfill button
+    // Build #53/#54 — backfill button with cost estimate
     const missingThumbs = all.filter(d => !d.thumbnail_url).length;
     let backfillBar = '';
     if (state.backfillingThumbs && state.backfillProgress) {
-      backfillBar = '<div style="margin-bottom:10px;padding:8px 10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:8px"><div class="loading-spinner" style="width:12px;height:12px"></div><span>Generating thumbnails\u2026 ' + state.backfillProgress.done + ' / ' + state.backfillProgress.total + '</span></div>';
+      const costSoFar = (state.backfillProgress.cost || 0).toFixed(3);
+      backfillBar = '<div style="margin-bottom:10px;padding:8px 10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:8px"><div class="loading-spinner" style="width:12px;height:12px"></div><span>Generating thumbnails\u2026 ' + state.backfillProgress.done + ' / ' + state.backfillProgress.total + ' \u00b7 $' + costSoFar + '</span></div>';
     } else if (missingThumbs > 0) {
-      backfillBar = '<div style="margin-bottom:10px"><button class="btn-secondary" id="pastDecksBackfillBtn" style="width:100%;padding:6px 10px;font-size:12px;justify-content:center">\u{1F5BC} Generate missing thumbnails (' + missingThumbs + ')</button></div>';
+      const estTotal = backfillThumbCostEstimate(missingThumbs).total;
+      backfillBar = '<div style="margin-bottom:10px"><button class="btn-secondary" id="pastDecksBackfillBtn" style="width:100%;padding:6px 10px;font-size:12px;justify-content:center">\u{1F5BC} Generate missing thumbnails (' + missingThumbs + ') \u00b7 ~$' + estTotal.toFixed(3) + '</button></div>';
     }
     body = backfillBar + '<div style="margin-bottom:12px"><input class="input" type="text" id="pastDecksFilterInput" placeholder="\u{1F50D} Filter by title or skill\u2026" value="' + escapeHtml(filter) + '"></div>' +
       '<div class="muted body-sm" style="font-size:11px;margin-bottom:8px">' + filtered.length + ' of ' + all.length + ' deck' + (all.length===1?'':'s') + '</div>' +
