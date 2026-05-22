@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.8.0</title>
+<title>DN Deck Generator v2.9.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -564,6 +564,34 @@ tbody tr:hover { background: var(--surface-2); }
 @media (max-width: 900px) {
   .step-column.is-meta .step-column-spine { padding: 12px 18px; }
 }
+
+/* ===== Build #57 — 3-slot branding picker ===== */
+.branding-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+@media (max-width: 720px) { .branding-grid { grid-template-columns: 1fr; } }
+.branding-slot { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; transition: border-color 160ms ease, box-shadow 160ms ease; min-height: 96px; }
+.branding-slot:hover { border-color: var(--border-strong); box-shadow: var(--shadow-1); }
+.branding-slot-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; font-weight: 500; }
+.branding-slot-preview { flex: 1; display: flex; align-items: center; justify-content: center; background: var(--surface-2, var(--surface)); border-radius: 6px; min-height: 56px; padding: 6px; overflow: hidden; }
+.branding-slot-preview img { max-width: 100%; max-height: 48px; object-fit: contain; display: block; }
+.branding-slot-preview .text-preview { font-size: 12px; color: var(--text); text-align: center; line-height: 1.3; max-width: 100%; padding: 4px 8px; word-break: break-word; }
+.branding-slot-preview .empty-preview { font-size: 11px; color: var(--text-subtle); font-style: italic; }
+.branding-slot-foot { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: var(--text-muted); }
+.branding-slot-foot .pill { background: var(--surface-2, var(--surface)); border: 1px solid var(--border); border-radius: 999px; padding: 1px 8px; font-size: 10px; }
+.branding-picker-section { margin-bottom: 18px; }
+.branding-picker-section .sect-title { font-size: 12px; font-weight: 500; color: var(--text); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.04em; }
+.branding-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.branding-picker-tile { background: var(--surface-2, var(--surface)); border: 1px solid var(--border); border-radius: 8px; padding: 8px; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 6px; transition: border-color 120ms ease, box-shadow 120ms ease; }
+.branding-picker-tile:hover { border-color: var(--accent, var(--border-strong)); box-shadow: var(--shadow-1); }
+.branding-picker-tile.is-selected { border-color: var(--accent, var(--text)); box-shadow: 0 0 0 2px var(--accent-soft, rgba(13,148,136,0.18)); }
+.branding-picker-tile img { width: 100%; height: 56px; object-fit: contain; }
+.branding-picker-tile .tile-label { font-size: 11px; color: var(--text-muted); text-align: center; word-break: break-word; }
+.branding-picker-tile.is-none { justify-content: center; min-height: 80px; color: var(--text-subtle); font-size: 12px; font-style: italic; }
+.branding-picker-text { display: flex; flex-direction: column; gap: 6px; }
+.branding-picker-text textarea { min-height: 60px; }
+.branding-picker-quickpicks { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.branding-picker-quickpicks .qp-chip { padding: 2px 10px; background: var(--surface-2, var(--surface)); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; color: var(--text); cursor: pointer; }
+.branding-picker-quickpicks .qp-chip:hover { background: var(--accent-soft, var(--surface-2)); border-color: var(--accent, var(--border-strong)); }
+/* ===== end Build #57 CSS ===== */
 </style>
 </head>
 <body>
@@ -572,7 +600,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.8.0 #56</div>
+      <div class="brand-version">v2.9.0 #57</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -670,6 +698,7 @@ const SETTING_MAP = {
   'is_admin': 'dn_admin',
   'dn_logo_b64': 'dn_logo_b64',
   'dn_brand_lib': 'dn_brand_lib',  // Build #43
+  'dn_deck_branding': 'dn_deck_branding',  // Build #57
   'favorite_skills': 'dn_favorite_skills',
   'selected_skill': 'dn_selected_skill',
   'favorite_models': 'dn_favorite_models',
@@ -868,6 +897,8 @@ const state = {
   skipModelPicker: false,
   logoB64: null, logoIsCustom: false,
   customerLogoB64: null, customerLogoEnabled: false,
+  // Build #57 — 3-slot branding (topLeft/topRight: own-logo|customer-logo|text|none; bottom: text|none)
+  deckBranding: null,
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -921,6 +952,9 @@ function hydrateStateFromStorage() {
   // Build #43 — brand library
   const bl = get('dn_brand_lib');
   if (bl) { try { const parsed = JSON.parse(bl); if (parsed && typeof parsed === 'object') { state.brandLib.ownLogos = Array.isArray(parsed.ownLogos) ? parsed.ownLogos : []; state.brandLib.customerLogos = Array.isArray(parsed.customerLogos) ? parsed.customerLogos : []; state.brandLib.subtexts = Array.isArray(parsed.subtexts) ? parsed.subtexts : []; } } catch (e) { console.warn('brand lib parse failed', e); } }
+  // Build #57 — load 3-slot branding
+  const bb = get('dn_deck_branding');
+  if (bb) { try { const parsed = JSON.parse(bb); if (parsed && typeof parsed === 'object') { state.deckBranding = parsed; } } catch (e) { console.warn('deck branding parse failed', e); } }
   const maxIll = get('dn_wp_max_illust');
   if (maxIll) { const n = parseInt(maxIll); if (!isNaN(n) && n >= 0 && n <= 20) state.maxIllustrations = n; }
 }
@@ -1277,6 +1311,178 @@ async function loadDefaultLogo() {
   } catch (e) { console.warn('Default logo load failed', e); return null; }
 }
 
+// ===== Build #57 — branding system helpers =====
+function defaultDeckBranding() {
+  return {
+    topLeft:  { type: state.logoB64 ? 'own-logo' : 'none', refId: state.logoB64 ? 'default' : null, text: null },
+    topRight: { type: 'none', refId: null, text: null },
+    bottom:   { type: 'text', refId: null, text: '\u00a9 ' + new Date().getFullYear() + ' Digitata Networks. All rights reserved.' }
+  };
+}
+function ensureDeckBranding() {
+  if (state.deckBranding && state.deckBranding.topLeft && state.deckBranding.topRight && state.deckBranding.bottom) return;
+  // Migrate from legacy fields if present
+  const legacyCust = state.deckCustomerLogoId
+    ? { type: 'customer-logo', refId: state.deckCustomerLogoId, text: null }
+    : { type: 'none', refId: null, text: null };
+  const legacySub = state.deckSubtextId
+    ? (function () {
+        const found = (state.brandLib.subtexts || []).find(x => x.id === state.deckSubtextId);
+        const subText = found ? found.text : '';
+        const cr = '\u00a9 ' + new Date().getFullYear() + ' Digitata Networks. All rights reserved.';
+        return { type: 'text', refId: null, text: subText ? (subText + '  \u00b7  ' + cr) : cr };
+      })()
+    : { type: 'text', refId: null, text: '\u00a9 ' + new Date().getFullYear() + ' Digitata Networks. All rights reserved.' };
+  state.deckBranding = state.deckBranding || {};
+  state.deckBranding.topLeft  = state.deckBranding.topLeft  || { type: state.logoB64 ? 'own-logo' : 'none', refId: state.logoB64 ? 'default' : null, text: null };
+  state.deckBranding.topRight = state.deckBranding.topRight || legacyCust;
+  state.deckBranding.bottom   = state.deckBranding.bottom   || legacySub;
+}
+async function persistDeckBranding() {
+  try { await persistSetting('dn_deck_branding', JSON.stringify(state.deckBranding || {})); } catch (e) { console.warn('persist deck branding failed', e); }
+}
+function resolveBrandingAsset(spec) {
+  if (!spec || !spec.type || spec.type === 'none') return null;
+  if (spec.type === 'text') return { kind: 'text', text: (spec.text || '').trim() };
+  if (spec.type === 'own-logo') {
+    if (spec.refId === 'default' && state.logoB64) return { kind: 'logo', b64: state.logoB64, name: 'DN default' };
+    const found = (state.brandLib.ownLogos || []).find(l => l.id === spec.refId);
+    if (found) return { kind: 'logo', b64: found.b64, name: found.name };
+    // Fallback to default if reference is stale
+    if (state.logoB64) return { kind: 'logo', b64: state.logoB64, name: 'DN default' };
+    return null;
+  }
+  if (spec.type === 'customer-logo') {
+    const found = (state.brandLib.customerLogos || []).find(l => l.id === spec.refId);
+    return found ? { kind: 'logo', b64: found.b64, name: found.name } : null;
+  }
+  return null;
+}
+function brandingSlotLabel(slot) {
+  return { topLeft: 'Top-left', topRight: 'Top-right', bottom: 'Bottom' }[slot] || slot;
+}
+function describeBrandingSpec(spec) {
+  if (!spec || !spec.type || spec.type === 'none') return 'None';
+  if (spec.type === 'text') return spec.text ? ('Text: \u201c' + spec.text.slice(0, 32) + (spec.text.length > 32 ? '\u2026' : '') + '\u201d') : 'Text (empty)';
+  if (spec.type === 'own-logo') {
+    if (spec.refId === 'default') return 'Own \u00b7 DN default';
+    const found = (state.brandLib.ownLogos || []).find(l => l.id === spec.refId);
+    return found ? ('Own \u00b7 ' + found.name) : 'Own logo (missing)';
+  }
+  if (spec.type === 'customer-logo') {
+    const found = (state.brandLib.customerLogos || []).find(l => l.id === spec.refId);
+    return found ? ('Customer \u00b7 ' + found.name) : 'Customer logo (missing)';
+  }
+  return 'Unknown';
+}
+function openBrandingPicker(slot) {
+  ensureDeckBranding();
+  const current = state.deckBranding[slot] || { type: 'none' };
+  const allowLogos = (slot !== 'bottom');
+  const ownLogos = state.brandLib.ownLogos || [];
+  const custLogos = state.brandLib.customerLogos || [];
+  const subtexts = state.brandLib.subtexts || [];
+  function sectionLogos(kind, list, includeDefault) {
+    if (!allowLogos) return '';
+    const items = [];
+    if (kind === 'own-logo' && includeDefault && state.logoB64) {
+      const sel = current.type === 'own-logo' && current.refId === 'default';
+      items.push('<div class="branding-picker-tile ' + (sel ? 'is-selected' : '') + '" data-pick="own:default"><img src="data:image/png;base64,' + state.logoB64 + '" alt="DN default"><div class="tile-label">DN default</div></div>');
+    }
+    list.forEach(l => {
+      const refid = l.id;
+      const sel = (current.type === kind && current.refId === refid);
+      items.push('<div class="branding-picker-tile ' + (sel ? 'is-selected' : '') + '" data-pick="' + (kind === 'own-logo' ? 'own' : 'customer') + ':' + refid + '"><img src="data:image/png;base64,' + l.b64 + '" alt="' + escapeAttr(l.name) + '"><div class="tile-label">' + escapeHtml(l.name) + '</div></div>');
+    });
+    if (items.length === 0) return '';
+    const title = kind === 'own-logo' ? 'Own logos' : 'Customer logos';
+    return '<div class="branding-picker-section"><div class="sect-title">' + title + '</div><div class="branding-picker-grid">' + items.join('') + '</div></div>';
+  }
+  const noneTile = '<div class="branding-picker-tile is-none ' + (current.type === 'none' ? 'is-selected' : '') + '" data-pick="none">None / empty</div>';
+  const textVal = (current.type === 'text' ? (current.text || '') : '');
+  const textSection = '<div class="branding-picker-section"><div class="sect-title">Custom text</div>' +
+    '<div class="branding-picker-text">' +
+      '<textarea id="brandingTextInput" class="textarea" rows="3" placeholder="Type label text\u2026">' + escapeHtml(textVal) + '</textarea>' +
+      (subtexts.length ? '<div class="branding-picker-quickpicks">' + subtexts.map(s => '<span class="qp-chip" data-quickpick="' + escapeAttr(s.text) + '">' + escapeHtml(s.text.slice(0, 40)) + (s.text.length > 40 ? '\u2026' : '') + '</span>').join('') + '</div>' : '') +
+    '</div>' +
+    '<div style="display:flex;gap:6px;margin-top:8px;justify-content:flex-end"><button class="btn-primary" id="brandingTextSave">Use this text</button></div>' +
+  '</div>';
+  const html = '<div class="modal-header"><div><div class="h1">Pick branding \u00b7 ' + brandingSlotLabel(slot) + '</div>' +
+    '<div class="muted body-sm" style="margin-top:4px">' + (allowLogos ? 'Choose a logo, type custom text, or leave empty.' : 'Bottom is text-only (used for copyright or other footer text).') + '</div>' +
+    '</div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">\u00d7</button></div>' +
+    '<div class="modal-body" style="padding:18px 22px">' +
+      '<div class="branding-picker-section"><div class="sect-title">No branding</div><div class="branding-picker-grid">' + noneTile + '</div></div>' +
+      (allowLogos ? sectionLogos('own-logo', ownLogos, true) : '') +
+      (allowLogos ? sectionLogos('customer-logo', custLogos, false) : '') +
+      textSection +
+    '</div>' +
+    '<div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button></div>';
+  openModal(html, { lg: true });
+  // Wire tile clicks
+  document.querySelectorAll('.branding-picker-tile[data-pick]').forEach(el => {
+    el.onclick = async () => {
+      const pick = el.getAttribute('data-pick');
+      if (pick === 'none') {
+        state.deckBranding[slot] = { type: 'none', refId: null, text: null };
+      } else if (pick.startsWith('own:')) {
+        state.deckBranding[slot] = { type: 'own-logo', refId: pick.slice(4), text: null };
+      } else if (pick.startsWith('customer:')) {
+        state.deckBranding[slot] = { type: 'customer-logo', refId: pick.slice(9), text: null };
+      }
+      await persistDeckBranding();
+      // Keep legacy fields in sync for current-deck consumers
+      if (slot === 'topRight' && state.deckBranding[slot].type === 'customer-logo') {
+        state.deckCustomerLogoId = state.deckBranding[slot].refId;
+        const sel = brandLibLogoById(state.deckCustomerLogoId);
+        state.customerLogoB64 = sel ? sel.b64 : null;
+        state.customerLogoEnabled = !!state.customerLogoB64;
+      } else if (slot === 'topRight') {
+        state.deckCustomerLogoId = null; state.customerLogoB64 = null; state.customerLogoEnabled = false;
+      }
+      closeModal();
+      if (state.view === 'compose') renderStep1();
+      toast({ type: 'success', message: brandingSlotLabel(slot) + ': ' + describeBrandingSpec(state.deckBranding[slot]) });
+    };
+  });
+  // Text save
+  const tSave = document.getElementById('brandingTextSave');
+  if (tSave) tSave.onclick = async () => {
+    const ti = document.getElementById('brandingTextInput');
+    const val = ti ? ti.value : '';
+    state.deckBranding[slot] = { type: 'text', refId: null, text: val };
+    await persistDeckBranding();
+    closeModal();
+    if (state.view === 'compose') renderStep1();
+    toast({ type: 'success', message: brandingSlotLabel(slot) + ': text set' });
+  };
+  document.querySelectorAll('.qp-chip[data-quickpick]').forEach(c => {
+    c.onclick = () => {
+      const ti = document.getElementById('brandingTextInput');
+      if (ti) { ti.value = c.getAttribute('data-quickpick'); ti.focus(); }
+    };
+  });
+}
+function renderBrandingSlotTile(slot) {
+  ensureDeckBranding();
+  const spec = state.deckBranding[slot];
+  const asset = resolveBrandingAsset(spec);
+  let previewInner;
+  if (!asset || (asset.kind === 'text' && !asset.text)) {
+    previewInner = '<div class="empty-preview">click to set</div>';
+  } else if (asset.kind === 'logo') {
+    previewInner = '<img src="data:image/png;base64,' + asset.b64 + '" alt="' + escapeAttr(asset.name || '') + '">';
+  } else {
+    previewInner = '<div class="text-preview">' + escapeHtml(asset.text.slice(0, 80)) + (asset.text.length > 80 ? '\u2026' : '') + '</div>';
+  }
+  const desc = describeBrandingSpec(spec);
+  return '<div class="branding-slot" data-branding-slot="' + slot + '">' +
+    '<div class="branding-slot-label">' + brandingSlotLabel(slot) + '</div>' +
+    '<div class="branding-slot-preview">' + previewInner + '</div>' +
+    '<div class="branding-slot-foot"><span>' + escapeHtml(desc) + '</span><span class="pill">Edit</span></div>' +
+  '</div>';
+}
+// ===== end Build #57 branding helpers =====
+
 async function assemblePptx() {
   if (!window.__pptxReady || typeof PptxGenJS === 'undefined') { toast({ type: 'error', message: 'PptxGenJS still loading' }); return; }
   const prs = new PptxGenJS();
@@ -1289,40 +1495,53 @@ async function assemblePptx() {
     : (skill ? skill.name : 'DN Deck');
   const deckTitle = deckThemeTitle;
   prs.title = deckTitle; prs.subject = 'Digitata Networks'; prs.author = 'DN Deck Generator';
-  const dnLogoB64 = state.logoB64;
-  // Build #43 — resolve selected customer logo from brand library
-  if (state.deckCustomerLogoId) {
-    const sel = brandLibLogoById(state.deckCustomerLogoId);
-    if (sel) { state.customerLogoB64 = sel.b64; state.customerLogoEnabled = true; }
-  }
-  const customerLogoB64 = state.customerLogoEnabled ? state.customerLogoB64 : null;
+  // Build #57 — branding-aware logo + text placement
+  ensureDeckBranding();
+  const tl = resolveBrandingAsset(state.deckBranding.topLeft);
+  const tr = resolveBrandingAsset(state.deckBranding.topRight);
+  const bm = resolveBrandingAsset(state.deckBranding.bottom);
   const showLogoBacking = !!state.logoBacking;
-  const dnDims = dnLogoB64 ? await getImageDimensions(dnLogoB64) : null;
-  const custDims = customerLogoB64 ? await getImageDimensions(customerLogoB64) : null;
   const LOGO_X_LEFT = 0.19, LOGO_Y = 0.17, LOGO_W = 1.69, LOGO_H_MAX = 0.75;
-  const dnW = LOGO_W;
-  const dnH = dnDims ? Math.min(LOGO_W * dnDims.aspect, LOGO_H_MAX) : 0.55;
-  const custW = LOGO_W;
-  const custH = custDims ? Math.min(LOGO_W * custDims.aspect, LOGO_H_MAX) : 0.55;
-  const LOGO_X_RIGHT = 13.3 - LOGO_X_LEFT - custW;
+  // Compute per-slot logo dims preserving aspect ratio
+  async function dimsForAsset(asset) {
+    if (!asset || asset.kind !== 'logo' || !asset.b64) return null;
+    return await getImageDimensions(asset.b64);
+  }
+  const tlDims = await dimsForAsset(tl);
+  const trDims = await dimsForAsset(tr);
+  const tlW = LOGO_W;
+  const tlH = tlDims ? Math.min(LOGO_W * tlDims.aspect, LOGO_H_MAX) : 0.55;
+  const trW = LOGO_W;
+  const trH = trDims ? Math.min(LOGO_W * trDims.aspect, LOGO_H_MAX) : 0.55;
+  const LOGO_X_RIGHT = 13.3 - LOGO_X_LEFT - trW;
   for (let i = 0; i < state.slides.length; i++) {
     const slide = state.slides[i];
     if (!slide.imageB64) continue;
     const s = prs.addSlide();
     s.addImage({ data: `data:image/jpeg;base64,${slide.imageB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
+    // Backing panels (logos only)
     if (showLogoBacking) {
-      if (dnLogoB64) s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06, w: dnW + 0.16, h: dnH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
-      if (customerLogoB64) s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_RIGHT - 0.08, y: LOGO_Y - 0.06, w: custW + 0.16, h: custH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
+      if (tl && tl.kind === 'logo') s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06, w: tlW + 0.16, h: tlH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
+      if (tr && tr.kind === 'logo') s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_RIGHT - 0.08, y: LOGO_Y - 0.06, w: trW + 0.16, h: trH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
     }
-    if (dnLogoB64) s.addImage({ data: `data:image/png;base64,${dnLogoB64}`, x: LOGO_X_LEFT, y: LOGO_Y, w: dnW, h: dnH });
-    if (customerLogoB64) s.addImage({ data: `data:image/png;base64,${customerLogoB64}`, x: LOGO_X_RIGHT, y: LOGO_Y, w: custW, h: custH });
+    // Top-left slot
+    if (tl && tl.kind === 'logo') {
+      s.addImage({ data: `data:image/png;base64,${tl.b64}`, x: LOGO_X_LEFT, y: LOGO_Y, w: tlW, h: tlH });
+    } else if (tl && tl.kind === 'text' && tl.text) {
+      s.addText(tl.text, { x: LOGO_X_LEFT, y: LOGO_Y, w: 4.0, h: 0.5, fontSize: 14, fontFace: 'Arial', color: 'FFFFFF', bold: true, align: 'left' });
+    }
+    // Top-right slot
+    if (tr && tr.kind === 'logo') {
+      s.addImage({ data: `data:image/png;base64,${tr.b64}`, x: LOGO_X_RIGHT, y: LOGO_Y, w: trW, h: trH });
+    } else if (tr && tr.kind === 'text' && tr.text) {
+      const tw = 4.0;
+      s.addText(tr.text, { x: 13.3 - LOGO_X_LEFT - tw, y: LOGO_Y, w: tw, h: 0.5, fontSize: 14, fontFace: 'Arial', color: 'FFFFFF', bold: true, align: 'right' });
+    }
+    // Bottom slot (text only) — replaces the legacy footer text
     const footerColor = getFooterColor(skill);
-    // Build #43 — append selected footer subtext if set
-    let footerText = getFooterText();
-    if (state.deckSubtextId) {
-      const sub = brandLibSubtextById(state.deckSubtextId);
-      if (sub && sub.text) footerText = sub.text + '  ·  ' + footerText;
-    }
+    let footerText = (bm && bm.kind === 'text' && bm.text)
+      ? bm.text
+      : getFooterText();
     s.addText(footerText, { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
     const notesText = (slide.speakerNotes && slide.speakerNotes.trim()) ? slide.speakerNotes : (slide.body || '');
     if (notesText && notesText.trim()) s.addNotes(notesText);
@@ -1984,12 +2203,21 @@ async function assembleWhitePaperDocx(paper) {
   const { Document, Packer, Paragraph, TextRun, HeadingLevel, AlignmentType,
           Footer, Header, ImageRun, PageNumber, NumberFormat } = window.docx;
 
-  const logoB64Raw = safeStorage.getItem('dn_logo_b64') || state.logoB64 || '';
-  const logoB64 = logoB64Raw.replace(/^data:image\/\w+;base64,/, '');
-  let logoBytes = null;
-  if (logoB64) {
-    try { logoBytes = Uint8Array.from(atob(logoB64), c => c.charCodeAt(0)); } catch (e) { console.warn('Logo decode failed', e); logoBytes = null; }
+  // Build #57 — branding-aware logos with preserved aspect ratio
+  ensureDeckBranding();
+  async function buildWpLogoRun(spec, targetHeightPts) {
+    const asset = resolveBrandingAsset(spec);
+    if (!asset || asset.kind !== 'logo' || !asset.b64) return null;
+    let aspect = 3;
+    try { const d = await getImageDimensions(asset.b64); if (d && d.width && d.height) aspect = d.width / d.height; } catch (e) {}
+    const width = Math.max(40, Math.round(targetHeightPts * aspect));
+    let bytes = null;
+    try { bytes = Uint8Array.from(atob(asset.b64), c => c.charCodeAt(0)); } catch (e) { console.warn('WP logo decode failed', e); return null; }
+    return new ImageRun({ data: bytes, transformation: { width: width, height: targetHeightPts } });
   }
+  const WP_LOGO_H = 36;
+  const tlRun = await buildWpLogoRun(state.deckBranding.topLeft, WP_LOGO_H);
+  const trRun = await buildWpLogoRun(state.deckBranding.topRight, WP_LOGO_H);
 
   const titleParas = [
     new Paragraph({
@@ -2067,23 +2295,43 @@ async function assembleWhitePaperDocx(paper) {
     }
   });
 
+  // Build #57 — header uses 2-cell table to place topLeft + topRight side by side
+  const { Table, TableRow, TableCell, WidthType, BorderStyle } = window.docx;
+  const noBorder = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+  const noBorders = { top: noBorder, bottom: noBorder, left: noBorder, right: noBorder, insideHorizontal: noBorder, insideVertical: noBorder };
   const headerChildren = [];
-  if (logoBytes) {
-    headerChildren.push(new Paragraph({
-      alignment: AlignmentType.LEFT,
-      children: [
-        new ImageRun({ data: logoBytes, transformation: { width: 100, height: 35 } })
+  if (tlRun || trRun) {
+    const leftCellChildren = [
+      new Paragraph({ alignment: AlignmentType.LEFT, children: tlRun ? [tlRun] : [new TextRun({ text: '' })] })
+    ];
+    const rightCellChildren = [
+      new Paragraph({ alignment: AlignmentType.RIGHT, children: trRun ? [trRun] : [new TextRun({ text: '' })] })
+    ];
+    headerChildren.push(new Table({
+      width: { size: 100, type: WidthType.PERCENTAGE },
+      borders: noBorders,
+      rows: [
+        new TableRow({
+          children: [
+            new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: noBorders, children: leftCellChildren }),
+            new TableCell({ width: { size: 50, type: WidthType.PERCENTAGE }, borders: noBorders, children: rightCellChildren })
+          ]
+        })
       ]
     }));
+    // Spacer line below the logo strip
+    headerChildren.push(new Paragraph({ children: [new TextRun({ text: '' })] }));
   }
 
+  // Build #57 — footer text driven by branding.bottom (falls back to copyright)
+  const bottomAsset = resolveBrandingAsset(state.deckBranding.bottom);
+  const customFooterText = (bottomAsset && bottomAsset.kind === 'text' && bottomAsset.text)
+    ? bottomAsset.text
+    : ('\u00a9 ' + new Date().getFullYear() + ' Digitata Networks. All rights reserved.');
   const footerPara = new Paragraph({
     alignment: AlignmentType.CENTER,
     children: [
-      new TextRun({
-        text: `© ${new Date().getFullYear()} Digitata Networks. All rights reserved. — Page `,
-        font: 'DM Sans', size: 16, color: '9CA3AF'
-      }),
+      new TextRun({ text: customFooterText + ' \u2014 Page ', font: 'DM Sans', size: 16, color: '9CA3AF' }),
       new TextRun({ children: [PageNumber.CURRENT], font: 'DM Sans', size: 16, color: '9CA3AF' }),
       new TextRun({ text: ' of ', font: 'DM Sans', size: 16, color: '9CA3AF' }),
       new TextRun({ children: [PageNumber.TOTAL_PAGES], font: 'DM Sans', size: 16, color: '9CA3AF' })
@@ -2278,21 +2526,16 @@ function renderStep1() {
       <div class="step-body">
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="50" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="50" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
         <div class="field"><label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label><textarea class="textarea" id="rawText" rows="12" placeholder="Paste content. Markers: # H1, Slide N — Title, ## H2, or ---">${escapeHtml(state.rawText)}</textarea><div id="patternIndicator" class="field-hint" style="margin-top:6px"></div></div>
-        <div class="field"><label class="field-label">Customer logo <span class="subtle">top-right corner</span></label>
-          <div style="display:flex;gap:8px;align-items:center">
-            <div class="template-select" style="flex:1"><select class="select" id="deckCustLogoSel">
-              <option value="">— none —</option>
-              ${(state.brandLib.customerLogos || []).map(l => `<option value="${l.id}" ${state.deckCustomerLogoId === l.id ? 'selected' : ''}>${escapeHtml(l.name)}</option>`).join('')}
-            </select></div>
-            <button class="btn-secondary" id="manageBrandBtn" type="button" title="Manage brand library">Manage…</button>
+        <div class="field">
+          <label class="field-label">Branding <span class="subtle">click each slot to pick a logo or set text</span></label>
+          <div class="branding-grid" id="brandingGrid">
+            ${renderBrandingSlotTile('topLeft')}
+            ${renderBrandingSlotTile('topRight')}
+            ${renderBrandingSlotTile('bottom')}
           </div>
-          ${state.deckCustomerLogoId && brandLibLogoById(state.deckCustomerLogoId) ? `<div class="logo-preview" style="margin-top:8px"><img src="data:image/png;base64,${brandLibLogoById(state.deckCustomerLogoId).b64}"></div>` : ''}
-        </div>
-        <div class="field"><label class="field-label">Footer subtext <span class="subtle">appears beside the copyright line</span></label>
-          <div class="template-select"><select class="select" id="deckSubtextSel">
-            <option value="">— none —</option>
-            ${(state.brandLib.subtexts || []).map(s => `<option value="${s.id}" ${state.deckSubtextId === s.id ? 'selected' : ''}>${escapeHtml(s.text)}</option>`).join('')}
-          </select></div>
+          <div style="margin-top:8px;display:flex;justify-content:flex-end">
+            <button class="btn-secondary" id="manageBrandBtn" type="button" title="Manage brand library">Manage brand library…</button>
+          </div>
         </div>
         <div id="step1Error"></div>
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="polishBtn">Polish with AI →</button><button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button></div>
@@ -2301,21 +2544,10 @@ function renderStep1() {
   // Build #48 — skill picker moved to renderStep0
   document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
-  // Build #43 — brand library dropdowns
-  const deckCustSel = document.getElementById('deckCustLogoSel');
-  if (deckCustSel) deckCustSel.onchange = e => {
-    state.deckCustomerLogoId = e.target.value || null;
-    // Sync legacy state.customerLogoB64 for assemblePptx compatibility
-    const sel = state.deckCustomerLogoId ? brandLibLogoById(state.deckCustomerLogoId) : null;
-    state.customerLogoB64 = sel ? sel.b64 : null;
-    state.customerLogoEnabled = !!state.customerLogoB64;
-    renderStep1();
-  };
-  const deckSubSel = document.getElementById('deckSubtextSel');
-  if (deckSubSel) deckSubSel.onchange = e => {
-    state.deckSubtextId = e.target.value || null;
-    renderStep1();
-  };
+  // Build #57 — branding slot tile clicks
+  document.querySelectorAll('[data-branding-slot]').forEach(el => {
+    el.onclick = () => openBrandingPicker(el.getAttribute('data-branding-slot'));
+  });
   const mgrBtn = document.getElementById('manageBrandBtn');
   if (mgrBtn) mgrBtn.onclick = () => { state.view = 'brand'; setActiveNav(); render(); };
   const raw = document.getElementById('rawText');
@@ -3574,7 +3806,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.8.0</span> (build #56 — expand-edit modal for prompts & notes)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.9.0</span> (build #57 — 3-slot branding + WP logo fix)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
