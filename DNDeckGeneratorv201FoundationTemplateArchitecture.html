@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.6.3</title>
+<title>DN Deck Generator v2.6.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -524,6 +524,35 @@ tbody tr:hover { background: var(--surface-2); }
 .skill-edit-preview .sep-info { flex: 1; }
 .skill-edit-preview .sep-title { font-size: 13px; font-weight: 500; margin-bottom: 4px; }
 .skill-edit-preview .sep-meta { font-size: 12px; color: var(--text-muted); line-height: 1.5; }
+/* ===== Build #47 — skill preview generation loading ===== */
+.skill-row-thumb.is-loading { position: relative; }
+.skill-row-thumb.is-loading::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0.65); display: flex; align-items: center; justify-content: center;
+}
+[data-theme="dark"] .skill-row-thumb.is-loading::after { background: rgba(0,0,0,0.55); }
+.skill-row-thumb .loading-spinner {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  width: 18px; height: 18px; border: 2.5px solid var(--border-strong);
+  border-top-color: var(--accent); border-radius: 50%;
+  animation: spin 720ms linear infinite; z-index: 2;
+}
+.skill-edit-preview .sep-thumb.is-loading { position: relative; }
+.skill-edit-preview .sep-thumb.is-loading::after {
+  content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.7);
+}
+[data-theme="dark"] .skill-edit-preview .sep-thumb.is-loading::after { background: rgba(0,0,0,0.6); }
+.skill-edit-preview .sep-thumb.is-loading .loading-overlay {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 8px; z-index: 2; color: var(--text);
+}
+.skill-edit-preview .sep-thumb.is-loading .loading-overlay .spinner { width: 22px; height: 22px; border-width: 2.5px; }
+.skill-edit-preview .sep-thumb.is-loading .loading-overlay .lbl { font-size: 11px; font-family: var(--mono); color: var(--text-muted); }
+.skill-card-thumb.is-loading { position: relative; }
+.skill-card-thumb.is-loading::after { content: ''; position: absolute; inset: 0; background: rgba(255,255,255,0.7); }
+[data-theme="dark"] .skill-card-thumb.is-loading::after { background: rgba(0,0,0,0.6); }
+.skill-card-thumb.is-loading .loading-overlay { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; z-index: 2; }
+.skill-card-thumb.is-loading .loading-overlay .spinner { width: 20px; height: 20px; border-width: 2.5px; }
 </style>
 </head>
 <body>
@@ -532,7 +561,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.6.3 #46</div>
+      <div class="brand-version">v2.6.5 #48</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -830,12 +859,14 @@ const state = {
   customerLogoB64: null, customerLogoEnabled: false,
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
+  // Build #47 — track skill IDs currently generating preview
+  skillsGenerating: new Set(),
   deckCustomerLogoId: null,
   deckSubtextId: null,
   logoBacking: false, adminMode: false,
   slideMin: 6, slideMax: 10,
   maxIllustrations: 3,
-  composeStep: 1, rawText: '', slides: [],
+  composeStep: 0, rawText: '', slides: [],
   polishMode: null, polishing: false, generating: false,
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
@@ -2076,20 +2107,21 @@ function renderCompose() {
   // If user advanced workflow, snap expansion forward
   if (state.expandedStep < state.composeStep) state.expandedStep = state.composeStep;
   const stepsMeta = [
-    { num: 1,   id: 'step1',  title: 'Input',    desc: 'Skill, range, text' },
+    { num: 0,   id: 'step0',  title: 'Skill',    desc: 'Choose template' },
+    { num: 1,   id: 'step1',  title: 'Input',    desc: 'Text, range, logos' },
     { num: 2,   id: 'step2',  title: 'Polish',   desc: 'AI shape to count' },
     { num: 3,   id: 'step3',  title: 'Edit',     desc: 'Titles & body' },
     { num: 3.5, id: 'step35', title: 'Model',    desc: 'Pick image model' },
     { num: 5,   id: 'step5',  title: 'Generate', desc: 'Render & assemble' }
   ];
-  const columnsHtml = stepsMeta.map(s => {
+  const columnsHtml = stepsMeta.map((s, idx) => {
     const stateCls = columnStateClass(s.num);
     const expCls = columnExpandedClass(s.num);
     const statusGlyph = stateCls === 'is-done' ? '✓' : stateCls === 'is-active' ? '●' : '';
     return `
       <div class="step-column ${stateCls} ${expCls}" data-step-col="${s.num}">
         <div class="step-column-spine" data-spine="${s.num}">
-          <span class="spine-num">${s.num === 3.5 ? '3' : s.num}${s.num === 3.5 ? '<sub style="font-size:8px">.5</sub>' : ''}</span>
+          <span class="spine-num">${idx + 1}</span>
           <span class="spine-title">${s.title}</span>
           <span class="spine-status">${statusGlyph}</span>
         </div>
@@ -2108,7 +2140,7 @@ function renderCompose() {
       </div>
       <div class="step-columns">${columnsHtml}</div>
     </div>`;
-  renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
+  renderStep0(); renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
   bindPastDecksPanel();
   // Bind spine clicks
   document.querySelectorAll('[data-spine]').forEach(el => {
@@ -2123,26 +2155,24 @@ function starSvg(filled) {
   return `<svg width="14" height="14" viewBox="0 0 24 24" fill="${filled ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
 }
 
-function renderStep1() {
-  const el = document.getElementById('step1'); if (!el) return;
-  const isDone = state.composeStep > 1;
+// ===== Build #48 — Step 0: Skill picker =====
+function renderStep0() {
+  const el = document.getElementById('step0'); if (!el) return;
+  const isDone = state.composeStep > 0;
   if (isDone) {
     const sk = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
-    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step1Edit"><div class="step-num done">✓</div><div class="step-title">Input</div><div class="step-desc">${sk ? escapeHtml(sk.name) + ' · ' : ''}${state.slides.length} slides · ${state.slideMin}–${state.slideMax}</div><button class="btn-ghost" style="margin-left:8px">Edit</button></div></div>`;
-    document.getElementById('step1Edit').onclick = () => { state.composeStep = 1; renderCompose(); };
+    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step0Edit"><div class="step-num done">\u2713</div><div class="step-title">Skill</div><div class="step-desc">${sk ? escapeHtml(sk.name) : 'none selected'}</div><button class="btn-ghost" style="margin-left:8px">Change</button></div></div>`;
+    document.getElementById('step0Edit').onclick = () => { state.composeStep = 0; state.expandedStep = 0; renderCompose(); };
     return;
   }
   if (!state.selectedSkillId) state.selectedSkillId = defaultSkillId();
   const skills = sortedSkills();
-  const skillOptions = skills.length === 0
-    ? '<option value="">— no skills available —</option>'
-    : skills.map(s => `<option value="${s.id}" ${state.selectedSkillId === s.id ? 'selected' : ''}>${favoriteSkillIds.has(s.id) ? '★ ' : ''}${escapeHtml(s.name)}</option>`).join('');
   const currentSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
-  const isFav = currentSkill && favoriteSkillIds.has(currentSkill.id);
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header"><div class="step-num">1</div><div class="step-title">Paste your deck wording</div><div class="step-desc">Markers: # · Slide N · ## · ---</div></div>
+      <div class="step-header"><div class="step-num">1</div><div class="step-title">Choose a visual skill</div><div class="step-desc">${currentSkill ? escapeHtml(currentSkill.name) : 'pick a template'}</div></div>
       <div class="step-body">
+        <div class="muted body-sm" style="margin-bottom:14px">The skill is the visual template applied to every slide. Click a card to choose. You can change it later by clicking this step\u2019s spine.</div>
         <div class="field"><label class="field-label">Visual skill <span class="subtle">click a card to choose how slides will look</span></label>
           <div class="skill-gallery" id="skillGallery">
             ${skills.length === 0 ? '<div class="muted body-sm" style="grid-column:1/-1;padding:24px;text-align:center">No skills loaded from Supabase yet.</div>' : skills.map(s => {
@@ -2151,8 +2181,9 @@ function renderStep1() {
               const thumb = s.preview_image_b64
                 ? `<img src="data:image/jpeg;base64,${s.preview_image_b64}" alt="">`
                 : `<div class="placeholder">No preview yet<br><span class="subtle">Edit the skill and save<br>to auto-generate</span></div>`;
+              const isGen = state.skillsGenerating.has(s.id);
               return `<div class="skill-card ${isSel ? 'selected' : ''}" data-skill-pick="${s.id}">
-                <div class="skill-card-thumb">${thumb}</div>
+                <div class="skill-card-thumb ${isGen ? 'is-loading' : ''}">${thumb}${isGen ? '<div class="loading-overlay"><div class="spinner"></div></div>' : ''}</div>
                 <div class="skill-card-body">
                   <div class="skill-card-head">
                     ${isFavS ? '<span class="skill-card-fav" title="Favorite">' + starSvg(true) + '</span>' : ''}
@@ -2164,6 +2195,39 @@ function renderStep1() {
             }).join('')}
           </div>
         </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn-primary" id="continueFromStep0" ${state.selectedSkillId ? '' : 'disabled'}>Continue to input \u2192</button>
+        </div>
+      </div>
+    </div>`;
+  document.querySelectorAll('[data-skill-pick]').forEach(card => {
+    card.onclick = async () => {
+      const id = card.getAttribute('data-skill-pick');
+      state.selectedSkillId = id;
+      await persistSetting('dn_selected_skill', id);
+      renderStep0();
+    };
+  });
+  const cb = document.getElementById('continueFromStep0');
+  if (cb) cb.onclick = () => { state.composeStep = 1; state.expandedStep = 1; renderCompose(); };
+}
+
+function renderStep1() {
+  const el = document.getElementById('step1'); if (!el) return;
+  const isDone = state.composeStep > 1;
+  const isFuture = state.composeStep < 1;
+  if (isFuture) { el.innerHTML = `<div class="step-card future"><div class="step-header"><div class="step-num">2</div><div class="step-title">Input</div><div class="step-desc">pick a skill first</div></div></div>`; return; }
+  if (isDone) {
+    el.innerHTML = `<div class="step-card collapsed"><div class="step-header" id="step1Edit"><div class="step-num done">\u2713</div><div class="step-title">Input</div><div class="step-desc">${state.slides.length} slides · ${state.slideMin}\u2013${state.slideMax}</div><button class="btn-ghost" style="margin-left:8px">Edit</button></div></div>`;
+    document.getElementById('step1Edit').onclick = () => { state.composeStep = 1; state.expandedStep = 1; renderCompose(); };
+    return;
+  }
+  const currentSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const isFav = currentSkill && favoriteSkillIds.has(currentSkill.id);
+  el.innerHTML = `
+    <div class="step-card">
+      <div class="step-header"><div class="step-num">2</div><div class="step-title">Input</div><div class="step-desc">${currentSkill ? escapeHtml(currentSkill.name) + ' · ' : ''}slide range, text, logos</div></div>
+      <div class="step-body">
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="50" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="50" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
         <div class="field"><label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label><textarea class="textarea" id="rawText" rows="12" placeholder="Paste content. Markers: # H1, Slide N — Title, ## H2, or ---">${escapeHtml(state.rawText)}</textarea><div id="patternIndicator" class="field-hint" style="margin-top:6px"></div></div>
         <div class="field"><label class="field-label">Customer logo <span class="subtle">top-right corner</span></label>
@@ -2186,15 +2250,7 @@ function renderStep1() {
         <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="polishBtn">Polish with AI →</button><button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button></div>
       </div>
     </div>`;
-  // Build #44 — skill gallery click selects
-  document.querySelectorAll('[data-skill-pick]').forEach(card => {
-    card.onclick = async () => {
-      const id = card.getAttribute('data-skill-pick');
-      state.selectedSkillId = id;
-      await persistSetting('dn_selected_skill', id);
-      renderStep1();
-    };
-  });
+  // Build #48 — skill picker moved to renderStep0
   document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   // Build #43 — brand library dropdowns
@@ -2867,7 +2923,7 @@ function renderSkillRow(s) {
   return `
     <div class="skill-row">
       <button class="skill-star ${isFav ? 'active' : ''}" data-skill-act="fav" data-id="${s.id}" title="${isFav ? 'Unfavorite' : 'Favorite'}" aria-label="Toggle favorite">${starSvg(isFav)}</button>
-      <div class="skill-row-thumb">${s.preview_image_b64 ? `<img src="data:image/jpeg;base64,${s.preview_image_b64}" alt="">` : '<span class="ph">no<br>preview</span>'}</div>
+      <div class="skill-row-thumb ${state.skillsGenerating.has(s.id) ? 'is-loading' : ''}">${s.preview_image_b64 ? `<img src="data:image/jpeg;base64,${s.preview_image_b64}" alt="">` : '<span class="ph">no<br>preview</span>'}${state.skillsGenerating.has(s.id) ? '<div class="loading-spinner"></div>' : ''}</div>
       <div class="skill-main">
         <div class="skill-name">${escapeHtml(s.name)}</div>
         <div class="skill-desc">${escapeHtml(s.description || '(no description)')}</div>
@@ -2875,7 +2931,7 @@ function renderSkillRow(s) {
       <div class="skill-meta">${promptLen.toLocaleString()} chars</div>
       <div class="skill-actions">
         <button class="btn-ghost" data-skill-act="view" data-id="${s.id}">View</button>
-        ${state.adminMode ? `<button class="btn-secondary" data-skill-act="edit" data-id="${s.id}">Edit</button><button class="btn-ghost" data-skill-act="regenprev" data-id="${s.id}" title="Regenerate preview">\u{1F504} Preview</button><button class="btn-ghost" data-skill-act="dup" data-id="${s.id}">Duplicate</button><button class="btn-ghost" data-skill-act="del" data-id="${s.id}" style="color:var(--danger)">Delete</button>` : ''}
+        ${state.adminMode ? `<button class="btn-secondary" data-skill-act="edit" data-id="${s.id}">Edit</button><button class="btn-ghost" data-skill-act="regenprev" data-id="${s.id}" title="Regenerate preview" ${state.skillsGenerating.has(s.id) ? 'disabled' : ''}>${state.skillsGenerating.has(s.id) ? '<span class="spinner"></span> Generating\u2026' : '\u{1F504} Preview'}</button><button class="btn-ghost" data-skill-act="dup" data-id="${s.id}">Duplicate</button><button class="btn-ghost" data-skill-act="del" data-id="${s.id}" style="color:var(--danger)">Delete</button>` : ''}
       </div>
     </div>`;
 }
@@ -2895,7 +2951,7 @@ function openSkillEditor(id) {
     const promptLen = (draft.prompt || '').length;
     const html = `
       <div class="modal-header"><div><div class="h1">${existing ? 'Edit skill' : 'New skill'}</div><div class="muted body-sm" style="margin-top:4px">${existing ? 'Saving creates a new version row for rollback' : 'A skill is one self-contained visual prompt'}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
-      ${existing ? `<div class="skill-edit-preview"><div class="sep-thumb">${existing.preview_image_b64 ? `<img src="data:image/jpeg;base64,${existing.preview_image_b64}" alt="">` : '<span class="ph">No preview generated yet.<br>Click \u201cRegenerate preview\u201d below.</span>'}</div><div class="sep-info"><div class="sep-title">${existing.preview_image_b64 ? 'Current preview' : 'No preview yet'}</div><div class="sep-meta">${existing.preview_image_b64 ? 'Click <strong>Regenerate preview</strong> to make a fresh sample slide with the current prompt. Cost: ~$0.02\u2013$0.30 depending on your default model.' : 'Saving the skill will trigger auto-preview. Or click <strong>Regenerate preview</strong> below if it already exists but didn\'t generate.'}</div></div></div>` : ''}
+      ${existing ? `<div class="skill-edit-preview"><div class="sep-thumb ${state.skillsGenerating.has(existing.id) ? 'is-loading' : ''}">${existing.preview_image_b64 ? `<img src="data:image/jpeg;base64,${existing.preview_image_b64}" alt="">` : '<span class="ph">No preview generated yet.<br>Click \u201cRegenerate preview\u201d below.</span>'}${state.skillsGenerating.has(existing.id) ? '<div class="loading-overlay"><div class="spinner"></div><div class="lbl">Generating preview\u2026</div></div>' : ''}</div><div class="sep-info"><div class="sep-title">${existing.preview_image_b64 ? 'Current preview' : 'No preview yet'}</div><div class="sep-meta">${existing.preview_image_b64 ? 'Click <strong>Regenerate preview</strong> to make a fresh sample slide with the current prompt. Cost: ~$0.02\u2013$0.30 depending on your default model.' : 'Saving the skill will trigger auto-preview. Or click <strong>Regenerate preview</strong> below if it already exists but didn\'t generate.'}</div></div></div>` : ''}
       <div class="field"><label class="field-label">Name <span class="subtle">required</span></label><input class="input" id="skName" value="${escapeHtml(draft.name)}" placeholder="e.g. DN Telco Sales Pitch — Dark"></div>
       <div class="field"><label class="field-label">Description</label><input class="input" id="skDesc" value="${escapeHtml(draft.description || '')}" placeholder="One-line summary shown in dropdowns"></div>
       <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model.">${escapeHtml(draft.prompt || '')}</textarea></div>
@@ -2903,7 +2959,7 @@ function openSkillEditor(id) {
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal()">Cancel</button>
         ${existing ? '<button class="btn-secondary" id="saveAsNewBtn">Save as new skill</button>' : ''}
-        <button class="btn-secondary" id="regenPreviewSkillBtn" type="button">Regenerate preview</button><button class="btn-primary" id="saveSkillBtn">Save</button>
+        <button class="btn-secondary" id="regenPreviewSkillBtn" type="button" ${existing && state.skillsGenerating.has(existing.id) ? 'disabled' : ''}>${existing && state.skillsGenerating.has(existing.id) ? '<span class="spinner"></span> Generating\u2026' : 'Regenerate preview'}</button><button class="btn-primary" id="saveSkillBtn">Save</button>
       </div>`;
     openModal(html, { lg: true });
     document.getElementById('skName').oninput = e => { draft.name = e.target.value; };
@@ -2944,6 +3000,16 @@ async function generateSkillPreview(skillPrompt, skillName) {
 }
 async function regenerateSkillPreview(skillId) {
   const skill = skillById(skillId); if (!skill) return;
+  if (state.skillsGenerating.has(skillId)) { toast({ type: 'info', message: 'Already generating' }); return; }
+  // Build #47 — mark in-flight and re-render relevant views so spinner appears
+  state.skillsGenerating.add(skillId);
+  if (state.view === 'skills') renderSkills();
+  if (state.view === 'compose') renderStep1();
+  // If editor modal is open, re-render it so the loading overlay shows in the preview pane
+  if (typeof window.__currentEditSkillId === 'string' && window.__currentEditSkillId === skillId && document.getElementById('skName')) {
+    const cur = skillById(skillId);
+    if (cur) { closeModal(); openSkillEditor(skillId); }
+  }
   toast({ type: 'info', message: 'Generating preview for "' + skill.name + '"\u2026' });
   try {
     const result = await generateSkillPreview(skill.prompt, skill.name);
@@ -2969,13 +3035,22 @@ async function regenerateSkillPreview(skillId) {
     }
     if (state.view === 'skills') renderSkills();
     if (state.view === 'compose') renderStep1();
-    // If skill editor modal is open for this id, refresh it so the new thumbnail shows
     if (document.getElementById('skName') && typeof window.__currentEditSkillId === 'string' && window.__currentEditSkillId === skillId) {
-      // Reopen editor to refresh preview pane
       closeModal();
       openSkillEditor(skillId);
     }
-  } catch (e) { toast({ type: 'error', message: 'Preview generation failed: ' + (e.message || String(e)) }); }
+  } catch (e) {
+    toast({ type: 'error', message: 'Preview generation failed: ' + (e.message || String(e)) });
+  } finally {
+    // Build #47 — clear in-flight and re-render to remove spinner
+    state.skillsGenerating.delete(skillId);
+    if (state.view === 'skills') renderSkills();
+    if (state.view === 'compose') renderStep1();
+    if (document.getElementById('skName') && typeof window.__currentEditSkillId === 'string' && window.__currentEditSkillId === skillId) {
+      closeModal();
+      openSkillEditor(skillId);
+    }
+  }
 }
 // ===== end Build #44 helpers =====
 
@@ -3009,9 +3084,11 @@ async function saveSkill(skill) {
     const nextVersion = (versionsExisting && versionsExisting[0] && versionsExisting[0].version_num || 0) + 1;
     await sb.from('template_versions').insert({ template_id: saved.id, version_num: nextVersion, prompt: saved.prompt, change_note: skill.change_note || null, updated_by: OWNER_ID });
   } catch (ve) { console.warn('Version row insert failed (non-fatal):', ve); }
-  // Build #44 — auto preview
+  // Build #44 — auto preview ; Build #47 — track in-flight + spinner
   const promptChanged = !skill.id || (skill.previousPrompt && skill.previousPrompt !== saved.prompt) || !saved.preview_image_b64;
   if (promptChanged) {
+    state.skillsGenerating.add(saved.id);
+    if (state.view === 'skills') renderSkills();
     try {
       toast({ type: 'info', message: 'Generating preview thumbnail\u2026' });
       const previewResult = await generateSkillPreview(saved.prompt, saved.name);
@@ -3021,6 +3098,8 @@ async function saveSkill(skill) {
     } catch (pe) {
       console.warn('Skill preview generation failed (non-fatal):', pe);
       toast({ type: 'info', message: 'Skill saved \u00b7 preview gen failed (use Regenerate preview later)' });
+    } finally {
+      state.skillsGenerating.delete(saved.id);
     }
   }
   await loadAllSkills();
@@ -3168,7 +3247,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.3</span> (build #46 — skill preview visibility + theme filenames)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.5</span> (build #48 — Step 0 Skill picker; Step 1 = Input)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -3325,7 +3404,7 @@ async function deleteSavedDeck(id) {
     if (error) { toast({ type: 'error', message: 'Delete failed: ' + (error.message || String(error)) }); return; }
     state.savedDecks = (state.savedDecks || []).filter(d => d.id !== id);
     toast({ type: 'success', message: 'Deck removed from history' });
-    if (state.view === 'compose' && state.composeStep === 1) renderCompose();
+    if (state.view === 'compose' && (state.composeStep === 0 || state.composeStep === 1)) renderCompose();
   } catch (e) { toast({ type: 'error', message: 'Delete failed: ' + (e.message || String(e)) }); }
 }
 
@@ -3440,7 +3519,7 @@ async function initApp() {
   setInterval(updateSyncPill, 30000);
   if (!state.logoIsCustom) { const b = await loadDefaultLogo(); if (b) state.logoB64 = b; }
   // Build #37 — fetch saved decks in background, then re-render the panel
-  fetchSavedDecks().then(() => { if (state.view === 'compose' && state.composeStep === 1) renderCompose(); }).catch(e => console.warn('fetchSavedDecks boot failed:', e));
+  fetchSavedDecks().then(() => { if (state.view === 'compose' && (state.composeStep === 0 || state.composeStep === 1)) renderCompose(); }).catch(e => console.warn('fetchSavedDecks boot failed:', e));
 }
 initApp();
 </script>
