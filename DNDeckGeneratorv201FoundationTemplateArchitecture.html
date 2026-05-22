@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.6.8</title>
+<title>DN Deck Generator v2.7.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -487,11 +487,15 @@ tbody tr:hover { background: var(--surface-2); }
 .step-columns { gap: 12px; }
 .step-column.expanded { min-width: 460px; }
 .step-column.collapsed { flex: 0 0 64px; }
-.past-deck-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; transition: box-shadow 160ms ease, border-color 160ms ease; }
+.past-deck-card { display: flex; gap: 10px; align-items: stretch; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 10px 12px; margin-bottom: 8px; transition: box-shadow 160ms ease, border-color 160ms ease; }
 .past-deck-card:hover { box-shadow: var(--shadow-1); border-color: var(--border-strong); }
+.past-deck-thumb { flex: 0 0 96px; width: 96px; height: 54px; border-radius: 6px; overflow: hidden; background: var(--surface-2, var(--surface)); border: 1px solid var(--border); }
+.past-deck-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.past-deck-thumb-empty { display: flex; align-items: center; justify-content: center; color: var(--text-muted); font-size: 10px; text-align: center; line-height: 1.2; }
+.past-deck-body { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .past-deck-title { font-weight: 500; font-size: 13px; color: var(--text); margin-bottom: 2px; line-height: 1.3; word-break: break-word; }
 .past-deck-meta { font-size: 11px; color: var(--text-muted); margin-bottom: 8px; font-variant-numeric: tabular-nums; }
-.past-deck-actions { display: flex; gap: 6px; align-items: center; }
+.past-deck-actions { display: flex; gap: 6px; align-items: center; margin-top: auto; }
 .past-deck-actions .btn-secondary { flex: 1; padding: 5px 10px; font-size: 12px; justify-content: center; }
 .past-deck-actions .btn-ghost { padding: 5px 8px; font-size: 14px; color: var(--text-subtle); }
 .past-deck-actions .btn-ghost:hover { color: var(--danger); }
@@ -568,7 +572,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.6.8 #51</div>
+      <div class="brand-version">v2.7.1 #53</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -888,6 +892,7 @@ const state = {
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+function escapeAttr(s) { return String(s == null ? '' : s).replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 function fmtUsd(v) { return '$' + (v || 0).toFixed(2); }
 function fmtUsd4(v) { return '$' + (v || 0).toFixed(4); }
 
@@ -3107,6 +3112,152 @@ async function regenerateSkillPreview(skillId) {
 }
 // ===== end Build #44 helpers =====
 
+// ===== Build #52 — deck thumbnail generation =====
+async function generateDeckThumbnail(opts) {
+  opts = opts || {};
+  // Build #53 — accept explicit args for backfill use
+  // Priority: opts.sourceB64 > first slide with imageB64 > none (-> fallback canvas)
+  let sourceB64 = (opts.sourceB64 !== undefined) ? opts.sourceB64 : null;
+  let titleArg = opts.title;
+  let subArg = opts.sub;
+  if (sourceB64 === null && titleArg === undefined) {
+    // Original state-based behavior (used by saveCurrentDeckToSupabase hook)
+    const slides = state.slides || [];
+    for (let i = 0; i < slides.length; i++) {
+      if (slides[i] && slides[i].imageB64) { sourceB64 = slides[i].imageB64; break; }
+    }
+    titleArg = (slides[0] && slides[0].title) || 'Untitled deck';
+    const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    subArg = skill ? skill.name : '';
+  }
+  const W = 400, H = 225;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  if (sourceB64) {
+    const img = await new Promise((resolve, reject) => {
+      const im = new Image();
+      im.onload = () => resolve(im);
+      im.onerror = () => reject(new Error('Thumbnail source image failed to load'));
+      im.src = 'data:image/png;base64,' + sourceB64;
+    });
+    const srcRatio = img.width / img.height;
+    const dstRatio = W / H;
+    let sx, sy, sw, sh;
+    if (srcRatio > dstRatio) {
+      sh = img.height; sw = sh * dstRatio; sx = (img.width - sw) / 2; sy = 0;
+    } else {
+      sw = img.width; sh = sw / dstRatio; sx = 0; sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, 0, 0, W, H);
+  } else {
+    // Build #53 — use args if provided, else state
+    const title = (titleArg !== undefined ? titleArg : ((state.slides[0] && state.slides[0].title) || 'Untitled deck'));
+    const sub = (subArg !== undefined ? subArg : (() => { const sk = state.selectedSkillId ? skillById(state.selectedSkillId) : null; return sk ? sk.name : ''; })());
+    const grad = ctx.createLinearGradient(0, 0, W, H);
+    grad.addColorStop(0, '#0d9488');
+    grad.addColorStop(1, '#0f766e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = '#ffffff';
+    ctx.font = '600 22px system-ui, -apple-system, sans-serif';
+    ctx.textBaseline = 'middle';
+    _wrapThumbText(ctx, title, 24, H / 2 - 12, W - 48, 26);
+    if (sub) {
+      ctx.fillStyle = 'rgba(255,255,255,0.7)';
+      ctx.font = '14px system-ui, -apple-system, sans-serif';
+      ctx.fillText(sub, 24, H - 28);
+    }
+  }
+  return await new Promise((resolve, reject) => {
+    canvas.toBlob(blob => {
+      if (!blob) { reject(new Error('toBlob returned null')); return; }
+      resolve(blob);
+    }, 'image/webp', 0.72);
+  });
+}
+function _wrapThumbText(ctx, text, x, y, maxWidth, lineHeight) {
+  const words = String(text).split(' ');
+  let line = '';
+  const lines = [];
+  for (let i = 0; i < words.length; i++) {
+    const test = line + words[i] + ' ';
+    if (ctx.measureText(test).width > maxWidth && line) {
+      lines.push(line.trim());
+      line = words[i] + ' ';
+    } else { line = test; }
+  }
+  if (line) lines.push(line.trim());
+  const max = Math.min(lines.length, 3);
+  for (let i = 0; i < max; i++) {
+    ctx.fillText(lines[i] + (i === 2 && lines.length > 3 ? '…' : ''), x, y + i * lineHeight);
+  }
+}
+async function uploadDeckThumbnail(deckId, blob) {
+  const sb = getSupabaseClient();
+  if (!sb) return null;
+  const path = 'decks/' + deckId + '.webp';
+  const upRes = await sb.storage
+    .from('dn-deck-thumbnails')
+    .upload(path, blob, { upsert: true, contentType: 'image/webp', cacheControl: '3600' });
+  if (upRes && upRes.error) {
+    const msg = upRes.error.message || String(upRes.error);
+    if (/Bucket not found/i.test(msg) || /does not exist/i.test(msg)) {
+      console.warn('Thumbnail upload failed: bucket dn-deck-thumbnails missing. Run the Build #52 storage SQL.');
+    } else {
+      console.warn('Thumbnail upload failed:', msg);
+    }
+    return null;
+  }
+  const pubRes = sb.storage.from('dn-deck-thumbnails').getPublicUrl(path);
+  return (pubRes && pubRes.data && pubRes.data.publicUrl) || null;
+}
+// ===== Build #53 — thumbnail backfill =====
+async function backfillDeckThumbnails() {
+  if (state.backfillingThumbs) return;
+  const sb = getSupabaseClient();
+  if (!sb) { toast({ type: 'error', message: 'Supabase offline' }); return; }
+  const missing = (state.savedDecks || []).filter(d => !d.thumbnail_url);
+  if (missing.length === 0) {
+    toast({ type: 'info', message: 'All decks already have thumbnails' });
+    return;
+  }
+  state.backfillingThumbs = true;
+  state.backfillProgress = { done: 0, total: missing.length };
+  if (typeof renderPastDecksCol === 'function') renderPastDecksCol();
+  let okCount = 0, failCount = 0;
+  for (let i = 0; i < missing.length; i++) {
+    const d = missing[i];
+    try {
+      const title = d.title || 'Untitled deck';
+      const sub = d.skill_name || '';
+      const blob = await generateDeckThumbnail({ title: title, sub: sub, sourceB64: null });
+      if (!blob) { failCount++; continue; }
+      const url = await uploadDeckThumbnail(d.id, blob);
+      if (!url) { failCount++; continue; }
+      const upd = await sb.from('saved_decks').update({ thumbnail_url: url }).eq('id', d.id);
+      if (upd && upd.error) { failCount++; continue; }
+      d.thumbnail_url = url;
+      const idx = (state.savedDecks || []).findIndex(x => x.id === d.id);
+      if (idx >= 0) state.savedDecks[idx].thumbnail_url = url;
+      okCount++;
+    } catch (e) {
+      console.warn('Backfill failed for deck', d.id, e);
+      failCount++;
+    }
+    state.backfillProgress.done = i + 1;
+    if (typeof renderPastDecksCol === 'function') renderPastDecksCol();
+    await new Promise(r => setTimeout(r, 10));
+  }
+  state.backfillingThumbs = false;
+  state.backfillProgress = null;
+  if (typeof renderPastDecksCol === 'function') renderPastDecksCol();
+  toast({ type: failCount ? 'info' : 'success', message: 'Backfill done: ' + okCount + ' generated' + (failCount ? ', ' + failCount + ' failed' : '') });
+}
+// ===== end Build #53 =====
+
+// ===== end Build #52 helpers =====
+
 async function saveSkill(skill) {
   const sb = getSupabaseClient();
   if (!sb) {
@@ -3300,7 +3451,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.6.8</span> (build #51 — past decks fix + theme title)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.7.1</span> (build #53 — thumbnail backfill)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -3418,6 +3569,22 @@ async function saveCurrentDeckToSupabase() {
     state.lastSavedDeckId = data.id;
     state.savedDecks = [data].concat(state.savedDecks || []);
     state.savingDeck = false;
+    // Build #52 — generate + upload thumbnail asynchronously (non-blocking)
+    (async () => {
+      try {
+        const blob = await generateDeckThumbnail();
+        if (!blob) return;
+        const url = await uploadDeckThumbnail(data.id, blob);
+        if (!url) return;
+        await sb.from('saved_decks').update({ thumbnail_url: url }).eq('id', data.id);
+        data.thumbnail_url = url;
+        const idx = (state.savedDecks || []).findIndex(d => d.id === data.id);
+        if (idx >= 0) state.savedDecks[idx].thumbnail_url = url;
+        if (state.view === 'compose') { try { renderPastDecksCol(); } catch (e) {} }
+      } catch (e) {
+        console.warn('Deck thumbnail generation failed (non-fatal):', e);
+      }
+    })();
     return data;
   } catch (e) { console.warn('saveCurrentDeckToSupabase exception:', e); state.savingDeck = false; return null; }
 }
@@ -3484,16 +3651,30 @@ function renderPastDecksCol() {
     const rows = filtered.slice(0, 50).map(d => {
       let when = '';
       try { when = new Date(d.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) {}
+      const thumbHtml = d.thumbnail_url
+        ? '<div class="past-deck-thumb"><img src="' + escapeAttr(d.thumbnail_url) + '" alt="" loading="lazy"></div>'
+        : '<div class="past-deck-thumb past-deck-thumb-empty"><span>' + (d.slide_count || 0) + '<br>slides</span></div>';
       return '<div class="past-deck-card">' +
-        '<div class="past-deck-title">' + escapeHtml(d.title || 'Untitled') + '</div>' +
-        '<div class="past-deck-meta">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' \u00b7 ' + escapeHtml(d.skill_name) : '') + ' \u00b7 ' + when + '</div>' +
-        '<div class="past-deck-actions">' +
-          '<button class="btn-secondary" data-load-deck="' + d.id + '">Load \u2192 pick model</button>' +
-          '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">\u2715</button>' +
+        thumbHtml +
+        '<div class="past-deck-body">' +
+          '<div class="past-deck-title">' + escapeHtml(d.title || 'Untitled') + '</div>' +
+          '<div class="past-deck-meta">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' \u00b7 ' + escapeHtml(d.skill_name) : '') + ' \u00b7 ' + when + '</div>' +
+          '<div class="past-deck-actions">' +
+            '<button class="btn-secondary" data-load-deck="' + d.id + '">Load \u2192 pick model</button>' +
+            '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">\u2715</button>' +
+          '</div>' +
         '</div>' +
       '</div>';
     }).join('');
-    body = '<div style="margin-bottom:12px"><input class="input" type="text" id="pastDecksFilterInput" placeholder="\u{1F50D} Filter by title or skill\u2026" value="' + escapeHtml(filter) + '"></div>' +
+    // Build #53 — backfill button
+    const missingThumbs = all.filter(d => !d.thumbnail_url).length;
+    let backfillBar = '';
+    if (state.backfillingThumbs && state.backfillProgress) {
+      backfillBar = '<div style="margin-bottom:10px;padding:8px 10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:6px;font-size:11px;color:var(--text-muted);display:flex;align-items:center;gap:8px"><div class="loading-spinner" style="width:12px;height:12px"></div><span>Generating thumbnails\u2026 ' + state.backfillProgress.done + ' / ' + state.backfillProgress.total + '</span></div>';
+    } else if (missingThumbs > 0) {
+      backfillBar = '<div style="margin-bottom:10px"><button class="btn-secondary" id="pastDecksBackfillBtn" style="width:100%;padding:6px 10px;font-size:12px;justify-content:center">\u{1F5BC} Generate missing thumbnails (' + missingThumbs + ')</button></div>';
+    }
+    body = backfillBar + '<div style="margin-bottom:12px"><input class="input" type="text" id="pastDecksFilterInput" placeholder="\u{1F50D} Filter by title or skill\u2026" value="' + escapeHtml(filter) + '"></div>' +
       '<div class="muted body-sm" style="font-size:11px;margin-bottom:8px">' + filtered.length + ' of ' + all.length + ' deck' + (all.length===1?'':'s') + '</div>' +
       '<div style="max-height:540px;overflow-y:auto;padding-right:4px">' + rows + '</div>' +
       (filtered.length === 0 ? '<div class="muted body-sm" style="padding:20px;text-align:center">No matches</div>' : '');
@@ -3501,6 +3682,9 @@ function renderPastDecksCol() {
   el.innerHTML = '<div class="step-card"><div class="step-header"><div class="step-num">0</div><div class="step-title">\u{1F4C1} Past decks</div><div class="step-desc">' + (all.length || 0) + ' saved</div></div><div class="step-body">' + body + '</div></div>';
   const fi = document.getElementById('pastDecksFilterInput');
   if (fi) fi.oninput = e => { state.pastDecksFilter = e.target.value; renderPastDecksCol(); };
+  // Build #53 — backfill button wiring
+  const bb = document.getElementById('pastDecksBackfillBtn');
+  if (bb) bb.onclick = () => backfillDeckThumbnails();
 }
 
 function renderPastDecksPanel() {
@@ -3511,12 +3695,18 @@ function renderPastDecksPanel() {
   const rows = state.savedDecks.slice(0, 12).map(d => {
     let when = '';
     try { when = new Date(d.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) {}
+    const thumbHtml = d.thumbnail_url
+      ? '<div class="past-deck-thumb"><img src="' + escapeAttr(d.thumbnail_url) + '" alt="" loading="lazy"></div>'
+      : '<div class="past-deck-thumb past-deck-thumb-empty"><span>' + (d.slide_count || 0) + '<br>slides</span></div>';
     return '<div class="past-deck-card">' +
-      '<div class="past-deck-title">' + escapeHtml(d.title || 'Untitled') + '</div>' +
-      '<div class="past-deck-meta">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' · ' + escapeHtml(d.skill_name) : '') + ' · ' + when + '</div>' +
-      '<div class="past-deck-actions">' +
+      thumbHtml +
+      '<div class="past-deck-body">' +
+        '<div class="past-deck-title">' + escapeHtml(d.title || 'Untitled') + '</div>' +
+        '<div class="past-deck-meta">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' · ' + escapeHtml(d.skill_name) : '') + ' · ' + when + '</div>' +
+        '<div class="past-deck-actions">' +
         '<button class="btn-secondary" data-load-deck="' + d.id + '">Load → pick model</button>' +
         '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">✕</button>' +
+      '</div>' +
       '</div>' +
     '</div>';
   }).join('');
