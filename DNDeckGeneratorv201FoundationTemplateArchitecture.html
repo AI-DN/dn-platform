@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.3.2</title>
+<title>DN Deck Generator v2.4.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -227,7 +227,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.4.0 #35</div>
+      <div class="brand-version">v2.4.0 #37</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -529,7 +529,9 @@ const state = {
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
   modelPicker: { mode: 'know', testSlideIdx: 0, candidates: [], inFlight: false, selectedToMockup: new Set(), singlePickModel: null },
-  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPages: 10, awaitingPageCount: false }
+  whitePaper: { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPages: 10, awaitingPageCount: false },
+  // Build #37 — saved_decks persistence
+  savedDecks: [], savedDecksLoaded: false, savedDecksError: null, savingDeck: false, lastSavedDeckId: null
 };
 
 function escapeHtml(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
@@ -700,8 +702,11 @@ async function polishWithClaude(_unused, mode) {
     preserve:'Preserve the wording where reasonable.',
     split:   'Split this raw text into a logical slide deck.'
   }[mode] || 'Reshape the input into a clean slide deck.';
-  const baseSystem = `You are a presentation editor for Digitata Networks.\n\nCRITICAL: Return exactly between ${min} and ${max} slides. Aim for ${target}.\n\nMode: ${mode}\nInstruction: ${modeInstruction}\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
-  const userPrompt = `Produce between ${min} and ${max} slides.\n\nRAW:\n${rawText}`;
+  // Build #35 — detect volume mismatch so the LLM gets explicit guidance
+  const rawDetectedCount = (() => { try { const r = parseSlidesDetected(rawText); return r && r.slides ? r.slides.length : null; } catch (e) { return null; } })();
+  const volumeNote = rawDetectedCount === null ? '' : (rawDetectedCount > max ? `The raw input contains roughly ${rawDetectedCount} slide-units of content - that is MORE than fits in ${max} slides. You MUST aggressively consolidate: merge related points, drop secondary detail, keep only the highest-signal ideas.` : rawDetectedCount < min ? `The raw input contains roughly ${rawDetectedCount} slide-units of content - that is LESS than fits in ${min} slides. You MUST expand thoughtfully: add reasoning, examples, implications. Do not invent unrelated claims.` : `The raw input naturally fits the ${min}-${max} range - shape it cleanly without distorting count.`);
+  const baseSystem = `You are a presentation editor for Digitata Networks.\n\nHARD CONSTRAINT - slide count: You MUST return between ${min} and ${max} slides. Aim for ${target}. This is non-negotiable. If you return outside this range, the output will be rejected and retried.\n\n${volumeNote}\n\nHOW TO HIT THE COUNT regardless of source volume:\n- If the source has MORE content than fits in ${max} slides: AGGRESSIVELY CONSOLIDATE. Merge, drop secondary detail, keep only the strongest ideas.\n- If the source has LESS than ${min} slides need: EXPAND thoughtfully. Add reasoning, examples, implications. Do not invent unrelated claims.\n- If it fits naturally: shape it cleanly.\n\nMode: ${mode}\nInstruction: ${modeInstruction}\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
+  const userPrompt = `Produce between ${min} and ${max} slides (target ${target}). Slide count compliance is mandatory - consolidate or expand as instructed.\n\nRAW:\n${rawText}`;
   const modelName = 'claude-sonnet-4-5-20250929';
   async function callClaude(sys) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -937,6 +942,8 @@ async function assemblePptx() {
     state.whitePaper.awaitingConfirm = false;
     state.whitePaper.includeIllustrations = true;
   }
+  // Build #37 — persist completed deck so the user can reload later (skips Steps 1-3)
+  try { await saveCurrentDeckToSupabase(); } catch (e) { console.warn('Deck auto-save failed (non-fatal):', e); }
   showDeckReadyModal(fileName, blob.size);
   if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
 }
@@ -1341,13 +1348,19 @@ async function callClaudeForWhitePaper(key) {
   const totalWordTarget = targetPages * wordsPerPage;
   const slideImageManifest = state.slides.map((s, i) => ({ index: i, title: s.title, hasImage: !!s.imageB64 })).filter(s => s.hasImage);
   const slideImageList = slideImageManifest.map(s => `  - slide_image_${s.index}: "${s.title.replace(/"/g, '\\"')}"`).join('\n');
+  // Build #36 — pre-compute per-section word budgets, ONE source of truth in the prompt
+  const perSlideBudget = Math.round((totalWordTarget * 0.65) / Math.max(state.slides.length, 1));
+  const execBudget = Math.round(totalWordTarget * 0.08);
+  const introBudget = Math.round(totalWordTarget * 0.10);
+  const conclBudget = Math.round(totalWordTarget * 0.10);
+  const aboutBudget = Math.round(totalWordTarget * 0.07);
   const wpSystemPrompt = `You are a senior content strategist at Digitata Networks, a telco software and managed-services company. You write polished white papers that customers read AFTER a sales or technical meeting — readers who want depth beyond the slide deck.
 
-LENGTH TARGET: This paper must be approximately ${targetPages} pages long (~${totalWordTarget} words total at ~${wordsPerPage} words/page). Calibrate section depth accordingly:
-- Short papers (3–6 pages): tight, focused, one strong section per slide, minimal preamble
-- Medium papers (7–12 pages): standard depth per below, full intro/conclusion
-- Long papers (13–20+ pages): expand each section with sub-arguments, examples, counter-points, evidence
-Do NOT pad. Hit the target by adjusting depth and rigour, not filler.
+===========================================================
+HARD LENGTH TARGET — MUST HIT: ${targetPages} pages ≈ ${totalWordTarget} words total
+===========================================================
+
+This is the single most important constraint. Tolerance is ±15% of the total word count. Calibrate every section to land on target. Hit the target by adjusting DEPTH (more reasoning, examples, counter-points, evidence) — never by padding with filler.
 
 Voice and style:
 - Professional, evidence-led, confident but not boastful
@@ -1356,19 +1369,14 @@ Voice and style:
 - Short paragraphs (3–5 sentences). Vary sentence length.
 - British English spelling (Digitata Networks is South Africa-based serving global telcos)
 
-Structure the paper as:
-1. Executive Summary (~200 words) — what the paper argues, who should read it, the takeaway
-2. Introduction / Context (~250 words) — the landscape, why this topic matters now
-3. One section per slide (each ~350–500 words) — slide title becomes the section heading; expand the slide content into a flowing argument with examples, implications, and evidence-led reasoning
-4. Conclusion (~250 words) — synthesise the argument, leave the reader with a clear position
-5. About Digitata Networks (~150 words) — brief boilerplate: telco software + managed services, 25+ years, global telco customers, focus on revenue uplift and ops excellence
+PER-SECTION WORD-COUNT BUDGET — each section MUST be within ±20% of its target:
+- Executive Summary: ${execBudget} words — what the paper argues, who should read it, the takeaway
+- Introduction / Context: ${introBudget} words — the landscape, why this topic matters now
+- One section per deck slide (×${state.slides.length}): ${perSlideBudget} words each — slide title becomes the section heading; expand the slide content into a flowing argument with examples, implications, and evidence-led reasoning
+- Conclusion: ${conclBudget} words — synthesise the argument, leave the reader with a clear position
+- About Digitata Networks: ${aboutBudget} words — brief boilerplate: telco software + managed services, 25+ years, global telco customers, focus on revenue uplift and ops excellence
 
-WORD-COUNT BUDGET (adjust to hit ${targetPages}-page target):
-- Executive Summary: ~${Math.round(totalWordTarget * 0.08)} words
-- Introduction / Context: ~${Math.round(totalWordTarget * 0.10)} words
-- Per slide section: ~${Math.round((totalWordTarget * 0.65) / Math.max(state.slides.length, 1))} words each (×${state.slides.length} slides)
-- Conclusion: ~${Math.round(totalWordTarget * 0.10)} words
-- About DN: ~${Math.round(totalWordTarget * 0.07)} words
+DO NOT use any example word counts you have seen elsewhere. Use ONLY the numeric budgets above. If your draft sections come in significantly shorter than these numbers, you have not gone deep enough — expand reasoning, examples, evidence. If significantly longer, you are padding — tighten.
 
 Each section's expansion must:
 - Use the slide's title and body as the seed
@@ -1444,7 +1452,7 @@ No prose outside the JSON. No markdown fences. Just the JSON object.`;
   const slidesContext = state.slides.map((s, i) => {
     return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
   }).join('\n---\n\n');
-  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nTarget length: ~${targetPages} pages (~${totalWordTarget} words total). Calibrate every section's depth to hit this target.\n\nFigure strategy:\n- Slide images: reuse from the manifest (free, preferred)\n- Mermaid diagrams: unlimited (free, local render)\n- Illustrations: DISABLED — do not propose any\n\nGenerate the companion white paper now. Return JSON only.`;
+  const wpUserPrompt = `Deck title: ${deckTitle}\n\n${slidesContext}\n\nHARD LENGTH TARGET: ${targetPages} pages = ${totalWordTarget} words total (±15%). Each section MUST hit its per-section budget from the system prompt (±20%). Per-slide section budget: ~${perSlideBudget} words × ${state.slides.length} slide sections.\n\nFigure strategy:\n- Slide images: reuse from the manifest (free, preferred)\n- Mermaid diagrams: unlimited (free, local render)\n- Illustrations: DISABLED — do not propose any\n\nBefore writing, mentally allocate the ${totalWordTarget}-word budget across all sections. After writing, your section bodies summed should equal approximately ${totalWordTarget} words. Generate the companion white paper now. Return JSON only.`;
   const modelName = 'claude-sonnet-4-5-20250929';
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -1632,8 +1640,10 @@ function renderCompose() {
       <div class="display">Compose a deck</div>
       <div class="muted body-sm" style="margin-top:8px;max-width:680px">Pick a skill, paste your slide content, polish if you want, edit each slide, compare image models side by side, then generate.</div>
     </div>
+    <div id="pastDecksPanel">${state.composeStep === 1 ? renderPastDecksPanel() : ''}</div>
     <div id="step1"></div><div id="step2"></div><div id="step3"></div><div id="step35"></div><div id="step5"></div>`;
   renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
+  bindPastDecksPanel();
 }
 
 function starSvg(filled) {
@@ -1686,7 +1696,8 @@ function renderStep1() {
     const n = r.slides.length;
     const inRange = n >= state.slideMin && n <= state.slideMax;
     if (inRange) ind.innerHTML = `<span style="color:var(--success)">✓ Detected ${n} slide${n===1?'':'s'} — within ${state.slideMin}–${state.slideMax}</span>`;
-    else { const dir = n > state.slideMax ? 'consolidate' : 'expand'; ind.innerHTML = `<span style="color:var(--info)">✓ Detected ${n}. AI will ${dir}.</span>`; }
+    else if (n > state.slideMax * 1.5) ind.innerHTML = `<span style="color:var(--danger)">⚠ Detected ${n} — far over the ${state.slideMin}–${state.slideMax} range. <strong>Polish with AI</strong> required to consolidate.</span>`;
+    else { const dir = n > state.slideMax ? 'consolidate' : 'expand'; ind.innerHTML = `<span style="color:var(--warning)">⚠ Detected ${n}. AI will ${dir} to fit ${state.slideMin}–${state.slideMax}.</span>`; }
   }
   raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; updatePatternIndicator(); };
   updatePatternIndicator();
@@ -1696,9 +1707,16 @@ function renderStep1() {
     if (parsed === null) { document.getElementById('step1Error').innerHTML = '<div class="warning-banner" style="margin-top:12px"><div>No slide breaks detected. Add markers or use Polish with AI.</div></div>'; return; }
     if (parsed.length === 0) { toast({ type: 'error', message: 'No slides found' }); return; }
     if (parsed.length >= state.slideMin && parsed.length <= state.slideMax) { state.slides = parsed; state.composeStep = 3; renderCompose(); return; }
+    // Build #35 — when source is far over budget, "Continue as-is" cannot work. Force user to Polish.
+    if (parsed.length > state.slideMax * 1.5) {
+      document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div><strong>${parsed.length} slides detected</strong> — far more than your <strong>${state.slideMin}–${state.slideMax}</strong> range. "Continue with text as-is" cannot fit this. Click <strong>Polish with AI</strong> to consolidate the content into your target range.</div></div>`;
+      return;
+    }
     if (!state.apiKeys.anthropic) { document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>Detected <strong>${parsed.length}</strong> — auto-fit needs Anthropic key.</div></div>`; return; }
-    state.slides = parsed; state.polishMode = 'preserve';
-    try { const polished = await polishWithClaude(null, 'preserve'); state.slides = polishedToSlides(polished); state.composeStep = 3; renderCompose(); }
+    // Build #35 — pick the polish mode that matches the direction of mismatch.
+    const fitMode = parsed.length > state.slideMax ? 'shorten' : parsed.length < state.slideMin ? 'expand' : 'preserve';
+    state.slides = parsed; state.polishMode = fitMode;
+    try { const polished = await polishWithClaude(null, fitMode); state.slides = polishedToSlides(polished); state.composeStep = 3; renderCompose(); }
     catch (e) { document.getElementById('step1Error').innerHTML = `<div class="warning-banner" style="margin-top:12px"><div>${escapeHtml(e.message)}</div></div>`; }
   };
   document.getElementById('polishBtn').onclick = () => {
@@ -2436,7 +2454,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.3.2</span> (build #33 — illustration figures)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.4.0</span> (build #37 — slide-count gate · white paper word budget · past decks)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -2475,6 +2493,126 @@ function renderSettings() {
   };
 }
 
+// ===== Build #37 — saved_decks persistence =====
+async function fetchSavedDecks() {
+  const sb = getSupabaseClient();
+  if (!sb) { state.savedDecksError = 'Supabase not initialised'; state.savedDecksLoaded = true; return; }
+  try {
+    const { data, error } = await sb.from('saved_decks').select('*').eq('owner', OWNER_ID).order('created_at', { ascending: false }).limit(50);
+    if (error) { state.savedDecksError = error.message || String(error); state.savedDecksLoaded = true; state.savedDecks = []; return; }
+    state.savedDecks = data || []; state.savedDecksError = null; state.savedDecksLoaded = true;
+  } catch (e) { state.savedDecksError = e.message || String(e); state.savedDecksLoaded = true; state.savedDecks = []; }
+}
+
+async function saveCurrentDeckToSupabase() {
+  const sb = getSupabaseClient();
+  if (!sb) return null;
+  if (!state.slides || state.slides.length === 0) return null;
+  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+  const title = (skill && skill.name) ? skill.name : (state.slides[0] && state.slides[0].title) || 'Untitled deck';
+  const slidesPayload = state.slides.map(s => ({
+    title: s.title || '',
+    body: s.body || '',
+    speakerNotes: s.speakerNotes || '',
+    imagePrompt: s.imagePrompt || null,
+    lastPrompt: s.lastPrompt || null
+  }));
+  const payload = {
+    owner: OWNER_ID,
+    title: title,
+    skill_id: state.selectedSkillId || null,
+    skill_name: skill ? skill.name : null,
+    slide_min: state.slideMin || 6,
+    slide_max: state.slideMax || 10,
+    slide_count: state.slides.length,
+    model_used: state.selectedModel || state.lastSelectedModel || state.defaultModel || null,
+    customer_logo_enabled: !!state.customerLogoEnabled,
+    slides: slidesPayload,
+    updated_at: new Date().toISOString()
+  };
+  state.savingDeck = true;
+  try {
+    const { data, error } = await sb.from('saved_decks').insert(payload).select().single();
+    if (error) { console.warn('saveCurrentDeckToSupabase failed:', error); state.savingDeck = false; return null; }
+    state.lastSavedDeckId = data.id;
+    state.savedDecks = [data].concat(state.savedDecks || []);
+    state.savingDeck = false;
+    return data;
+  } catch (e) { console.warn('saveCurrentDeckToSupabase exception:', e); state.savingDeck = false; return null; }
+}
+
+function loadSavedDeckIntoState(deck) {
+  if (!deck) return;
+  deckCost.reset();
+  state.whitePaper = { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPages: 10, awaitingPageCount: false };
+  if (deck.skill_id && skillById(deck.skill_id)) state.selectedSkillId = deck.skill_id;
+  if (typeof deck.slide_min === 'number') state.slideMin = deck.slide_min;
+  if (typeof deck.slide_max === 'number') state.slideMax = deck.slide_max;
+  state.customerLogoEnabled = !!deck.customer_logo_enabled;
+  state.slides = (deck.slides || []).map(s => ({
+    title: s.title || 'Untitled',
+    body: s.body || '',
+    speakerNotes: s.speakerNotes || '',
+    prevSpeakerNotes: null,
+    notesExpanded: false,
+    rewritingNotes: false,
+    imageB64: null,
+    imagePrompt: s.imagePrompt || null,
+    lastPrompt: s.lastPrompt || null,
+    status: 'idle',
+    error: null,
+    regenCount: 0,
+    costAccrued: 0,
+    modelUsed: null
+  }));
+  if (deck.model_used) state.lastSelectedModel = deck.model_used;
+  state.polishMode = null;
+  state.composeStep = 3.5;
+  state.view = 'compose';
+  setActiveNav();
+  renderCompose();
+  toast({ type: 'success', message: 'Loaded "' + (deck.title || 'deck') + '" - pick model & generate images' });
+}
+
+async function deleteSavedDeck(id) {
+  const sb = getSupabaseClient(); if (!sb) return;
+  try {
+    const { error } = await sb.from('saved_decks').delete().eq('id', id).eq('owner', OWNER_ID);
+    if (error) { toast({ type: 'error', message: 'Delete failed: ' + (error.message || String(error)) }); return; }
+    state.savedDecks = (state.savedDecks || []).filter(d => d.id !== id);
+    toast({ type: 'success', message: 'Deck removed from history' });
+    if (state.view === 'compose' && state.composeStep === 1) renderCompose();
+  } catch (e) { toast({ type: 'error', message: 'Delete failed: ' + (e.message || String(e)) }); }
+}
+
+function renderPastDecksPanel() {
+  if (!state.savedDecksLoaded) return '<div class="muted body-sm" style="margin-bottom:14px">Loading past decks…</div>';
+  if (state.savedDecksError) return '<div class="card" style="margin-bottom:14px;border-color:var(--warning)"><div class="muted body-sm">Past decks unavailable: ' + escapeHtml(state.savedDecksError) + '</div></div>';
+  if (!state.savedDecks.length) return '';
+  const rows = state.savedDecks.slice(0, 12).map(d => {
+    let when = '';
+    try { when = new Date(d.created_at).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' }); } catch (e) {}
+    return '<div class="card" style="padding:10px 12px;display:flex;align-items:center;gap:10px;margin-bottom:6px">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escapeHtml(d.title || 'Untitled') + '</div>' +
+        '<div class="muted body-sm" style="font-size:11px;margin-top:2px">' + (d.slide_count || 0) + ' slides' + (d.skill_name ? ' · ' + escapeHtml(d.skill_name) : '') + ' · ' + when + '</div>' +
+      '</div>' +
+      '<button class="btn-secondary" data-load-deck="' + d.id + '">Load → pick model</button>' +
+      '<button class="btn-ghost" data-del-deck="' + d.id + '" title="Remove">✕</button>' +
+    '</div>';
+  }).join('');
+  return '<div class="step-card" style="margin-bottom:12px">' +
+    '<div class="step-header"><div class="step-title">📁 Past decks</div><div class="step-desc">' + state.savedDecks.length + ' saved · loading skips Steps 1–3</div></div>' +
+    '<div class="step-body" style="padding-top:10px">' + rows + '</div>' +
+  '</div>';
+}
+
+function bindPastDecksPanel() {
+  document.querySelectorAll('[data-load-deck]').forEach(b => { b.onclick = () => { const id = b.getAttribute('data-load-deck'); const deck = (state.savedDecks || []).find(d => d.id === id); if (deck) loadSavedDeckIntoState(deck); }; });
+  document.querySelectorAll('[data-del-deck]').forEach(b => { b.onclick = () => { const id = b.getAttribute('data-del-deck'); openModal('<div class="modal-header"><div><div class="h1">Remove from history?</div></div></div><div class="muted body-sm" style="margin-bottom:14px">This deletes the saved deck record only. The .pptx you already downloaded is untouched.</div><div class="modal-footer"><button class="btn-ghost" onclick="closeModal()">Cancel</button><button class="btn-danger" id="confirmDelDeck">Remove</button></div>'); document.getElementById('confirmDelDeck').onclick = async () => { closeModal(); await deleteSavedDeck(id); }; }; });
+}
+// ===== end Build #37 =====
+
 function updateAdminBadge() {
   const el = document.getElementById('adminBadge'); if (!el) return;
   el.innerHTML = state.adminMode ? '<span class="badge badge-accent" style="cursor:pointer" id="adminBadgeBtn">Admin</span>' : '<span class="badge badge-neutral" style="cursor:pointer" id="adminBadgeBtn">Read-only</span>';
@@ -2507,6 +2645,8 @@ async function initApp() {
   render();
   setInterval(updateSyncPill, 30000);
   if (!state.logoIsCustom) { const b = await loadDefaultLogo(); if (b) state.logoB64 = b; }
+  // Build #37 — fetch saved decks in background, then re-render the panel
+  fetchSavedDecks().then(() => { if (state.view === 'compose' && state.composeStep === 1) renderCompose(); }).catch(e => console.warn('fetchSavedDecks boot failed:', e));
 }
 initApp();
 </script>
