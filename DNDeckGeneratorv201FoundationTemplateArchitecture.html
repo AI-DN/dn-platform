@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.4</title>
+<title>DN Deck Generator v2.12.5</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.4 #71</div>
+      <div class="brand-version">v2.12.5 #72</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1254,21 +1254,34 @@ function composeSkillPrompt(skill, slide) {
   let postBlock = '';
   if (reservedBlocks.length > 0) {
     const zoneList = describeBlocks();
-    preBlock = '=== CRITICAL: PROTECTED EMPTY ZONES (read this FIRST before composing the slide) ===\n' +
-      'The following rectangular regions of this 16:9 slide MUST be left COMPLETELY EMPTY because the user will overlay their own images there after generation:\n\n' +
+    preBlock = '=== DESIGNED-AROUND ZONES (read this FIRST and design the slide with these in mind) ===\n' +
+      'The following rectangular regions are placeholders for IMPORTANT user content (product photos, customer logos, branded visuals) that will be overlaid post-generation:\n\n' +
       zoneList + '\n\n' +
-      'For EVERY zone listed above, you MUST observe these rules:\n' +
-      '1. The zone must contain ONLY the slide\u2019s continuous background gradient/color/texture, exactly as it would look if no content were ever planned for this region.\n' +
-      '2. ABSOLUTELY NO borders, outlines, frames, dashed lines, rounded rectangles, drop shadows, or any visual demarcation of the zone boundary. Treat the zone as INVISIBLE \u2014 there is no rectangle to draw.\n' +
-      '3. ABSOLUTELY NO text, labels, captions, watermarks, numbers, or annotations inside the zone or touching its edges.\n' +
-      '4. ABSOLUTELY NO icons, charts, graphs, photographs, illustrations, decorative motifs, geometric shapes, or design elements inside the zone.\n' +
-      '5. All the slide\u2019s actual content (title, body text, charts, illustrations, visual elements from the skill prompt) MUST be positioned AROUND these zones \u2014 never crossing their boundaries, never overlapping even slightly.\n' +
-      '6. The slide must still look balanced, professional, and complete despite these zones being empty. Adjust your composition so the visible content (outside the zones) feels intentional and well-arranged.\n\n' +
-      'Compose the slide as if these zones were physically cut out of the canvas \u2014 you can only paint OUTSIDE them.\n\n=== END PROTECTED ZONES ===\n\n';
-    postBlock = '\n\n=== REMINDER: PROTECTED EMPTY ZONES ===\n' +
-      'Before you finalize the image, verify that EVERY listed zone is completely empty (only background) with NO borders, NO text, NO icons, NO shapes inside or overlapping it:\n' +
+      'DESIGN PHILOSOPHY: Treat each zone as if it ALREADY CONTAINS the most important visual element on the slide. Compose everything else to complement, frame, and balance that future content. The slide must look intentional and complete with the zone content imagined in place \u2014 not jarring or unbalanced.\n\n' +
+      'BACKGROUND BLENDING (this is the key rule that makes reservations work):\n' +
+      '\u2022 The slide\u2019s base background (the underlying color/gradient/texture/pattern of the canvas) MUST continue UNINTERRUPTED through each zone\n' +
+      '\u2022 If your background is a dark gradient, the gradient flows through the zone seamlessly \u2014 same direction, same colors, same density\n' +
+      '\u2022 If your background has subtle patterns (dots, lines, particles, mesh, etc.), those patterns continue through the zone at the same density\n' +
+      '\u2022 The zone is NOT a different color from the surrounding background. It is NOT darker, lighter, more saturated, or visually distinct in any way\n' +
+      '\u2022 If someone removed the zone outline you would see in the source, the zone area should be INDISTINGUISHABLE from the rest of the background\n\n' +
+      'STRICT PROHIBITIONS inside each zone:\n' +
+      '1. NO borders, outlines, frames, rounded rectangles, drop shadows, glow effects, or any visual marker of the zone boundary\n' +
+      '2. NO text, headings, labels, captions, numbers, percentages, watermarks, or annotations\n' +
+      '3. NO icons, charts, graphs, photographs, illustrations, vector shapes, geometric motifs, or decorative elements\n' +
+      '4. NO foreground design elements of any kind \u2014 only the unmodified background\n\n' +
+      'CONTENT POSITIONING AROUND ZONES:\n' +
+      '5. All slide content (titles, body, charts, icons, visuals) MUST keep a clear margin from zone edges \u2014 do not let elements touch, crowd, or cross the zone boundary\n' +
+      '6. If a chunk of content would naturally extend INTO a zone, move it elsewhere or shrink it. Never let content bleed across a zone edge\n' +
+      '7. Distribute the slide\u2019s real content in the remaining area in a way that feels purposeful, not crammed-around-an-obstacle\n\n' +
+      'IMAGINE the zone contains the most important visual on the slide (a product hero shot, customer logo, key chart). Now compose everything else to set that imagined visual in its best light: balanced framing, clear visual hierarchy, breathing room around the zone.\n\n=== END DESIGNED-AROUND ZONES ===\n\n';
+    postBlock = '\n\n=== FINAL CHECK: DESIGNED-AROUND ZONES ===\n' +
+      'Before finalizing, verify for EACH zone:\n' +
       zoneList + '\n' +
-      'Do NOT draw the zone outlines as part of the slide. The zones must look like uninterrupted background.\n=== END REMINDER ===';
+      '\u2022 The background flows seamlessly through the zone (same color/gradient/pattern as surrounding area)\n' +
+      '\u2022 No border or outline marks the zone boundary\n' +
+      '\u2022 No text, icons, or shapes are inside or overlap the zone\n' +
+      '\u2022 Surrounding content has clear breathing room from the zone edges\n' +
+      'The zone should look like a clean rectangular opening through which the background is visible \u2014 NOT a colored or empty patch interrupting the design.\n=== END FINAL CHECK ===';
   }
   let prompt = preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock;
   return prompt;
@@ -4604,7 +4617,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.4</span> (build #71 — drag-to-draw custom blocks)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.5</span> (build #72 — design-aware reservation prompts)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
