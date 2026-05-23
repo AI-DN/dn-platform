@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.0</title>
+<title>DN Deck Generator v2.12.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -635,7 +635,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.0 #67</div>
+      <div class="brand-version">v2.12.1 #68</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1617,6 +1617,30 @@ function removeLayoutBlock(slideIdx, blockId) {
   slide.layoutBlocks = slide.layoutBlocks.filter(b => b.id !== blockId);
   rerenderCurrentSlideStep();
 }
+// Build #68 — apply a block to every slide (clones position, size, asset, reserve flag)
+function applyBlockToAllSlides(srcSlideIdx, blockId) {
+  const srcSlide = state.slides[srcSlideIdx]; if (!srcSlide || !srcSlide.layoutBlocks) return;
+  const srcBlock = srcSlide.layoutBlocks.find(b => b.id === blockId); if (!srcBlock) return;
+  const otherCount = state.slides.length - 1;
+  if (otherCount < 1) { toast({ type: 'info', message: 'Only one slide in deck' }); return; }
+  const proceed = window.confirm('Apply this block (position, size, asset, reservation) to all ' + otherCount + ' other slide' + (otherCount===1?'':'s') + '?');
+  if (!proceed) return;
+  let added = 0;
+  state.slides.forEach((sl, idx) => {
+    if (idx === srcSlideIdx) return;
+    sl.layoutBlocks = sl.layoutBlocks || [];
+    sl.layoutBlocks.push({
+      id: genBlockId(),
+      x: srcBlock.x, y: srcBlock.y, w: srcBlock.w, h: srcBlock.h,
+      presetKey: srcBlock.presetKey,
+      assetId: srcBlock.assetId,
+      reserve: !!srcBlock.reserve
+    });
+    added++;
+  });
+  rerenderCurrentSlideStep();
+  toast({ type: 'success', message: 'Added block to ' + added + ' other slide' + (added===1?'':'s') });
+}
 function toggleBlockReserve(slideIdx, blockId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
@@ -1781,6 +1805,7 @@ function renderLayoutBlocksSection(slide, slideIdx) {
       '<div class="lb-letter">' + letter + '</div>' +
       '<div class="lb-info"><div>' + escapeHtml(assetLabel) + '</div><div class="lb-pos">' + escapeHtml(presetLabel) + ' · ' + b.w + '% × ' + b.h + '%</div></div>' +
       '<button class="btn-secondary" data-block-pick="' + b.id + '" data-slide-idx="' + slideIdx + '" style="font-size:11px;padding:3px 8px">Edit</button>' +
+      '<button class="btn-ghost" data-block-apply-all="' + b.id + '" data-slide-idx="' + slideIdx + '" style="font-size:11px;padding:3px 8px" title="Apply this block to all other slides">All</button>' +
       '<button class="btn-ghost" data-block-del="' + b.id + '" data-slide-idx="' + slideIdx + '" style="font-size:13px;padding:3px 6px" title="Remove block">×</button>' +
     '</div>';
   }).join('');
@@ -1941,46 +1966,7 @@ async function assemblePptx() {
   if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
 }
 
-function showDeckReadyModal(fileName, blobSize) {
-  const slideCount = state.slides.length;
-  const slideImageRows = deckCost.imageDetails.filter(d => d.kind === 'slide');
-  const regenRows = deckCost.imageDetails.filter(d => d.kind === 'regen');
-  const testRows = deckCost.imageDetails.filter(d => d.kind === 'test');
-  const slideImageCost = slideImageRows.reduce((s, r) => s + r.cost, 0);
-  const regenCost = regenRows.reduce((s, r) => s + r.cost, 0);
-  const testCost = testRows.reduce((s, r) => s + r.cost, 0);
-  const total = deckCost.total();
-  const notesRows = state.slides.map((s, i) => { const wc = countWords(s.speakerNotes); const has = wc > 0; return `<tr><td style="width:60px" class="mono subtle">Slide ${i+1}</td><td>${escapeHtml(s.title)}</td><td style="text-align:right">${has ? `<span class="badge badge-success">📝 ${wc} word${wc===1?'':'s'}</span>` : '<span class="badge badge-warning">🔇 No notes</span>'}</td></tr>`; }).join('');
-  const html = `
-    <div class="modal-header">
-      <div>
-        <div class="h1">Deck ready</div>
-        <div class="muted body-sm" style="margin-top:4px">${escapeHtml(fileName)} · ${(blobSize/1024).toFixed(0)} KB · downloaded</div>
-      </div>
-      <button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button>
-    </div>
-    <div class="h2" style="margin-bottom:8px">Cost breakdown</div>
-    <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
-      <table><tbody>
-        <tr><td>Polish (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.polish)}</td></tr>
-        ${testCost > 0 ? `<tr><td>Test slide images <span class="subtle">(${testRows.length} model${testRows.length===1?'':'s'})</span></td><td class="mono" style="text-align:right">${fmtUsd4(testCost)}</td></tr>` : ''}
-        <tr><td>Slide images <span class="subtle">(${slideImageRows.length}×)</span></td><td class="mono" style="text-align:right">${fmtUsd4(slideImageCost)}</td></tr>
-        ${regenCost > 0 ? `<tr><td>Regenerations <span class="subtle">(${regenRows.length})</span></td><td class="mono" style="text-align:right">${fmtUsd4(regenCost)}</td></tr>` : ''}
-        ${deckCost.whitePaper > 0 ? `<tr><td>White paper text (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.whitePaper)}</td></tr>` : ''}
-        ${deckCost.whitePaperIllust > 0 ? `<tr><td>White paper illustrations</td><td class="mono" style="text-align:right">${fmtUsd4(deckCost.whitePaperIllust)}</td></tr>` : ''}
-        <tr style="font-weight:600"><td>Total</td><td class="mono" style="text-align:right">${fmtUsd4(total)}</td></tr>
-      </tbody></table>
-    </div>
-    <div class="h2" style="margin-bottom:8px">Speaker notes</div>
-    <div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
-      <table><tbody>${notesRows}</tbody></table>
-    </div>
-    <div id="wpPanel">${renderWhitePaperPanel()}</div>
-    <div class="muted body-sm" style="margin-top:14px">${slideCount} slides generated. Notes embedded in PowerPoint's native speaker-notes field.</div>
-    <div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Done</button></div>`;
-  openModal(html, { lg: true });
-  bindWhitePaperPanel();
-}
+// Build #68 — showDeckReadyModal removed (replaced by renderStep6 column in Build #58)
 
 function renderWhitePaperPanel() {
   const wp = state.whitePaper;
@@ -3187,8 +3173,14 @@ function renderSlideEditCard(s, i) {
 }
 function bindSlideEditCard(i) {
   const card = document.querySelector(`.slide-edit-card[data-idx="${i}"]`); if (!card) return;
-  card.querySelector('[data-act="title"]').oninput = e => { state.slides[i].title = e.target.value; };
-  card.querySelector('[data-act="body"]').oninput = e => { state.slides[i].body = e.target.value; };
+  card.querySelector('[data-act="title"]').oninput = e => {
+    state.slides[i].title = e.target.value;
+    if (state.slides[i].imageB64) state.slides[i].textChangedSinceGeneration = true;
+  };
+  card.querySelector('[data-act="body"]').oninput = e => {
+    state.slides[i].body = e.target.value;
+    if (state.slides[i].imageB64) state.slides[i].textChangedSinceGeneration = true;
+  };
   // Build #60 — zoom-edit for title + body
   const zT = card.querySelector('[data-act="zoomTitle"]');
   if (zT) zT.onclick = () => {
@@ -3227,6 +3219,9 @@ function bindSlideEditCard(i) {
   });
   card.querySelectorAll('[data-block-del]').forEach(b => {
     b.onclick = () => removeLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-del'));
+  });
+  card.querySelectorAll('[data-block-apply-all]').forEach(b => {
+    b.onclick = () => applyBlockToAllSlides(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-apply-all'));
   });
   card.querySelectorAll('[data-block-canvas-click]').forEach(b => {
     b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
@@ -3746,6 +3741,7 @@ function renderImgCard(s, i) {
         ${s.regenCount > 0 ? `<span class="badge badge-neutral">${s.regenCount + 1}× · ${fmtUsd4(s.costAccrued || 0)}${modelTag ? ' · ' + escapeHtml(modelTag) : ''}</span>` : ''}
         ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
+        ${(s.status === 'done' && s.textChangedSinceGeneration) ? '<span class="badge badge-warning" title="Slide text was edited after this image was generated. Regenerate to refresh.">⚠ text edited</span>' : ''}
       </div>
       <div class="slide-img-body">
         <div class="slide-img-thumb ${s.status === 'generating' ? 'loading' : ''}" data-act="open">${thumbContent}${(s.layoutBlocks && s.layoutBlocks.length > 0) ? `<div class="slide-thumb-blocks-overlay">${s.layoutBlocks.map((b, idx) => { const letter = String.fromCharCode(65 + idx); const cls = b.assetId ? 'has-asset' : 'is-empty'; return '<div class="thumb-block ' + cls + '" style="left:' + b.x + '%;top:' + b.y + '%;width:' + b.w + '%;height:' + b.h + '%" title="Block ' + letter + (b.assetId ? '' : ' (empty / reserved)') + '"><span class="thumb-block-letter">' + letter + '</span></div>'; }).join('')}</div>` : ''}</div>
@@ -4441,7 +4437,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.0</span> (build #67 — About DN boilerplate setting)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.1</span> (build #68 — apply-to-all + stale badge + cleanup)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
