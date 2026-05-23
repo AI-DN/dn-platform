@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.9.3</title>
+<title>DN Deck Generator v2.10.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -601,7 +601,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.9.3 #60</div>
+      <div class="brand-version">v2.10.0 #61</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -700,6 +700,7 @@ const SETTING_MAP = {
   'dn_logo_b64': 'dn_logo_b64',
   'dn_brand_lib': 'dn_brand_lib',  // Build #43
   'dn_deck_branding': 'dn_deck_branding',  // Build #57
+  'dn_step1_tip_dismissed': 'dn_step1_tip_dismissed',  // Build #61
   'favorite_skills': 'dn_favorite_skills',
   'selected_skill': 'dn_selected_skill',
   'favorite_models': 'dn_favorite_models',
@@ -904,6 +905,8 @@ const state = {
   deckReady: { fileName: null, blobSize: 0, completedAt: null },
   // Build #59 — when true, the next renderCompose skips the auto-snap that forces expandedStep >= composeStep
   expandedStepLocked: false,
+  // Build #61 — Step 1 tip card dismissed flag
+  step1TipDismissed: false,
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -960,6 +963,8 @@ function hydrateStateFromStorage() {
   // Build #57 — load 3-slot branding
   const bb = get('dn_deck_branding');
   if (bb) { try { const parsed = JSON.parse(bb); if (parsed && typeof parsed === 'object') { state.deckBranding = parsed; } } catch (e) { console.warn('deck branding parse failed', e); } }
+  // Build #61 — load Step 1 tip dismissed state
+  if (get('dn_step1_tip_dismissed') === 'true') state.step1TipDismissed = true;
   const maxIll = get('dn_wp_max_illust');
   if (maxIll) { const n = parseInt(maxIll); if (!isNaN(n) && n >= 0 && n <= 20) state.maxIllustrations = n; }
 }
@@ -1126,6 +1131,9 @@ async function polishWithClaude(_unused, mode) {
   const rawText = state.rawText || '';
   const min = state.slideMin, max = state.slideMax;
   const target = Math.round((min + max) / 2);
+  // Build #61 — detect topic-prompt mode vs draft-reshape mode by word count
+  const rawWords = rawText.trim() ? rawText.trim().split(/\s+/).length : 0;
+  const isTopicMode = rawWords > 0 && rawWords < 50;
   const modeInstruction = {
     shorten: 'Aggressively shorten each slide.',
     expand:  'Expand each slide with supporting bullets.',
@@ -1135,8 +1143,12 @@ async function polishWithClaude(_unused, mode) {
   // Build #35 — detect volume mismatch so the LLM gets explicit guidance
   const rawDetectedCount = (() => { try { const r = parseSlidesDetected(rawText); return r && r.slides ? r.slides.length : null; } catch (e) { return null; } })();
   const volumeNote = rawDetectedCount === null ? '' : (rawDetectedCount > max ? `The raw input contains roughly ${rawDetectedCount} slide-units of content - that is MORE than fits in ${max} slides. You MUST aggressively consolidate: merge related points, drop secondary detail, keep only the highest-signal ideas.` : rawDetectedCount < min ? `The raw input contains roughly ${rawDetectedCount} slide-units of content - that is LESS than fits in ${min} slides. You MUST expand thoughtfully: add reasoning, examples, implications. Do not invent unrelated claims.` : `The raw input naturally fits the ${min}-${max} range - shape it cleanly without distorting count.`);
-  const baseSystem = `You are a presentation editor for Digitata Networks.\n\nHARD CONSTRAINT - slide count: You MUST return between ${min} and ${max} slides. Aim for ${target}. This is non-negotiable. If you return outside this range, the output will be rejected and retried.\n\n${volumeNote}\n\nHOW TO HIT THE COUNT regardless of source volume:\n- If the source has MORE content than fits in ${max} slides: AGGRESSIVELY CONSOLIDATE. Merge, drop secondary detail, keep only the strongest ideas.\n- If the source has LESS than ${min} slides need: EXPAND thoughtfully. Add reasoning, examples, implications. Do not invent unrelated claims.\n- If it fits naturally: shape it cleanly.\n\nMode: ${mode}\nInstruction: ${modeInstruction}\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
-  const userPrompt = `Produce between ${min} and ${max} slides (target ${target}). Slide count compliance is mandatory - consolidate or expand as instructed.\n\nRAW:\n${rawText}`;
+  const topicSystem = `You are a presentation writer for Digitata Networks.\n\nThe user has given you a BRIEF TOPIC PROMPT instead of source material. Your job is to write a complete ${min}-${max} slide deck on that topic from scratch.\n\nHARD CONSTRAINT - slide count: You MUST return between ${min} and ${max} slides. Aim for ${target}. This is non-negotiable.\n\nEXPANSION GUIDANCE:\n- Each slide needs a clear, declarative title (5-10 words)\n- Each body must be substantive: 3-5 bullets OR a short informative paragraph (40-80 words)\n- Cover the topic comprehensively: introduce the subject, explore key facets, build to conclusions\n- Be informative and factual - do not invent claims you cannot justify\n- Match the implied audience and tone from the prompt (e.g. "for investors", "for engineers", "for sales team")\n- Vary slide types: intro/context, key concepts, comparison, detail, implications, conclusion/next steps\n- If the prompt mentions a specific slide count, prioritise that within the ${min}-${max} range\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
+  const reshapeSystem = `You are a presentation editor for Digitata Networks.\n\nHARD CONSTRAINT - slide count: You MUST return between ${min} and ${max} slides. Aim for ${target}. This is non-negotiable. If you return outside this range, the output will be rejected and retried.\n\n${volumeNote}\n\nHOW TO HIT THE COUNT regardless of source volume:\n- If the source has MORE content than fits in ${max} slides: AGGRESSIVELY CONSOLIDATE. Merge, drop secondary detail, keep only the strongest ideas.\n- If the source has LESS than ${min} slides need: EXPAND thoughtfully. Add reasoning, examples, implications. Do not invent unrelated claims.\n- If it fits naturally: shape it cleanly.\n\nMode: ${mode}\nInstruction: ${modeInstruction}\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
+  const baseSystem = isTopicMode ? topicSystem : reshapeSystem;
+  const userPrompt = isTopicMode
+    ? `Write a ${min}-${max} slide presentation (target ${target}) based on this topic prompt:\n\n${rawText}`
+    : `Produce between ${min} and ${max} slides (target ${target}). Slide count compliance is mandatory - consolidate or expand as instructed.\n\nRAW:\n${rawText}`;
   const modelName = 'claude-sonnet-4-5-20250929';
   async function callClaude(sys) {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2540,7 +2552,30 @@ function renderStep1() {
       <div class="step-header"><div class="step-num">2</div><div class="step-title">Input</div><div class="step-desc">${currentSkill ? escapeHtml(currentSkill.name) + ' · ' : ''}slide range, text, logos</div></div>
       <div class="step-body">
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="50" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="50" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
-        <div class="field"><label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label><textarea class="textarea" id="rawText" rows="12" placeholder="Paste content. Markers: # H1, Slide N — Title, ## H2, or ---">${escapeHtml(state.rawText)}</textarea><div id="patternIndicator" class="field-hint" style="margin-top:6px"></div></div>
+        ${state.step1TipDismissed ? '' : `
+        <div id="step1Tip" style="background:var(--success-bg, var(--surface-2));border:1px solid var(--success, var(--border));border-radius:var(--radius-md);padding:10px 12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;color:var(--success, var(--text))">
+          <span style="font-size:18px;flex-shrink:0;line-height:1">💡</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500;margin-bottom:2px">One box, two ways to use it</div>
+            <div style="font-size:11px;line-height:1.5;opacity:0.85">Paste a draft you already have, or just describe what you want and let AI write it. The next step handles both.</div>
+          </div>
+          <button class="btn-ghost" id="step1TipDismiss" title="Dismiss" style="padding:2px 6px;font-size:14px;line-height:1;flex-shrink:0">×</button>
+        </div>`}
+        <div class="field"><label class="field-label">Slide deck text <span class="subtle" id="rawCount">${state.rawText.length} chars</span></label>
+          <textarea class="textarea" id="rawText" rows="12" placeholder="Paste a draft, transcript, bullet list - or describe what you want, e.g.&#10;&#10;10 slides comparing CRISPR-Cas9 and protein folding for biotech investors&#10;&#10;Quarterly sales update: top wins, misses, Q3 plan, 12 slides&#10;&#10;Customer pitch for NetTOPO, focus on capex savings, 10 slides">${escapeHtml(state.rawText)}</textarea>
+          <div id="patternIndicator" class="field-hint" style="margin-top:6px"></div>
+          <div style="margin-top:10px">
+            <div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">Try one of these:</div>
+            <div style="display:flex;flex-wrap:wrap;gap:6px" id="step1Chips">
+              <button class="btn-secondary" data-chip="pitch" style="font-size:11px;padding:4px 10px">📋 Pitch deck</button>
+              <button class="btn-secondary" data-chip="quarterly" style="font-size:11px;padding:4px 10px">📊 Quarterly update</button>
+              <button class="btn-secondary" data-chip="workshop" style="font-size:11px;padding:4px 10px">🎓 Workshop</button>
+              <button class="btn-secondary" data-chip="explainer" style="font-size:11px;padding:4px 10px">📝 Concept explainer</button>
+              <button class="btn-secondary" data-chip="strategy" style="font-size:11px;padding:4px 10px">📈 Strategy overview</button>
+            </div>
+          </div>
+          <div id="step1AiHint" style="margin-top:12px"></div>
+        </div>
         <div class="field">
           <label class="field-label">Branding <span class="subtle">click each slot to pick a logo or set text</span></label>
           <div class="branding-grid" id="brandingGrid">
@@ -2553,7 +2588,10 @@ function renderStep1() {
           </div>
         </div>
         <div id="step1Error"></div>
-        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button class="btn-secondary" id="polishBtn">Polish with AI →</button><button class="btn-primary" id="continueAsIsBtn">Continue with text as-is →</button></div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+          <button class="btn-secondary" id="continueAsIsBtn">Continue with text as-is →</button>
+          <button class="btn-primary" id="polishBtn">✨ Write slides with AI →</button>
+        </div>
       </div>
     </div>`;
   // Build #48 — skill picker moved to renderStep0
@@ -2578,8 +2616,68 @@ function renderStep1() {
     else if (n > state.slideMax * 1.5) ind.innerHTML = `<span style="color:var(--danger)">⚠ Detected ${n} — far over the ${state.slideMin}–${state.slideMax} range. <strong>Polish with AI</strong> required to consolidate.</span>`;
     else { const dir = n > state.slideMax ? 'consolidate' : 'expand'; ind.innerHTML = `<span style="color:var(--warning)">⚠ Detected ${n}. AI will ${dir} to fit ${state.slideMin}–${state.slideMax}.</span>`; }
   }
-  raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; updatePatternIndicator(); };
+  // Build #61 — context-aware AI hint
+  function updateAiHint() {
+    const hintEl = document.getElementById('step1AiHint'); if (!hintEl) return;
+    const txt = (state.rawText || '').trim();
+    const words = txt ? txt.split(/\s+/).length : 0;
+    const target = Math.round((state.slideMin + state.slideMax) / 2);
+    if (words === 0) { hintEl.innerHTML = ''; return; }
+    let msg, cost;
+    if (words < 50) { msg = 'Looks brief — Claude will <strong>write ~' + target + ' slides</strong> from your topic'; cost = '$0.04'; }
+    else if (words < 500) { msg = 'Claude will <strong>expand and reshape</strong> your text into ' + state.slideMin + '–' + state.slideMax + ' slides'; cost = '$0.05'; }
+    else { msg = 'Claude will <strong>compress and structure</strong> your text into ' + state.slideMin + '–' + state.slideMax + ' slides'; cost = '$0.06'; }
+    hintEl.innerHTML = '<div style="background:var(--info-bg, var(--surface-2));border:1px solid var(--info, var(--border));border-radius:var(--radius-md);padding:8px 12px;display:flex;align-items:center;gap:10px;color:var(--info, var(--text))"><span style="font-size:16px;flex-shrink:0">✨</span><div style="flex:1;font-size:12px">' + msg + ' (~' + cost + ', takes ~15s).</div></div>';
+    // Gate Continue-as-is: needs at least 8 words AND slide markers
+    const cBtn = document.getElementById('continueAsIsBtn');
+    if (cBtn) {
+      if (words < 8) {
+        cBtn.disabled = true;
+        cBtn.setAttribute('title', 'Add more text or use Write slides with AI');
+      } else {
+        cBtn.disabled = false;
+        cBtn.removeAttribute('title');
+      }
+    }
+  }
+  raw.oninput = e => { state.rawText = e.target.value; document.getElementById('rawCount').textContent = e.target.value.length + ' chars'; updatePatternIndicator(); updateAiHint(); };
   updatePatternIndicator();
+  updateAiHint();
+  // Tip dismiss
+  const tipBtn = document.getElementById('step1TipDismiss');
+  if (tipBtn) tipBtn.onclick = async () => {
+    state.step1TipDismissed = true;
+    await persistSetting('dn_step1_tip_dismissed', 'true');
+    const tipEl = document.getElementById('step1Tip');
+    if (tipEl) tipEl.style.display = 'none';
+  };
+  // Quick-start chips
+  const chipStarters = {
+    pitch:     'Pitch deck for [your product]: problem, solution, market opportunity, traction, ask. Aim for ' + Math.round((state.slideMin + state.slideMax) / 2) + ' slides.',
+    quarterly: 'Quarterly update for [audience]: highlights, misses, key initiatives, plan for next quarter. Include hard numbers where possible. ' + Math.round((state.slideMin + state.slideMax) / 2) + ' slides.',
+    workshop:  'Workshop on [topic] for [audience]: agenda, key concepts, hands-on exercises, takeaways and next steps. ' + Math.max(10, Math.round((state.slideMin + state.slideMax) / 2)) + ' slides.',
+    explainer: 'Concept explainer for [topic] aimed at [audience]: what it is, why it matters, how it works, common misconceptions, real-world implications. ' + Math.round((state.slideMin + state.slideMax) / 2) + ' slides.',
+    strategy:  'Strategy overview for [team/initiative]: current state, vision, key strategic moves, success metrics, milestones for the next 12 months. ' + Math.round((state.slideMin + state.slideMax) / 2) + ' slides.'
+  };
+  document.querySelectorAll('[data-chip]').forEach(b => {
+    b.onclick = () => {
+      const key = b.getAttribute('data-chip');
+      const tpl = chipStarters[key]; if (!tpl) return;
+      const ta = document.getElementById('rawText'); if (!ta) return;
+      ta.value = tpl;
+      state.rawText = tpl;
+      document.getElementById('rawCount').textContent = tpl.length + ' chars';
+      ta.focus();
+      // Select first bracketed placeholder if present
+      const m = tpl.match(/\[[^\]]+\]/);
+      if (m && ta.setSelectionRange) {
+        const start = tpl.indexOf(m[0]);
+        ta.setSelectionRange(start, start + m[0].length);
+      }
+      updatePatternIndicator();
+      updateAiHint();
+    };
+  });
   document.getElementById('continueAsIsBtn').onclick = async () => {
     const r = parseSlidesDetected(state.rawText);
     const parsed = r.slides;
@@ -2600,8 +2698,12 @@ function renderStep1() {
   };
   document.getElementById('polishBtn').onclick = () => {
     if (!state.apiKeys.anthropic) { document.getElementById('step1Error').innerHTML = '<div class="info-banner" style="margin-top:12px"><div>Paste Anthropic API key in <strong>Settings</strong>.</div></div>'; return; }
-    if (!state.rawText.trim()) { toast({ type: 'error', message: 'Paste some text first' }); return; }
-    const r = parseSlidesDetected(state.rawText); state.slides = r.slides || []; state.composeStep = 2; renderCompose();
+    if (!state.rawText.trim()) { toast({ type: 'error', message: 'Type a topic or paste a draft first' }); return; }
+    // Build #61 — accept brief topic prompts; parser may return null/empty for short input which is fine
+    const r = parseSlidesDetected(state.rawText);
+    state.slides = (r && r.slides) || [];
+    state.composeStep = 2;
+    renderCompose();
   };
 }
 
@@ -3924,7 +4026,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.9.3</span> (build #60 — Step 3 zoom-edit + favicon)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.10.0</span> (build #61 — seamless AI slide text generation)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
