@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.10.0</title>
+<title>DN Deck Generator v2.10.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -601,7 +601,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.10.0 #61</div>
+      <div class="brand-version">v2.10.1 #62</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -2720,19 +2720,23 @@ function renderStep2() {
   const overBudget = n2 > state.slideMax;
   const underBudget = n2 > 0 && n2 < state.slideMin;
   const recommended = overBudget ? 'shorten' : underBudget ? 'expand' : null;
+  // Build #62 — detect topic-prompt mode (brief input, no slides parsed) so we can swap wording
+  const rawWords = (state.rawText || '').trim() ? (state.rawText || '').trim().split(/\s+/).length : 0;
+  const isTopicMode = !hasMarkers && rawWords > 0 && rawWords < 50;
   const banner = !inRange2 && hasMarkers ? `<div class="warning-banner" style="margin-bottom:12px"><div><strong>${n2} slides — outside your ${state.slideMin}–${state.slideMax} range.</strong> Click <strong>${overBudget ? 'Shorten' : 'Expand'}</strong> below to ${overBudget ? 'consolidate' : 'expand'} the deck to your target count, then Continue.</div></div>` : '';
+  const topicBanner = isTopicMode ? `<div class="info-banner" style="margin-bottom:12px;background:var(--info-bg, var(--surface-2));border:1px solid var(--info, var(--border));color:var(--info, var(--text));padding:10px 12px;border-radius:var(--radius-md)"><div><strong>✨ Writing from your topic</strong><br><span style="font-size:11px;opacity:0.85">Claude will generate a complete ${state.slideMin}–${state.slideMax} slide deck from scratch based on what you typed in Step 1. Click <strong>Write slides from topic</strong> below to start.</span></div></div>` : '';
   el.innerHTML = `
     <div class="step-card">
-      <div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">${hasMarkers ? n2 + ' slides · ' + state.slideMin + '–' + state.slideMax + (inRange2 ? ' ✓' : ' ⚠') : 'will auto-split'}</div></div>
+      <div class="step-header"><div class="step-num">2</div><div class="step-title">Polish with AI</div><div class="step-desc">${hasMarkers ? n2 + ' slides · ' + state.slideMin + '–' + state.slideMax + (inRange2 ? ' ✓' : ' ⚠') : (isTopicMode ? 'AI writes from your topic' : 'will auto-split')}</div></div>
       <div class="step-body">
-        ${banner}
+        ${topicBanner}${banner}
         <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
-          ${!hasMarkers ? `<button class="btn-secondary" id="splitBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='split' ? '<span class="spinner"></span> Splitting…' : 'Auto-split into slides'}</button>` : ''}
+          ${!hasMarkers ? `<button class="${isTopicMode ? 'btn-primary' : 'btn-secondary'}" id="splitBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='split' ? '<span class="spinner"></span> ' + (isTopicMode ? 'Writing slides…' : 'Splitting…') : (isTopicMode ? '✨ Write slides from topic' : 'Auto-split into slides')}</button>` : ''}
           ${hasMarkers ? `<button class="${recommended==='shorten' ? 'btn-primary' : 'btn-secondary'}" id="shortenBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='shorten' ? '<span class="spinner"></span> Shortening…' : recommended==='shorten' ? '★ Shorten' : 'Shorten'}</button>
           <button class="${recommended==='expand' ? 'btn-primary' : 'btn-secondary'}" id="expandBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='expand' ? '<span class="spinner"></span> Expanding…' : recommended==='expand' ? '★ Expand' : 'Expand'}</button>
           <button class="btn-secondary" id="preserveBtn" ${state.polishing ? 'disabled' : ''}>${state.polishing && state.polishMode==='preserve' ? '<span class="spinner"></span> Reshaping…' : 'Preserve text'}</button>` : ''}
         </div>
-        ${n2 > 0 ? `<div class="caption" style="margin-bottom:8px">${n2} slides</div><div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `<div class="slide-edit-card" style="margin-bottom:6px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div><div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div></div>`).join('')}</div>` : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong>.</div></div>'}
+        ${n2 > 0 ? `<div class="caption" style="margin-bottom:8px">${n2} slides</div><div style="max-height:340px;overflow-y:auto">${state.slides.map((s, i) => `<div class="slide-edit-card" style="margin-bottom:6px"><div style="font-size:13px;font-weight:600;margin-bottom:4px">${i+1}. ${escapeHtml(s.title)}</div><div style="font-size:12px;color:var(--text-muted);white-space:pre-wrap;line-height:1.5">${escapeHtml(s.body.slice(0, 200))}${s.body.length > 200 ? '…' : ''}</div></div>`).join('')}</div>` : (isTopicMode ? '<div class="empty" style="padding:24px"><div class="empty-desc">Your topic is ready. Click <strong>Write slides from topic</strong> above and Claude will generate the deck (~$0.04, ~15s).</div></div>' : '<div class="empty" style="padding:24px"><div class="empty-desc">Click <strong>Auto-split</strong>.</div></div>')}
         <div style="display:flex;gap:8px;justify-content:space-between;margin-top:14px"><button class="btn-ghost" id="backTo1">← Back</button><button class="btn-primary" id="toStep3" ${(n2 === 0 || !inRange2) ? 'disabled' : ''} title="${!inRange2 && n2>0 ? 'Slide count must be within ' + state.slideMin + '-' + state.slideMax + ' before continuing' : ''}">Continue →</button></div>
       </div>
     </div>`;
@@ -4026,7 +4030,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.10.0</span> (build #61 — seamless AI slide text generation)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.10.1</span> (build #62 — Step 2 wording for topic-prompt mode)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
