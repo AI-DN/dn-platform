@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.2</title>
+<title>DN Deck Generator v2.12.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -635,7 +635,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.2 #69</div>
+      <div class="brand-version">v2.12.3 #70</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -4467,7 +4467,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.2</span> (build #69 — per-block fill mode)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.3</span> (build #70 — per-deck branding)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -4566,6 +4566,9 @@ async function saveCurrentDeckToSupabase() {
     lastPrompt: s.lastPrompt || null,
     layoutBlocks: (s.layoutBlocks || []).map(b => ({ ...b, fillMode: b.fillMode || 'contain' }))
   }));
+  // Build #70 — capture per-deck branding snapshot
+  ensureDeckBranding();
+  const brandingSnapshot = state.deckBranding ? JSON.parse(JSON.stringify(state.deckBranding)) : null;
   const payload = {
     owner: OWNER_ID,
     title: title,
@@ -4577,12 +4580,24 @@ async function saveCurrentDeckToSupabase() {
     model_used: state.selectedModel || state.lastSelectedModel || state.defaultModel || null,
     customer_logo_enabled: !!state.customerLogoEnabled,
     slides: slidesPayload,
+    branding: brandingSnapshot,
     updated_at: new Date().toISOString()
   };
   state.savingDeck = true;
   try {
-    const { data, error } = await sb.from('saved_decks').insert(payload).select().single();
-    if (error) { console.warn('saveCurrentDeckToSupabase failed:', error); state.savingDeck = false; return null; }
+    let { data, error } = await sb.from('saved_decks').insert(payload).select().single();
+    if (error) {
+      const msg = error.message || String(error);
+      // Build #70 — if branding column doesn't exist yet, retry without it
+      if (/branding/i.test(msg) && /column|schema/i.test(msg)) {
+        console.warn('saved_decks.branding column missing; retrying without it. Run Build #70 SQL to enable per-deck branding.');
+        const fallbackPayload = Object.assign({}, payload);
+        delete fallbackPayload.branding;
+        const retry = await sb.from('saved_decks').insert(fallbackPayload).select().single();
+        data = retry.data; error = retry.error;
+      }
+      if (error) { console.warn('saveCurrentDeckToSupabase failed:', error); state.savingDeck = false; return null; }
+    }
     state.lastSavedDeckId = data.id;
     state.savedDecks = [data].concat(state.savedDecks || []);
     state.savingDeck = false;
@@ -4633,6 +4648,23 @@ function loadSavedDeckIntoState(deck) {
   }));
   if (deck.model_used) state.lastSelectedModel = deck.model_used;
   state.polishMode = null;
+  // Build #70 — restore per-deck branding if it was saved with the deck
+  if (deck.branding && typeof deck.branding === 'object' && deck.branding.topLeft) {
+    state.deckBranding = JSON.parse(JSON.stringify(deck.branding));
+    // Persist as new last-used so subsequent renders use it
+    try { persistDeckBranding(); } catch (e) {}
+    // Sync legacy fields for assemblePptx compatibility
+    if (state.deckBranding.topRight && state.deckBranding.topRight.type === 'customer-logo') {
+      state.deckCustomerLogoId = state.deckBranding.topRight.refId;
+      const sel = brandLibLogoById(state.deckCustomerLogoId);
+      state.customerLogoB64 = sel ? sel.b64 : null;
+      state.customerLogoEnabled = !!state.customerLogoB64;
+    } else {
+      state.deckCustomerLogoId = null;
+      state.customerLogoB64 = null;
+      state.customerLogoEnabled = false;
+    }
+  }
   // Build #59 — land on Edit (composeStep=3, spine 4) so user can review/edit slide text.
   // Continue button from Edit will call enterStep35() which populates model candidates properly.
   state.composeStep = 3;
