@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.9.0</title>
+<title>DN Deck Generator v2.9.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -600,7 +600,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.9.0 #57</div>
+      <div class="brand-version">v2.9.1 #58</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -899,6 +899,8 @@ const state = {
   customerLogoB64: null, customerLogoEnabled: false,
   // Build #57 — 3-slot branding (topLeft/topRight: own-logo|customer-logo|text|none; bottom: text|none)
   deckBranding: null,
+  // Build #58 — deck-ready state for Step 6 column
+  deckReady: { fileName: null, blobSize: 0, completedAt: null },
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -1571,7 +1573,11 @@ async function assemblePptx() {
   }
   // Build #37 — persist completed deck so the user can reload later (skips Steps 1-3)
   try { await saveCurrentDeckToSupabase(); } catch (e) { console.warn('Deck auto-save failed (non-fatal):', e); }
-  showDeckReadyModal(fileName, blob.size);
+  // Build #58 — transition to Step 6 column (no more modal popup)
+  state.deckReady = { fileName: fileName, blobSize: blob.size, completedAt: Date.now() };
+  state.composeStep = 6;
+  state.expandedStep = 6;
+  renderCompose();
   if (state.customerLogoB64) { state.customerLogoB64 = null; state.customerLogoEnabled = false; }
 }
 
@@ -2410,7 +2416,8 @@ function renderCompose() {
     { num: 2,   id: 'step2',        title: 'Polish',   desc: 'AI shape to count' },
     { num: 3,   id: 'step3',        title: 'Edit',     desc: 'Titles & body' },
     { num: 3.5, id: 'step35',       title: 'Model',    desc: 'Pick image model' },
-    { num: 5,   id: 'step5',        title: 'Generate', desc: 'Render & assemble' }
+    { num: 5,   id: 'step5',        title: 'Generate', desc: 'Render & assemble' },
+    { num: 6,   id: 'step6',        title: 'Ready',    desc: 'Download & white paper' }
   ];
   const columnsHtml = stepsMeta.map((s, idx) => {
     const stateCls = columnStateClass(s.num, s.workflow);
@@ -2434,7 +2441,7 @@ function renderCompose() {
       <div class="muted body-sm" style="margin-top:8px;max-width:680px">Click any step\u2019s spine to expand it. Completed steps stay reachable; future steps unlock as you progress.</div>
     </div>
     <div class="step-columns">${columnsHtml}</div>`;
-  renderPastDecksCol(); renderStep0(); renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5();
+  renderPastDecksCol(); renderStep0(); renderStep1(); renderStep2(); renderStep3(); renderStep35(); renderStep5(); renderStep6();
   bindPastDecksPanel();
   // Bind spine clicks
   document.querySelectorAll('[data-spine]').forEach(el => {
@@ -3130,6 +3137,80 @@ function renderStep5() {
   if (brn) brn.onclick = () => rewriteAllNotesWithClaude();
   document.getElementById('assembleBtn').onclick = async () => { state.assembling = true; renderStep5(); try { await assemblePptx(); } finally { state.assembling = false; renderStep5(); } };
 }
+
+// Build #58 — Step 6: Deck ready column (replaces showDeckReadyModal popup)
+function renderStep6() {
+  const el = document.getElementById('step6'); if (!el) return;
+  const isFuture = state.composeStep < 6;
+  if (isFuture) {
+    el.innerHTML = '<div class="step-card future"><div class="step-header"><div class="step-num">6</div><div class="step-title">Deck ready</div><div class="step-desc">Unlocked after .pptx is assembled</div></div></div>';
+    return;
+  }
+  const ready = state.deckReady || {};
+  const fileName = ready.fileName || 'deck.pptx';
+  const blobSize = ready.blobSize || 0;
+  const slideCount = state.slides.length;
+  const slideImageRows = deckCost.imageDetails.filter(d => d.kind === 'slide');
+  const regenRows = deckCost.imageDetails.filter(d => d.kind === 'regen');
+  const testRows = deckCost.imageDetails.filter(d => d.kind === 'test');
+  const slideImageCost = slideImageRows.reduce((s, r) => s + r.cost, 0);
+  const regenCost = regenRows.reduce((s, r) => s + r.cost, 0);
+  const testCost = testRows.reduce((s, r) => s + r.cost, 0);
+  const total = deckCost.total();
+  const notesRows = state.slides.map((s, i) => {
+    const wc = countWords(s.speakerNotes);
+    const has = wc > 0;
+    return '<tr><td style="width:60px" class="mono subtle">Slide ' + (i+1) + '</td><td>' + escapeHtml(s.title) + '</td><td style="text-align:right">' + (has ? '<span class="badge badge-success">' + wc + ' word' + (wc===1?'':'s') + '</span>' : '<span class="badge badge-warning">No notes</span>') + '</td></tr>';
+  }).join('');
+  el.innerHTML =
+    '<div class="step-card">' +
+      '<div class="step-header"><div class="step-num">6</div><div class="step-title">Deck ready</div><div class="step-desc">' + escapeHtml(fileName) + ' \u00b7 ' + (blobSize/1024).toFixed(0) + ' KB</div></div>' +
+      '<div class="step-body">' +
+        '<div style="display:flex;gap:8px;align-items:center;padding:10px 12px;background:var(--success-bg, var(--surface-2));border:1px solid var(--success, var(--border));border-radius:var(--radius-md);margin-bottom:14px;color:var(--success, var(--text))"><span style="font-size:18px">\u2713</span><div><div style="font-weight:500;font-size:13px">Your .pptx is downloaded</div><div class="muted body-sm" style="font-size:11px;opacity:0.9">Check your Downloads folder for ' + escapeHtml(fileName) + '</div></div></div>' +
+        '<div class="h2" style="margin-bottom:8px">Cost breakdown</div>' +
+        '<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">' +
+          '<table><tbody>' +
+            '<tr><td>Polish (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">' + fmtUsd4(deckCost.polish) + '</td></tr>' +
+            (testCost > 0 ? '<tr><td>Test slide images <span class="subtle">(' + testRows.length + ' model' + (testRows.length===1?'':'s') + ')</span></td><td class="mono" style="text-align:right">' + fmtUsd4(testCost) + '</td></tr>' : '') +
+            '<tr><td>Slide images <span class="subtle">(' + slideImageRows.length + '\u00d7)</span></td><td class="mono" style="text-align:right">' + fmtUsd4(slideImageCost) + '</td></tr>' +
+            (regenCost > 0 ? '<tr><td>Regenerations <span class="subtle">(' + regenRows.length + ')</span></td><td class="mono" style="text-align:right">' + fmtUsd4(regenCost) + '</td></tr>' : '') +
+            (deckCost.whitePaper > 0 ? '<tr><td>White paper text (Claude Sonnet 4.5)</td><td class="mono" style="text-align:right">' + fmtUsd4(deckCost.whitePaper) + '</td></tr>' : '') +
+            (deckCost.whitePaperIllust > 0 ? '<tr><td>White paper illustrations</td><td class="mono" style="text-align:right">' + fmtUsd4(deckCost.whitePaperIllust) + '</td></tr>' : '') +
+            '<tr style="font-weight:600"><td>Total</td><td class="mono" style="text-align:right">' + fmtUsd4(total) + '</td></tr>' +
+          '</tbody></table>' +
+        '</div>' +
+        '<div class="h2" style="margin-bottom:8px">Speaker notes</div>' +
+        '<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">' +
+          '<table><tbody>' + notesRows + '</tbody></table>' +
+        '</div>' +
+        '<div id="wpPanel">' + renderWhitePaperPanel() + '</div>' +
+        '<div class="muted body-sm" style="margin-top:14px">' + slideCount + ' slides generated. Notes embedded in PowerPoint\u2019s native speaker-notes field.</div>' +
+        '<div style="display:flex;gap:8px;justify-content:space-between;margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">' +
+          '<button class="btn-ghost" id="step6BackBtn">\u2190 Back to generate</button>' +
+          '<button class="btn-secondary" id="step6NewDeckBtn">Start a new deck</button>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  bindWhitePaperPanel();
+  const backBtn = document.getElementById('step6BackBtn');
+  if (backBtn) backBtn.onclick = () => { state.expandedStep = 5; renderCompose(); };
+  const newDeckBtn = document.getElementById('step6NewDeckBtn');
+  if (newDeckBtn) newDeckBtn.onclick = () => {
+    const ok = window.confirm('Start a new deck? Current deck content will be cleared. (The .pptx you downloaded is unaffected and any past decks remain in your history.)');
+    if (!ok) return;
+    state.composeStep = 0;
+    state.expandedStep = 0;
+    state.rawText = '';
+    state.slides = [];
+    state.polishMode = null;
+    state.deckReady = { fileName: null, blobSize: 0, completedAt: null };
+    state.whitePaper = { data: null, blob: null, status: 'idle', error: null, cost: 0, illustCost: 0, deckTitle: '', statusMsg: '', figuresTotal: 0, figuresDone: 0, illustTotal: 0, illustDone: 0, awaitingConfirm: false, includeIllustrations: true, targetPagesMin: 6, targetPagesMax: 10, targetPages: 8, awaitingPageCount: true };
+    deckCost.reset();
+    if (typeof renderCostBadge === 'function') renderCostBadge();
+    renderCompose();
+    toast({ type: 'info', message: 'Ready for a new deck' });
+  };
+}
 function renderStep5Slides() {
   const list = document.getElementById('step5Slides'); if (!list) return;
   list.innerHTML = state.slides.map((s, i) => renderImgCard(s, i)).join('');
@@ -3806,7 +3887,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.9.0</span> (build #57 — 3-slot branding + WP logo fix)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.9.1</span> (build #58 — deck ready as Step 6 column)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
