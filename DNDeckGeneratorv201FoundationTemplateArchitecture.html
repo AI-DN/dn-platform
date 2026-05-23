@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.14.2</title>
+<title>DN Deck Generator v2.14.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.14.2 #82</div>
+      <div class="brand-version">v2.14.3 #83</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1478,6 +1478,45 @@ async function inpaintReservedZones(slide) {
   throw new Error('Image-edit response missing b64_json/url');
 }
 // Build #82 — Image-to-image via Claude vision analysis + text-to-image generation
+// Build #83 — Downscale image to fit Claude vision API's 5MB cap
+async function downscaleImageForVision(b64) {
+  // Try loading as PNG first, fall back to JPEG
+  let img;
+  try {
+    img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('PNG load failed'));
+      im.src = 'data:image/png;base64,' + b64;
+    });
+  } catch (e) {
+    img = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('Reference image load failed'));
+      im.src = 'data:image/jpeg;base64,' + b64;
+    });
+  }
+  const MAX_DIM = 1280;
+  const srcW = img.width, srcH = img.height;
+  const longest = Math.max(srcW, srcH);
+  let dstW = srcW, dstH = srcH;
+  if (longest > MAX_DIM) {
+    const scale = MAX_DIM / longest;
+    dstW = Math.round(srcW * scale);
+    dstH = Math.round(srcH * scale);
+  }
+  const canvas = document.createElement('canvas');
+  canvas.width = dstW;
+  canvas.height = dstH;
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(img, 0, 0, dstW, dstH);
+  // Encode as JPEG quality 0.85 — much smaller than PNG, still high-quality
+  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.85);
+  const newB64 = jpegDataUrl.split(',')[1];
+  return { b64: newB64, mediaType: 'image/jpeg', width: dstW, height: dstH, sizeBytes: Math.round(newB64.length * 3 / 4) };
+}
+
 async function analyzeReferenceImageWithClaude(referenceB64, slideTitle) {
   const ak = (state.apiKeys.anthropic || '').trim();
   if (!ak) throw new Error('Anthropic key required for reference image analysis');
@@ -1493,6 +1532,9 @@ async function analyzeReferenceImageWithClaude(referenceB64, slideTitle) {
     '6. Background style (gradient, color, dark/light)\n' +
     '7. Visual concepts that must be preserved (e.g. "wagon-wheel of products around a central brain", "left-right split with map on right")\n\n' +
     'Format as a numbered list. Be concrete and spatially specific. Do NOT describe colors of specific elements in depth (the new slide will be restyled). DO describe positional and structural relationships precisely.';
+  // Build #83 — downscale to ensure we stay under Claude's 5MB image cap
+  const visionImage = await downscaleImageForVision(referenceB64);
+  console.log('[Vision] Downscaled reference image: ' + visionImage.width + 'x' + visionImage.height + ', ~' + Math.round(visionImage.sizeBytes/1024) + ' KB');
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
@@ -1501,7 +1543,7 @@ async function analyzeReferenceImageWithClaude(referenceB64, slideTitle) {
       max_tokens: 600,
       system: sysPrompt,
       messages: [{ role: 'user', content: [
-        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: referenceB64 } },
+        { type: 'image', source: { type: 'base64', media_type: visionImage.mediaType, data: visionImage.b64 } },
         { type: 'text', text: userPrompt }
       ] }]
     })
@@ -4948,7 +4990,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.14.2</span> (build #82 — Claude vision + text-to-image pipeline)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.14.3</span> (build #83 — downscale vision input)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
