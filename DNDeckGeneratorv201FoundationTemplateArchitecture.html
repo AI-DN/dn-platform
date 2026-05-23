@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.1</title>
+<title>DN Deck Generator v2.12.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -635,7 +635,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.1 #68</div>
+      <div class="brand-version">v2.12.2 #69</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1608,7 +1608,8 @@ function addLayoutBlock(slideIdx, presetKey) {
     x: preset.x, y: preset.y, w: preset.w, h: preset.h,
     presetKey: presetKey,
     assetId: null,
-    reserve: true
+    reserve: true,
+    fillMode: 'contain'
   });
   rerenderCurrentSlideStep();
 }
@@ -1634,7 +1635,8 @@ function applyBlockToAllSlides(srcSlideIdx, blockId) {
       x: srcBlock.x, y: srcBlock.y, w: srcBlock.w, h: srcBlock.h,
       presetKey: srcBlock.presetKey,
       assetId: srcBlock.assetId,
-      reserve: !!srcBlock.reserve
+      reserve: !!srcBlock.reserve,
+      fillMode: srcBlock.fillMode || 'contain'
     });
     added++;
   });
@@ -1650,6 +1652,13 @@ function assignBlockAsset(slideIdx, blockId, assetId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
   if (b) { b.assetId = assetId; }
+  rerenderCurrentSlideStep();
+}
+// Build #69 — set fillMode on a block
+function setBlockFillMode(slideIdx, blockId, mode) {
+  const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
+  const b = slide.layoutBlocks.find(x => x.id === blockId);
+  if (b) { b.fillMode = mode; }
   rerenderCurrentSlideStep();
 }
 function assetById(id) { return (state.userAssets || []).find(a => a.id === id) || null; }
@@ -1723,13 +1732,23 @@ function openLayoutBlockPicker(slideIdx, blockId) {
   const presetLabel = preset ? preset.label : (block.x + ',' + block.y);
   function renderModal() {
     const assets = state.userAssets || [];
+    const fillMode = block.fillMode || 'contain';
+    const fillSelOptions =
+      '<option value="contain"' + (fillMode==='contain'?' selected':'') + '>Contain (fit inside, preserve aspect)</option>' +
+      '<option value="cover"' + (fillMode==='cover'?' selected':'') + '>Cover (fill block, crop if needed)</option>' +
+      '<option value="stretch"' + (fillMode==='stretch'?' selected':'') + '>Stretch (ignore aspect, fill exactly)</option>';
     const reserveSection =
       '<div class="branding-picker-section">' +
         '<div class="sect-title">Block options</div>' +
-        '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer;margin-bottom:10px">' +
           '<input type="checkbox" id="lbReserveChk" ' + (block.reserve ? 'checked' : '') + '>' +
           '<span>Tell AI to leave this area clean when generating the slide image</span>' +
         '</label>' +
+        '<div style="display:flex;align-items:center;gap:8px;font-size:12px">' +
+          '<label for="lbFillModeSel" style="flex-shrink:0">Fill mode:</label>' +
+          '<select class="select" id="lbFillModeSel" style="flex:1;max-width:380px">' + fillSelOptions + '</select>' +
+        '</div>' +
+        '<div class="muted body-sm" style="font-size:11px;margin-top:6px">Contain preserves the image\u2019s original aspect ratio. Cover crops to fill the block. Stretch distorts the image to match exactly.</div>' +
       '</div>';
     const clearTile = '<div class="branding-picker-tile is-none ' + (block.assetId === null ? 'is-selected' : '') + '" data-asset-pick="">Empty / reserved</div>';
     const assetTiles = assets.map(a =>
@@ -1755,6 +1774,9 @@ function openLayoutBlockPicker(slideIdx, blockId) {
     openModal(html, { lg: true });
     const chk = document.getElementById('lbReserveChk');
     if (chk) chk.onchange = e => { block.reserve = e.target.checked; rerenderCurrentSlideStep(); };
+    // Build #69 — fill mode dropdown
+    const fmSel = document.getElementById('lbFillModeSel');
+    if (fmSel) fmSel.onchange = e => { setBlockFillMode(slideIdx, blockId, e.target.value); renderModal(); };
     document.querySelectorAll('[data-asset-pick]').forEach(el => {
       el.onclick = (e) => {
         if (e.target.closest('[data-asset-del]')) return;
@@ -1895,7 +1917,7 @@ async function assemblePptx() {
       ? bm.text
       : getFooterText();
     s.addText(footerText, { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
-    // Build #63/#65 — overlay layout block assets with aspect ratio preserved
+    // Build #63/#65/#69 — overlay layout block assets honouring fillMode
     const lbs = slide.layoutBlocks || [];
     for (const block of lbs) {
       if (!block.assetId) continue;
@@ -1907,28 +1929,36 @@ async function assemblePptx() {
       const by = 7.5 * (block.y / 100);
       const bw = 13.33 * (block.w / 100);
       const bh = 7.5 * (block.h / 100);
-      // Build #65 — preserve image aspect ratio, fit inside (contain), center within block
-      let finalX = bx, finalY = by, finalW = bw, finalH = bh;
+      const fillMode = block.fillMode || 'contain';
       try {
-        const dims = await getImageDimensions(asset.b64);
-        if (dims && dims.width && dims.height) {
-          const imgAspect = dims.width / dims.height;
-          const blockAspect = bw / bh;
-          if (imgAspect > blockAspect) {
-            // Image is wider than block — fit width, scale height down
-            finalW = bw;
-            finalH = bw / imgAspect;
-          } else {
-            // Image is taller (or same) than block — fit height, scale width down
-            finalH = bh;
-            finalW = bh * imgAspect;
-          }
-          finalX = bx + (bw - finalW) / 2;
-          finalY = by + (bh - finalH) / 2;
+        if (fillMode === 'stretch') {
+          // Distort to fill block exactly — no aspect preservation
+          s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: bx, y: by, w: bw, h: bh });
+        } else if (fillMode === 'cover') {
+          // PptxGenJS sizing 'cover' crops to fill the block while preserving aspect
+          s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: bx, y: by, w: bw, h: bh, sizing: { type: 'cover', w: bw, h: bh } });
+        } else {
+          // contain (default) — preserve aspect, fit inside, center within block
+          let finalX = bx, finalY = by, finalW = bw, finalH = bh;
+          try {
+            const dims = await getImageDimensions(asset.b64);
+            if (dims && dims.width && dims.height) {
+              const imgAspect = dims.width / dims.height;
+              const blockAspect = bw / bh;
+              if (imgAspect > blockAspect) {
+                finalW = bw;
+                finalH = bw / imgAspect;
+              } else {
+                finalH = bh;
+                finalW = bh * imgAspect;
+              }
+              finalX = bx + (bw - finalW) / 2;
+              finalY = by + (bh - finalH) / 2;
+            }
+          } catch (dimErr) { console.warn('Block asset dim read failed:', dimErr); }
+          s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: finalX, y: finalY, w: finalW, h: finalH });
         }
-      } catch (dimErr) { console.warn('Block asset dim read failed, using stretched fit:', dimErr); }
-      try { s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: finalX, y: finalY, w: finalW, h: finalH }); }
-      catch (e) { console.warn('Layout block overlay failed:', e); }
+      } catch (e) { console.warn('Layout block overlay failed:', e); }
     }
     const notesText = (slide.speakerNotes && slide.speakerNotes.trim()) ? slide.speakerNotes : (slide.body || '');
     if (notesText && notesText.trim()) s.addNotes(notesText);
@@ -4437,7 +4467,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.1</span> (build #68 — apply-to-all + stale badge + cleanup)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.2</span> (build #69 — per-block fill mode)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -4534,7 +4564,7 @@ async function saveCurrentDeckToSupabase() {
     speakerNotes: s.speakerNotes || '',
     imagePrompt: s.imagePrompt || null,
     lastPrompt: s.lastPrompt || null,
-    layoutBlocks: s.layoutBlocks || []
+    layoutBlocks: (s.layoutBlocks || []).map(b => ({ ...b, fillMode: b.fillMode || 'contain' }))
   }));
   const payload = {
     owner: OWNER_ID,
