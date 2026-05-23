@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.9.1</title>
+<title>DN Deck Generator v2.9.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -600,7 +600,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.9.1 #58</div>
+      <div class="brand-version">v2.9.2 #59</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -901,6 +901,8 @@ const state = {
   deckBranding: null,
   // Build #58 — deck-ready state for Step 6 column
   deckReady: { fileName: null, blobSize: 0, completedAt: null },
+  // Build #59 — when true, the next renderCompose skips the auto-snap that forces expandedStep >= composeStep
+  expandedStepLocked: false,
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -2401,6 +2403,7 @@ function expandColumn(stepNum) {
     if (cs < stepNum) { toast({ type: 'info', message: 'Complete the previous steps to unlock this one' }); return; }
   }
   state.expandedStep = stepNum;
+  state.expandedStepLocked = true; // Build #59 — explicit user nav, don't auto-snap
   renderCompose();
 }
 function renderCompose() {
@@ -2408,7 +2411,11 @@ function renderCompose() {
   cont.className = 'content';
   if (typeof state.expandedStep !== 'number') state.expandedStep = state.composeStep;
   // If user advanced workflow, snap expansion forward
-  if (state.expandedStep >= 0 && state.expandedStep < state.composeStep) state.expandedStep = state.composeStep;
+  // Build #59 — auto-snap honors explicit-back-nav lock
+  if (!state.expandedStepLocked && state.expandedStep >= 0 && state.expandedStep < state.composeStep) {
+    state.expandedStep = state.composeStep;
+  }
+  state.expandedStepLocked = false;
   const stepsMeta = [
     { num: -1,  id: 'pastDecksCol', title: 'Decks',    desc: 'Past decks', workflow: false },
     { num: 0,   id: 'step0',        title: 'Skill',    desc: 'Choose template' },
@@ -3193,7 +3200,7 @@ function renderStep6() {
     '</div>';
   bindWhitePaperPanel();
   const backBtn = document.getElementById('step6BackBtn');
-  if (backBtn) backBtn.onclick = () => { state.expandedStep = 5; renderCompose(); };
+  if (backBtn) backBtn.onclick = () => { state.expandedStep = 5; state.expandedStepLocked = true; renderCompose(); };
   const newDeckBtn = document.getElementById('step6NewDeckBtn');
   if (newDeckBtn) newDeckBtn.onclick = () => {
     const ok = window.confirm('Start a new deck? Current deck content will be cleared. (The .pptx you downloaded is unaffected and any past decks remain in your history.)');
@@ -3887,7 +3894,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.9.1</span> (build #58 — deck ready as Step 6 column)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.9.2</span> (build #59 — back-nav + load-past-deck fixes)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -4051,11 +4058,15 @@ function loadSavedDeckIntoState(deck) {
   }));
   if (deck.model_used) state.lastSelectedModel = deck.model_used;
   state.polishMode = null;
-  state.composeStep = 3.5;
+  // Build #59 — land on Edit (composeStep=3, spine 4) so user can review/edit slide text.
+  // Continue button from Edit will call enterStep35() which populates model candidates properly.
+  state.composeStep = 3;
+  state.expandedStep = 3;
+  state.expandedStepLocked = true;
   state.view = 'compose';
   setActiveNav();
   renderCompose();
-  toast({ type: 'success', message: 'Loaded "' + (deck.title || 'deck') + '" - pick model & generate images' });
+  toast({ type: 'success', message: 'Loaded "' + (deck.title || 'deck') + '" — review/edit text, then continue to pick a model' });
 }
 
 async function deleteSavedDeck(id) {
