@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.11.0</title>
+<title>DN Deck Generator v2.11.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -626,7 +626,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.11.0 #63</div>
+      <div class="brand-version">v2.11.1 #64</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1556,6 +1556,11 @@ const LAYOUT_BLOCK_PRESETS = {
   'hero':          { x: 25, y: 22, w: 50, h: 50, label: 'Hero (center large)' }
 };
 function genBlockId() { return 'lb_' + Math.random().toString(36).slice(2, 10); }
+function rerenderCurrentSlideStep() {
+  // Build #64 — layout block CRUD rerenders the step the user is on
+  if (state.composeStep === 3 && typeof renderStep3 === 'function') renderStep3();
+  else if (state.composeStep >= 5 && typeof renderStep5Slides === 'function') renderStep5Slides();
+}
 function addLayoutBlock(slideIdx, presetKey) {
   const preset = LAYOUT_BLOCK_PRESETS[presetKey];
   if (!preset) return;
@@ -1568,23 +1573,23 @@ function addLayoutBlock(slideIdx, presetKey) {
     assetId: null,
     reserve: true
   });
-  renderStep5Slides();
+  rerenderCurrentSlideStep();
 }
 function removeLayoutBlock(slideIdx, blockId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   slide.layoutBlocks = slide.layoutBlocks.filter(b => b.id !== blockId);
-  renderStep5Slides();
+  rerenderCurrentSlideStep();
 }
 function toggleBlockReserve(slideIdx, blockId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
-  if (b) { b.reserve = !b.reserve; renderStep5Slides(); }
+  if (b) { b.reserve = !b.reserve; rerenderCurrentSlideStep(); }
 }
 function assignBlockAsset(slideIdx, blockId, assetId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
   if (b) { b.assetId = assetId; }
-  renderStep5Slides();
+  rerenderCurrentSlideStep();
 }
 function assetById(id) { return (state.userAssets || []).find(a => a.id === id) || null; }
 
@@ -1688,7 +1693,7 @@ function openLayoutBlockPicker(slideIdx, blockId) {
       '<div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Done</button></div>';
     openModal(html, { lg: true });
     const chk = document.getElementById('lbReserveChk');
-    if (chk) chk.onchange = e => { block.reserve = e.target.checked; renderStep5Slides(); };
+    if (chk) chk.onchange = e => { block.reserve = e.target.checked; rerenderCurrentSlideStep(); };
     document.querySelectorAll('[data-asset-pick]').forEach(el => {
       el.onclick = (e) => {
         if (e.target.closest('[data-asset-del]')) return;
@@ -3115,6 +3120,7 @@ function renderSlideEditCard(s, i) {
       <div class="slide-edit-head"><span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span><span class="slide-edit-num">Slide ${i+1}</span><div class="slide-edit-actions"><button class="icon-btn-sm" data-act="up" ${isFirst ? 'disabled' : ''} aria-label="Move up" title="${isFirst ? 'Already at top' : 'Move up'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button><button class="icon-btn-sm" data-act="down" ${isLast ? 'disabled' : ''} aria-label="Move down" title="${isLast ? 'Already at bottom' : 'Move down'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button><button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled' : ''} aria-label="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>
       <div class="field"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label class="field-label" style="margin-bottom:0">Title</label><button class="btn-ghost" data-act="zoomTitle" title="Open title in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button></div><input class="input" data-act="title" value="${escapeHtml(s.title)}"></div>
       <div class="field" style="margin-bottom:0"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label class="field-label" style="margin-bottom:0">Body</label><button class="btn-ghost" data-act="zoomBody" title="Open body in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button></div><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea><div class="field-hint" style="margin-top:4px">This body text becomes the default speaker notes on Step 5. Edit there if you want different notes than what appears on the slide.</div></div>
+      ${renderLayoutBlocksSection(s, i)}
     </div>`;
 }
 function bindSlideEditCard(i) {
@@ -3150,6 +3156,19 @@ function bindSlideEditCard(i) {
       }
     });
   };
+  // Build #64 — layout block wiring (moved here from Step 5 so blocks exist before generation)
+  card.querySelectorAll('[data-block-add]').forEach(b => {
+    b.onclick = () => addLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-add'));
+  });
+  card.querySelectorAll('[data-block-pick]').forEach(b => {
+    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-pick'));
+  });
+  card.querySelectorAll('[data-block-del]').forEach(b => {
+    b.onclick = () => removeLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-del'));
+  });
+  card.querySelectorAll('[data-block-canvas-click]').forEach(b => {
+    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
+  });
   card.querySelector('[data-act="del"]').onclick = () => { if (state.slides.length <= state.slideMin) return; state.slides.splice(i, 1); renderStep3(); };
   const upBtn = card.querySelector('[data-act="up"]'); if (upBtn) upBtn.onclick = () => moveSlideUp(i);
   const dnBtn = card.querySelector('[data-act="down"]'); if (dnBtn) dnBtn.onclick = () => moveSlideDown(i);
@@ -3686,8 +3705,8 @@ function renderImgCard(s, i) {
               <button class="btn-ghost" data-act="zoomNotes" title="Open notes in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button>
             </div>
             ${s.notesExpanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">What to say while presenting</label><textarea class="textarea prose" data-act="notesText" rows="6" placeholder="Speaker notes — pre-filled from slide body. Edit freely.">${escapeHtml(s.speakerNotes || '')}</textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-secondary" data-act="aiNotes" ${s.rewritingNotes ? 'disabled' : ''}>${s.rewritingNotes ? '<span class="spinner"></span> Rewriting…' : 'Make presenter-friendly with AI'}</button>${s.prevSpeakerNotes != null ? '<button class="btn-ghost" data-act="restoreNotes">Restore previous</button>' : ''}<span class="muted body-sm" style="margin-left:auto;align-self:center;font-size:11px">~$0.01 per rewrite</span></div></div>` : ''}
+            ${(s.layoutBlocks && s.layoutBlocks.length > 0) ? `<div class="refine-section" style="margin-top:10px;padding:8px 10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:var(--radius-md);font-size:11px;color:var(--text-muted)">▣ ${s.layoutBlocks.length} layout block${s.layoutBlocks.length===1?'':'s'} — <button class="btn-ghost" data-act="goEditBlocks" style="padding:0;font-size:11px;text-decoration:underline">edit in Step 3</button> to add/remove or change assets</div>` : ''}
           </div>
-          ${renderLayoutBlocksSection(s, i)}
         </div>
       </div>
     </div>`;
@@ -3741,19 +3760,9 @@ function bindImgCard(i) {
       }
     });
   };
-  // Build #63 — layout block wiring
-  card.querySelectorAll('[data-block-add]').forEach(b => {
-    b.onclick = () => addLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-add'));
-  });
-  card.querySelectorAll('[data-block-pick]').forEach(b => {
-    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-pick'));
-  });
-  card.querySelectorAll('[data-block-del]').forEach(b => {
-    b.onclick = () => removeLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-del'));
-  });
-  card.querySelectorAll('[data-block-canvas-click]').forEach(b => {
-    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
-  });
+  // Build #64 — layout block editing moved to Step 3; Step 5 just shows a badge + link
+  const goEdit = card.querySelector('[data-act="goEditBlocks"]');
+  if (goEdit) goEdit.onclick = () => { state.composeStep = 3; state.expandedStep = 3; state.expandedStepLocked = true; renderCompose(); };
 }
 function openLightbox(i) {
   const s = state.slides[i]; if (!s.imageB64) return;
@@ -4327,7 +4336,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.0</span> (build #63 — layout blocks + asset library)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.1</span> (build #64 — layout blocks moved to Step 3 Edit)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
