@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.14.1</title>
+<title>DN Deck Generator v2.14.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.14.1 #81</div>
+      <div class="brand-version">v2.14.2 #82</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1477,110 +1477,69 @@ async function inpaintReservedZones(slide) {
   }
   throw new Error('Image-edit response missing b64_json/url');
 }
-// Build #80 — Image-to-image regeneration using a reference image
-// Returns { b64, prompt, cost, spec } shaped like generateSlideImage.
-async function generateSlideImageWithReference(slide, fullPrompt, referenceB64) {
+// Build #82 — Image-to-image via Claude vision analysis + text-to-image generation
+async function analyzeReferenceImageWithClaude(referenceB64, slideTitle) {
+  const ak = (state.apiKeys.anthropic || '').trim();
+  if (!ak) throw new Error('Anthropic key required for reference image analysis');
+  const sysPrompt = 'You analyse the visual structure of presentation slides for an image-generation pipeline. You will be given an image of an existing slide. Produce a concise STRUCTURED DESCRIPTION that another AI can use to recreate the same visual structure (in a new style).';
+  const userPrompt = 'Analyze the visual structure of the attached slide image. ' +
+    (slideTitle ? '(The new slide we are recreating will have the title: "' + slideTitle + '". The new content will be different, but the visual structure should match.)\n\n' : '') +
+    'Describe in ~200 words:\n' +
+    '1. Overall layout type (split-screen, hub-and-spoke, wagon-wheel, grid, timeline, comparison, etc.)\n' +
+    '2. Central focal point and its position\n' +
+    '3. Surrounding elements and their spatial arrangement (be specific about positions and relationships)\n' +
+    '4. Number, shape, and layout of side panels, callout boxes, or content cards\n' +
+    '5. Major visual anchors (titles, logos, central icon)\n' +
+    '6. Background style (gradient, color, dark/light)\n' +
+    '7. Visual concepts that must be preserved (e.g. "wagon-wheel of products around a central brain", "left-right split with map on right")\n\n' +
+    'Format as a numbered list. Be concrete and spatially specific. Do NOT describe colors of specific elements in depth (the new slide will be restyled). DO describe positional and structural relationships precisely.';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 600,
+      system: sysPrompt,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: 'image/png', data: referenceB64 } },
+        { type: 'text', text: userPrompt }
+      ] }]
+    })
+  });
+  if (!resp.ok) { const t = await resp.text(); throw new Error('Claude vision ' + resp.status + ': ' + t.slice(0, 200)); }
+  const data = await resp.json();
+  let cost = 0.01;
+  if (data.usage) { try { cost = getAnthropicCost('claude-sonnet-4-5-20250929', data.usage.input_tokens || 0, data.usage.output_tokens || 0); } catch (e) {} }
+  const analysisText = (data.content && data.content[0] && data.content[0].text) || '';
+  return { analysis: analysisText.trim(), cost: cost };
+}
+
+async function generateSlideImageWithReference(slide, fullPrompt, referenceB64, overrideSpec) {
   const apiKey = (state.apiKeys.openai || '').trim();
   if (!apiKey) throw new Error('OpenAI key required for reference-image regen');
   if (!referenceB64) throw new Error('No reference image provided');
-  // Convert base64 reference -> PNG blob (decode as JPEG then re-export as PNG via canvas
-  // since the source could be JPEG OR PNG; the edit endpoint wants PNG)
-  const refImg = await new Promise((res, rej) => {
-    const im = new Image();
-    im.onload = () => res(im);
-    im.onerror = () => rej(new Error('Reference image load failed'));
-    im.src = 'data:image/png;base64,' + referenceB64;
-  }).catch(async () => {
-    // Fall back to JPEG decode if PNG fails
-    return await new Promise((res, rej) => {
-      const im = new Image();
-      im.onload = () => res(im);
-      im.onerror = () => rej(new Error('Reference image load failed'));
-      im.src = 'data:image/jpeg;base64,' + referenceB64;
-    });
-  });
-  const canvas = document.createElement('canvas');
-  // Target 1536x1024 to match gpt-image-1 edit size constraint
-  canvas.width = 1536; canvas.height = 1024;
-  const ctx = canvas.getContext('2d');
-  // Letterbox/fit the reference into the target canvas preserving aspect
-  const srcAspect = refImg.width / refImg.height;
-  const dstAspect = canvas.width / canvas.height;
-  let dx, dy, dw, dh;
-  if (srcAspect > dstAspect) {
-    dw = canvas.width;
-    dh = canvas.width / srcAspect;
-    dx = 0;
-    dy = (canvas.height - dh) / 2;
-  } else {
-    dh = canvas.height;
-    dw = canvas.height * srcAspect;
-    dx = (canvas.width - dw) / 2;
-    dy = 0;
+  // Build #82 — Step 1: Claude vision analyzes the reference image into structured text
+  const slideTitle = (slide && slide.title) || '';
+  toast({ type: 'info', message: 'Analyzing reference image with Claude vision\u2026' });
+  const analysisResult = await analyzeReferenceImageWithClaude(referenceB64, slideTitle);
+  const analysis = analysisResult.analysis;
+  const visionCost = analysisResult.cost || 0.005;
+  if (typeof deckCost !== 'undefined') {
+    deckCost.polish += visionCost;
+    if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-sonnet-4-5', quality: 'vision', cost: visionCost, kind: 'vision-analysis' });
+    if (typeof renderCostBadge === 'function') renderCostBadge();
   }
-  ctx.fillStyle = '#000000';
-  ctx.fillRect(0, 0, canvas.width, canvas.height);
-  ctx.drawImage(refImg, dx, dy, dw, dh);
-  const refBlob = await new Promise(r => canvas.toBlob(r, 'image/png'));
-  // Build #81 — fully transparent mask: tells gpt-image-1 "use the reference as
-  // visual conditioning, every pixel is editable". Without this, the edit endpoint
-  // falls back to text-only generation and the reference is ignored.
-  const maskCanvas = document.createElement('canvas');
-  maskCanvas.width = 1536; maskCanvas.height = 1024;
-  // Canvas is transparent by default — no need to fill. But we'll explicitly clear
-  // to be safe.
-  const mctx = maskCanvas.getContext('2d');
-  mctx.clearRect(0, 0, 1536, 1024);
-  const maskBlob = await new Promise(r => maskCanvas.toBlob(r, 'image/png'));
-  // Build #81 — prepend preservation guidance so the skill prompt doesn't dominate
-  const guidedPrompt =
-    'IMPORTANT - REFERENCE IMAGE PROVIDED:\n' +
-    'A reference image has been provided alongside this prompt. Use it as the ' +
-    'STRUCTURAL TEMPLATE for the new slide:\n' +
-    '- Preserve the overall composition (layout structure, focal-point placement, ' +
-      'spatial arrangement of elements)\n' +
-    '- Preserve any distinctive visual concepts (e.g. wagon-wheel diagram, central ' +
-      'hub-and-spoke, split-screen, timeline, comparison grid, etc.)\n' +
-    '- Preserve the role and position of major visual anchors (where the title ' +
-      'sits, where the central element sits, where surrounding elements sit)\n' +
-    '- You MAY refine the styling, refresh the design language, update colors, ' +
-      'improve typography, and replace placeholder text with the slide-specific ' +
-      'content given below\n' +
-    '- Do NOT invent a completely new structure that ignores the reference\n\n' +
-    'Apply the styling and content instructions below WITHIN the structural ' +
-    'framework of the reference image:\n\n' +
+  const augmentedPrompt =
+    '=== REFERENCE STRUCTURE TO REPLICATE ===\n' +
+    'A previous version of this slide has been analyzed. The new slide MUST use the same visual structure as described below — same layout type, same focal-point placement, same spatial arrangement of elements. The styling/content will be updated according to the skill prompt that follows, but the STRUCTURE must match this description exactly:\n\n' +
+    analysis + '\n\n' +
+    'Recreate that exact structure. Do not invent a different layout. Then apply the styling and content guidance below:\n\n=== END REFERENCE STRUCTURE ===\n\n' +
     fullPrompt;
-  // Build form
-  const fd = new FormData();
-  fd.append('model', 'gpt-image-1');
-  fd.append('image', refBlob, 'reference.png');
-  fd.append('mask', maskBlob, 'mask.png');
-  fd.append('prompt', guidedPrompt);
-  fd.append('size', '1536x1024');
-  fd.append('quality', 'medium');
-  fd.append('n', '1');
-  const resp = await fetch('https://api.openai.com/v1/images/edits', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + apiKey },
-    body: fd
-  });
-  if (!resp.ok) {
-    const t = await resp.text();
-    throw new Error('Reference-regen ' + resp.status + ': ' + t.slice(0, 200));
-  }
-  const data = await resp.json();
-  const item = data.data && data.data[0];
-  let b64 = null;
-  if (item && item.b64_json) b64 = item.b64_json;
-  else if (item && item.url) {
-    const r2 = await fetch(item.url);
-    const blob = await r2.blob();
-    b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
-  }
-  if (!b64) throw new Error('Reference-regen response missing b64_json/url');
-  const cost = 0.042; // gpt-image-1 medium edit ~$0.04
-  const spec = { provider: 'openai', model: 'gpt-image-1', quality: 'medium' };
-  return { b64: b64, prompt: fullPrompt, cost: cost, spec: spec };
+  const spec = overrideSpec || currentEffectiveModel();
+  toast({ type: 'info', message: 'Generating slide with reference structure (' + modelLabel(spec.provider, spec.model, spec.quality) + ')\u2026' });
+  const genB64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, augmentedPrompt);
+  const genCost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
+  return { b64: genB64, prompt: augmentedPrompt, cost: genCost, spec: spec };
 }
 
 async function inpaintIfReservedBlocks(slide, idx) {
@@ -1618,7 +1577,7 @@ async function regenerateOne(idx, newPrompt, overrideSpec) {
     const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
     const promptToUse = newPrompt || composeSkillPrompt(skill, slide);
     const result = useRef
-      ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64)
+      ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64, overrideSpec)
       : await generateSlideImage(slide, newPrompt, overrideSpec);
     const { b64, prompt, cost, spec } = result;
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
@@ -4207,7 +4166,7 @@ function renderImgCard(s, i) {
                   (refSet ? '<button class="btn-ghost" data-act="refClear" style="font-size:10px;padding:1px 6px">Remove</button>' : '') +
                 '</div>' +
                 (refSet
-                  ? '<div style="display:flex;align-items:center;gap:8px"><img src="data:image/png;base64,' + s.referenceImageB64 + '" alt="reference" style="width:80px;height:auto;border:1px solid var(--border);border-radius:3px"><div class="muted body-sm" style="font-size:10px;flex:1">' + escapeHtml(s.referenceImageName || 'reference image') + '<br>Regenerate will use this as visual reference (gpt-image-1, ~$0.04). Inpaint of reserved zones still runs after.</div></div>'
+                  ? '<div style="display:flex;align-items:center;gap:8px"><img src="data:image/png;base64,' + s.referenceImageB64 + '" alt="reference" style="width:80px;height:auto;border:1px solid var(--border);border-radius:3px"><div class="muted body-sm" style="font-size:10px;flex:1">' + escapeHtml(s.referenceImageName || 'reference image') + '<br>Regenerate will analyze this with Claude vision (~$0.01), then generate using that structure + your selected model. Inpaint of reserved zones still runs after.</div></div>'
                   : '<div class="muted body-sm" style="font-size:11px;margin-bottom:6px">Upload a reference image (or use the current slide) and the next Regenerate will use it as visual inspiration alongside your prompt.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><label class="btn-secondary" style="font-size:11px;padding:4px 10px;cursor:pointer"><input type="file" data-act="refUpload" accept="image/*" style="display:none">\ud83d\udcc1 Upload image</label>' + (s.imageB64 ? '<button class="btn-ghost" data-act="refUseCurrent" style="font-size:11px;padding:4px 10px">\ud83d\udd04 Use current slide</button>' : '') + '</div>') +
               '</div>';
               // Build #76 — when slide has pending text/block changes, seed textarea with FRESH composeSkillPrompt
@@ -4989,7 +4948,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.14.1</span> (build #81 — image-to-image conditioning fix)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.14.2</span> (build #82 — Claude vision + text-to-image pipeline)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
