@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.13.1</title>
+<title>DN Deck Generator v2.14.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.13.1 #79</div>
+      <div class="brand-version">v2.14.0 #80</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1477,6 +1477,83 @@ async function inpaintReservedZones(slide) {
   }
   throw new Error('Image-edit response missing b64_json/url');
 }
+// Build #80 — Image-to-image regeneration using a reference image
+// Returns { b64, prompt, cost, spec } shaped like generateSlideImage.
+async function generateSlideImageWithReference(slide, fullPrompt, referenceB64) {
+  const apiKey = (state.apiKeys.openai || '').trim();
+  if (!apiKey) throw new Error('OpenAI key required for reference-image regen');
+  if (!referenceB64) throw new Error('No reference image provided');
+  // Convert base64 reference -> PNG blob (decode as JPEG then re-export as PNG via canvas
+  // since the source could be JPEG OR PNG; the edit endpoint wants PNG)
+  const refImg = await new Promise((res, rej) => {
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error('Reference image load failed'));
+    im.src = 'data:image/png;base64,' + referenceB64;
+  }).catch(async () => {
+    // Fall back to JPEG decode if PNG fails
+    return await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('Reference image load failed'));
+      im.src = 'data:image/jpeg;base64,' + referenceB64;
+    });
+  });
+  const canvas = document.createElement('canvas');
+  // Target 1536x1024 to match gpt-image-1 edit size constraint
+  canvas.width = 1536; canvas.height = 1024;
+  const ctx = canvas.getContext('2d');
+  // Letterbox/fit the reference into the target canvas preserving aspect
+  const srcAspect = refImg.width / refImg.height;
+  const dstAspect = canvas.width / canvas.height;
+  let dx, dy, dw, dh;
+  if (srcAspect > dstAspect) {
+    dw = canvas.width;
+    dh = canvas.width / srcAspect;
+    dx = 0;
+    dy = (canvas.height - dh) / 2;
+  } else {
+    dh = canvas.height;
+    dw = canvas.height * srcAspect;
+    dx = (canvas.width - dw) / 2;
+    dy = 0;
+  }
+  ctx.fillStyle = '#000000';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  ctx.drawImage(refImg, dx, dy, dw, dh);
+  const refBlob = await new Promise(r => canvas.toBlob(r, 'image/png'));
+  // Build form
+  const fd = new FormData();
+  fd.append('model', 'gpt-image-1');
+  fd.append('image', refBlob, 'reference.png');
+  fd.append('prompt', fullPrompt);
+  fd.append('size', '1536x1024');
+  fd.append('quality', 'medium');
+  fd.append('n', '1');
+  const resp = await fetch('https://api.openai.com/v1/images/edits', {
+    method: 'POST',
+    headers: { 'Authorization': 'Bearer ' + apiKey },
+    body: fd
+  });
+  if (!resp.ok) {
+    const t = await resp.text();
+    throw new Error('Reference-regen ' + resp.status + ': ' + t.slice(0, 200));
+  }
+  const data = await resp.json();
+  const item = data.data && data.data[0];
+  let b64 = null;
+  if (item && item.b64_json) b64 = item.b64_json;
+  else if (item && item.url) {
+    const r2 = await fetch(item.url);
+    const blob = await r2.blob();
+    b64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
+  }
+  if (!b64) throw new Error('Reference-regen response missing b64_json/url');
+  const cost = 0.042; // gpt-image-1 medium edit ~$0.04
+  const spec = { provider: 'openai', model: 'gpt-image-1', quality: 'medium' };
+  return { b64: b64, prompt: fullPrompt, cost: cost, spec: spec };
+}
+
 async function inpaintIfReservedBlocks(slide, idx) {
   if (!slide.layoutBlocks || !slide.layoutBlocks.some(b => b.reserve)) return;
   const prevStatus = slide.status;
@@ -1507,13 +1584,20 @@ async function regenerateOne(idx, newPrompt, overrideSpec) {
   slide.status = 'generating'; slide.error = null;
   renderStep5Slides();
   try {
-    const { b64, prompt, cost, spec } = await generateSlideImage(slide, newPrompt, overrideSpec);
+    // Build #80 — if slide has a reference image, use image-to-image regeneration
+    const useRef = !!(slide.referenceImageB64);
+    const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    const promptToUse = newPrompt || composeSkillPrompt(skill, slide);
+    const result = useRef
+      ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64)
+      : await generateSlideImage(slide, newPrompt, overrideSpec);
+    const { b64, prompt, cost, spec } = result;
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
     slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
     slide.status = 'done'; slide.regenCount++;
     slide.costAccrued = (slide.costAccrued || 0) + cost; slide.modelUsed = spec;
     deckCost.image += cost;
-    deckCost.imageDetails.push({ ...spec, cost, kind: 'regen' });
+    deckCost.imageDetails.push({ ...spec, cost, kind: (useRef ? 'reference-regen' : 'regen') });
     renderCostBadge();
     toast({ type: 'success', message: `Slide ${idx+1} regenerated · ${fmtUsd(cost)}` });
     // Build #78 — inpaint reserved zones deterministically
@@ -4086,12 +4170,23 @@ function renderImgCard(s, i) {
                 return '<option value="' + id + '"' + sel + '>' + escapeHtml(lbl) + '</option>';
               }).join('');
               const modelPicker = candidates.length > 0 ? ('<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Regenerate with model</label><select class="select" data-act="regenModel" style="font-size:12px;width:100%">' + opts + '</select><div class="field-hint" style="margin-top:4px;font-size:10px">Per-slide override. Bumping to medium/high helps when low quality misses reservations.</div></div>') : '';
+              // Build #80 — Reference image (image-to-image regeneration)
+              const refSet = !!(s.referenceImageB64);
+              const refSection = '<div style="margin-top:12px;padding:10px;background:var(--surface-2,var(--surface));border:1px dashed ' + (refSet ? '#0d9488' : 'var(--border)') + ';border-radius:6px">' +
+                '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">' +
+                  '<label class="field-label" style="margin-bottom:0;font-size:11px">\ud83d\udcf7 Reference image (image-to-image)</label>' +
+                  (refSet ? '<button class="btn-ghost" data-act="refClear" style="font-size:10px;padding:1px 6px">Remove</button>' : '') +
+                '</div>' +
+                (refSet
+                  ? '<div style="display:flex;align-items:center;gap:8px"><img src="data:image/png;base64,' + s.referenceImageB64 + '" alt="reference" style="width:80px;height:auto;border:1px solid var(--border);border-radius:3px"><div class="muted body-sm" style="font-size:10px;flex:1">' + escapeHtml(s.referenceImageName || 'reference image') + '<br>Regenerate will use this as visual reference (gpt-image-1, ~$0.04). Inpaint of reserved zones still runs after.</div></div>'
+                  : '<div class="muted body-sm" style="font-size:11px;margin-bottom:6px">Upload a reference image (or use the current slide) and the next Regenerate will use it as visual inspiration alongside your prompt.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><label class="btn-secondary" style="font-size:11px;padding:4px 10px;cursor:pointer"><input type="file" data-act="refUpload" accept="image/*" style="display:none">\ud83d\udcc1 Upload image</label>' + (s.imageB64 ? '<button class="btn-ghost" data-act="refUseCurrent" style="font-size:11px;padding:4px 10px">\ud83d\udd04 Use current slide</button>' : '') + '</div>') +
+              '</div>';
               // Build #76 — when slide has pending text/block changes, seed textarea with FRESH composeSkillPrompt
               // so the AI gets the up-to-date reservations. Otherwise lastPrompt (preserves manual edits).
               const stale = !!(s.blocksChangedSinceGeneration || s.textChangedSinceGeneration);
               const seedPrompt = stale ? composeSkillPrompt(skill, s) : (s.lastPrompt || composeSkillPrompt(skill, s));
               const staleNotice = stale ? '<div class="refine-stale-notice" style="margin:6px 0 4px;padding:6px 10px;background:rgba(186,117,23,0.10);border:1px solid #BA7517;border-radius:4px;font-size:11px;color:#412402">\u2728 Prompt refreshed to include your recent layout/text changes. Manual prompt edits from the last regeneration were dropped \u2014 edit again here if needed.</div>' : '';
-              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label>' + staleNotice + '<textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(seedPrompt) + '</textarea>' + modelPicker + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : 'Regenerate') + '</button><button class="btn-secondary" data-act="bakeLayout" title="Rebuild the prompt above with current layout blocks (drops manual edits)">\u270F\uFE0F Bake current layout into prompt</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
+              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label>' + staleNotice + '<textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(seedPrompt) + '</textarea>' + modelPicker + refSection + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : (refSet ? 'Regenerate (image-to-image)' : 'Regenerate')) + '</button><button class="btn-secondary" data-act="bakeLayout" title="Rebuild the prompt above with current layout blocks (drops manual edits)">\u270F\uFE0F Bake current layout into prompt</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
             })() : ''}
           </div>
           <div class="refine-section">
@@ -4131,6 +4226,37 @@ function bindImgCard(i) {
     };
   });
   const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null; if (ta) ta.value = composeSkillPrompt(skill, s); };
+  // Build #80 — Reference image wiring
+  const refUpload = card.querySelector('[data-act="refUpload"]');
+  if (refUpload) refUpload.onchange = e => {
+    const file = e.target.files && e.target.files[0]; if (!file) return;
+    if (!file.type.startsWith('image/')) { toast({ type: 'error', message: 'Image files only' }); return; }
+    if (file.size > 8 * 1024 * 1024) { toast({ type: 'error', message: 'Max 8 MB per reference image' }); return; }
+    const fr = new FileReader();
+    fr.onload = () => {
+      const b64 = fr.result.split(',')[1];
+      state.slides[i].referenceImageB64 = b64;
+      state.slides[i].referenceImageName = file.name;
+      renderStep5Slides();
+      toast({ type: 'success', message: 'Reference image set: ' + file.name });
+    };
+    fr.readAsDataURL(file);
+  };
+  const refUseCur = card.querySelector('[data-act="refUseCurrent"]');
+  if (refUseCur) refUseCur.onclick = () => {
+    if (!state.slides[i].imageB64) { toast({ type: 'error', message: 'No current image to use' }); return; }
+    state.slides[i].referenceImageB64 = state.slides[i].imageB64;
+    state.slides[i].referenceImageName = 'current slide (Slide ' + (i+1) + ')';
+    renderStep5Slides();
+    toast({ type: 'success', message: 'Using current slide as reference' });
+  };
+  const refClear = card.querySelector('[data-act="refClear"]');
+  if (refClear) refClear.onclick = () => {
+    state.slides[i].referenceImageB64 = null;
+    state.slides[i].referenceImageName = null;
+    renderStep5Slides();
+    toast({ type: 'info', message: 'Reference image cleared' });
+  };
   // Build #77 — Bake current layout (and text) into the prompt textarea
   const bake = card.querySelector('[data-act="bakeLayout"]');
   if (bake) bake.onclick = () => {
@@ -4834,7 +4960,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.13.1</span> (build #79 — hotfix inpaint scope)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.14.0</span> (build #80 — reference image regeneration)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
