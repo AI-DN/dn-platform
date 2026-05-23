@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.10.1</title>
+<title>DN Deck Generator v2.11.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -593,6 +593,31 @@ tbody tr:hover { background: var(--surface-2); }
 .branding-picker-quickpicks .qp-chip { padding: 2px 10px; background: var(--surface-2, var(--surface)); border: 1px solid var(--border); border-radius: 999px; font-size: 11px; color: var(--text); cursor: pointer; }
 .branding-picker-quickpicks .qp-chip:hover { background: var(--accent-soft, var(--surface-2)); border-color: var(--accent, var(--border-strong)); }
 /* ===== end Build #57 CSS ===== */
+
+/* ===== Build #63 — layout blocks ===== */
+.layout-block-section { background: var(--surface-2, var(--surface)); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--border); margin-top: 10px; }
+.layout-block-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.layout-block-section-head .h-title { font-size: 13px; font-weight: 500; }
+.layout-block-canvas { position: relative; aspect-ratio: 16/9; background: var(--surface, #e1f5ee); border-radius: 4px; border: 1px solid var(--border); margin-bottom: 8px; overflow: hidden; }
+.layout-block-canvas .lb-rect { position: absolute; background: rgba(13,148,136,0.18); border: 1.5px dashed #0d9488; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 500; color: #04342C; }
+.layout-block-canvas .lb-rect img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.layout-block-canvas .lb-rect.is-empty { background: rgba(186,117,23,0.15); border-color: #BA7517; color: #412402; }
+.layout-block-list { display: flex; flex-direction: column; gap: 4px; margin-bottom: 8px; }
+.layout-block-row { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--surface); border: 1px solid var(--border); border-radius: 4px; font-size: 11px; }
+.layout-block-row .lb-letter { width: 22px; height: 22px; border-radius: 4px; background: rgba(13,148,136,0.18); color: #04342C; display: flex; align-items: center; justify-content: center; font-weight: 500; flex-shrink: 0; }
+.layout-block-row .lb-info { flex: 1; min-width: 0; }
+.layout-block-row .lb-info .lb-pos { color: var(--text-muted); font-size: 10px; }
+.layout-block-presets { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
+.layout-block-presets .lb-grid { display: inline-grid; grid-template-columns: repeat(3, 26px); gap: 3px; }
+.layout-block-presets button.lb-grid-btn { width: 26px; height: 26px; padding: 0; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; }
+.layout-block-presets button.lb-named { font-size: 10px; padding: 3px 8px; }
+.layout-asset-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+.layout-asset-tile { background: var(--surface-2, var(--surface)); border: 1px solid var(--border); border-radius: 6px; padding: 6px; cursor: pointer; display: flex; flex-direction: column; gap: 4px; transition: border-color 120ms ease; }
+.layout-asset-tile:hover { border-color: #0d9488; }
+.layout-asset-tile img { width: 100%; height: 56px; object-fit: contain; }
+.layout-asset-tile .lat-name { font-size: 10px; color: var(--text-muted); text-align: center; word-break: break-word; }
+.layout-asset-upload { display: flex; align-items: center; justify-content: center; min-height: 80px; cursor: pointer; font-size: 11px; color: var(--text-muted); font-style: italic; }
+/* ===== end Build #63 CSS ===== */
 </style>
 </head>
 <body>
@@ -601,7 +626,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.10.1 #62</div>
+      <div class="brand-version">v2.11.0 #63</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -907,6 +932,9 @@ const state = {
   expandedStepLocked: false,
   // Build #61 — Step 1 tip card dismissed flag
   step1TipDismissed: false,
+  // Build #63 — reusable image library for layout blocks
+  userAssets: [],
+  userAssetsLoaded: false,
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -1121,7 +1149,7 @@ function parseSlidesDetected(text) {
       } else return { slides: null, pattern: null };
     }
   }
-  const slides = chunks.map(c => ({ title: c.title, body: c.bodyLines.join('\n').trim(), speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null }));
+  const slides = chunks.map(c => ({ title: c.title, body: c.bodyLines.join('\n').trim(), speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null, layoutBlocks: [] }));
   return { slides, pattern };
 }
 
@@ -1188,7 +1216,18 @@ function polishedToSlides(polished) {
 function composeSkillPrompt(skill, slide) {
   const base = (skill && skill.prompt) ? skill.prompt : MASTER_PROMPT_FALLBACK;
   if (!slide) return base;
-  return base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.';
+  let prompt = base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.';
+  // Build #63 — reservation clauses for layout blocks marked reserve=true
+  const reservedBlocks = (slide.layoutBlocks || []).filter(b => b.reserve);
+  if (reservedBlocks.length > 0) {
+    prompt += '\n\nIMPORTANT - RESERVED ZONES: Leave the following rectangular areas COMPLETELY CLEAN (neutral background, no text, no objects, no decorative elements). User-supplied images will be placed in these zones during assembly:';
+    reservedBlocks.forEach((b, idx) => {
+      const x2 = b.x + b.w;
+      const y2 = b.y + b.h;
+      prompt += '\n  Zone ' + (idx + 1) + ': horizontal ' + b.x + '% to ' + x2 + '%, vertical ' + b.y + '% to ' + y2 + '%';
+    });
+  }
+  return prompt;
 }
 function composeSkillPromptPreview(skill) { return composeSkillPrompt(skill, null); }
 
@@ -1500,6 +1539,235 @@ function renderBrandingSlotTile(slot) {
 }
 // ===== end Build #57 branding helpers =====
 
+// ===== Build #63 — layout blocks =====
+const LAYOUT_BLOCK_PRESETS = {
+  'top-left':      { x: 4,  y: 6,  w: 22, h: 28, label: 'Top-left' },
+  'top-center':    { x: 39, y: 6,  w: 22, h: 28, label: 'Top-center' },
+  'top-right':     { x: 74, y: 6,  w: 22, h: 28, label: 'Top-right' },
+  'middle-left':   { x: 4,  y: 36, w: 22, h: 28, label: 'Middle-left' },
+  'center':        { x: 39, y: 36, w: 22, h: 28, label: 'Center' },
+  'middle-right':  { x: 74, y: 36, w: 22, h: 28, label: 'Middle-right' },
+  'bottom-left':   { x: 4,  y: 66, w: 22, h: 28, label: 'Bottom-left' },
+  'bottom-center': { x: 39, y: 66, w: 22, h: 28, label: 'Bottom-center' },
+  'bottom-right':  { x: 74, y: 66, w: 22, h: 28, label: 'Bottom-right' },
+  'side-band-r':   { x: 70, y: 5,  w: 26, h: 90, label: 'Side band (right)' },
+  'side-band-l':   { x: 4,  y: 5,  w: 26, h: 90, label: 'Side band (left)' },
+  'bottom-band':   { x: 4,  y: 76, w: 92, h: 18, label: 'Bottom band' },
+  'hero':          { x: 25, y: 22, w: 50, h: 50, label: 'Hero (center large)' }
+};
+function genBlockId() { return 'lb_' + Math.random().toString(36).slice(2, 10); }
+function addLayoutBlock(slideIdx, presetKey) {
+  const preset = LAYOUT_BLOCK_PRESETS[presetKey];
+  if (!preset) return;
+  const slide = state.slides[slideIdx]; if (!slide) return;
+  slide.layoutBlocks = slide.layoutBlocks || [];
+  slide.layoutBlocks.push({
+    id: genBlockId(),
+    x: preset.x, y: preset.y, w: preset.w, h: preset.h,
+    presetKey: presetKey,
+    assetId: null,
+    reserve: true
+  });
+  renderStep5Slides();
+}
+function removeLayoutBlock(slideIdx, blockId) {
+  const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
+  slide.layoutBlocks = slide.layoutBlocks.filter(b => b.id !== blockId);
+  renderStep5Slides();
+}
+function toggleBlockReserve(slideIdx, blockId) {
+  const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
+  const b = slide.layoutBlocks.find(x => x.id === blockId);
+  if (b) { b.reserve = !b.reserve; renderStep5Slides(); }
+}
+function assignBlockAsset(slideIdx, blockId, assetId) {
+  const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
+  const b = slide.layoutBlocks.find(x => x.id === blockId);
+  if (b) { b.assetId = assetId; }
+  renderStep5Slides();
+}
+function assetById(id) { return (state.userAssets || []).find(a => a.id === id) || null; }
+
+async function loadUserAssets() {
+  const sb = getSupabaseClient();
+  if (!sb) { state.userAssetsLoaded = true; return; }
+  try {
+    const { data, error } = await sb.from('user_assets').select('*').eq('owner', OWNER_ID).order('uploaded_at', { ascending: false });
+    if (error) {
+      console.warn('loadUserAssets failed:', error);
+      state.userAssetsLoaded = true;
+      return;
+    }
+    state.userAssets = data || [];
+    state.userAssetsLoaded = true;
+  } catch (e) {
+    console.warn('loadUserAssets exception:', e);
+    state.userAssetsLoaded = true;
+  }
+}
+
+async function uploadUserAssetFromFile(file) {
+  const sb = getSupabaseClient();
+  if (!sb) { toast({ type: 'error', message: 'Supabase offline' }); return null; }
+  if (!file || !file.type.startsWith('image/')) { toast({ type: 'error', message: 'Image files only' }); return null; }
+  if (file.size > 5 * 1024 * 1024) { toast({ type: 'error', message: 'Max 5 MB per asset' }); return null; }
+  const b64 = await new Promise((res, rej) => {
+    const fr = new FileReader();
+    fr.onload = () => res(fr.result.split(',')[1]);
+    fr.onerror = () => rej(new Error('FileReader failed'));
+    fr.readAsDataURL(file);
+  });
+  const payload = {
+    owner: OWNER_ID,
+    name: file.name,
+    b64: b64,
+    content_type: file.type,
+    file_size: file.size,
+    source: 'upload'
+  };
+  const { data, error } = await sb.from('user_assets').insert(payload).select().single();
+  if (error) {
+    const msg = error.message || String(error);
+    if (/relation.*user_assets/i.test(msg) || /does not exist/i.test(msg)) {
+      toast({ type: 'error', message: 'user_assets table missing — run Build #63 SQL' });
+    } else {
+      toast({ type: 'error', message: 'Upload failed: ' + msg.slice(0, 100) });
+    }
+    return null;
+  }
+  state.userAssets.unshift(data);
+  toast({ type: 'success', message: 'Uploaded ' + file.name });
+  return data;
+}
+
+async function deleteUserAsset(assetId) {
+  const sb = getSupabaseClient();
+  if (!sb) return;
+  if (!window.confirm('Delete this asset from your library? Any slides using it will keep showing the image until re-saved.')) return;
+  const { error } = await sb.from('user_assets').delete().eq('id', assetId);
+  if (error) { toast({ type: 'error', message: 'Delete failed: ' + (error.message || String(error)) }); return; }
+  state.userAssets = state.userAssets.filter(a => a.id !== assetId);
+  toast({ type: 'success', message: 'Asset deleted' });
+}
+
+function openLayoutBlockPicker(slideIdx, blockId) {
+  const slide = state.slides[slideIdx]; if (!slide) return;
+  const block = (slide.layoutBlocks || []).find(b => b.id === blockId); if (!block) return;
+  const preset = LAYOUT_BLOCK_PRESETS[block.presetKey];
+  const presetLabel = preset ? preset.label : (block.x + ',' + block.y);
+  function renderModal() {
+    const assets = state.userAssets || [];
+    const reserveSection =
+      '<div class="branding-picker-section">' +
+        '<div class="sect-title">Block options</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">' +
+          '<input type="checkbox" id="lbReserveChk" ' + (block.reserve ? 'checked' : '') + '>' +
+          '<span>Tell AI to leave this area clean when generating the slide image</span>' +
+        '</label>' +
+      '</div>';
+    const clearTile = '<div class="branding-picker-tile is-none ' + (block.assetId === null ? 'is-selected' : '') + '" data-asset-pick="">Empty / reserved</div>';
+    const assetTiles = assets.map(a =>
+      '<div class="layout-asset-tile" data-asset-pick="' + a.id + '" style="' + (block.assetId === a.id ? 'border-color:#0d9488;box-shadow:0 0 0 2px rgba(13,148,136,0.18)' : '') + '">' +
+        '<img src="data:' + escapeAttr(a.content_type || 'image/png') + ';base64,' + a.b64 + '" alt="' + escapeAttr(a.name) + '">' +
+        '<div class="lat-name">' + escapeHtml(a.name) + '</div>' +
+        '<button class="btn-ghost" data-asset-del="' + a.id + '" style="font-size:10px;padding:2px 4px;align-self:flex-end" title="Delete from library">×</button>' +
+      '</div>'
+    ).join('');
+    const uploadTile = '<label class="layout-asset-tile layout-asset-upload"><input type="file" id="lbAssetUpload" accept="image/*" style="display:none">+ Upload image</label>';
+    const html =
+      '<div class="modal-header"><div><div class="h1">Layout block · ' + escapeHtml(presetLabel) + '</div>' +
+        '<div class="muted body-sm" style="margin-top:4px">Slide ' + (slideIdx + 1) + ' · ' + block.w + '% × ' + block.h + '% at (' + block.x + '%, ' + block.y + '%)</div>' +
+      '</div><button class="btn-ghost" onclick="closeModal()" aria-label="Close">×</button></div>' +
+      '<div class="modal-body" style="padding:18px 22px">' +
+        reserveSection +
+        '<div class="branding-picker-section"><div class="sect-title">Pick an image (or leave empty for reservation only)</div>' +
+          '<div class="branding-picker-grid">' + clearTile + '</div>' +
+          '<div class="layout-asset-grid">' + uploadTile + assetTiles + '</div>' +
+        '</div>' +
+      '</div>' +
+      '<div class="modal-footer"><button class="btn-primary" onclick="closeModal()">Done</button></div>';
+    openModal(html, { lg: true });
+    const chk = document.getElementById('lbReserveChk');
+    if (chk) chk.onchange = e => { block.reserve = e.target.checked; renderStep5Slides(); };
+    document.querySelectorAll('[data-asset-pick]').forEach(el => {
+      el.onclick = (e) => {
+        if (e.target.closest('[data-asset-del]')) return;
+        const id = el.getAttribute('data-asset-pick') || null;
+        assignBlockAsset(slideIdx, blockId, id || null);
+        renderModal();
+      };
+    });
+    document.querySelectorAll('[data-asset-del]').forEach(el => {
+      el.onclick = async (e) => {
+        e.stopPropagation();
+        const id = el.getAttribute('data-asset-del');
+        await deleteUserAsset(id);
+        renderModal();
+      };
+    });
+    const upInput = document.getElementById('lbAssetUpload');
+    if (upInput) upInput.onchange = async (e) => {
+      const file = e.target.files && e.target.files[0]; if (!file) return;
+      const newAsset = await uploadUserAssetFromFile(file);
+      if (newAsset) {
+        assignBlockAsset(slideIdx, blockId, newAsset.id);
+        renderModal();
+      }
+    };
+  }
+  renderModal();
+}
+
+function renderLayoutBlocksSection(slide, slideIdx) {
+  const blocks = slide.layoutBlocks || [];
+  const canvas = blocks.length === 0 ? '' :
+    '<div class="layout-block-canvas">' +
+      blocks.map((b, idx) => {
+        const asset = b.assetId ? assetById(b.assetId) : null;
+        const letter = String.fromCharCode(65 + idx);
+        const inner = asset ? '<img src="data:' + escapeAttr(asset.content_type || 'image/png') + ';base64,' + asset.b64 + '">' : letter;
+        return '<div class="lb-rect ' + (asset ? '' : 'is-empty') + '" style="left:' + b.x + '%;top:' + b.y + '%;width:' + b.w + '%;height:' + b.h + '%" data-block-canvas-click="' + b.id + '" data-slide-idx="' + slideIdx + '">' + inner + '</div>';
+      }).join('') +
+    '</div>';
+  const blockRows = blocks.map((b, idx) => {
+    const asset = b.assetId ? assetById(b.assetId) : null;
+    const letter = String.fromCharCode(65 + idx);
+    const preset = LAYOUT_BLOCK_PRESETS[b.presetKey];
+    const presetLabel = preset ? preset.label : (b.x + '%, ' + b.y + '%');
+    const assetLabel = asset ? asset.name : (b.reserve ? 'empty · reserved in prompt' : 'empty');
+    return '<div class="layout-block-row">' +
+      '<div class="lb-letter">' + letter + '</div>' +
+      '<div class="lb-info"><div>' + escapeHtml(assetLabel) + '</div><div class="lb-pos">' + escapeHtml(presetLabel) + ' · ' + b.w + '% × ' + b.h + '%</div></div>' +
+      '<button class="btn-secondary" data-block-pick="' + b.id + '" data-slide-idx="' + slideIdx + '" style="font-size:11px;padding:3px 8px">Edit</button>' +
+      '<button class="btn-ghost" data-block-del="' + b.id + '" data-slide-idx="' + slideIdx + '" style="font-size:13px;padding:3px 6px" title="Remove block">×</button>' +
+    '</div>';
+  }).join('');
+  const presetButtons =
+    '<div class="lb-grid">' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="top-left" data-slide-idx="' + slideIdx + '" title="Top-left">↖</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="top-center" data-slide-idx="' + slideIdx + '" title="Top-center">↑</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="top-right" data-slide-idx="' + slideIdx + '" title="Top-right">↗</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="middle-left" data-slide-idx="' + slideIdx + '" title="Middle-left">←</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="center" data-slide-idx="' + slideIdx + '" title="Center">●</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="middle-right" data-slide-idx="' + slideIdx + '" title="Middle-right">→</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="bottom-left" data-slide-idx="' + slideIdx + '" title="Bottom-left">↙</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="bottom-center" data-slide-idx="' + slideIdx + '" title="Bottom-center">↓</button>' +
+      '<button class="btn-ghost lb-grid-btn" data-block-add="bottom-right" data-slide-idx="' + slideIdx + '" title="Bottom-right">↘</button>' +
+    '</div>';
+  const namedButtons =
+    '<button class="btn-ghost lb-named" data-block-add="side-band-r" data-slide-idx="' + slideIdx + '">Side band</button>' +
+    '<button class="btn-ghost lb-named" data-block-add="bottom-band" data-slide-idx="' + slideIdx + '">Bottom band</button>' +
+    '<button class="btn-ghost lb-named" data-block-add="hero" data-slide-idx="' + slideIdx + '">Hero</button>';
+  return '<div class="layout-block-section">' +
+    '<div class="layout-block-section-head"><div class="h-title"><i style="display:inline-block;width:14px">▣</i> Layout blocks (' + blocks.length + ')</div>' +
+    '<span class="muted body-sm" style="font-size:10px">click any block to set image or toggle reservation</span></div>' +
+    canvas +
+    '<div class="layout-block-list">' + blockRows + '</div>' +
+    '<div class="layout-block-presets">' + presetButtons + namedButtons + '</div>' +
+  '</div>';
+}
+// ===== end Build #63 layout helpers =====
+
 async function assemblePptx() {
   if (!window.__pptxReady || typeof PptxGenJS === 'undefined') { toast({ type: 'error', message: 'PptxGenJS still loading' }); return; }
   const prs = new PptxGenJS();
@@ -1560,6 +1828,21 @@ async function assemblePptx() {
       ? bm.text
       : getFooterText();
     s.addText(footerText, { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
+    // Build #63 — overlay layout block assets at exact coords
+    const lbs = slide.layoutBlocks || [];
+    for (const block of lbs) {
+      if (!block.assetId) continue;
+      const asset = assetById(block.assetId);
+      if (!asset || !asset.b64) continue;
+      const ct = asset.content_type || 'image/png';
+      // Slide is 13.33" wide x 7.5" tall (LAYOUT_WIDE)
+      const bx = 13.33 * (block.x / 100);
+      const by = 7.5 * (block.y / 100);
+      const bw = 13.33 * (block.w / 100);
+      const bh = 7.5 * (block.h / 100);
+      try { s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: bx, y: by, w: bw, h: bh }); }
+      catch (e) { console.warn('Layout block overlay failed:', e); }
+    }
     const notesText = (slide.speakerNotes && slide.speakerNotes.trim()) ? slide.speakerNotes : (slide.body || '');
     if (notesText && notesText.trim()) s.addNotes(notesText);
   }
@@ -2781,7 +3064,7 @@ async function addSlideWithAi() {
   } else if (!key && state.slides.length > 0) {
     toast({ type: 'info', message: 'Anthropic key not set — added blank slide. Add key in Settings for AI suggestions.' });
   }
-  state.slides.push({ title, body, speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null });
+  state.slides.push({ title, body, speakerNotes: '', prevSpeakerNotes: null, notesExpanded: false, rewritingNotes: false, imageB64: null, imagePrompt: null, lastPrompt: null, status: 'idle', error: null, regenCount: 0, costAccrued: 0, modelUsed: null, layoutBlocks: [] });
   state.addingSlide = false;
   renderStep3();
 }
@@ -3404,6 +3687,7 @@ function renderImgCard(s, i) {
             </div>
             ${s.notesExpanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">What to say while presenting</label><textarea class="textarea prose" data-act="notesText" rows="6" placeholder="Speaker notes — pre-filled from slide body. Edit freely.">${escapeHtml(s.speakerNotes || '')}</textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-secondary" data-act="aiNotes" ${s.rewritingNotes ? 'disabled' : ''}>${s.rewritingNotes ? '<span class="spinner"></span> Rewriting…' : 'Make presenter-friendly with AI'}</button>${s.prevSpeakerNotes != null ? '<button class="btn-ghost" data-act="restoreNotes">Restore previous</button>' : ''}<span class="muted body-sm" style="margin-left:auto;align-self:center;font-size:11px">~$0.01 per rewrite</span></div></div>` : ''}
           </div>
+          ${renderLayoutBlocksSection(s, i)}
         </div>
       </div>
     </div>`;
@@ -3457,6 +3741,19 @@ function bindImgCard(i) {
       }
     });
   };
+  // Build #63 — layout block wiring
+  card.querySelectorAll('[data-block-add]').forEach(b => {
+    b.onclick = () => addLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-add'));
+  });
+  card.querySelectorAll('[data-block-pick]').forEach(b => {
+    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-pick'));
+  });
+  card.querySelectorAll('[data-block-del]').forEach(b => {
+    b.onclick = () => removeLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-del'));
+  });
+  card.querySelectorAll('[data-block-canvas-click]').forEach(b => {
+    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
+  });
 }
 function openLightbox(i) {
   const s = state.slides[i]; if (!s.imageB64) return;
@@ -4030,7 +4327,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.10.1</span> (build #62 — Step 2 wording for topic-prompt mode)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.0</span> (build #63 — layout blocks + asset library)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
@@ -4126,7 +4423,8 @@ async function saveCurrentDeckToSupabase() {
     body: s.body || '',
     speakerNotes: s.speakerNotes || '',
     imagePrompt: s.imagePrompt || null,
-    lastPrompt: s.lastPrompt || null
+    lastPrompt: s.lastPrompt || null,
+    layoutBlocks: s.layoutBlocks || []
   }));
   const payload = {
     owner: OWNER_ID,
@@ -4190,7 +4488,8 @@ function loadSavedDeckIntoState(deck) {
     error: null,
     regenCount: 0,
     costAccrued: 0,
-    modelUsed: null
+    modelUsed: null,
+    layoutBlocks: Array.isArray(s.layoutBlocks) ? s.layoutBlocks : []
   }));
   if (deck.model_used) state.lastSelectedModel = deck.model_used;
   state.polishMode = null;
@@ -4383,6 +4682,8 @@ async function initApp() {
   await bootstrapSettings();
   await loadAllReferenceData();
   hydrateStateFromStorage();
+  // Build #63 — load user assets for layout blocks (non-blocking)
+  loadUserAssets().catch(e => console.warn('loadUserAssets boot failed:', e));
   if (!state.selectedSkillId || !skillById(state.selectedSkillId)) state.selectedSkillId = defaultSkillId();
   updateAdminBadge();
   render();
