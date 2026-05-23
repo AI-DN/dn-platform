@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.11.1</title>
+<title>DN Deck Generator v2.11.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -594,6 +594,15 @@ tbody tr:hover { background: var(--surface-2); }
 .branding-picker-quickpicks .qp-chip:hover { background: var(--accent-soft, var(--surface-2)); border-color: var(--accent, var(--border-strong)); }
 /* ===== end Build #57 CSS ===== */
 
+/* ===== Build #65 — slide thumb block overlay ===== */
+.slide-img-thumb { position: relative; }
+.slide-thumb-blocks-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
+.thumb-block { position: absolute; border-radius: 2px; box-sizing: border-box; }
+.thumb-block.has-asset { border: 1.5px dashed rgba(13, 148, 136, 0.85); background: rgba(13, 148, 136, 0.06); }
+.thumb-block.is-empty { border: 1.5px dashed rgba(186, 117, 23, 0.85); background: rgba(186, 117, 23, 0.06); }
+.thumb-block .thumb-block-letter { position: absolute; top: 1px; left: 3px; font-size: 9px; font-weight: 600; color: rgba(0,0,0,0.7); text-shadow: 0 0 2px rgba(255,255,255,0.9); }
+/* ===== end Build #65 CSS ===== */
+
 /* ===== Build #63 — layout blocks ===== */
 .layout-block-section { background: var(--surface-2, var(--surface)); border-radius: var(--radius-md); padding: 10px 12px; border: 1px solid var(--border); margin-top: 10px; }
 .layout-block-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
@@ -626,7 +635,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.11.1 #64</div>
+      <div class="brand-version">v2.11.2 #65</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1833,7 +1842,7 @@ async function assemblePptx() {
       ? bm.text
       : getFooterText();
     s.addText(footerText, { x: 0.5, y: 7.15, w: 12.3, h: 0.3, fontSize: 9, fontFace: 'Arial', color: footerColor, align: 'center', bold: false });
-    // Build #63 — overlay layout block assets at exact coords
+    // Build #63/#65 — overlay layout block assets with aspect ratio preserved
     const lbs = slide.layoutBlocks || [];
     for (const block of lbs) {
       if (!block.assetId) continue;
@@ -1845,7 +1854,27 @@ async function assemblePptx() {
       const by = 7.5 * (block.y / 100);
       const bw = 13.33 * (block.w / 100);
       const bh = 7.5 * (block.h / 100);
-      try { s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: bx, y: by, w: bw, h: bh }); }
+      // Build #65 — preserve image aspect ratio, fit inside (contain), center within block
+      let finalX = bx, finalY = by, finalW = bw, finalH = bh;
+      try {
+        const dims = await getImageDimensions(asset.b64);
+        if (dims && dims.width && dims.height) {
+          const imgAspect = dims.width / dims.height;
+          const blockAspect = bw / bh;
+          if (imgAspect > blockAspect) {
+            // Image is wider than block — fit width, scale height down
+            finalW = bw;
+            finalH = bw / imgAspect;
+          } else {
+            // Image is taller (or same) than block — fit height, scale width down
+            finalH = bh;
+            finalW = bh * imgAspect;
+          }
+          finalX = bx + (bw - finalW) / 2;
+          finalY = by + (bh - finalH) / 2;
+        }
+      } catch (dimErr) { console.warn('Block asset dim read failed, using stretched fit:', dimErr); }
+      try { s.addImage({ data: 'data:' + ct + ';base64,' + asset.b64, x: finalX, y: finalY, w: finalW, h: finalH }); }
       catch (e) { console.warn('Layout block overlay failed:', e); }
     }
     const notesText = (slide.speakerNotes && slide.speakerNotes.trim()) ? slide.speakerNotes : (slide.body || '');
@@ -3686,7 +3715,7 @@ function renderImgCard(s, i) {
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
       </div>
       <div class="slide-img-body">
-        <div class="slide-img-thumb ${s.status === 'generating' ? 'loading' : ''}" data-act="open">${thumbContent}</div>
+        <div class="slide-img-thumb ${s.status === 'generating' ? 'loading' : ''}" data-act="open">${thumbContent}${(s.layoutBlocks && s.layoutBlocks.length > 0) ? `<div class="slide-thumb-blocks-overlay">${s.layoutBlocks.map((b, idx) => { const letter = String.fromCharCode(65 + idx); const cls = b.assetId ? 'has-asset' : 'is-empty'; return '<div class="thumb-block ' + cls + '" style="left:' + b.x + '%;top:' + b.y + '%;width:' + b.w + '%;height:' + b.h + '%" title="Block ' + letter + (b.assetId ? '' : ' (empty / reserved)') + '"><span class="thumb-block-letter">' + letter + '</span></div>'; }).join('')}</div>` : ''}</div>
         <div class="slide-img-controls">
           <div style="display:flex;gap:6px;flex-wrap:wrap">
             ${s.status === 'error' ? `<button class="btn-secondary" data-act="retry">Retry</button>` : ''}
@@ -4336,7 +4365,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.1</span> (build #64 — layout blocks moved to Step 3 Edit)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.2</span> (build #65 — block thumb overlay + aspect fit)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
