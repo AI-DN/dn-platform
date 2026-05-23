@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.11.3</title>
+<title>DN Deck Generator v2.12.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -635,7 +635,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.11.3 #66</div>
+      <div class="brand-version">v2.12.0 #67</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -735,6 +735,7 @@ const SETTING_MAP = {
   'dn_brand_lib': 'dn_brand_lib',  // Build #43
   'dn_deck_branding': 'dn_deck_branding',  // Build #57
   'dn_step1_tip_dismissed': 'dn_step1_tip_dismissed',  // Build #61
+  'dn_about_dn_boilerplate': 'dn_about_dn_boilerplate',  // Build #67
   'favorite_skills': 'dn_favorite_skills',
   'selected_skill': 'dn_selected_skill',
   'favorite_models': 'dn_favorite_models',
@@ -944,6 +945,8 @@ const state = {
   // Build #63 — reusable image library for layout blocks
   userAssets: [],
   userAssetsLoaded: false,
+  // Build #67 — canonical About DN boilerplate (injected into white-paper system prompt)
+  aboutDN: '',
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -1002,6 +1005,9 @@ function hydrateStateFromStorage() {
   if (bb) { try { const parsed = JSON.parse(bb); if (parsed && typeof parsed === 'object') { state.deckBranding = parsed; } } catch (e) { console.warn('deck branding parse failed', e); } }
   // Build #61 — load Step 1 tip dismissed state
   if (get('dn_step1_tip_dismissed') === 'true') state.step1TipDismissed = true;
+  // Build #67 — load About DN boilerplate
+  const about = get('dn_about_dn_boilerplate');
+  if (about) state.aboutDN = about;
   const maxIll = get('dn_wp_max_illust');
   if (maxIll) { const n = parseInt(maxIll); if (!isNaN(n) && n >= 0 && n <= 20) state.maxIllustrations = n; }
 }
@@ -2447,7 +2453,12 @@ PER-SECTION WORD-COUNT BUDGET — each section MUST be within ±20% of its targe
 - Introduction / Context: ${introBudget} words — the landscape, why this topic matters now
 - ${numBodySections} body section${numBodySections===1?'':'s'} (one per theme): ${perBodyBudget} words each
 - Conclusion: ${conclBudget} words — synthesise the argument, leave the reader with a clear position
-- About Digitata Networks: ${aboutBudget} words — brief boilerplate: telco software + managed services, 25+ years, global telco customers, focus on revenue uplift and ops excellence
+- About Digitata Networks: ${aboutBudget} words — use the canonical company description below verbatim (lightly trim or pad to hit the word budget; do NOT invent or contradict facts not in this description).
+
+CANONICAL ABOUT DN (use as the basis for the About section; do not add facts beyond what is stated here):
+"""
+${(state.aboutDN && state.aboutDN.trim()) || 'Digitata Networks is a South Africa-based software and managed-services company with 25+ years experience serving global mobile network operators. We focus on AI-driven network intelligence, revenue uplift, and operational excellence for telcos worldwide.'}
+"""
 
 TOTAL EXPECTED OUTPUT: ${totalWordTarget} words ± 15%. After writing, mentally sum your section bodies — if the total is < ${wordMin} or > ${wordMax}, you have FAILED the brief.
 
@@ -4297,6 +4308,19 @@ function renderBrand() {
       '<div class="muted body-sm" style="margin-bottom:14px;max-width:560px">Reusable footer text such as &ldquo;Q3 2026 \u00b7 Customer Roadmap&rdquo; or &ldquo;Confidential\u201d. The chosen subtext prints beside the copyright line on every slide of the deck.</div>' +
       '<div style="display:flex;gap:8px;align-items:center;margin-bottom:14px;max-width:560px"><input class="input" type="text" id="newSubtextInputBrand" placeholder="e.g. Q3 2026 \u00b7 Customer Roadmap" maxlength="80" style="flex:1"><button class="btn-secondary" id="newSubtextBtnBrand" type="button">Add</button></div>' +
       '<div style="max-width:560px">' + (subtexts.length === 0 ? '<div class="muted body-sm">No subtexts yet \u2014 add reusable footer lines above.</div>' : subtexts.map(s => '<div class="subtext-row"><div class="sr-text">' + escapeHtml(s.text) + '</div><button class="sr-del" data-rm-sub-brand="' + s.id + '" title="Delete">\u2715</button></div>').join('')) + '</div>' +
+    '</div>' +
+    '<div class="section" style="margin-top:32px"><div class="section-header"><div class="h1">About Digitata Networks</div></div>' +
+      '<div class="muted body-sm" style="margin-bottom:14px;max-width:680px">This text is injected verbatim into the <strong>About</strong> section of every companion white paper. Use it to lock in canonical facts about DN (history, services, geography, key products) so Claude doesn\u2019t invent details. Leave empty to use a generic default.</div>' +
+      '<div style="max-width:680px">' +
+        '<textarea class="textarea prose" id="aboutDNTextarea" rows="6" placeholder="e.g. Digitata Networks is a South Africa-based software and managed-services company with 25+ years\u2019 experience serving global mobile network operators..." style="font-size:13px;line-height:1.55">' + escapeHtml(state.aboutDN || '') + '</textarea>' +
+        '<div style="display:flex;gap:8px;justify-content:space-between;align-items:center;margin-top:8px">' +
+          '<span class="muted body-sm" id="aboutDNStatus" style="font-size:11px">' + (state.aboutDN ? (state.aboutDN.trim().split(/\s+/).length + ' words \u00b7 saved') : 'Empty \u2014 a generic default will be used') + '</span>' +
+          '<div style="display:flex;gap:6px">' +
+            '<button class="btn-ghost" id="aboutDNUseDefaultBtn" type="button" style="font-size:12px">Insert suggested default</button>' +
+            '<button class="btn-primary" id="aboutDNSaveBtn" type="button" style="font-size:12px">Save</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>' +
     '</div>';
   function uploadHandler(inputId, addFn) {
     const inp = document.getElementById(inputId); if (!inp) return;
@@ -4324,6 +4348,36 @@ function renderBrand() {
     await addSubtext(v); inp.value = '';
     toast({ type: 'success', message: 'Subtext added' });
     renderBrand();
+  };
+  // Build #67 — About DN handlers
+  const aboutTA = document.getElementById('aboutDNTextarea');
+  const aboutStatus = document.getElementById('aboutDNStatus');
+  const aboutSaveBtn = document.getElementById('aboutDNSaveBtn');
+  const aboutDefaultBtn = document.getElementById('aboutDNUseDefaultBtn');
+  if (aboutTA && aboutStatus) {
+    aboutTA.oninput = () => {
+      const v = (aboutTA.value || '').trim();
+      aboutStatus.textContent = v ? (v.split(/\s+/).length + ' words \u00b7 unsaved') : 'Empty \u2014 a generic default will be used';
+      aboutStatus.style.color = v ? 'var(--warning, var(--text-muted))' : 'var(--text-muted)';
+    };
+  }
+  if (aboutSaveBtn) aboutSaveBtn.onclick = async () => {
+    const v = (aboutTA && aboutTA.value || '').trim();
+    state.aboutDN = v;
+    await persistSetting('dn_about_dn_boilerplate', v);
+    toast({ type: 'success', message: 'About DN saved' });
+    if (aboutStatus) {
+      aboutStatus.textContent = v ? (v.split(/\s+/).length + ' words \u00b7 saved') : 'Empty \u2014 a generic default will be used';
+      aboutStatus.style.color = 'var(--text-muted)';
+    }
+  };
+  if (aboutDefaultBtn) aboutDefaultBtn.onclick = () => {
+    const def = 'Digitata Networks is a South Africa-based software and managed-services company with 25+ years\u2019 experience serving global mobile network operators. We focus on AI-driven network intelligence, revenue uplift, and operational excellence for telcos worldwide.';
+    if (aboutTA) {
+      aboutTA.value = def;
+      aboutTA.dispatchEvent(new Event('input'));
+      aboutTA.focus();
+    }
   };
 }
 
@@ -4387,7 +4441,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.3</span> (build #66 — stronger reservation prompts)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.0</span> (build #67 — About DN boilerplate setting)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
