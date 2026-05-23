@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.9</title>
+<title>DN Deck Generator v2.12.10</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.9 #76</div>
+      <div class="brand-version">v2.12.10 #77</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1760,6 +1760,8 @@ function onLayoutCanvasMouseUp(e, slideIdx, canvasEl) {
     reserve: true,
     fillMode: 'contain'
   });
+  // Build #77 — mark slide stale so the refine textarea auto-refreshes (parity with addLayoutBlock)
+  if (slide.imageB64) slide.blocksChangedSinceGeneration = true;
   exitDrawMode();
   toast({ type: 'success', message: 'Custom block added (' + rect.w + '% × ' + rect.h + '%)' });
 }
@@ -3992,7 +3994,7 @@ function renderImgCard(s, i) {
               const stale = !!(s.blocksChangedSinceGeneration || s.textChangedSinceGeneration);
               const seedPrompt = stale ? composeSkillPrompt(skill, s) : (s.lastPrompt || composeSkillPrompt(skill, s));
               const staleNotice = stale ? '<div class="refine-stale-notice" style="margin:6px 0 4px;padding:6px 10px;background:rgba(186,117,23,0.10);border:1px solid #BA7517;border-radius:4px;font-size:11px;color:#412402">\u2728 Prompt refreshed to include your recent layout/text changes. Manual prompt edits from the last regeneration were dropped \u2014 edit again here if needed.</div>' : '';
-              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label>' + staleNotice + '<textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(seedPrompt) + '</textarea>' + modelPicker + '<div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : 'Regenerate') + '</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
+              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label>' + staleNotice + '<textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(seedPrompt) + '</textarea>' + modelPicker + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : 'Regenerate') + '</button><button class="btn-secondary" data-act="bakeLayout" title="Rebuild the prompt above with current layout blocks (drops manual edits)">\u270F\uFE0F Bake current layout into prompt</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
             })() : ''}
           </div>
           <div class="refine-section">
@@ -4032,6 +4034,18 @@ function bindImgCard(i) {
     };
   });
   const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null; if (ta) ta.value = composeSkillPrompt(skill, s); };
+  // Build #77 — Bake current layout (and text) into the prompt textarea
+  const bake = card.querySelector('[data-act="bakeLayout"]');
+  if (bake) bake.onclick = () => {
+    const ta = card.querySelector('[data-act="refinePrompt"]');
+    const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    if (!ta) return;
+    ta.value = composeSkillPrompt(skill, s);
+    // Hide the stale notice now that the prompt reflects current state
+    const notice = card.querySelector('.refine-stale-notice');
+    if (notice) notice.style.display = 'none';
+    toast({ type: 'success', message: 'Prompt refreshed with current layout' });
+  };
   const toggleN = card.querySelector('[data-act="toggleNotes"]'); if (toggleN) toggleN.onclick = () => { s.notesExpanded = !s.notesExpanded; renderStep5Slides(); };
   const notesTa = card.querySelector('[data-act="notesText"]'); if (notesTa) notesTa.oninput = e => { s.speakerNotes = e.target.value; const btn = card.querySelector('[data-act="toggleNotes"]'); if (btn) btn.textContent = `− Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})`; };
   const aiBtn = card.querySelector('[data-act="aiNotes"]'); if (aiBtn) aiBtn.onclick = () => rewriteNotesWithClaude(i);
@@ -4723,7 +4737,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.9</span> (build #76 — fresh prompt when slide has changes)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.10</span> (build #77 — draw-mode flag fix + bake layout button)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
