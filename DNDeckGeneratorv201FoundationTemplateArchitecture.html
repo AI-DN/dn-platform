@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.5</title>
+<title>DN Deck Generator v2.12.6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.5 #72</div>
+      <div class="brand-version">v2.12.6 #73</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1387,6 +1387,7 @@ async function generateAllImages() {
           const { b64, prompt, cost, spec } = await generateSlideImage(slide);
           slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
           slide.status = 'done'; slide.costAccrued = (slide.costAccrued || 0) + cost; slide.modelUsed = spec;
+          slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
           deckCost.image += cost;
           deckCost.imageDetails.push({ ...spec, cost, kind: 'slide' });
           renderCostBadge();
@@ -1405,6 +1406,7 @@ async function regenerateOne(idx, newPrompt) {
   try {
     const { b64, prompt, cost, spec } = await generateSlideImage(slide, newPrompt);
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
+    slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
     slide.status = 'done'; slide.regenCount++;
     slide.costAccrued = (slide.costAccrued || 0) + cost; slide.modelUsed = spec;
     deckCost.image += cost;
@@ -1632,11 +1634,13 @@ function addLayoutBlock(slideIdx, presetKey) {
     reserve: true,
     fillMode: 'contain'
   });
+  if (slide.imageB64) slide.blocksChangedSinceGeneration = true;
   rerenderCurrentSlideStep();
 }
 function removeLayoutBlock(slideIdx, blockId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   slide.layoutBlocks = slide.layoutBlocks.filter(b => b.id !== blockId);
+  if (slide.imageB64) slide.blocksChangedSinceGeneration = true;
   rerenderCurrentSlideStep();
 }
 // Build #68 — apply a block to every slide (clones position, size, asset, reserve flag)
@@ -1770,12 +1774,18 @@ document.addEventListener('keydown', function(e) {
 function toggleBlockReserve(slideIdx, blockId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
-  if (b) { b.reserve = !b.reserve; rerenderCurrentSlideStep(); }
+  if (b) {
+    b.reserve = !b.reserve;
+    if (slide.imageB64) slide.blocksChangedSinceGeneration = true;
+    rerenderCurrentSlideStep();
+  }
 }
 function assignBlockAsset(slideIdx, blockId, assetId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
   if (b) { b.assetId = assetId; }
+  // Build #73 — asset assignment doesn't affect AI generation, only PptxGenJS overlay
+  // so we don't flag generation-stale here. The asset shows up at next .pptx assembly.
   rerenderCurrentSlideStep();
 }
 // Build #69 — set fillMode on a block
@@ -1783,6 +1793,7 @@ function setBlockFillMode(slideIdx, blockId, mode) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
   if (b) { b.fillMode = mode; }
+  // fillMode is overlay-only (PptxGenJS), no regeneration needed
   rerenderCurrentSlideStep();
 }
 function assetById(id) { return (state.userAssets || []).find(a => a.id === id) || null; }
@@ -3921,7 +3932,7 @@ function renderImgCard(s, i) {
         ${s.regenCount > 0 ? `<span class="badge badge-neutral">${s.regenCount + 1}× · ${fmtUsd4(s.costAccrued || 0)}${modelTag ? ' · ' + escapeHtml(modelTag) : ''}</span>` : ''}
         ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
-        ${(s.status === 'done' && s.textChangedSinceGeneration) ? '<span class="badge badge-warning" title="Slide text was edited after this image was generated. Regenerate to refresh.">⚠ text edited</span>' : ''}
+        ${(s.status === 'done' && (s.textChangedSinceGeneration || s.blocksChangedSinceGeneration)) ? (function() { const reasons = []; if (s.textChangedSinceGeneration) reasons.push('text edited'); if (s.blocksChangedSinceGeneration) reasons.push('layout changed'); return '<span class="badge badge-warning" title="Slide changed since image was generated. Click Refine → Regenerate to refresh.">⚠ ' + reasons.join(' + ') + '</span>'; })() : ''}
       </div>
       <div class="slide-img-body">
         <div class="slide-img-thumb ${s.status === 'generating' ? 'loading' : ''}" data-act="open">${thumbContent}${(s.layoutBlocks && s.layoutBlocks.length > 0) ? `<div class="slide-thumb-blocks-overlay">${s.layoutBlocks.map((b, idx) => { const letter = String.fromCharCode(65 + idx); const cls = b.assetId ? 'has-asset' : 'is-empty'; return '<div class="thumb-block ' + cls + '" style="left:' + b.x + '%;top:' + b.y + '%;width:' + b.w + '%;height:' + b.h + '%" title="Block ' + letter + (b.assetId ? '' : ' (empty / reserved)') + '"><span class="thumb-block-letter">' + letter + '</span></div>'; }).join('')}</div>` : ''}</div>
@@ -3943,7 +3954,7 @@ function renderImgCard(s, i) {
               <button class="btn-ghost" data-act="zoomNotes" title="Open notes in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button>
             </div>
             ${s.notesExpanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">What to say while presenting</label><textarea class="textarea prose" data-act="notesText" rows="6" placeholder="Speaker notes — pre-filled from slide body. Edit freely.">${escapeHtml(s.speakerNotes || '')}</textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-secondary" data-act="aiNotes" ${s.rewritingNotes ? 'disabled' : ''}>${s.rewritingNotes ? '<span class="spinner"></span> Rewriting…' : 'Make presenter-friendly with AI'}</button>${s.prevSpeakerNotes != null ? '<button class="btn-ghost" data-act="restoreNotes">Restore previous</button>' : ''}<span class="muted body-sm" style="margin-left:auto;align-self:center;font-size:11px">~$0.01 per rewrite</span></div></div>` : ''}
-            ${(s.layoutBlocks && s.layoutBlocks.length > 0) ? `<div class="refine-section" style="margin-top:10px;padding:8px 10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:var(--radius-md);font-size:11px;color:var(--text-muted)">▣ ${s.layoutBlocks.length} layout block${s.layoutBlocks.length===1?'':'s'} — <button class="btn-ghost" data-act="goEditBlocks" style="padding:0;font-size:11px;text-decoration:underline">edit in Step 3</button> to add/remove or change assets</div>` : ''}
+            ${renderLayoutBlocksSection(s, i)}
           </div>
         </div>
       </div>
@@ -3998,9 +4009,41 @@ function bindImgCard(i) {
       }
     });
   };
-  // Build #64 — layout block editing moved to Step 3; Step 5 just shows a badge + link
-  const goEdit = card.querySelector('[data-act="goEditBlocks"]');
-  if (goEdit) goEdit.onclick = () => { state.composeStep = 3; state.expandedStep = 3; state.expandedStepLocked = true; renderCompose(); };
+  // Build #73 — layout block events restored in Step 5 (alongside Step 3)
+  const slideIdx2 = i;
+  card.querySelectorAll('[data-block-add]').forEach(b => {
+    b.onclick = () => addLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-add'));
+  });
+  card.querySelectorAll('[data-block-pick]').forEach(b => {
+    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-pick'));
+  });
+  card.querySelectorAll('[data-block-del]').forEach(b => {
+    b.onclick = () => removeLayoutBlock(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-del'));
+  });
+  card.querySelectorAll('[data-block-apply-all]').forEach(b => {
+    b.onclick = () => applyBlockToAllSlides(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-apply-all'));
+  });
+  card.querySelectorAll('[data-block-canvas-click]').forEach(b => {
+    b.onclick = (e) => {
+      if (state.layoutDrawMode && state.layoutDrawMode.active) return;
+      openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
+    };
+  });
+  card.querySelectorAll('[data-block-draw]').forEach(b => {
+    b.onclick = () => enterDrawMode(parseInt(b.getAttribute('data-slide-idx')));
+  });
+  card.querySelectorAll('[data-block-draw-cancel]').forEach(b => {
+    b.onclick = () => exitDrawMode();
+  });
+  card.querySelectorAll('[data-block-canvas-slide-idx]').forEach(canvasEl => {
+    const sIdx = parseInt(canvasEl.getAttribute('data-block-canvas-slide-idx'));
+    if (state.layoutDrawMode && state.layoutDrawMode.active && state.layoutDrawMode.slideIdx === sIdx) {
+      canvasEl.addEventListener('mousedown', (e) => onLayoutCanvasMouseDown(e, sIdx, canvasEl));
+      canvasEl.addEventListener('mousemove', (e) => onLayoutCanvasMouseMove(e, canvasEl));
+      canvasEl.addEventListener('mouseup', (e) => onLayoutCanvasMouseUp(e, sIdx, canvasEl));
+      canvasEl.addEventListener('mouseleave', (e) => onLayoutCanvasMouseLeave(e, canvasEl));
+    }
+  });
 }
 function openLightbox(i) {
   const s = state.slides[i]; if (!s.imageB64) return;
@@ -4617,7 +4660,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.5</span> (build #72 — design-aware reservation prompts)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.6</span> (build #73 — layout blocks in Step 5 + stale badge)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
