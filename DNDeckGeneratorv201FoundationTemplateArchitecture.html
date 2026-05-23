@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.11.2</title>
+<title>DN Deck Generator v2.11.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -635,7 +635,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.11.2 #65</div>
+      <div class="brand-version">v2.11.3 #66</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1225,17 +1225,39 @@ function polishedToSlides(polished) {
 function composeSkillPrompt(skill, slide) {
   const base = (skill && skill.prompt) ? skill.prompt : MASTER_PROMPT_FALLBACK;
   if (!slide) return base;
-  let prompt = base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.';
-  // Build #63 — reservation clauses for layout blocks marked reserve=true
+  // Build #66 — describe reserved zones with strong, repeated constraints
   const reservedBlocks = (slide.layoutBlocks || []).filter(b => b.reserve);
-  if (reservedBlocks.length > 0) {
-    prompt += '\n\nIMPORTANT - RESERVED ZONES: Leave the following rectangular areas COMPLETELY CLEAN (neutral background, no text, no objects, no decorative elements). User-supplied images will be placed in these zones during assembly:';
-    reservedBlocks.forEach((b, idx) => {
+  function describeBlocks(verb) {
+    return reservedBlocks.map((b, idx) => {
       const x2 = b.x + b.w;
       const y2 = b.y + b.h;
-      prompt += '\n  Zone ' + (idx + 1) + ': horizontal ' + b.x + '% to ' + x2 + '%, vertical ' + b.y + '% to ' + y2 + '%';
-    });
+      const letter = String.fromCharCode(65 + idx);
+      const preset = (typeof LAYOUT_BLOCK_PRESETS !== 'undefined') ? LAYOUT_BLOCK_PRESETS[b.presetKey] : null;
+      const positionLabel = preset ? preset.label : 'custom rectangle';
+      return '  Zone ' + letter + ' (' + positionLabel + '): horizontal ' + b.x + '% to ' + x2 + '% of slide width, vertical ' + b.y + '% to ' + y2 + '% of slide height';
+    }).join('\n');
   }
+  let preBlock = '';
+  let postBlock = '';
+  if (reservedBlocks.length > 0) {
+    const zoneList = describeBlocks();
+    preBlock = '=== CRITICAL: PROTECTED EMPTY ZONES (read this FIRST before composing the slide) ===\n' +
+      'The following rectangular regions of this 16:9 slide MUST be left COMPLETELY EMPTY because the user will overlay their own images there after generation:\n\n' +
+      zoneList + '\n\n' +
+      'For EVERY zone listed above, you MUST observe these rules:\n' +
+      '1. The zone must contain ONLY the slide\u2019s continuous background gradient/color/texture, exactly as it would look if no content were ever planned for this region.\n' +
+      '2. ABSOLUTELY NO borders, outlines, frames, dashed lines, rounded rectangles, drop shadows, or any visual demarcation of the zone boundary. Treat the zone as INVISIBLE \u2014 there is no rectangle to draw.\n' +
+      '3. ABSOLUTELY NO text, labels, captions, watermarks, numbers, or annotations inside the zone or touching its edges.\n' +
+      '4. ABSOLUTELY NO icons, charts, graphs, photographs, illustrations, decorative motifs, geometric shapes, or design elements inside the zone.\n' +
+      '5. All the slide\u2019s actual content (title, body text, charts, illustrations, visual elements from the skill prompt) MUST be positioned AROUND these zones \u2014 never crossing their boundaries, never overlapping even slightly.\n' +
+      '6. The slide must still look balanced, professional, and complete despite these zones being empty. Adjust your composition so the visible content (outside the zones) feels intentional and well-arranged.\n\n' +
+      'Compose the slide as if these zones were physically cut out of the canvas \u2014 you can only paint OUTSIDE them.\n\n=== END PROTECTED ZONES ===\n\n';
+    postBlock = '\n\n=== REMINDER: PROTECTED EMPTY ZONES ===\n' +
+      'Before you finalize the image, verify that EVERY listed zone is completely empty (only background) with NO borders, NO text, NO icons, NO shapes inside or overlapping it:\n' +
+      zoneList + '\n' +
+      'Do NOT draw the zone outlines as part of the slide. The zones must look like uninterrupted background.\n=== END REMINDER ===';
+  }
+  let prompt = preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock;
   return prompt;
 }
 function composeSkillPromptPreview(skill) { return composeSkillPrompt(skill, null); }
@@ -4365,7 +4387,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.2</span> (build #65 — block thumb overlay + aspect fit)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.11.3</span> (build #66 — stronger reservation prompts)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
