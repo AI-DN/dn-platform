@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.3</title>
+<title>DN Deck Generator v2.12.4</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -608,6 +608,11 @@ tbody tr:hover { background: var(--surface-2); }
 .layout-block-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
 .layout-block-section-head .h-title { font-size: 13px; font-weight: 500; }
 .layout-block-canvas { position: relative; aspect-ratio: 16/9; background: var(--surface, #e1f5ee); border-radius: 4px; border: 1px solid var(--border); margin-bottom: 8px; overflow: hidden; }
+.layout-block-canvas.is-drawing { cursor: crosshair; border-color: #0d9488; box-shadow: 0 0 0 2px rgba(13,148,136,0.2); }
+.lb-draw-preview { position: absolute; border: 2px dashed #0d9488; background: rgba(13,148,136,0.18); pointer-events: none; border-radius: 2px; z-index: 10; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 500; color: #04342C; }
+.layout-block-canvas.is-drawing .lb-rect { pointer-events: none; opacity: 0.5; }
+.lb-draw-banner { background: rgba(13,148,136,0.12); border: 1px solid #0d9488; border-radius: 4px; padding: 8px 10px; margin-bottom: 8px; font-size: 11px; color: #04342C; display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.lb-draw-banner .btn-ghost { font-size: 11px; padding: 2px 8px; }
 .layout-block-canvas .lb-rect { position: absolute; background: rgba(13,148,136,0.18); border: 1.5px dashed #0d9488; border-radius: 2px; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 500; color: #04342C; }
 .layout-block-canvas .lb-rect img { max-width: 100%; max-height: 100%; object-fit: contain; }
 .layout-block-canvas .lb-rect.is-empty { background: rgba(186,117,23,0.15); border-color: #BA7517; color: #412402; }
@@ -635,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.3 #70</div>
+      <div class="brand-version">v2.12.4 #71</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -947,6 +952,8 @@ const state = {
   userAssetsLoaded: false,
   // Build #67 — canonical About DN boilerplate (injected into white-paper system prompt)
   aboutDN: '',
+  // Build #71 — drag-to-draw layout block mode
+  layoutDrawMode: { active: false, slideIdx: null, startX: null, startY: null, previewRect: null },
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -1590,7 +1597,8 @@ const LAYOUT_BLOCK_PRESETS = {
   'side-band-r':   { x: 70, y: 5,  w: 26, h: 90, label: 'Side band (right)' },
   'side-band-l':   { x: 4,  y: 5,  w: 26, h: 90, label: 'Side band (left)' },
   'bottom-band':   { x: 4,  y: 76, w: 92, h: 18, label: 'Bottom band' },
-  'hero':          { x: 25, y: 22, w: 50, h: 50, label: 'Hero (center large)' }
+  'hero':          { x: 25, y: 22, w: 50, h: 50, label: 'Hero (center large)' },
+  'custom':        { x: 0,  y: 0,  w: 0,  h: 0,  label: 'Custom' }
 };
 function genBlockId() { return 'lb_' + Math.random().toString(36).slice(2, 10); }
 function rerenderCurrentSlideStep() {
@@ -1643,6 +1651,109 @@ function applyBlockToAllSlides(srcSlideIdx, blockId) {
   rerenderCurrentSlideStep();
   toast({ type: 'success', message: 'Added block to ' + added + ' other slide' + (added===1?'':'s') });
 }
+
+// Build #71 — drag-to-draw custom block helpers
+function enterDrawMode(slideIdx) {
+  state.layoutDrawMode = { active: true, slideIdx: slideIdx, startX: null, startY: null, previewRect: null };
+  rerenderCurrentSlideStep();
+  toast({ type: 'info', message: 'Click and drag on the layout canvas. ESC to cancel.' });
+}
+function exitDrawMode() {
+  if (!state.layoutDrawMode.active) return;
+  state.layoutDrawMode = { active: false, slideIdx: null, startX: null, startY: null, previewRect: null };
+  rerenderCurrentSlideStep();
+}
+function _canvasPctCoords(e, canvasEl) {
+  const rect = canvasEl.getBoundingClientRect();
+  const x = Math.max(0, Math.min(100, ((e.clientX - rect.left) / rect.width) * 100));
+  const y = Math.max(0, Math.min(100, ((e.clientY - rect.top) / rect.height) * 100));
+  return { x: Math.round(x), y: Math.round(y) };
+}
+function _ensurePreviewEl(canvasEl) {
+  let prev = canvasEl.querySelector('.lb-draw-preview');
+  if (!prev) {
+    prev = document.createElement('div');
+    prev.className = 'lb-draw-preview';
+    canvasEl.appendChild(prev);
+  }
+  return prev;
+}
+function onLayoutCanvasMouseDown(e, slideIdx, canvasEl) {
+  if (!state.layoutDrawMode.active || state.layoutDrawMode.slideIdx !== slideIdx) return;
+  e.preventDefault();
+  const coords = _canvasPctCoords(e, canvasEl);
+  state.layoutDrawMode.startX = coords.x;
+  state.layoutDrawMode.startY = coords.y;
+  state.layoutDrawMode.previewRect = { x: coords.x, y: coords.y, w: 0, h: 0 };
+  const prev = _ensurePreviewEl(canvasEl);
+  prev.style.left = coords.x + '%';
+  prev.style.top = coords.y + '%';
+  prev.style.width = '0%';
+  prev.style.height = '0%';
+  prev.textContent = '';
+}
+function onLayoutCanvasMouseMove(e, canvasEl) {
+  if (!state.layoutDrawMode.active || state.layoutDrawMode.startX === null) return;
+  e.preventDefault();
+  const coords = _canvasPctCoords(e, canvasEl);
+  const x = Math.min(state.layoutDrawMode.startX, coords.x);
+  const y = Math.min(state.layoutDrawMode.startY, coords.y);
+  const w = Math.abs(coords.x - state.layoutDrawMode.startX);
+  const h = Math.abs(coords.y - state.layoutDrawMode.startY);
+  state.layoutDrawMode.previewRect = { x, y, w, h };
+  const prev = _ensurePreviewEl(canvasEl);
+  prev.style.left = x + '%';
+  prev.style.top = y + '%';
+  prev.style.width = w + '%';
+  prev.style.height = h + '%';
+  prev.textContent = w + '% × ' + h + '%';
+}
+function onLayoutCanvasMouseUp(e, slideIdx, canvasEl) {
+  if (!state.layoutDrawMode.active || state.layoutDrawMode.startX === null) {
+    exitDrawMode();
+    return;
+  }
+  e.preventDefault();
+  const rect = state.layoutDrawMode.previewRect;
+  if (!rect || rect.w < 3 || rect.h < 3) {
+    toast({ type: 'info', message: 'Block too small (minimum 3% × 3%). Try again.' });
+    state.layoutDrawMode.startX = null;
+    state.layoutDrawMode.startY = null;
+    state.layoutDrawMode.previewRect = null;
+    const prev = canvasEl.querySelector('.lb-draw-preview');
+    if (prev) prev.remove();
+    return;
+  }
+  const slide = state.slides[slideIdx];
+  slide.layoutBlocks = slide.layoutBlocks || [];
+  slide.layoutBlocks.push({
+    id: genBlockId(),
+    x: rect.x, y: rect.y, w: rect.w, h: rect.h,
+    presetKey: 'custom',
+    assetId: null,
+    reserve: true,
+    fillMode: 'contain'
+  });
+  exitDrawMode();
+  toast({ type: 'success', message: 'Custom block added (' + rect.w + '% × ' + rect.h + '%)' });
+}
+function onLayoutCanvasMouseLeave(e, canvasEl) {
+  // Cancel drag in progress if mouse leaves the canvas
+  if (state.layoutDrawMode.active && state.layoutDrawMode.startX !== null) {
+    state.layoutDrawMode.startX = null;
+    state.layoutDrawMode.startY = null;
+    state.layoutDrawMode.previewRect = null;
+    const prev = canvasEl.querySelector('.lb-draw-preview');
+    if (prev) prev.remove();
+  }
+}
+// Global ESC handler — cancel draw mode
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape' && state.layoutDrawMode && state.layoutDrawMode.active) {
+    exitDrawMode();
+    toast({ type: 'info', message: 'Draw mode cancelled' });
+  }
+});
 function toggleBlockReserve(slideIdx, blockId) {
   const slide = state.slides[slideIdx]; if (!slide || !slide.layoutBlocks) return;
   const b = slide.layoutBlocks.find(x => x.id === blockId);
@@ -1808,8 +1919,11 @@ function openLayoutBlockPicker(slideIdx, blockId) {
 
 function renderLayoutBlocksSection(slide, slideIdx) {
   const blocks = slide.layoutBlocks || [];
-  const canvas = blocks.length === 0 ? '' :
-    '<div class="layout-block-canvas">' +
+  const drawMode = (state.layoutDrawMode && state.layoutDrawMode.active && state.layoutDrawMode.slideIdx === slideIdx);
+  const banner = drawMode ? '<div class="lb-draw-banner"><span>\u270F\uFE0F Click and drag to draw a block. ESC or click Cancel to exit.</span><button class="btn-ghost" data-block-draw-cancel="1">Cancel</button></div>' : '';
+  const canvasClass = 'layout-block-canvas' + (drawMode ? ' is-drawing' : '');
+  const canvas = (blocks.length === 0 && !drawMode) ? '' :
+    '<div class="' + canvasClass + '" data-block-canvas-slide-idx="' + slideIdx + '">' +
       blocks.map((b, idx) => {
         const asset = b.assetId ? assetById(b.assetId) : null;
         const letter = String.fromCharCode(65 + idx);
@@ -1846,10 +1960,12 @@ function renderLayoutBlocksSection(slide, slideIdx) {
   const namedButtons =
     '<button class="btn-ghost lb-named" data-block-add="side-band-r" data-slide-idx="' + slideIdx + '">Side band</button>' +
     '<button class="btn-ghost lb-named" data-block-add="bottom-band" data-slide-idx="' + slideIdx + '">Bottom band</button>' +
-    '<button class="btn-ghost lb-named" data-block-add="hero" data-slide-idx="' + slideIdx + '">Hero</button>';
+    '<button class="btn-ghost lb-named" data-block-add="hero" data-slide-idx="' + slideIdx + '">Hero</button>' +
+    '<button class="btn-ghost lb-named" data-block-draw="1" data-slide-idx="' + slideIdx + '" style="border-color:#0d9488;color:#04342C">\u270F\uFE0F Custom (draw)</button>';
   return '<div class="layout-block-section">' +
     '<div class="layout-block-section-head"><div class="h-title"><i style="display:inline-block;width:14px">▣</i> Layout blocks (' + blocks.length + ')</div>' +
     '<span class="muted body-sm" style="font-size:10px">click any block to set image or toggle reservation</span></div>' +
+    banner +
     canvas +
     '<div class="layout-block-list">' + blockRows + '</div>' +
     '<div class="layout-block-presets">' + presetButtons + namedButtons + '</div>' +
@@ -3254,7 +3370,28 @@ function bindSlideEditCard(i) {
     b.onclick = () => applyBlockToAllSlides(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-apply-all'));
   });
   card.querySelectorAll('[data-block-canvas-click]').forEach(b => {
-    b.onclick = () => openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
+    b.onclick = (e) => {
+      // Skip when in draw mode (canvas click is part of draw)
+      if (state.layoutDrawMode && state.layoutDrawMode.active) return;
+      openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
+    };
+  });
+  // Build #71 — Custom draw button
+  card.querySelectorAll('[data-block-draw]').forEach(b => {
+    b.onclick = () => enterDrawMode(parseInt(b.getAttribute('data-slide-idx')));
+  });
+  card.querySelectorAll('[data-block-draw-cancel]').forEach(b => {
+    b.onclick = () => exitDrawMode();
+  });
+  // Build #71 — canvas mouse events for drawing
+  card.querySelectorAll('[data-block-canvas-slide-idx]').forEach(canvasEl => {
+    const slideIdxAttr = parseInt(canvasEl.getAttribute('data-block-canvas-slide-idx'));
+    if (state.layoutDrawMode && state.layoutDrawMode.active && state.layoutDrawMode.slideIdx === slideIdxAttr) {
+      canvasEl.addEventListener('mousedown', (e) => onLayoutCanvasMouseDown(e, slideIdxAttr, canvasEl));
+      canvasEl.addEventListener('mousemove', (e) => onLayoutCanvasMouseMove(e, canvasEl));
+      canvasEl.addEventListener('mouseup', (e) => onLayoutCanvasMouseUp(e, slideIdxAttr, canvasEl));
+      canvasEl.addEventListener('mouseleave', (e) => onLayoutCanvasMouseLeave(e, canvasEl));
+    }
   });
   card.querySelector('[data-act="del"]').onclick = () => { if (state.slides.length <= state.slideMin) return; state.slides.splice(i, 1); renderStep3(); };
   const upBtn = card.querySelector('[data-act="up"]'); if (upBtn) upBtn.onclick = () => moveSlideUp(i);
@@ -4467,7 +4604,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.3</span> (build #70 — per-deck branding)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.4</span> (build #71 — drag-to-draw custom blocks)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
