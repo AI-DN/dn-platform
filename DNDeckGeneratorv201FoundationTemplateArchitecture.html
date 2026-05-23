@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.12.6</title>
+<title>DN Deck Generator v2.12.8</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.12.6 #73</div>
+      <div class="brand-version">v2.12.8 #75</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -954,6 +954,9 @@ const state = {
   aboutDN: '',
   // Build #71 — drag-to-draw layout block mode
   layoutDrawMode: { active: false, slideIdx: null, startX: null, startY: null, previewRect: null },
+  // Build #75 — per-slide layout-block collapse state (Step 3) + per-slide model override (Step 5)
+  layoutBlocksExpanded: {},
+  regenModelOverride: {},
   // Build #43 — brand library (customer logos + subtext templates)
   brandLib: { ownLogos: [], customerLogos: [], subtexts: [] },
   // Build #47 — track skill IDs currently generating preview
@@ -1253,35 +1256,41 @@ function composeSkillPrompt(skill, slide) {
   let preBlock = '';
   let postBlock = '';
   if (reservedBlocks.length > 0) {
+    const zoneCount = reservedBlocks.length;
     const zoneList = describeBlocks();
-    preBlock = '=== DESIGNED-AROUND ZONES (read this FIRST and design the slide with these in mind) ===\n' +
-      'The following rectangular regions are placeholders for IMPORTANT user content (product photos, customer logos, branded visuals) that will be overlaid post-generation:\n\n' +
+    const honorChecklist = reservedBlocks.map((b, idx) => {
+      const letter = String.fromCharCode(65 + idx);
+      return '  [ ] Zone ' + letter + ' must contain only the background \u2014 nothing else, no borders, no text, no shapes';
+    }).join('\n');
+    preBlock = '=== DESIGNED-AROUND ZONES \u2014 ' + zoneCount + ' ZONE' + (zoneCount === 1 ? '' : 'S') + ' MUST BE HONORED ===\n' +
+      '(Read this FIRST. The slide composition depends entirely on honoring EVERY zone listed here.)\n\n' +
+      'There ' + (zoneCount === 1 ? 'is 1 zone' : 'are ' + zoneCount + ' zones') + ' on this 16:9 slide that are placeholders for IMPORTANT user content (product photos, customer logos, branded visuals) overlaid after generation:\n\n' +
       zoneList + '\n\n' +
-      'DESIGN PHILOSOPHY: Treat each zone as if it ALREADY CONTAINS the most important visual element on the slide. Compose everything else to complement, frame, and balance that future content. The slide must look intentional and complete with the zone content imagined in place \u2014 not jarring or unbalanced.\n\n' +
-      'BACKGROUND BLENDING (this is the key rule that makes reservations work):\n' +
-      '\u2022 The slide\u2019s base background (the underlying color/gradient/texture/pattern of the canvas) MUST continue UNINTERRUPTED through each zone\n' +
-      '\u2022 If your background is a dark gradient, the gradient flows through the zone seamlessly \u2014 same direction, same colors, same density\n' +
-      '\u2022 If your background has subtle patterns (dots, lines, particles, mesh, etc.), those patterns continue through the zone at the same density\n' +
-      '\u2022 The zone is NOT a different color from the surrounding background. It is NOT darker, lighter, more saturated, or visually distinct in any way\n' +
-      '\u2022 If someone removed the zone outline you would see in the source, the zone area should be INDISTINGUISHABLE from the rest of the background\n\n' +
-      'STRICT PROHIBITIONS inside each zone:\n' +
+      'CRITICAL RULE: There is NO primary zone, NO secondary zone, NO optional zone. ALL ' + zoneCount + ' zone' + (zoneCount === 1 ? '' : 's') + ' ' + (zoneCount === 1 ? 'is' : 'are') + ' EQUALLY important and MUST be honored. Missing or partially honoring even ONE zone makes the slide unusable.\n\n' +
+      'DESIGN PHILOSOPHY: Treat EVERY listed zone as if it ALREADY CONTAINS a critical visual element. Compose the rest of the slide to balance ALL of these together \u2014 not just one of them. If you can\u2019t fit the slide content around every zone, REDUCE the content (shrink elements, remove non-essentials) rather than overlapping a zone.\n\n' +
+      'BACKGROUND BLENDING (applies to ALL ' + zoneCount + ' zone' + (zoneCount === 1 ? '' : 's') + ', equally):\n' +
+      '\u2022 The slide\u2019s base background (color/gradient/texture/pattern) MUST continue UNINTERRUPTED through every listed zone\n' +
+      '\u2022 Every zone must look IDENTICAL in color/pattern to the surrounding background \u2014 not darker, not lighter, not flat, not distinct\n' +
+      '\u2022 If your background has gradients, those gradients flow through each zone with the same direction and intensity\n' +
+      '\u2022 If your background has patterns (dots, lines, mesh, particles), those patterns continue through each zone at the same density\n' +
+      '\u2022 Each zone should be INDISTINGUISHABLE from the rest of the background when overlaid with the user\u2019s content\n\n' +
+      'STRICT PROHIBITIONS inside EVERY listed zone (apply to ALL ' + zoneCount + ' zone' + (zoneCount === 1 ? '' : 's equally') + '):\n' +
       '1. NO borders, outlines, frames, rounded rectangles, drop shadows, glow effects, or any visual marker of the zone boundary\n' +
       '2. NO text, headings, labels, captions, numbers, percentages, watermarks, or annotations\n' +
       '3. NO icons, charts, graphs, photographs, illustrations, vector shapes, geometric motifs, or decorative elements\n' +
       '4. NO foreground design elements of any kind \u2014 only the unmodified background\n\n' +
-      'CONTENT POSITIONING AROUND ZONES:\n' +
-      '5. All slide content (titles, body, charts, icons, visuals) MUST keep a clear margin from zone edges \u2014 do not let elements touch, crowd, or cross the zone boundary\n' +
-      '6. If a chunk of content would naturally extend INTO a zone, move it elsewhere or shrink it. Never let content bleed across a zone edge\n' +
-      '7. Distribute the slide\u2019s real content in the remaining area in a way that feels purposeful, not crammed-around-an-obstacle\n\n' +
-      'IMAGINE the zone contains the most important visual on the slide (a product hero shot, customer logo, key chart). Now compose everything else to set that imagined visual in its best light: balanced framing, clear visual hierarchy, breathing room around the zone.\n\n=== END DESIGNED-AROUND ZONES ===\n\n';
-    postBlock = '\n\n=== FINAL CHECK: DESIGNED-AROUND ZONES ===\n' +
-      'Before finalizing, verify for EACH zone:\n' +
-      zoneList + '\n' +
-      '\u2022 The background flows seamlessly through the zone (same color/gradient/pattern as surrounding area)\n' +
-      '\u2022 No border or outline marks the zone boundary\n' +
-      '\u2022 No text, icons, or shapes are inside or overlap the zone\n' +
-      '\u2022 Surrounding content has clear breathing room from the zone edges\n' +
-      'The zone should look like a clean rectangular opening through which the background is visible \u2014 NOT a colored or empty patch interrupting the design.\n=== END FINAL CHECK ===';
+      'CONTENT POSITIONING AROUND ALL ZONES:\n' +
+      '5. All slide content (titles, body, charts, icons, visuals) MUST keep clear margin from EVERY zone edge \u2014 no element touches, crowds, or crosses ANY zone boundary\n' +
+      '6. If content would naturally extend INTO any zone, MOVE IT or SHRINK IT. Don\u2019t let any element bleed into any zone\n' +
+      '7. If multiple zones overlap with where you wanted to put content, reorganise the entire layout. The zones are non-negotiable; the content placement is flexible\n\n' +
+      'PER-ZONE HONOR CHECKLIST (mentally verify every box before composing):\n' +
+      honorChecklist + '\n\n=== END DESIGNED-AROUND ZONES ===\n\n';
+    postBlock = '\n\n=== FINAL CHECK: VERIFY ALL ' + zoneCount + ' ZONE' + (zoneCount === 1 ? '' : 'S') + ' ARE HONORED ===\n' +
+      'Mentally walk through EACH listed zone before finalizing the image:\n' +
+      zoneList + '\n\n' +
+      'For zone-by-zone verification:\n' +
+      honorChecklist + '\n\n' +
+      'If ANY zone fails the checklist \u2014 if even one has a stray text element, an icon overlapping its edge, a slightly different background, or any visible border \u2014 redo the composition. Honoring only some zones is a failure. Honoring all zones is success.\n=== END FINAL CHECK ===';
   }
   let prompt = preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock;
   return prompt;
@@ -1399,12 +1408,12 @@ async function generateAllImages() {
   await Promise.all(workers);
 }
 
-async function regenerateOne(idx, newPrompt) {
+async function regenerateOne(idx, newPrompt, overrideSpec) {
   const slide = state.slides[idx];
   slide.status = 'generating'; slide.error = null;
   renderStep5Slides();
   try {
-    const { b64, prompt, cost, spec } = await generateSlideImage(slide, newPrompt);
+    const { b64, prompt, cost, spec } = await generateSlideImage(slide, newPrompt, overrideSpec);
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
     slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
     slide.status = 'done'; slide.regenCount++;
@@ -1941,7 +1950,19 @@ function openLayoutBlockPicker(slideIdx, blockId) {
   renderModal();
 }
 
-function renderLayoutBlocksSection(slide, slideIdx) {
+function renderLayoutBlocksSection(slide, slideIdx, opts) {
+  opts = opts || {};
+  const isCollapsible = !!opts.collapsible;
+  const isCollapsed = isCollapsible && !!opts.collapsed;
+  if (isCollapsed) {
+    const cnt = (slide.layoutBlocks || []).length;
+    return '<div class="layout-block-section layout-block-section-collapsed">' +
+      '<div class="layout-block-section-head" style="cursor:pointer" data-lb-toggle="' + slideIdx + '">' +
+        '<div class="h-title"><i style="display:inline-block;width:14px">+</i> Layout blocks (' + cnt + ')</div>' +
+        '<span class="muted body-sm" style="font-size:10px">click to expand</span>' +
+      '</div>' +
+    '</div>';
+  }
   const blocks = slide.layoutBlocks || [];
   const drawMode = (state.layoutDrawMode && state.layoutDrawMode.active && state.layoutDrawMode.slideIdx === slideIdx);
   const banner = drawMode ? '<div class="lb-draw-banner"><span>\u270F\uFE0F Click and drag to draw a block. ESC or click Cancel to exit.</span><button class="btn-ghost" data-block-draw-cancel="1">Cancel</button></div>' : '';
@@ -1986,9 +2007,10 @@ function renderLayoutBlocksSection(slide, slideIdx) {
     '<button class="btn-ghost lb-named" data-block-add="bottom-band" data-slide-idx="' + slideIdx + '">Bottom band</button>' +
     '<button class="btn-ghost lb-named" data-block-add="hero" data-slide-idx="' + slideIdx + '">Hero</button>' +
     '<button class="btn-ghost lb-named" data-block-draw="1" data-slide-idx="' + slideIdx + '" style="border-color:#0d9488;color:#04342C">\u270F\uFE0F Custom (draw)</button>';
+  const headerSuffix = isCollapsible ? '<button class="btn-ghost" data-lb-toggle="' + slideIdx + '" style="font-size:11px;padding:2px 8px;margin-left:auto">\u2212 collapse</button>' : '<span class="muted body-sm" style="font-size:10px">click any block to set image or toggle reservation</span>';
   return '<div class="layout-block-section">' +
-    '<div class="layout-block-section-head"><div class="h-title"><i style="display:inline-block;width:14px">▣</i> Layout blocks (' + blocks.length + ')</div>' +
-    '<span class="muted body-sm" style="font-size:10px">click any block to set image or toggle reservation</span></div>' +
+    '<div class="layout-block-section-head"><div class="h-title"><i style="display:inline-block;width:14px">\u25A3</i> Layout blocks (' + blocks.length + ')</div>' +
+    headerSuffix + '</div>' +
     banner +
     canvas +
     '<div class="layout-block-list">' + blockRows + '</div>' +
@@ -3338,7 +3360,7 @@ function renderSlideEditCard(s, i) {
       <div class="slide-edit-head"><span class="drag-handle" title="Drag to reorder" aria-label="Drag to reorder"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg></span><span class="slide-edit-num">Slide ${i+1}</span><div class="slide-edit-actions"><button class="icon-btn-sm" data-act="up" ${isFirst ? 'disabled' : ''} aria-label="Move up" title="${isFirst ? 'Already at top' : 'Move up'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg></button><button class="icon-btn-sm" data-act="down" ${isLast ? 'disabled' : ''} aria-label="Move down" title="${isLast ? 'Already at bottom' : 'Move down'}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg></button><button class="icon-btn-sm" data-act="del" ${atMin ? 'disabled' : ''} aria-label="Delete"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-2 14a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2L5 6"/></svg></button></div></div>
       <div class="field"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label class="field-label" style="margin-bottom:0">Title</label><button class="btn-ghost" data-act="zoomTitle" title="Open title in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button></div><input class="input" data-act="title" value="${escapeHtml(s.title)}"></div>
       <div class="field" style="margin-bottom:0"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px"><label class="field-label" style="margin-bottom:0">Body</label><button class="btn-ghost" data-act="zoomBody" title="Open body in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button></div><textarea class="textarea prose" data-act="body" rows="4">${escapeHtml(s.body)}</textarea><div class="field-hint" style="margin-top:4px">This body text becomes the default speaker notes on Step 5. Edit there if you want different notes than what appears on the slide.</div></div>
-      ${renderLayoutBlocksSection(s, i)}
+      ${renderLayoutBlocksSection(s, i, { collapsible: true, collapsed: !state.layoutBlocksExpanded[i] })}
     </div>`;
 }
 function bindSlideEditCard(i) {
@@ -3398,6 +3420,14 @@ function bindSlideEditCard(i) {
       // Skip when in draw mode (canvas click is part of draw)
       if (state.layoutDrawMode && state.layoutDrawMode.active) return;
       openLayoutBlockPicker(parseInt(b.getAttribute('data-slide-idx')), b.getAttribute('data-block-canvas-click'));
+    };
+  });
+  // Build #75 — layout-blocks collapse toggle (Step 3)
+  card.querySelectorAll('[data-lb-toggle]').forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.getAttribute('data-lb-toggle'));
+      state.layoutBlocksExpanded[idx] = !state.layoutBlocksExpanded[idx];
+      rerenderCurrentSlideStep();
     };
   });
   // Build #71 — Custom draw button
@@ -3946,7 +3976,19 @@ function renderImgCard(s, i) {
               <button class="refine-toggle" data-act="toggleRefine">${expanded ? '−' : '+'} Refine this image</button>
               <button class="btn-ghost" data-act="zoomPrompt" title="Open prompt in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button>
             </div>
-            ${expanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label><textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">${escapeHtml(s.lastPrompt || composeSkillPrompt(skill, s))}</textarea><div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ${s.status === 'generating' ? 'disabled' : ''}>${s.status === 'generating' ? '<span class="spinner"></span> Regenerating…' : 'Regenerate'}</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div></div>` : ''}
+            ${expanded ? (function() {
+              const candidates = (typeof buildModelCandidates === 'function' ? buildModelCandidates() : []).filter(c => c.keyAvailable);
+              const currentSlideModelId = s.modelUsed ? (s.modelUsed.provider + ':' + s.modelUsed.model + ':' + s.modelUsed.quality) : (state.selectedModel || state.defaultModel);
+              const overrideId = state.regenModelOverride[i] || currentSlideModelId;
+              const opts = candidates.map(c => {
+                const id = c.provider + ':' + c.model + ':' + (c.quality || 'high');
+                const lbl = (c.label || c.display_name || (c.provider + ' / ' + c.model)) + ' · ' + (typeof fmtUsd === 'function' ? fmtUsd(c.cost_per_image) : '$' + c.cost_per_image);
+                const sel = id === overrideId ? ' selected' : '';
+                return '<option value="' + id + '"' + sel + '>' + escapeHtml(lbl) + '</option>';
+              }).join('');
+              const modelPicker = candidates.length > 0 ? ('<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Regenerate with model</label><select class="select" data-act="regenModel" style="font-size:12px;width:100%">' + opts + '</select><div class="field-hint" style="margin-top:4px;font-size:10px">Per-slide override. Bumping to medium/high helps when low quality misses reservations.</div></div>') : '';
+              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label><textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(s.lastPrompt || composeSkillPrompt(skill, s)) + '</textarea>' + modelPicker + '<div style="display:flex;gap:6px;margin-top:8px"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : 'Regenerate') + '</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
+            })() : ''}
           </div>
           <div class="refine-section">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
@@ -3954,7 +3996,6 @@ function renderImgCard(s, i) {
               <button class="btn-ghost" data-act="zoomNotes" title="Open notes in larger editor" style="padding:2px 8px;font-size:13px;line-height:1">⤢</button>
             </div>
             ${s.notesExpanded ? `<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">What to say while presenting</label><textarea class="textarea prose" data-act="notesText" rows="6" placeholder="Speaker notes — pre-filled from slide body. Edit freely.">${escapeHtml(s.speakerNotes || '')}</textarea><div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-secondary" data-act="aiNotes" ${s.rewritingNotes ? 'disabled' : ''}>${s.rewritingNotes ? '<span class="spinner"></span> Rewriting…' : 'Make presenter-friendly with AI'}</button>${s.prevSpeakerNotes != null ? '<button class="btn-ghost" data-act="restoreNotes">Restore previous</button>' : ''}<span class="muted body-sm" style="margin-left:auto;align-self:center;font-size:11px">~$0.01 per rewrite</span></div></div>` : ''}
-            ${renderLayoutBlocksSection(s, i)}
           </div>
         </div>
       </div>
@@ -3967,7 +4008,24 @@ function bindImgCard(i) {
   const enlarge = card.querySelector('[data-act="enlarge"]'); if (enlarge) enlarge.onclick = () => openLightbox(i);
   const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => regenerateOne(i);
   const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep5Slides(); };
-  const regen = card.querySelector('[data-act="regen"]'); if (regen) regen.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); regenerateOne(i, ta ? ta.value : null); };
+  // Build #75 — per-slide model override
+  const mdlSel = card.querySelector('[data-act="regenModel"]');
+  if (mdlSel) mdlSel.onchange = e => { state.regenModelOverride[i] = e.target.value; };
+  const regen = card.querySelector('[data-act="regen"]'); if (regen) regen.onclick = () => {
+    const ta = card.querySelector('[data-act="refinePrompt"]');
+    const mdl = card.querySelector('[data-act="regenModel"]');
+    const overrideId = (mdl && mdl.value) || state.regenModelOverride[i];
+    const overrideSpec = overrideId ? (typeof parseModelSpec === 'function' ? parseModelSpec(overrideId) : null) : null;
+    regenerateOne(i, ta ? ta.value : null, overrideSpec);
+  };
+  // Build #75 — layout-blocks collapse toggle
+  card.querySelectorAll('[data-lb-toggle]').forEach(el => {
+    el.onclick = () => {
+      const idx = parseInt(el.getAttribute('data-lb-toggle'));
+      state.layoutBlocksExpanded[idx] = !state.layoutBlocksExpanded[idx];
+      rerenderCurrentSlideStep();
+    };
+  });
   const reset = card.querySelector('[data-act="resetPrompt"]'); if (reset) reset.onclick = () => { const ta = card.querySelector('[data-act="refinePrompt"]'); const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null; if (ta) ta.value = composeSkillPrompt(skill, s); };
   const toggleN = card.querySelector('[data-act="toggleNotes"]'); if (toggleN) toggleN.onclick = () => { s.notesExpanded = !s.notesExpanded; renderStep5Slides(); };
   const notesTa = card.querySelector('[data-act="notesText"]'); if (notesTa) notesTa.oninput = e => { s.speakerNotes = e.target.value; const btn = card.querySelector('[data-act="toggleNotes"]'); if (btn) btn.textContent = `− Speaker notes (${countWords(s.speakerNotes)} word${countWords(s.speakerNotes)===1?'':'s'})`; };
@@ -4660,7 +4718,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.6</span> (build #73 — layout blocks in Step 5 + stale badge)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.12.8</span> (build #75 — per-slide model + cleaner layout-block placement)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
