@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.15.0</title>
+<title>DN Deck Generator v2.16.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.15.0 #84</div>
+      <div class="brand-version">v2.16.0 #85</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1370,8 +1370,82 @@ function modelLabel(provider, model, quality) {
 function parseModelSpec(spec) { if (!spec) return null; const parts = spec.split(':'); return { provider: parts[0], model: parts[1], quality: parts[2] || null }; }
 function currentEffectiveModel() { return parseModelSpec(state.selectedModel || state.defaultModel) || { provider: 'openai', model: 'gpt-image-2', quality: 'high' }; }
 
-async function generateSlideImage(slide, customPromptOverride, overrideSpec) {
-  const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+// Build #85 — Skill group helpers
+function skillIsGroup(skill) { return !!(skill && skill.is_group); }
+function resolveGroupMembers(group) {
+  if (!skillIsGroup(group)) return [];
+  const ids = Array.isArray(group.member_skill_ids) ? group.member_skill_ids : [];
+  return ids.map(id => skillById(id)).filter(Boolean).filter(s => !skillIsGroup(s));
+}
+async function pickMemberForSlide(group, slide, slideIdx) {
+  const members = resolveGroupMembers(group);
+  if (members.length === 0) throw new Error('Group has no usable members');
+  if (members.length === 1) return members[0].id;
+  const ak = (state.apiKeys.anthropic || '').trim();
+  if (!ak) return members[slideIdx % members.length].id;
+  const memberDescs = members.map((m, i) =>
+    i + ': "' + m.name + '"' + (m.best_for ? ' (best for: ' + m.best_for + ')' : '') + (m.description ? ' \u2014 ' + m.description : '')
+  ).join('\n');
+  const sys = 'You match presentation slides to the best-fitting visual style from a small set of options. Return ONLY a single digit integer \u2014 the 0-based index of the best match. No explanation.';
+  const userPrompt = 'Slide position: ' + (slideIdx + 1) + ' of ' + state.slides.length +
+    '\nSlide title: ' + (slide.title || '') +
+    '\nSlide body:\n' + (slide.body || '').slice(0, 500) +
+    '\n\nAvailable styles:\n' + memberDescs +
+    '\n\nReturn the single digit index of the best-fitting style:';
+  try {
+    const resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 10, system: sys, messages: [{ role: 'user', content: userPrompt }] })
+    });
+    if (!resp.ok) throw new Error('Picker ' + resp.status);
+    const data = await resp.json();
+    const reply = (data.content && data.content[0] && data.content[0].text || '').trim();
+    const m = reply.match(/\d+/);
+    const idx = m ? parseInt(m[0]) : -1;
+    if (data.usage) {
+      try {
+        const cost = getAnthropicCost('claude-haiku-4-5-20251001', data.usage.input_tokens || 0, data.usage.output_tokens || 0);
+        deckCost.polish += cost;
+        if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-haiku-4-5', quality: 'picker', cost: cost, kind: 'group-pick' });
+        if (typeof renderCostBadge === 'function') renderCostBadge();
+      } catch (e) {}
+    }
+    if (idx >= 0 && idx < members.length) return members[idx].id;
+    return members[slideIdx % members.length].id;
+  } catch (e) {
+    console.warn('Group picker failed, falling back to round-robin:', e);
+    return members[slideIdx % members.length].id;
+  }
+}
+async function effectiveSkillIdForSlide(slide, slideIdx) {
+  if (slide.assignedSkillId) {
+    const a = skillById(slide.assignedSkillId);
+    if (a && !skillIsGroup(a)) return a.id;
+  }
+  if (!state.selectedSkillId) return null;
+  const baseSkill = skillById(state.selectedSkillId);
+  if (!baseSkill) return null;
+  if (!skillIsGroup(baseSkill)) return baseSkill.id;
+  if (slide.pickedMemberSkillId) return slide.pickedMemberSkillId;
+  const memberId = await pickMemberForSlide(baseSkill, slide, slideIdx);
+  slide.pickedMemberSkillId = memberId;
+  return memberId;
+}
+
+async function generateSlideImage(slide, customPromptOverride, overrideSpec, slideIdx) {
+  // Build #85 — resolve effective skill (handles per-slide override and skill groups)
+  let skill = null;
+  if (typeof slideIdx === 'number') {
+    try {
+      const effId = await effectiveSkillIdForSlide(slide, slideIdx);
+      if (effId) skill = skillById(effId);
+    } catch (e) { console.warn('effectiveSkillIdForSlide failed:', e); }
+  }
+  if (!skill) {
+    const baseSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    skill = (baseSkill && !skillIsGroup(baseSkill)) ? baseSkill : null;
+  }
   const prompt = customPromptOverride || composeSkillPrompt(skill, slide);
   const spec = overrideSpec || currentEffectiveModel();
   const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, prompt);
@@ -1393,7 +1467,7 @@ async function generateAllImages() {
         slide.status = 'generating'; slide.error = null;
         renderStep5Slides();
         try {
-          const { b64, prompt, cost, spec } = await generateSlideImage(slide);
+          const { b64, prompt, cost, spec } = await generateSlideImage(slide, null, null, state.slides.indexOf(slide));
           slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
           slide.status = 'done'; slide.costAccrued = (slide.costAccrued || 0) + cost; slide.modelUsed = spec;
           slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
@@ -1620,7 +1694,7 @@ async function regenerateOne(idx, newPrompt, overrideSpec) {
     const promptToUse = newPrompt || composeSkillPrompt(skill, slide);
     const result = useRef
       ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64, overrideSpec)
-      : await generateSlideImage(slide, newPrompt, overrideSpec);
+      : await generateSlideImage(slide, newPrompt, overrideSpec, idx);
     const { b64, prompt, cost, spec } = result;
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
     slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
@@ -4403,7 +4477,7 @@ function renderSkills() {
     <div class="section-header">
       <input class="input" id="skillsSearch" placeholder="Search skills…" value="${escapeHtml(state.skillsSearch)}" style="max-width:320px">
       <div style="display:flex;gap:8px">
-        ${state.adminMode ? '<button class="btn-secondary" id="importSkillBtn" style="margin-right:6px">\ud83d\udce5 Import from slide</button><button class="btn-primary" id="newSkillBtn">+ New skill</button>' : '<span class="badge badge-neutral">Read-only</span>'}
+        ${state.adminMode ? '<button class="btn-secondary" id="importSkillBtn" style="margin-right:6px">\ud83d\udce5 Import from slide</button><button class="btn-secondary" id="newGroupBtn" style="margin-right:6px">\ud83c\udf9b\ufe0f New skill group</button><button class="btn-primary" id="newSkillBtn">+ New skill</button>' : '<span class="badge badge-neutral">Read-only</span>'}
       </div>
     </div>
     ${filtered.length === 0 ? `<div class="empty"><div class="empty-title">No skills</div><div class="empty-desc">${dataLoadState.status === 'loading' ? 'Loading from Supabase…' : (state.adminMode ? 'Click "New skill" to create one.' : 'No skills match your search.')}</div></div>` : `<div>${filtered.map(s => renderSkillRow(s)).join('')}</div>`}
@@ -4413,6 +4487,9 @@ function renderSkills() {
   // Build #84 — Import-from-slide button
   const impBtn = document.getElementById('importSkillBtn');
   if (impBtn) impBtn.onclick = () => openSkillImportModal();
+  // Build #85 — New skill group button
+  const ngBtn = document.getElementById('newGroupBtn');
+  if (ngBtn) ngBtn.onclick = () => openSkillGroupEditor(null);
   document.querySelectorAll('[data-skill-act]').forEach(el => {
     const act = el.dataset.skillAct; const id = el.dataset.id;
     if (act === 'fav') el.onclick = async () => { await toggleFavoriteSkill(id); renderSkills(); };
@@ -4448,6 +4525,74 @@ function openSkillViewer(id) {
     <div class="modal-footer">${state.adminMode ? `<button class="btn-secondary" id="editFromView">Edit</button>` : ''}<button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
   const eb = document.getElementById('editFromView'); if (eb) eb.onclick = () => { closeModal(); openSkillEditor(id); };
 }
+// Build #85 — Skill group editor (create/edit a suite of skills)
+function openSkillGroupEditor(id) {
+  if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
+  const existing = id ? skillById(id) : null;
+  const draft = {
+    id: existing ? existing.id : null,
+    name: existing ? existing.name : '',
+    description: existing ? existing.description : '',
+    member_skill_ids: existing ? (existing.member_skill_ids || []) : [],
+    is_group: true,
+    prompt: ''
+  };
+  function renderEditor() {
+    const leafSkills = (window.allSkills || []).filter(s => !skillIsGroup(s)).filter(s => s.is_active !== false);
+    const memberTiles = leafSkills.map(s => {
+      const selected = draft.member_skill_ids.indexOf(s.id) >= 0;
+      return '<label class="branding-picker-tile' + (selected ? ' is-selected' : '') + '" style="cursor:pointer;padding:8px;position:relative">' +
+        '<input type="checkbox" data-member-id="' + s.id + '"' + (selected ? ' checked' : '') + ' style="position:absolute;top:6px;right:6px">' +
+        (s.preview_image_b64 ? '<img src="data:image/jpeg;base64,' + s.preview_image_b64 + '" alt="" style="width:100%;height:60px;object-fit:cover;border-radius:4px">' : '<div style="width:100%;height:60px;background:var(--surface-2,var(--surface));border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:10px">no preview</div>') +
+        '<div class="tile-label" style="margin-top:4px">' + escapeHtml(s.name) + '</div>' +
+        (s.best_for ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">best for: ' + escapeHtml(s.best_for) + '</div>' : '') +
+      '</label>';
+    }).join('');
+    const html = '<div class="modal-header"><div><div class="h1">' + (existing ? 'Edit skill group' : '\ud83c\udf9b\ufe0f New skill group') + '</div>' +
+      '<div class="muted body-sm" style="margin-top:4px">A group bundles 2-4 related skills. Decks using this group get per-slide auto-routing via Claude Haiku.</div>' +
+      '</div><button class="btn-ghost" onclick="closeModal()">\u00d7</button></div>' +
+      '<div class="field"><label class="field-label">Group name <span class="subtle">required</span></label><input class="input" id="sgName" value="' + escapeAttr(draft.name) + '" placeholder="e.g. DN Telco Pitch Suite"></div>' +
+      '<div class="field"><label class="field-label">Description</label><input class="input" id="sgDesc" value="' + escapeAttr(draft.description || '') + '" placeholder="One-line summary"></div>' +
+      '<div class="field"><label class="field-label">Members <span class="subtle">tick 2-4 skills</span> <span style="color:var(--text-muted);font-size:11px">(' + draft.member_skill_ids.length + ' selected)</span></label>' +
+        (leafSkills.length === 0 ? '<div class="empty"><div class="empty-desc">No skills available. Create at least 2 skills first.</div></div>' :
+        '<div class="layout-asset-grid" style="margin-top:6px">' + memberTiles + '</div>') +
+      '</div>' +
+      '<div class="modal-footer">' +
+        '<button class="btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn-primary" id="sgSaveBtn">Save group</button>' +
+      '</div>';
+    openModal(html, { lg: true });
+    const ne = document.getElementById('sgName');
+    if (ne) ne.oninput = e => { draft.name = e.target.value; };
+    const de = document.getElementById('sgDesc');
+    if (de) de.oninput = e => { draft.description = e.target.value; };
+    document.querySelectorAll('input[data-member-id]').forEach(cb => {
+      cb.onchange = e => {
+        const mid = cb.getAttribute('data-member-id');
+        if (cb.checked) {
+          if (draft.member_skill_ids.indexOf(mid) < 0) draft.member_skill_ids.push(mid);
+        } else {
+          draft.member_skill_ids = draft.member_skill_ids.filter(x => x !== mid);
+        }
+        renderEditor();
+      };
+    });
+    const saveBtn = document.getElementById('sgSaveBtn');
+    if (saveBtn) saveBtn.onclick = async () => {
+      if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
+      if (draft.member_skill_ids.length < 2) { toast({ type: 'error', message: 'Pick at least 2 member skills' }); return; }
+      if (draft.member_skill_ids.length > 8) { toast({ type: 'error', message: 'Max 8 members (2-4 recommended)' }); return; }
+      try {
+        await saveSkill(draft);
+        closeModal();
+        toast({ type: 'success', message: 'Skill group saved' });
+        renderSkills();
+      } catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+    };
+  }
+  renderEditor();
+}
+
 // Build #84 — Analyze a slide image into a structured skill prompt via Claude vision
 async function analyzeSlideForSkillPrompt(referenceB64, skillName) {
   const ak = (state.apiKeys.anthropic || '').trim();
@@ -4608,8 +4753,8 @@ function openSkillEditor(id, initialDraft) {
   const existing = id ? skillById(id) : null;
   // Build #84 — initialDraft lets caller pre-fill name/description/prompt (e.g. from skill import flow)
   const draft = initialDraft
-    ? { id: null, name: initialDraft.name || '', description: initialDraft.description || '', prompt: initialDraft.prompt || '' }
-    : { id: existing ? existing.id : null, name: existing ? existing.name : '', description: existing ? existing.description : '', prompt: existing ? existing.prompt : '' };
+    ? { id: null, name: initialDraft.name || '', description: initialDraft.description || '', prompt: initialDraft.prompt || '', best_for: initialDraft.best_for || '' }
+    : { id: existing ? existing.id : null, name: existing ? existing.name : '', description: existing ? existing.description : '', prompt: existing ? existing.prompt : '', best_for: existing ? (existing.best_for || '') : '' };
   const renderEditor = () => {
     const promptLen = (draft.prompt || '').length;
     const html = `
@@ -4617,6 +4762,7 @@ function openSkillEditor(id, initialDraft) {
       ${existing ? `<div class="skill-edit-preview"><div class="sep-thumb ${state.skillsGenerating.has(existing.id) ? 'is-loading' : ''}">${existing.preview_image_b64 ? `<img src="data:image/jpeg;base64,${existing.preview_image_b64}" alt="">` : '<span class="ph">No preview generated yet.<br>Click \u201cRegenerate preview\u201d below.</span>'}${state.skillsGenerating.has(existing.id) ? '<div class="loading-overlay"><div class="spinner"></div><div class="lbl">Generating preview\u2026</div></div>' : ''}</div><div class="sep-info"><div class="sep-title">${existing.preview_image_b64 ? 'Current preview' : 'No preview yet'}</div><div class="sep-meta">${existing.preview_image_b64 ? 'Click <strong>Regenerate preview</strong> to make a fresh sample slide with the current prompt. Cost: ~$0.02\u2013$0.30 depending on your default model.' : 'Saving the skill will trigger auto-preview. Or click <strong>Regenerate preview</strong> below if it already exists but didn\'t generate.'}</div></div></div>` : ''}
       <div class="field"><label class="field-label">Name <span class="subtle">required</span></label><input class="input" id="skName" value="${escapeHtml(draft.name)}" placeholder="e.g. DN Telco Sales Pitch — Dark"></div>
       <div class="field"><label class="field-label">Description</label><input class="input" id="skDesc" value="${escapeHtml(draft.description || '')}" placeholder="One-line summary shown in dropdowns"></div>
+      <div class="field"><label class="field-label">Best for <span class="subtle">optional tag — helps the group picker route slides to this skill</span></label><input class="input" id="skBestFor" value="${escapeHtml(draft.best_for || '')}" placeholder="e.g. title/hero slides, data-heavy slides, callout/quote slides"></div>
       <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model.">${escapeHtml(draft.prompt || '')}</textarea></div>
       <div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="skChange" placeholder="What changed in this version?"></div>
       <div class="modal-footer">
@@ -4627,6 +4773,8 @@ function openSkillEditor(id, initialDraft) {
     openModal(html, { lg: true });
     document.getElementById('skName').oninput = e => { draft.name = e.target.value; };
     document.getElementById('skDesc').oninput = e => { draft.description = e.target.value; };
+    const bfInp = document.getElementById('skBestFor');
+    if (bfInp) bfInp.oninput = e => { draft.best_for = e.target.value; };
     document.getElementById('skPrompt').oninput = e => { draft.prompt = e.target.value; document.getElementById('skPromptCount').textContent = e.target.value.length.toLocaleString() + ' chars'; };
     const rpBtn = document.getElementById('regenPreviewSkillBtn');
     if (rpBtn) rpBtn.onclick = async () => {
@@ -4929,23 +5077,36 @@ async function saveSkill(skill) {
   const payload = {
     name: skill.name,
     description: skill.description || null,
-    prompt: skill.prompt,
+    prompt: skill.prompt || '',
     is_skill: true,
     is_active: true,
     layer: null,
     updated_at: new Date().toISOString(),
-    updated_by: OWNER_ID
+    updated_by: OWNER_ID,
+    is_group: !!skill.is_group,
+    member_skill_ids: Array.isArray(skill.member_skill_ids) ? skill.member_skill_ids : [],
+    best_for: skill.best_for || null
   };
   if (skill.id) payload.id = skill.id;
-  const { data: saved, error } = await sb.from('deck_templates').upsert(payload).select().single();
-  if (error) throw error;
+  let { data: saved, error } = await sb.from('deck_templates').upsert(payload).select().single();
+  if (error) {
+    const msg = error.message || String(error);
+    if (/is_group|member_skill_ids|best_for/i.test(msg) && /column|schema/i.test(msg)) {
+      console.warn('Skill group columns missing; retrying without. Run Build #85 SQL.');
+      const fb = Object.assign({}, payload); delete fb.is_group; delete fb.member_skill_ids; delete fb.best_for;
+      const retry = await sb.from('deck_templates').upsert(fb).select().single();
+      saved = retry.data; error = retry.error;
+    }
+    if (error) throw error;
+  }
   try {
     const { data: versionsExisting } = await sb.from('template_versions').select('version_num').eq('template_id', saved.id).order('version_num', { ascending: false }).limit(1);
     const nextVersion = (versionsExisting && versionsExisting[0] && versionsExisting[0].version_num || 0) + 1;
     await sb.from('template_versions').insert({ template_id: saved.id, version_num: nextVersion, prompt: saved.prompt, change_note: skill.change_note || null, updated_by: OWNER_ID });
   } catch (ve) { console.warn('Version row insert failed (non-fatal):', ve); }
   // Build #44 — auto preview ; Build #47 — track in-flight + spinner
-  const promptChanged = !skill.id || (skill.previousPrompt && skill.previousPrompt !== saved.prompt) || !saved.preview_image_b64;
+  // Build #85 — skip auto-preview for skill groups (no prompt of their own)
+  const promptChanged = !skill.is_group && (!skill.id || (skill.previousPrompt && skill.previousPrompt !== saved.prompt) || !saved.preview_image_b64);
   if (promptChanged) {
     state.skillsGenerating.add(saved.id);
     if (state.view === 'skills') renderSkills();
@@ -5150,7 +5311,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.15.0</span> (build #84 — import skill from slide image)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.16.0</span> (build #85 — skill groups + smart per-slide picker)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
