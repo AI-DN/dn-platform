@@ -1,12 +1,14 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.18.1</title>
+<title>DN Deck Generator v2.20.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/docx@8.5.0/build/index.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.1/dist/mermaid.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -657,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.18.1 #93</div>
+      <div class="brand-version">v2.20.0 #95</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -3436,6 +3438,15 @@ function renderStep1() {
       <div class="step-header"><div class="step-num">2</div><div class="step-title">Input</div><div class="step-desc">${currentSkill ? escapeHtml(currentSkill.name) + ' · ' : ''}slide range, text, logos</div></div>
       <div class="step-body">
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="50" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="50" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
+        <!-- Build #95 — import existing deck as PDF -->
+        <div id="pdfImportBanner" style="background:var(--surface-2,var(--surface));border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
+          <span style="font-size:20px;flex-shrink:0">\u{1F4C4}</span>
+          <div style="flex:1;min-width:0">
+            <div style="font-size:12px;font-weight:500">Already have a deck to re-style?</div>
+            <div style="font-size:11px;color:var(--text-muted);margin-top:2px">Export it as PDF, upload here, and each page becomes a slide with the original as a reference image → re-rendered in your chosen skill or group.</div>
+          </div>
+          <button class="btn-secondary" id="pdfImportBtn" type="button" style="font-size:11px;padding:4px 10px;flex-shrink:0">Import PDF →</button>
+        </div>
         ${state.step1TipDismissed ? '' : `
         <div id="step1Tip" style="background:var(--success-bg, var(--surface-2));border:1px solid var(--success, var(--border));border-radius:var(--radius-md);padding:10px 12px;margin-bottom:14px;display:flex;align-items:flex-start;gap:10px;color:var(--success, var(--text))">
           <span style="font-size:18px;flex-shrink:0;line-height:1">💡</span>
@@ -3479,6 +3490,9 @@ function renderStep1() {
       </div>
     </div>`;
   // Build #48 — skill picker moved to renderStep0
+  // Build #95 — wire .pdf import banner (replaces .pptx flow)
+  const pdfBtn = document.getElementById('pdfImportBtn');
+  if (pdfBtn) pdfBtn.onclick = () => openPdfImportModal();
   document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   // Build #57 — branding slot tile clicks
@@ -5380,6 +5394,378 @@ function openSkillEditor(id, initialDraft) {
   renderEditor();
 }
 
+// =====================================================================
+// Build #95 — Import .pdf for re-styling with current skill/group
+// =====================================================================
+async function parsePdfDeck(file, onProgress) {
+  if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not loaded \u2014 reload the page');
+  try {
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  } catch (e) {}
+  const ab = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
+  const slides = [];
+  const total = pdf.numPages;
+  for (let i = 1; i <= total; i++) {
+    onProgress && onProgress(i, total, 'extract');
+    const page = await pdf.getPage(i);
+    // --- Text extraction with font-size title heuristic ---
+    let title = '';
+    let body = '';
+    try {
+      const tc = await page.getTextContent();
+      const items = (tc.items || []).filter(it => it.str && it.str.trim());
+      if (items.length > 0) {
+        const heights = items.map(it => it.height || 0);
+        const maxH = Math.max.apply(null, heights);
+        const titleThreshold = maxH * 0.9;
+        const titleParts = [];
+        const bodyParts = [];
+        for (const it of items) {
+          if ((it.height || 0) >= titleThreshold && titleParts.length < 6) titleParts.push(it.str);
+          else bodyParts.push(it.str);
+        }
+        title = titleParts.join(' ').replace(/\s+/g, ' ').trim();
+        body = bodyParts.join(' ').replace(/\s+/g, ' ').trim();
+        // If hierarchy unclear (all items same height), use first line as title
+        if (!title && items[0]) {
+          title = items[0].str;
+          body = items.slice(1).map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+        }
+      }
+    } catch (e) { console.warn('PDF text extract failed for page ' + i + ':', e); }
+    // --- Render page to canvas \u2192 base64 JPEG ---
+    onProgress && onProgress(i, total, 'render');
+    const viewport = page.getViewport({ scale: 1.5 });
+    const canvas = document.createElement('canvas');
+    canvas.width = viewport.width;
+    canvas.height = viewport.height;
+    const ctx = canvas.getContext('2d');
+    // White background under any transparent PDFs
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    await page.render({ canvasContext: ctx, viewport: viewport }).promise;
+    const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+    slides.push({
+      idx: i - 1,
+      title: title || ('Slide ' + i),
+      body: body || '',
+      referenceImageB64: b64
+    });
+  }
+  return { slides: slides, slideCount: slides.length, fileName: file.name };
+}
+
+function openPdfImportModal() {
+  const s = {
+    stage: 'upload',  // 'upload' | 'parsing' | 'parsed'
+    pdfFile: null,
+    parseError: null,
+    parseProgress: { page: 0, total: 0, phase: '' },
+    parsed: null,
+    populating: false
+  };
+  function renderModal() {
+    let body = '';
+    if (s.stage === 'upload') {
+      body = '<div class="muted body-sm" style="margin-bottom:14px">Upload an existing deck as <strong>PDF</strong>. We\'ll extract title + body text from each page AND render the page itself to use as a reference image \u2014 all from one file. Pick a skill or group in Step 0 first so the new visuals know what style to apply.</div>' +
+        '<label style="display:flex;align-items:center;justify-content:center;min-height:120px;padding:20px;background:var(--surface-2,var(--surface));border:2px dashed var(--border);border-radius:6px;cursor:pointer;text-align:center"><div><div style="font-size:14px;margin-bottom:6px">\ud83d\udcc4 Click to upload .pdf</div><div class="muted body-sm" style="font-size:11px">In PowerPoint, Keynote, Google Slides, or Figma: <em>File \u2192 Save/Download as PDF</em></div><input type="file" id="pdfFileInp" accept=".pdf,application/pdf" style="display:none"></div></label>' +
+        (s.parseError ? '<div style="margin-top:14px;padding:10px;background:rgba(217,52,49,0.10);border:1px solid #D14343;border-radius:6px;color:#791F1F;font-size:12px">\u26a0 ' + escapeHtml(s.parseError) + '</div>' : '');
+    } else if (s.stage === 'parsing') {
+      const pct = s.parseProgress.total > 0 ? Math.round((s.parseProgress.page / s.parseProgress.total) * 100) : 0;
+      const phaseLabel = s.parseProgress.phase === 'render' ? 'rendering' : 'extracting text';
+      body = '<div style="padding:20px;text-align:center;background:var(--surface-2,var(--surface));border-radius:6px">' +
+        '<div style="margin-bottom:10px"><span class="spinner"></span> Processing page <strong>' + s.parseProgress.page + '</strong> of <strong>' + s.parseProgress.total + '</strong> (' + phaseLabel + '\u2026)</div>' +
+        '<div style="background:var(--border);height:6px;border-radius:3px;overflow:hidden;max-width:400px;margin:0 auto"><div style="background:#0d9488;height:100%;width:' + pct + '%;transition:width 0.3s"></div></div>' +
+        '<div class="muted body-sm" style="font-size:11px;margin-top:8px">~1-2 seconds per page \u00b7 don\'t close this modal</div>' +
+        '</div>';
+    } else if (s.stage === 'parsed') {
+      const rows = s.parsed.slides.slice(0, 15).map(m => '<tr><td style="padding:6px;border-bottom:1px solid var(--border);width:30px;text-align:center;font-size:11px;color:var(--text-muted)">' + (m.idx + 1) + '</td><td style="padding:6px;border-bottom:1px solid var(--border);font-size:12px"><div style="font-weight:500">' + escapeHtml(m.title.slice(0, 60)) + '</div>' + (m.body ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + escapeHtml(m.body.slice(0, 80)) + (m.body.length > 80 ? '\u2026' : '') + '</div>' : '') + '</td><td style="padding:6px;border-bottom:1px solid var(--border);width:80px"><img src="data:image/jpeg;base64,' + m.referenceImageB64 + '" alt="" style="width:72px;height:auto;border:1px solid var(--border);border-radius:3px"></td></tr>').join('');
+      const more = s.parsed.slideCount > 15 ? '<tr><td colspan="3" style="padding:6px;font-size:11px;color:var(--text-muted);text-align:center">\u2026 and ' + (s.parsed.slideCount - 15) + ' more</td></tr>' : '';
+      const currentSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+      const skillLabel = currentSkill ? escapeHtml(currentSkill.name) + (currentSkill.is_group ? ' <span class="subtle" style="color:var(--text-muted)">(group of ' + (currentSkill.member_skill_ids || []).length + ')</span>' : '') : '<em style="color:var(--warning)">none selected \u2014 pick one in Step 0 after import</em>';
+      body = '<div style="padding:10px;background:rgba(13,148,136,0.10);border:1px solid #0d9488;border-radius:6px;color:#04342C;font-size:12px;margin-bottom:14px">\u2713 Parsed <strong>' + s.parsed.slideCount + '</strong> page' + (s.parsed.slideCount === 1 ? '' : 's') + ' from <strong>' + escapeHtml(s.parsed.fileName) + '</strong> \u00b7 all with reference images</div>' +
+        '<div class="field"><label class="field-label">Skill / group for the new deck</label><div style="padding:10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:6px;font-size:13px">' + skillLabel + '</div></div>' +
+        '<table style="width:100%;border-collapse:collapse;margin-top:8px"><thead><tr><th style="padding:6px;text-align:left;font-size:11px;color:var(--text-muted)">#</th><th style="padding:6px;text-align:left;font-size:11px;color:var(--text-muted)">Title \u00b7 body</th><th style="padding:6px;text-align:left;font-size:11px;color:var(--text-muted)">Preview</th></tr></thead><tbody>' + rows + more + '</tbody></table>';
+    }
+    const html =
+      '<div class="modal-header"><div><div class="h1">\ud83d\udcc4 Import PDF for re-styling</div>' +
+        '<div class="muted body-sm" style="margin-top:4px">' + (s.stage === 'upload' ? 'Step 1 of 2 \u2014 upload .pdf' : s.stage === 'parsing' ? 'Processing\u2026' : 'Step 2 of 2 \u2014 review and confirm') + '</div>' +
+      '</div><button class="btn-ghost" onclick="closeModal()"' + ((s.stage === 'parsing' || s.populating) ? ' disabled' : '') + '>\u00d7</button></div>' +
+      body +
+      '<div class="modal-footer">' +
+        '<button class="btn-ghost" onclick="closeModal()"' + ((s.stage === 'parsing' || s.populating) ? ' disabled' : '') + '>Cancel</button>' +
+        (s.stage === 'parsed' ? '<button class="btn-secondary" id="pdfBackBtn"' + (s.populating ? ' disabled' : '') + '>\u2190 Pick different file</button>' : '') +
+        (s.stage === 'parsed' ? '<button class="btn-primary" id="pdfConfirmBtn"' + (s.populating ? ' disabled' : '') + '>' + (s.populating ? '<span class="spinner"></span> Importing\u2026' : '\u2728 Import ' + s.parsed.slideCount + ' slide' + (s.parsed.slideCount === 1 ? '' : 's') + ' into Step 3') + '</button>' : '') +
+      '</div>';
+    openModal(html, { lg: true });
+    if (s.stage === 'upload') {
+      const inp = document.getElementById('pdfFileInp');
+      if (inp) inp.onchange = async e => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        s.pdfFile = f; s.parseError = null; s.stage = 'parsing';
+        s.parseProgress = { page: 0, total: 0, phase: '' };
+        renderModal();
+        try {
+          const parsed = await parsePdfDeck(f, (page, total, phase) => {
+            s.parseProgress = { page: page, total: total, phase: phase };
+            renderModal();
+          });
+          s.parsed = parsed; s.stage = 'parsed';
+          renderModal();
+        } catch (err) {
+          s.parseError = err.message || String(err);
+          s.stage = 'upload';
+          renderModal();
+        }
+      };
+    } else if (s.stage === 'parsed') {
+      const back = document.getElementById('pdfBackBtn');
+      if (back) back.onclick = () => { s.stage = 'upload'; s.parsed = null; s.parseError = null; renderModal(); };
+      const confirm = document.getElementById('pdfConfirmBtn');
+      if (confirm) confirm.onclick = () => {
+        s.populating = true; renderModal();
+        state.slides = s.parsed.slides.map((m) => ({
+          title: m.title,
+          body: m.body,
+          referenceImageB64: m.referenceImageB64 || null,
+          status: 'idle',
+          notes: '',
+          assignedSkillId: null,
+          pickedMemberSkillId: null
+        }));
+        state.slideMin = Math.max(1, state.slides.length);
+        state.slideMax = state.slides.length;
+        state.composeStep = 3;
+        state.expandedStep = 3;
+        closeModal();
+        toast({ type: 'success', message: 'Imported ' + state.slides.length + ' slide' + (state.slides.length === 1 ? '' : 's') + ' from PDF \u00b7 review in Step 3, then run Step 5 to re-render with your skill' });
+        if (typeof renderCompose === 'function') renderCompose();
+      };
+    }
+  }
+  renderModal();
+}
+// =====================================================================
+// end Build #95
+// =====================================================================
+
+// =====================================================================
+// Build #94 — Import .pptx for re-styling with current skill/group
+// =====================================================================
+async function parsePptxText(file) {
+  if (typeof JSZip === 'undefined') throw new Error('JSZip not loaded — reload the page');
+  const zip = await JSZip.loadAsync(file);
+  const slideFiles = Object.keys(zip.files)
+    .filter(n => /^ppt\/slides\/slide\d+\.xml$/.test(n))
+    .sort((a, b) => {
+      const na = parseInt(a.match(/slide(\d+)/)[1]);
+      const nb = parseInt(b.match(/slide(\d+)/)[1]);
+      return na - nb;
+    });
+  if (slideFiles.length === 0) throw new Error('No slides found inside the .pptx');
+  const slides = [];
+  for (let i = 0; i < slideFiles.length; i++) {
+    const xml = await zip.file(slideFiles[i]).async('text');
+    const doc = new DOMParser().parseFromString(xml, 'text/xml');
+    const shapes = doc.getElementsByTagName('p:sp');
+    let title = '';
+    const bodyParts = [];
+    for (let s = 0; s < shapes.length; s++) {
+      const sp = shapes[s];
+      const ph = sp.getElementsByTagName('p:ph')[0];
+      const phType = ph ? (ph.getAttribute('type') || 'body') : '';
+      const isTitle = phType === 'title' || phType === 'ctrTitle';
+      const paragraphs = sp.getElementsByTagName('a:p');
+      const lines = [];
+      for (let p = 0; p < paragraphs.length; p++) {
+        const runs = paragraphs[p].getElementsByTagName('a:t');
+        let para = '';
+        for (let r = 0; r < runs.length; r++) para += runs[r].textContent;
+        if (para.trim()) lines.push(para);
+      }
+      if (lines.length === 0) continue;
+      if (isTitle && !title) title = lines.join(' ').trim();
+      else bodyParts.push(lines.join('\n'));
+    }
+    // Fallback: if no explicit title placeholder, take the first line as title
+    if (!title && bodyParts.length > 0) {
+      const firstParts = bodyParts[0].split('\n');
+      title = firstParts[0];
+      bodyParts[0] = firstParts.slice(1).join('\n').trim();
+      if (!bodyParts[0]) bodyParts.shift();
+    }
+    slides.push({ idx: i, title: title || ('Slide ' + (i + 1)), body: bodyParts.join('\n\n').trim() });
+  }
+  return { slides: slides, slideCount: slides.length, fileName: file.name };
+}
+
+function matchPngsToSlides(slides, pngFiles) {
+  const matches = slides.map(s => ({ ...s, referencePng: null }));
+  if (!pngFiles || pngFiles.length === 0) return matches;
+  const numbered = [];
+  const unnumbered = [];
+  for (const f of pngFiles) {
+    const m = f.name.match(/[sS]lide\s*(\d+)/);
+    if (m) numbered.push({ file: f, num: parseInt(m[1]) });
+    else unnumbered.push(f);
+  }
+  // Pass 1: match by Slide<N> filename
+  for (const n of numbered) {
+    const target = matches[n.num - 1];
+    if (target && !target.referencePng) target.referencePng = n.file;
+  }
+  // Pass 2: fill remaining slots alphabetically
+  unnumbered.sort((a, b) => a.name.localeCompare(b.name));
+  let unIdx = 0;
+  for (const m of matches) {
+    if (!m.referencePng && unIdx < unnumbered.length) {
+      m.referencePng = unnumbered[unIdx++];
+    }
+  }
+  return matches;
+}
+
+async function pptxFileToB64(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = () => resolve(fr.result.split(',')[1]);
+    fr.onerror = () => reject(new Error('Failed to read ' + file.name));
+    fr.readAsDataURL(file);
+  });
+}
+
+function openPptxImportModal() {
+  const s = {
+    stage: 'upload_pptx',
+    pptxFile: null,
+    parsing: false,
+    parseError: null,
+    parsed: null,
+    pngFiles: [],
+    matched: null,
+    loadingPngs: false,
+    populating: false
+  };
+  function renderModal() {
+    let body = '';
+    if (s.stage === 'upload_pptx') {
+      body = '<div class="muted body-sm" style="margin-bottom:14px">Upload an existing .pptx and we\'ll extract title + body text from each slide. In the next step you can optionally upload slide PNGs so the new visuals are anchored to the originals as reference images.</div>' +
+        (s.parsing
+          ? '<div style="padding:16px;text-align:center;background:var(--surface-2,var(--surface));border-radius:6px"><span class="spinner"></span> Parsing .pptx\u2026</div>'
+          : '<label style="display:flex;align-items:center;justify-content:center;min-height:120px;padding:20px;background:var(--surface-2,var(--surface));border:2px dashed var(--border);border-radius:6px;cursor:pointer;text-align:center"><div><div style="font-size:14px;margin-bottom:6px">\ud83d\udcc1 Click to upload .pptx</div><div class="muted body-sm" style="font-size:11px">PowerPoint files only \u00b7 we read the XML to extract slide text</div><input type="file" id="pptxFileInp" accept=".pptx,application/vnd.openxmlformats-officedocument.presentationml.presentation" style="display:none"></div></label>') +
+        (s.parseError ? '<div style="margin-top:14px;padding:10px;background:rgba(217,52,49,0.10);border:1px solid #D14343;border-radius:6px;color:#791F1F;font-size:12px">\u26a0 ' + escapeHtml(s.parseError) + '</div>' : '');
+    } else if (s.stage === 'parsed') {
+      const slideRows = s.parsed.slides.slice(0, 10).map(sl => '<li style="padding:6px 0;border-bottom:1px solid var(--border)"><div style="font-size:12px;font-weight:500">' + escapeHtml(sl.title.slice(0, 80)) + '</div>' + (sl.body ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + escapeHtml(sl.body.slice(0, 140)) + (sl.body.length > 140 ? '\u2026' : '') + '</div>' : '') + '</li>').join('');
+      const more = s.parsed.slideCount > 10 ? '<div class="muted body-sm" style="font-size:11px;margin-top:6px">\u2026 and ' + (s.parsed.slideCount - 10) + ' more</div>' : '';
+      const pngsLoaded = s.pngFiles.length;
+      body = '<div style="padding:10px;background:rgba(13,148,136,0.10);border:1px solid #0d9488;border-radius:6px;color:#04342C;font-size:12px;margin-bottom:14px">\u2713 Parsed <strong>' + s.parsed.slideCount + '</strong> slide' + (s.parsed.slideCount === 1 ? '' : 's') + ' from <strong>' + escapeHtml(s.parsed.fileName) + '</strong></div>' +
+        '<div class="field"><label class="field-label">Slide image PNGs <span class="subtle">optional but recommended \u2014 in PowerPoint do <em>File \u2192 Save As</em> and choose PNG, then upload the whole set here</span></label>' +
+          (pngsLoaded > 0
+            ? '<div style="display:flex;gap:10px;align-items:center;padding:10px;background:var(--surface-2,var(--surface));border:1px dashed var(--border);border-radius:6px"><div style="flex:1;font-size:13px;font-weight:500">' + pngsLoaded + ' image' + (pngsLoaded === 1 ? '' : 's') + ' uploaded</div><button class="btn-ghost" id="pngClearBtn" style="font-size:11px;padding:2px 8px">Replace</button></div>'
+            : '<label style="display:flex;align-items:center;justify-content:center;min-height:80px;padding:14px;background:var(--surface-2,var(--surface));border:2px dashed var(--border);border-radius:6px;cursor:pointer;text-align:center"><div><div style="font-size:13px;margin-bottom:4px">\ud83d\uddbc\ufe0f Click to upload PNGs</div><div class="muted body-sm" style="font-size:11px">Multi-select \u00b7 PNG or JPG \u00b7 ideally named Slide1.png, Slide2.png\u2026</div><input type="file" id="pngFilesInp" accept="image/png,image/jpeg" multiple style="display:none"></div></label>') +
+        '</div>' +
+        '<details style="margin-top:14px"><summary style="cursor:pointer;font-size:12px;color:var(--text-muted)">Preview parsed slides (' + Math.min(10, s.parsed.slideCount) + ' of ' + s.parsed.slideCount + ')</summary><ol style="margin-top:8px;padding-left:18px;font-size:12px">' + slideRows + '</ol>' + more + '</details>';
+    } else if (s.stage === 'matched') {
+      const matchedCount = s.matched.filter(m => m.referencePng).length;
+      const rows = s.matched.slice(0, 15).map(m => '<tr><td style="padding:6px;border-bottom:1px solid var(--border);width:30px;text-align:center;font-size:11px;color:var(--text-muted)">' + (m.idx + 1) + '</td><td style="padding:6px;border-bottom:1px solid var(--border);font-size:12px">' + escapeHtml(m.title.slice(0, 60)) + '</td><td style="padding:6px;border-bottom:1px solid var(--border);font-size:11px;color:var(--text-muted)">' + (m.referencePng ? '\u2713 ' + escapeHtml(m.referencePng.name) : '<span style=\'color:var(--warning)\'>\u2014 none</span>') + '</td></tr>').join('');
+      const more = s.matched.length > 15 ? '<tr><td colspan="3" style="padding:6px;font-size:11px;color:var(--text-muted);text-align:center">\u2026 and ' + (s.matched.length - 15) + ' more</td></tr>' : '';
+      const currentSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+      const skillLabel = currentSkill ? escapeHtml(currentSkill.name) + (currentSkill.is_group ? ' <span class="subtle" style="color:var(--text-muted)">(group of ' + (currentSkill.member_skill_ids || []).length + ')</span>' : '') : '<em style="color:var(--warning)">none selected \u2014 pick one in Step 0 after import</em>';
+      body = '<div style="padding:10px;background:rgba(13,148,136,0.10);border:1px solid #0d9488;border-radius:6px;color:#04342C;font-size:12px;margin-bottom:14px">\u2713 <strong>' + matchedCount + '</strong> of <strong>' + s.matched.length + '</strong> slides matched to a reference image</div>' +
+        '<div class="field"><label class="field-label">Skill / group for the new deck</label><div style="padding:10px;background:var(--surface-2,var(--surface));border:1px solid var(--border);border-radius:6px;font-size:13px">' + skillLabel + '</div></div>' +
+        '<table style="width:100%;border-collapse:collapse;margin-top:8px"><thead><tr><th style="padding:6px;text-align:left;font-size:11px;color:var(--text-muted)">#</th><th style="padding:6px;text-align:left;font-size:11px;color:var(--text-muted)">Title</th><th style="padding:6px;text-align:left;font-size:11px;color:var(--text-muted)">Reference image</th></tr></thead><tbody>' + rows + more + '</tbody></table>';
+    }
+    const html =
+      '<div class="modal-header"><div><div class="h1">\ud83d\udce5 Import .pptx for re-styling</div>' +
+        '<div class="muted body-sm" style="margin-top:4px">Stage: ' + (s.stage === 'upload_pptx' ? '1 of 3 \u2014 upload .pptx' : s.stage === 'parsed' ? '2 of 3 \u2014 upload reference PNGs (optional)' : '3 of 3 \u2014 confirm import') + '</div>' +
+      '</div><button class="btn-ghost" onclick="closeModal()"' + ((s.parsing || s.populating) ? ' disabled' : '') + '>\u00d7</button></div>' +
+      body +
+      '<div class="modal-footer">' +
+        '<button class="btn-ghost" onclick="closeModal()"' + ((s.parsing || s.populating) ? ' disabled' : '') + '>Cancel</button>' +
+        (s.stage === 'parsed' ? '<button class="btn-secondary" id="pptxBackBtn"' + (s.loadingPngs ? ' disabled' : '') + '>\u2190 Back</button>' : '') +
+        (s.stage === 'matched' ? '<button class="btn-secondary" id="pptxBackBtn"' + (s.populating ? ' disabled' : '') + '>\u2190 Back</button>' : '') +
+        (s.stage === 'parsed' ? '<button class="btn-primary" id="pptxNextBtn"' + (s.loadingPngs ? ' disabled' : '') + '>' + (s.loadingPngs ? '<span class="spinner"></span> Loading images\u2026' : (s.pngFiles.length > 0 ? 'Continue with ' + s.pngFiles.length + ' image' + (s.pngFiles.length === 1 ? '' : 's') + ' \u2192' : 'Continue without images \u2192')) + '</button>' : '') +
+        (s.stage === 'matched' ? '<button class="btn-primary" id="pptxConfirmBtn"' + (s.populating ? ' disabled' : '') + '>' + (s.populating ? '<span class="spinner"></span> Importing\u2026' : '\u2728 Import ' + s.matched.length + ' slides into Step 3') + '</button>' : '') +
+      '</div>';
+    openModal(html, { lg: true });
+    if (s.stage === 'upload_pptx') {
+      const inp = document.getElementById('pptxFileInp');
+      if (inp) inp.onchange = async e => {
+        const f = e.target.files && e.target.files[0]; if (!f) return;
+        s.pptxFile = f; s.parsing = true; s.parseError = null;
+        renderModal();
+        try {
+          const parsed = await parsePptxText(f);
+          s.parsed = parsed; s.parsing = false; s.stage = 'parsed';
+          renderModal();
+        } catch (err) {
+          s.parsing = false; s.parseError = err.message || String(err);
+          renderModal();
+        }
+      };
+    } else if (s.stage === 'parsed') {
+      const inp = document.getElementById('pngFilesInp');
+      if (inp) inp.onchange = e => {
+        s.pngFiles = Array.from(e.target.files || []);
+        renderModal();
+      };
+      const clr = document.getElementById('pngClearBtn');
+      if (clr) clr.onclick = () => { s.pngFiles = []; renderModal(); };
+      const back = document.getElementById('pptxBackBtn');
+      if (back) back.onclick = () => { s.stage = 'upload_pptx'; s.parsed = null; s.pngFiles = []; renderModal(); };
+      const next = document.getElementById('pptxNextBtn');
+      if (next) next.onclick = async () => {
+        s.loadingPngs = true; renderModal();
+        try {
+          const pngB64s = await Promise.all(s.pngFiles.map(async f => ({ name: f.name, b64: await pptxFileToB64(f) })));
+          const matched = matchPngsToSlides(s.parsed.slides, s.pngFiles);
+          for (const m of matched) {
+            if (m.referencePng) {
+              const found = pngB64s.find(p => p.name === m.referencePng.name);
+              m.referenceImageB64 = found ? found.b64 : null;
+            }
+          }
+          s.matched = matched; s.loadingPngs = false; s.stage = 'matched';
+          renderModal();
+        } catch (err) {
+          s.loadingPngs = false;
+          toast({ type: 'error', message: 'Image loading failed: ' + (err.message || String(err)) });
+          renderModal();
+        }
+      };
+    } else if (s.stage === 'matched') {
+      const back = document.getElementById('pptxBackBtn');
+      if (back) back.onclick = () => { s.stage = 'parsed'; renderModal(); };
+      const confirm = document.getElementById('pptxConfirmBtn');
+      if (confirm) confirm.onclick = () => {
+        s.populating = true; renderModal();
+        state.slides = s.matched.map((m) => ({
+          title: m.title,
+          body: m.body,
+          referenceImageB64: m.referenceImageB64 || null,
+          status: 'idle',
+          notes: '',
+          assignedSkillId: null,
+          pickedMemberSkillId: null
+        }));
+        state.slideMin = Math.max(1, state.slides.length);
+        state.slideMax = state.slides.length;
+        state.composeStep = 3;
+        state.expandedStep = 3;
+        closeModal();
+        const refCount = state.slides.filter(sl => sl.referenceImageB64).length;
+        toast({ type: 'success', message: 'Imported ' + state.slides.length + ' slide' + (state.slides.length === 1 ? '' : 's') + ' \u00b7 ' + refCount + ' with reference image\u00b7 review in Step 3' });
+        if (typeof renderCompose === 'function') renderCompose();
+      };
+    }
+  }
+  renderModal();
+}
+// =====================================================================
+// end Build #94
+// =====================================================================
+
 // ===== Build #44 — skill preview generation =====
 async function generateSkillPreview(skillPrompt, skillName) {
   const spec = currentEffectiveModel();
@@ -5891,7 +6277,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.18.1</span> (build #93 — re-derive prompt from preview button)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.20.0</span> (build #95 — PDF import: one file, text + page images extracted in one pass)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
