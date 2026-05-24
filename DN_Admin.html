@@ -1036,7 +1036,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.0.1 #2</span>
+  <span class="topbar-version" title="DN_Admin build">v1.0.2 #3</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1899,6 +1899,9 @@ async function initAuth() {
     history.replaceState(null, '', location.pathname + location.search);
   }
   await loadProfile();
+  // v1.0.2 #3 — surface admin buttons immediately on load (was: only on settings open)
+  if (typeof showUsersButtonIfAdmin === 'function') showUsersButtonIfAdmin();
+  if (typeof showAppAccessButtonIfAdmin === 'function') showAppAccessButtonIfAdmin();
   if (!canAccessAdmin()) { showAccessDeniedGate(); return false; }
   supaClient.auth.onAuthStateChange(function(event, sess) {
     if (event === 'SIGNED_OUT') { currentSession = null; currentProfile = null; location.reload(); }
@@ -2212,13 +2215,11 @@ async function loadAppAccess() {
 
     // v1.0.1 #2 — show user counts so empty grant dropdowns are explainable
     const totalUsers = appAccessProfilesCache.length;
-    const grantableUsers = appAccessProfilesCache.filter(function(p) { return !p.is_admin; }).length;
     if (statusEl) {
       statusEl.textContent =
         appAccessAppsCache.length + ' shipped app(s) \u00b7 ' +
         (grants || []).length + ' total grant(s) \u00b7 ' +
-        totalUsers + ' signed-up user(s) \u00b7 ' +
-        grantableUsers + ' grantable (non-admin)';
+        totalUsers + ' signed-up user(s) (admins included \u2014 grant yourself to test)';
     }
     renderAppAccessList();
   } catch (e) {
@@ -2242,14 +2243,7 @@ function renderAppAccessList() {
     return;
   }
 
-  // Profile <option> list for the grant dropdown — used by every app card
-  const optsHtml = appAccessProfilesCache
-    .filter(function(p) { return !p.is_admin; })  // admins have implicit access; don't offer them
-    .map(function(p) {
-      const label = (p.full_name || p.email || '(no name)') + (p.email ? ' <' + p.email + '>' : '');
-      return '<option value="' + p.id + '">' + escapeAppAccessHtml(label) + '</option>';
-    }).join('');
-
+  // v1.0.2 #3 — removed dead optsHtml block (was unused; per-app availableOpts is what renders)
   listEl.innerHTML = filtered.map(function(a) {
     const creator = a.creator;
     const creatorName = creator ? (creator.full_name || creator.email || 'unknown') : (a.submitted_by || 'unknown');
@@ -2260,8 +2254,12 @@ function renderAppAccessList() {
     // Filter grant dropdown to exclude users already granted on this app + the creator
     const grantedIds = new Set(a.access.map(function(ax) { return ax.user_id; }));
     if (creator) grantedIds.add(creator.id);
+    // v1.0.2 #3 — admins are now grantable too (was: !p.is_admin filtered them out).
+    // Why: lets Philip grant himself for solo testing; combined with DN_Intent v1.1
+    // application-layer filter, the grant actually controls whether an admin sees
+    // an app in DN_Intent.
     const availableOpts = appAccessProfilesCache
-      .filter(function(p) { return !p.is_admin && !grantedIds.has(p.id); })
+      .filter(function(p) { return !grantedIds.has(p.id); })
       .map(function(p) {
         const label = (p.full_name || p.email || '(no name)') + (p.email ? ' <' + p.email + '>' : '');
         return '<option value="' + p.id + '">' + escapeAppAccessHtml(label) + '</option>';
@@ -2301,8 +2299,8 @@ function renderAppAccessList() {
           '<button class="app-btn" onclick="toggleGrantForm(\'' + a.id + '\')">Cancel</button>' +
         '</div>'
       : '<div class="grant-form" id="grant-form-' + a.id + '" style="flex-direction:column;align-items:stretch;gap:6px"><span class="access-empty-note" style="font-style:normal;line-height:1.5">' +
-          (appAccessProfilesCache.filter(function(p) { return !p.is_admin; }).length === 0
-            ? '<strong>No other users signed up yet.</strong><br>Ask a colleague to sign in to DN_Intent first (' +
+          (appAccessProfilesCache.length === 0
+            ? '<strong>No users signed up yet.</strong><br>Sign in to DN_Intent first (' +
               '<a href="https://ai-dn.github.io/dn-platform/DN_Intent.html" target="_blank" rel="noopener" style="color:#47d1ff">ai-dn.github.io/dn-platform/DN_Intent.html</a>' +
               '). Once they sign in, their profile is created and they\'ll appear in this dropdown for you to grant access.'
             : 'No remaining users to grant on this app \u2014 either everyone non-admin has access already, or the creator has it implicitly.'

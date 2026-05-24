@@ -667,7 +667,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.0 #1</span>
+  <span class="topbar-version" title="DN_Intent build">v1.1 #2</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1200,27 +1200,68 @@ async function loadPlatformContext() {
 
   try {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
-    // Fetch all requests, then partition client-side
-    const r = await fetch(url + '/rest/v1/requests?select=id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50', { headers });
-    if (!r.ok) { console.warn('Context load failed:', r.status); return; }
-    const rows = await r.json();
+    const myId = currentSession && currentSession.user && currentSession.user.id || null;
 
+    // v1.1 #2 — fetch requests + the current user's app_access grants in parallel.
+    // RLS gives admins all requests; we apply an explicit per-user access filter at
+    // the app layer so admins' DN_Intent view matches what a regular granted user sees.
+    const requestsUrl = url + '/rest/v1/requests?select=id,creator_user_id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50';
+    const grantsUrl = myId
+      ? url + '/rest/v1/app_access?select=request_id&user_id=eq.' + encodeURIComponent(myId)
+      : null;
+
+    const [reqResp, grantResp] = await Promise.all([
+      fetch(requestsUrl, { headers }),
+      grantsUrl ? fetch(grantsUrl, { headers }) : Promise.resolve(null)
+    ]);
+    if (!reqResp.ok) { console.warn('Context load failed:', reqResp.status); return; }
+    const rows = await reqResp.json();
+
+    // Build set of explicitly-granted request IDs for this user
+    let grantedIds = new Set();
+    if (grantResp && grantResp.ok) {
+      const grantRows = await grantResp.json();
+      (grantRows || []).forEach(function(g) { grantedIds.add(g.request_id); });
+    }
+
+    // Helper: does the current user have access to this request?
+    // Access = creator (via creator_user_id) OR explicit grant in app_access.
+    // NB: legacy rows without creator_user_id fall back to submitted_by name match.
     const myName = (currentUser || '').toLowerCase();
+    function hasAccess(req) {
+      if (myId && req.creator_user_id === myId) return true;
+      if (grantedIds.has(req.id)) return true;
+      // Legacy fallback: pre-auth rows have submitted_by name but no creator_user_id
+      if (!req.creator_user_id && myName && (req.submitted_by || '').toLowerCase() === myName) return true;
+      return false;
+    }
+
+    // 'mine' is rows I created (or legacy by-name match)
     platformContext.myRequests = rows.filter(function(r) {
-      return (r.submitted_by || '').toLowerCase() === myName;
+      if (myId && r.creator_user_id === myId) return true;
+      if (!r.creator_user_id && myName && (r.submitted_by || '').toLowerCase() === myName) return true;
+      return false;
     });
+
+    // 'shipped' = status shipped/qa_passed AND I have explicit access (creator or granted)
     platformContext.shipped = rows.filter(function(r) {
-      return r.status === 'shipped' || r.status === 'qa_passed';
+      if (r.status !== 'shipped' && r.status !== 'qa_passed') return false;
+      return hasAccess(r);
     });
+
+    // 'active' = in-flight statuses AND I have access (creator or granted)
     platformContext.active = rows.filter(function(r) {
-      return r.status === 'active' || r.status === 'pending' || r.status === 'building' || r.status === 'iterating';
+      if (r.status !== 'active' && r.status !== 'pending' && r.status !== 'building' && r.status !== 'iterating') return false;
+      return hasAccess(r);
     });
+
     platformContext.loadedAt = new Date().toISOString();
 
     console.log('Platform context loaded:',
       platformContext.myRequests.length + ' mine, ' +
-      platformContext.shipped.length + ' shipped, ' +
-      platformContext.active.length + ' active');
+      platformContext.shipped.length + ' shipped (accessible), ' +
+      platformContext.active.length + ' active (accessible), ' +
+      grantedIds.size + ' explicit grant(s)');
     renderDashboard();
   } catch (e) {
     console.warn('Context load error:', e);
