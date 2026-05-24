@@ -682,7 +682,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.2.1 #6</span>
+  <span class="topbar-version" title="DN_Intent build">v1.2.2 #7</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -746,7 +746,7 @@ body::before {
   <!-- Platform dashboard -->
   <div class="platform-dashboard" id="platform-dashboard" style="display:none">
     <div class="dash-card purple" onclick="showDashDetail('mine')">
-      <div class="dash-card-label">Your requests</div>
+      <div class="dash-card-label">Available apps</div>
       <div class="dash-card-count" id="dash-mine-count">0</div>
       <div class="dash-card-sub" id="dash-mine-sub">none yet</div>
     </div>
@@ -1284,11 +1284,20 @@ async function loadPlatformContext() {
       return false;
     }
 
-    // 'mine' is rows I created (or legacy by-name match)
+    // 'mine' is rows I created (or legacy by-name match), filtered to usable lifecycle+build state.
+    // v1.2.2 #7 — rejected builds AND parked/archived lifecycle are hidden from the user's
+    // "Available apps" list. Admins can still see and manage everything in DN_Admin.
     platformContext.myRequests = rows.filter(function(r) {
-      if (myId && r.creator_user_id === myId) return true;
-      if (!r.creator_user_id && myName && (r.submitted_by || '').toLowerCase() === myName) return true;
-      return false;
+      // Author match (creator or legacy submitted_by)
+      const isMine = (myId && r.creator_user_id === myId) ||
+                     (!r.creator_user_id && myName && (r.submitted_by || '').toLowerCase() === myName);
+      if (!isMine) return false;
+      // Hide rejected builds
+      if (r.status === 'rejected') return false;
+      // For shipped/qa_passed apps the lifecycle gate applies; in-flight builds always show
+      const isShippedish = (r.status === 'shipped' || r.status === 'qa_passed' || r.status === 'active');
+      if (isShippedish && (r.lifecycle_status || 'parked') !== 'active') return false;
+      return true;
     });
 
     // 'shipped' = status shipped/qa_passed AND lifecycle is active AND I have explicit access (creator or granted)
@@ -1387,7 +1396,7 @@ async function requestAppAccess(requestId) {
     const detail = document.getElementById('dash-detail');
     if (detail && detail.classList.contains('open')) {
       const titleEl = document.getElementById('dash-detail-title-text');
-      const which = titleEl && titleEl.textContent === 'Your requests' ? 'mine'
+      const which = titleEl && titleEl.textContent === 'Available apps' ? 'mine'
                   : titleEl && titleEl.textContent === 'Available tools' ? 'shipped'
                   : titleEl && titleEl.textContent === 'In progress' ? 'active' : null;
       if (which) showDashDetail(which);
@@ -3159,7 +3168,7 @@ function deriveAppUrl(req) {
 
 
 function showDashDetail(which) {
-  const titleMap = { mine: 'Your requests', shipped: 'Available tools', active: 'In progress' };
+  const titleMap = { mine: 'Available apps', shipped: 'Available tools', active: 'In progress' };
   const dataMap = { mine: platformContext.myRequests, shipped: platformContext.shipped, active: platformContext.active };
   const data = dataMap[which];
   const title = titleMap[which];
