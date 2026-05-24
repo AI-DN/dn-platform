@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.14.3</title>
+<title>DN Deck Generator v2.15.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -640,7 +640,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.14.3 #83</div>
+      <div class="brand-version">v2.15.0 #84</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -4403,13 +4403,16 @@ function renderSkills() {
     <div class="section-header">
       <input class="input" id="skillsSearch" placeholder="Search skills…" value="${escapeHtml(state.skillsSearch)}" style="max-width:320px">
       <div style="display:flex;gap:8px">
-        ${state.adminMode ? '<button class="btn-primary" id="newSkillBtn">+ New skill</button>' : '<span class="badge badge-neutral">Read-only</span>'}
+        ${state.adminMode ? '<button class="btn-secondary" id="importSkillBtn" style="margin-right:6px">\ud83d\udce5 Import from slide</button><button class="btn-primary" id="newSkillBtn">+ New skill</button>' : '<span class="badge badge-neutral">Read-only</span>'}
       </div>
     </div>
     ${filtered.length === 0 ? `<div class="empty"><div class="empty-title">No skills</div><div class="empty-desc">${dataLoadState.status === 'loading' ? 'Loading from Supabase…' : (state.adminMode ? 'Click "New skill" to create one.' : 'No skills match your search.')}</div></div>` : `<div>${filtered.map(s => renderSkillRow(s)).join('')}</div>`}
   `;
   document.getElementById('skillsSearch').oninput = e => { state.skillsSearch = e.target.value; renderSkills(); };
   const newBtn = document.getElementById('newSkillBtn'); if (newBtn) newBtn.onclick = () => openSkillEditor(null);
+  // Build #84 — Import-from-slide button
+  const impBtn = document.getElementById('importSkillBtn');
+  if (impBtn) impBtn.onclick = () => openSkillImportModal();
   document.querySelectorAll('[data-skill-act]').forEach(el => {
     const act = el.dataset.skillAct; const id = el.dataset.id;
     if (act === 'fav') el.onclick = async () => { await toggleFavoriteSkill(id); renderSkills(); };
@@ -4445,11 +4448,168 @@ function openSkillViewer(id) {
     <div class="modal-footer">${state.adminMode ? `<button class="btn-secondary" id="editFromView">Edit</button>` : ''}<button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
   const eb = document.getElementById('editFromView'); if (eb) eb.onclick = () => { closeModal(); openSkillEditor(id); };
 }
-function openSkillEditor(id) {
+// Build #84 — Analyze a slide image into a structured skill prompt via Claude vision
+async function analyzeSlideForSkillPrompt(referenceB64, skillName) {
+  const ak = (state.apiKeys.anthropic || '').trim();
+  if (!ak) throw new Error('Anthropic key required for skill import');
+  // Reuse Build #83's downscale helper to fit Claude's 5MB cap
+  const visionImage = await downscaleImageForVision(referenceB64);
+  const sysPrompt = 'You are an expert presentation designer producing structured visual prompts for an AI image generation pipeline. ' +
+    'You will be shown an example slide and asked to produce a SKILL PROMPT that another AI can use to generate NEW slides in the same visual style. ' +
+    'Output ONLY the skill prompt as plain text — no JSON, no markdown fences, no preamble, no closing remarks.';
+  const userPrompt = 'Analyze the visual style of the attached slide image and produce a complete SKILL PROMPT for the Digitata Networks deck generator. ' +
+    'The new skill will be named: "' + (skillName || 'Imported Skill') + '".\n\n' +
+    'Follow this exact structure (these section headers and the boilerplate sections marked [STANDARD] must appear verbatim; only fill in the dynamic style content):\n\n' +
+    '---\n' +
+    'Create a 16:9 widescreen enterprise presentation slide.\n\n' +
+    'OVERALL STYLE:\n' +
+    '[2-4 concrete sentences describing the broad aesthetic of the example slide — palette feel, mood, density, formality. Reference what the image LITERALLY shows.]\n\n' +
+    'VISUAL CONSISTENCY:\n' +
+    'All slides must feel like they belong to the same deck.\n' +
+    '[5-8 bullet points describing the visual language elements observed in the example: e.g. "dark translucent panels", "thin glowing outlines", "rounded rectangles with soft shadows", "simple line icons", "directional arrows". Be concrete.]\n\n' +
+    'LAYOUT RULES:\n' +
+    'Use a strict 16:9 widescreen slide format (1536 pixels wide x 864 pixels tall equivalent).\n' +
+    'The slide must fill the entire canvas edge to edge — no letterboxing, no black bars, no borders.\n' +
+    '[2-4 additional rules derived from the example: title placement, content density, alignment patterns, group count.]\n\n' +
+    'TYPOGRAPHY RULES:\n' +
+    '[Specify font family characteristics observed (modern sans-serif / serif), weight hierarchy, headline treatment (gradients, glows), readability.]\n\n' +
+    'COLOR PALETTE:\n' +
+    'Primary: [colors observed, with hex if clear from the image]\n' +
+    'Accents: [accent colors]\n' +
+    'Supporting: [secondary/utility tones]\n' +
+    '[1-2 sentences on what the palette communicates.]\n\n' +
+    'ICONOGRAPHY:\n' +
+    '[Style of icons in the example: thin-line / filled / 3D / minimal / etc. Stroke weight, color treatment, themes.]\n\n' +
+    'CONTENT PANELS:\n' +
+    '[Card/panel treatment observed: rounded corners, glow edges, drop shadows, glassmorphism, etc.]\n\n' +
+    'EMOTIONAL TONE:\n' +
+    '[1-2 sentences on what the slide should make the audience feel. Match the mood of the example image.]\n\n' +
+    'OVERALL DESIGN GOAL:\n' +
+    '[1-2 sentences capturing the final aesthetic ambition.]\n\n' +
+    'BRANDING RULES — STRICTLY ENFORCED: [STANDARD — output verbatim]\n' +
+    'Do NOT generate, draw, invent, or place any logo, wordmark, icon, badge, or brand symbol anywhere on the slide.\n' +
+    'Do NOT create circular emblems, tree shapes, network graphs, or any symbol that could be mistaken for a company logo.\n\n' +
+    'CORNER QUIET ZONES — IMPORTANT: [STANDARD — output verbatim]\n' +
+    'Keep BOTH the TOP-LEFT and TOP-RIGHT corners visually quiet — these zones are each approximately 280px wide x 110px tall, measured from each top corner (20px in from each edge). Two logos will be placed in these corners by PowerPoint after the image is generated.\n' +
+    'ABSOLUTE RULES for both quiet zones:\n' +
+    '- NO titles, headlines, slide numbers, dates, or any other text\n' +
+    '- NO prominent icons, badges, or decorative elements\n' +
+    '- NO visible rectangles, outlines, borders, panels, or overlays\n' +
+    '- NO gradient or texture different from the surrounding slide background\n' +
+    '- The corners must blend seamlessly into the slide\u2019s overall background — as if nothing is there, just clean space\n\n' +
+    'HEADLINE PLACEMENT — STRICT: [STANDARD — output verbatim]\n' +
+    'The slide\u2019s main headline/title MUST be horizontally bounded BETWEEN the two quiet zones. The headline must start no closer than 300px from the LEFT edge AND end no closer than 300px from the RIGHT edge.\n' +
+    'If the headline is long, wrap it to a second line within those horizontal bounds — DO NOT extend the headline into either the top-left or top-right corner zone.\n\n' +
+    'OUTPUT:\n' +
+    'Create one polished 16:9 widescreen slide. No explanation. No mockup frame. No presenter notes.\n' +
+    '---\n\n' +
+    'Target length: 700-1100 words total. Be CONCRETE and SPECIFIC — vague descriptions are unusable. Use imperative voice ("Use ...", "Avoid ...", "Maintain ..."). Reference what you actually see in the image, not what slides typically look like.';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 3000,
+      system: sysPrompt,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: visionImage.mediaType, data: visionImage.b64 } },
+        { type: 'text', text: userPrompt }
+      ] }]
+    })
+  });
+  if (!resp.ok) { const t = await resp.text(); throw new Error('Skill import vision ' + resp.status + ': ' + t.slice(0, 200)); }
+  const data = await resp.json();
+  let cost = 0.03;
+  if (data.usage) { try { cost = getAnthropicCost('claude-sonnet-4-5-20250929', data.usage.input_tokens || 0, data.usage.output_tokens || 0); } catch (e) {} }
+  const promptText = (data.content && data.content[0] && data.content[0].text) || '';
+  return { prompt: promptText.trim(), cost: cost };
+}
+
+// Build #84 — Modal for importing a skill from a slide image
+function openSkillImportModal() {
+  if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
+  const state2 = { fileB64: null, fileName: null, skillName: '', skillDesc: '', analyzing: false };
+  function renderImportModal() {
+    const html =
+      '<div class="modal-header"><div><div class="h1">\ud83d\udce5 Import skill from slide image</div>' +
+        '<div class="muted body-sm" style="margin-top:4px">Upload an example slide. Claude vision will analyze its style and generate a starter skill prompt for you to review and save (~$0.02 vision + $0.30 preview when you save).</div>' +
+      '</div><button class="btn-ghost" onclick="closeModal()">\u00d7</button></div>' +
+      '<div class="field"><label class="field-label">Skill name <span class="subtle">required</span></label>' +
+        '<input class="input" id="impSkillName" placeholder="e.g. Telco Pitch \u2014 Dark Cinematic" value="' + escapeAttr(state2.skillName) + '">' +
+      '</div>' +
+      '<div class="field"><label class="field-label">Description <span class="subtle">optional</span></label>' +
+        '<input class="input" id="impSkillDesc" placeholder="One-line summary shown in dropdowns" value="' + escapeAttr(state2.skillDesc) + '">' +
+      '</div>' +
+      '<div class="field"><label class="field-label">Reference slide image <span class="subtle">required, PNG/JPG, max 8 MB</span></label>' +
+        (state2.fileB64
+          ? '<div style="display:flex;gap:12px;align-items:center;padding:10px;background:var(--surface-2,var(--surface));border:1px dashed var(--border);border-radius:6px"><img src="data:image/png;base64,' + state2.fileB64 + '" alt="reference" style="width:160px;height:auto;border:1px solid var(--border);border-radius:4px"><div style="flex:1"><div style="font-size:13px;font-weight:500">' + escapeHtml(state2.fileName || 'reference.png') + '</div><div class="muted body-sm" style="font-size:11px;margin-top:4px">Image will be downscaled to fit Claude\u2019s 5MB limit before analysis.</div><button class="btn-ghost" id="impClearFile" style="font-size:11px;padding:2px 8px;margin-top:6px">Choose different image</button></div></div>'
+          : '<label style="display:flex;align-items:center;justify-content:center;min-height:120px;padding:20px;background:var(--surface-2,var(--surface));border:2px dashed var(--border);border-radius:6px;cursor:pointer;text-align:center"><div><div style="font-size:14px;margin-bottom:6px">\ud83d\udcc1 Click to upload</div><div class="muted body-sm" style="font-size:11px">PNG or JPG of the slide whose style you want to copy</div><input type="file" id="impFileInput" accept="image/*" style="display:none"></div></label>'
+        ) +
+      '</div>' +
+      '<div id="impStatus"></div>' +
+      '<div class="modal-footer">' +
+        '<button class="btn-ghost" onclick="closeModal()">Cancel</button>' +
+        '<button class="btn-primary" id="impAnalyzeBtn" ' + (state2.analyzing ? 'disabled' : '') + '>' + (state2.analyzing ? '<span class="spinner"></span> Analyzing with Claude vision\u2026' : '\u2728 Analyze and create skill') + '</button>' +
+      '</div>';
+    openModal(html, { lg: true });
+    const nameInp = document.getElementById('impSkillName');
+    if (nameInp) nameInp.oninput = e => { state2.skillName = e.target.value; };
+    const descInp = document.getElementById('impSkillDesc');
+    if (descInp) descInp.oninput = e => { state2.skillDesc = e.target.value; };
+    const fileInp = document.getElementById('impFileInput');
+    if (fileInp) fileInp.onchange = e => {
+      const file = e.target.files && e.target.files[0]; if (!file) return;
+      if (!file.type.startsWith('image/')) { toast({ type: 'error', message: 'Image files only' }); return; }
+      if (file.size > 8 * 1024 * 1024) { toast({ type: 'error', message: 'Max 8 MB' }); return; }
+      const fr = new FileReader();
+      fr.onload = () => {
+        state2.fileB64 = fr.result.split(',')[1];
+        state2.fileName = file.name;
+        renderImportModal();
+      };
+      fr.readAsDataURL(file);
+    };
+    const clrBtn = document.getElementById('impClearFile');
+    if (clrBtn) clrBtn.onclick = () => { state2.fileB64 = null; state2.fileName = null; renderImportModal(); };
+    const analyzeBtn = document.getElementById('impAnalyzeBtn');
+    if (analyzeBtn) analyzeBtn.onclick = async () => {
+      if (!state2.fileB64) { toast({ type: 'error', message: 'Upload a reference image first' }); return; }
+      if (!state2.skillName.trim()) { toast({ type: 'error', message: 'Name the skill first' }); return; }
+      if (!(state.apiKeys.anthropic || '').trim()) { toast({ type: 'error', message: 'Anthropic key required (Settings)' }); return; }
+      state2.analyzing = true;
+      renderImportModal();
+      const statusEl = document.getElementById('impStatus');
+      if (statusEl) statusEl.innerHTML = '<div style="padding:10px;background:rgba(13,148,136,0.10);border:1px solid #0d9488;border-radius:4px;color:#04342C;font-size:12px;margin-top:8px">\u2728 Analyzing the slide with Claude vision\u2026 this takes ~5-10 seconds. The result will open in the skill editor where you can refine before saving.</div>';
+      try {
+        const result = await analyzeSlideForSkillPrompt(state2.fileB64, state2.skillName);
+        // Track cost
+        if (typeof deckCost !== 'undefined') {
+          deckCost.polish += (result.cost || 0.02);
+          if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-sonnet-4-5', quality: 'vision', cost: result.cost || 0.02, kind: 'skill-import' });
+          if (typeof renderCostBadge === 'function') renderCostBadge();
+        }
+        toast({ type: 'success', message: 'Analysis complete \u00b7 ' + fmtUsd4(result.cost || 0.02) + ' \u00b7 opening editor' });
+        closeModal();
+        openSkillEditor(null, { name: state2.skillName, description: state2.skillDesc, prompt: result.prompt });
+      } catch (e) {
+        state2.analyzing = false;
+        renderImportModal();
+        const statusEl2 = document.getElementById('impStatus');
+        if (statusEl2) statusEl2.innerHTML = '<div style="padding:10px;background:rgba(217,52,49,0.10);border:1px solid #D14343;border-radius:4px;color:#791F1F;font-size:12px;margin-top:8px">\u26a0 ' + escapeHtml(e.message || String(e)) + '</div>';
+      }
+    };
+  }
+  renderImportModal();
+}
+
+function openSkillEditor(id, initialDraft) {
   if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
   window.__currentEditSkillId = id || null;
   const existing = id ? skillById(id) : null;
-  const draft = { id: existing ? existing.id : null, name: existing ? existing.name : '', description: existing ? existing.description : '', prompt: existing ? existing.prompt : '' };
+  // Build #84 — initialDraft lets caller pre-fill name/description/prompt (e.g. from skill import flow)
+  const draft = initialDraft
+    ? { id: null, name: initialDraft.name || '', description: initialDraft.description || '', prompt: initialDraft.prompt || '' }
+    : { id: existing ? existing.id : null, name: existing ? existing.name : '', description: existing ? existing.description : '', prompt: existing ? existing.prompt : '' };
   const renderEditor = () => {
     const promptLen = (draft.prompt || '').length;
     const html = `
@@ -4990,7 +5150,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.14.3</span> (build #83 — downscale vision input)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.15.0</span> (build #84 — import skill from slide image)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
