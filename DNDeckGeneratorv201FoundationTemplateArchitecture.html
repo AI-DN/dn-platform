@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.23.0</title>
+<title>DN Deck Generator v2.23.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.23.0 #104</div>
+      <div class="brand-version">v2.23.1 #105</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1518,30 +1518,23 @@ async function effectiveSkillIdForSlide(slide, slideIdx) {
 // when the slide has detected persons[]. Real text/photos/logos are composed
 // on top later (preview = composeHybridPreview, final = PptxGenJS in Build #101).
 async function generateSlideBackdrop(slide, fullPrompt, overrideSpec) {
-  const layoutType = slide.layoutType || '';
-  const personZones = (slide.persons || []).map((p, i) => {
-    if (!p.bbox) return null;
-    return '  - Person photo zone ' + (i + 1) +
-      ' (will be filled with a real headshot AFTER generation): x=' + p.bbox.x.toFixed(0) +
-      '%, y=' + p.bbox.y.toFixed(0) + '%, w=' + p.bbox.w.toFixed(0) +
-      '%, h=' + p.bbox.h.toFixed(0) +
-      '% \u2014 leave this region as clean styled background, no faces, no figures, no decorative content';
-  }).filter(Boolean).join('\n');
+  // Build #105 \u2014 simplified backdrop prompt. We don't tell the model where photos/text/logos
+  // will go because the model painted those zones as literal flat rectangles. Photos/text are
+  // overlaid via PptxGenJS composition; the backdrop just needs to be a clean styled background
+  // driven by the skill prompt.
   const backdropPrompt =
     '=== BACKDROP-ONLY GENERATION ===\n' +
-    'You are generating ONLY the styled BACKGROUND of a presentation slide. Real text, photographs, and logos will be overlaid by PowerPoint AFTER this image is generated. Do NOT generate any of those elements yourself.\n\n' +
-    'STRICT RULES:\n' +
-    '1. NO TEXT anywhere in the output. No headlines, no body text, no labels, no captions, no numbers, no chart text.\n' +
-    '2. NO HUMAN FACES OR PORTRAITS anywhere. No people, no headshots, no figures, no silhouettes of people.\n' +
+    'Generate ONLY the styled BACKGROUND of a presentation slide. Real text, photographs, and logos will be overlaid on top of this image afterward \u2014 you do not need to leave room for them, just paint a beautiful background that will work well behind overlaid content.\n\n' +
+    'ABSOLUTE RULES:\n' +
+    '1. NO TEXT anywhere. No headlines, no body text, no labels, no captions, no numbers, no chart text, no word-shaped marks, no logo wordmarks. The output must contain no recognizable letters or words.\n' +
+    '2. NO HUMAN FACES OR PORTRAITS. No people, no headshots, no figures, no silhouettes of people.\n' +
     '3. NO LOGOS, brand marks, badges, wordmarks, or company symbols.\n' +
-    '4. NO CHARTS, diagrams, or icons that would conflict with overlaid content.\n' +
-    '5. The output is a clean styled BACKGROUND that supports overlaid content \u2014 use decorative shapes, gradients, world maps, geometric accents, color washes, soft patterns, etc. Whatever the visual style calls for, MINUS text/faces/logos.\n\n' +
-    (layoutType ? '=== LAYOUT INTENT ===\nThe original slide layout was: ' + layoutType + '. The backdrop should naturally accommodate that layout when content is overlaid on top.\n\n' : '') +
-    (personZones ? '=== RESERVED CONTENT ZONES \u2014 KEEP AS CLEAN STYLED BACKGROUND ===\n' + personZones + '\n\n' : '') +
+    '4. NO CHARTS, diagrams, photographs, or specific imagery that would conflict with overlaid content.\n' +
+    '5. NO PLACEHOLDER RECTANGLES, EMPTY CARDS, OR BLANK BOXES. The background should flow continuously across the entire canvas \u2014 no flat-color rectangles meant to "reserve" space for content. Content will be overlaid on TOP of this background, so the background can be visually full and rich; it does not need any blank regions.\n\n' +
     '=== VISUAL STYLE TO APPLY ===\n' +
     fullPrompt + '\n\n' +
     '=== OUTPUT ===\n' +
-    'One 16:9 widescreen slide BACKGROUND. No text. No people. No logos. Just the styled empty canvas ready for real content to be overlaid.';
+    'One 16:9 widescreen slide BACKGROUND in the visual style above. Continuous styled canvas across the whole slide. No text. No people. No logos. No placeholder boxes.';
   const spec = overrideSpec || currentEffectiveModel();
   const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, backdropPrompt);
   const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
@@ -4716,7 +4709,7 @@ function renderImgCard(s, i) {
                   (refSet ? '<button class="btn-ghost" data-act="refClear" style="font-size:10px;padding:1px 6px">Remove</button>' : '') +
                 '</div>' +
                 (refSet
-                  ? '<div style="display:flex;align-items:center;gap:8px"><img src="data:image/png;base64,' + s.referenceImageB64 + '" alt="reference" style="width:80px;height:auto;border:1px solid var(--border);border-radius:3px"><div class="muted body-sm" style="font-size:10px;flex:1">' + escapeHtml(s.referenceImageName || 'reference image') + '<br>Regenerate will analyze this with Claude vision (~$0.01), then generate using that structure + your selected model. Inpaint of reserved zones still runs after.</div></div>'
+                  ? '<div style="display:flex;align-items:center;gap:8px"><img src="data:image/png;base64,' + s.referenceImageB64 + '" alt="reference" style="width:80px;height:auto;border:1px solid var(--border);border-radius:3px"><div class="muted body-sm" style="font-size:10px;flex:1">' + escapeHtml(s.referenceImageName || 'reference image') + '<br>Regenerate uses this as the reference. Routing depends on what you have selected: OpenAI \u2192 /v1/images/edits endpoint with your model. Google/Gemini \u2192 native multimodal image-to-image. If Claude vision detected portraits on this slide, hybrid composition runs instead (backdrop + photos composited on export).</div></div>'
                   : '<div class="muted body-sm" style="font-size:11px;margin-bottom:6px">Upload a reference image (or use the current slide) and the next Regenerate will use it as visual inspiration alongside your prompt.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><label class="btn-secondary" style="font-size:11px;padding:4px 10px;cursor:pointer"><input type="file" data-act="refUpload" accept="image/*" style="display:none">\ud83d\udcc1 Upload image</label>' + (s.imageB64 ? '<button class="btn-ghost" data-act="refUseCurrent" style="font-size:11px;padding:4px 10px">\ud83d\udd04 Use current slide</button>' : '') + '</div>') +
               '</div>';
               // Build #76 — when slide has pending text/block changes, seed textarea with FRESH composeSkillPrompt
@@ -6774,7 +6767,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.0</span> (build #104 — Gemini multimodal image-to-image bypasses hybrid for Google-selected slides)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.1</span> (build #105 — remove reserved-zone leak from backdrop prompt; refresh stale help text)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
