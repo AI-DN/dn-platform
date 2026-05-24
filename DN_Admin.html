@@ -631,6 +631,60 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .users-switch input:checked + .users-switch-slider:before { transform: translateX(16px); background: #07091a; }
 .users-switch input:disabled + .users-switch-slider { opacity: 0.5; cursor: not-allowed; }
 
+/* T7 — Access Requests overlay (admin inbox of pending requests) */
+.access-requests-overlay {
+  display: none; position: fixed; inset: 0; z-index: 200;
+  background: rgba(7, 9, 26, 0.78); backdrop-filter: blur(6px);
+  align-items: center; justify-content: center; padding: 24px;
+}
+.access-requests-overlay.open { display: flex; }
+.access-requests-panel {
+  width: min(900px, 100%); max-height: 86vh;
+  background: var(--bg2); border: 1px solid var(--border);
+  border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.access-requests-panel-head { padding: 18px 22px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
+.access-requests-panel-title { font-size: 16px; font-weight: 600; color: var(--text); }
+.access-requests-panel-sub { font-size: 12px; color: var(--text2); margin-top: 4px; line-height: 1.5; max-width: 640px; }
+.access-requests-panel-close { background: transparent; border: none; color: var(--text2); font-size: 22px; cursor: pointer; padding: 4px 10px; border-radius: 6px; }
+.access-requests-panel-close:hover { background: rgba(255,255,255,0.05); color: var(--text); }
+.access-requests-panel-body { flex: 1; min-height: 0; overflow-y: auto; padding: 18px 22px; }
+.access-requests-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 12px; flex-wrap: wrap; }
+.access-requests-toolbar input[type=search] { flex: 1; min-width: 220px; padding: 8px 11px; background: rgba(7,9,26,0.7); border: 1px solid var(--border); color: var(--text); border-radius: 7px; font: inherit; }
+.access-requests-reload { padding: 7px 12px; background: transparent; color: var(--text2); border: 1px solid var(--border2); border-radius: 7px; cursor: pointer; font-size: 12px; }
+.access-requests-status { font-size: 12px; color: var(--text2); margin-bottom: 10px; }
+.access-requests-list { display: flex; flex-direction: column; gap: 10px; }
+.ar-card { padding: 12px 14px; background: rgba(7,9,26,0.5); border: 1px solid var(--border); border-radius: 10px; display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.ar-card-info { min-width: 0; flex: 1; }
+.ar-card-user { font-size: 13px; font-weight: 600; color: var(--text); }
+.ar-card-email { font-size: 12px; color: var(--text2); margin-left: 6px; opacity: 0.85; }
+.ar-card-meta { font-size: 11.5px; color: var(--text2); margin-top: 4px; line-height: 1.5; }
+.ar-card-app { color: #47d1ff; font-weight: 600; }
+.ar-card-time { opacity: 0.7; }
+.ar-card-pill { display: inline-block; font-size: 10.5px; padding: 2px 7px; border-radius: 10px; margin-left: 6px; background: rgba(247, 195, 78, 0.15); color: #f7c34e; border: 1px solid rgba(247, 195, 78, 0.3); }
+.ar-card-pill.approved { background: rgba(29,158,117,0.16); color: #1d9e75; border-color: rgba(29,158,117,0.35); }
+.ar-card-pill.denied { background: rgba(240,80,96,0.15); color: #f05060; border-color: rgba(240,80,96,0.3); }
+.ar-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.ar-card-actions .app-btn { font-size: 12px; padding: 6px 12px; }
+.ar-empty { padding: 40px 20px; text-align: center; color: var(--text2); font-size: 13px; }
+.ar-toolbar-toggle { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text2); cursor: pointer; user-select: none; }
+.ar-toolbar-toggle input { margin: 0; }
+
+/* T7 — Topbar pending badge on Access Requests button */
+.btn-pending-badge { display: inline-block; min-width: 18px; padding: 1px 6px; margin-left: 6px; background: #f7c34e; color: #07091a; border-radius: 10px; font-size: 11px; font-weight: 700; line-height: 1.45; }
+
+/* T7 — Lifecycle filter chips on App Access panel */
+.lifecycle-chips { display: inline-flex; gap: 4px; padding: 3px; background: rgba(7,9,26,0.4); border: 1px solid var(--border); border-radius: 8px; }
+.lifecycle-chip { padding: 5px 11px; background: transparent; color: var(--text2); border: none; border-radius: 6px; cursor: pointer; font-size: 12px; line-height: 1.3; }
+.lifecycle-chip:hover { color: var(--text); background: rgba(255,255,255,0.04); }
+.lifecycle-chip.active { background: rgba(71, 209, 255, 0.18); color: #47d1ff; }
+.lifecycle-pill { display: inline-block; font-size: 10.5px; padding: 2px 8px; border-radius: 10px; margin-left: 8px; font-weight: 600; letter-spacing: 0.02em; vertical-align: 2px; }
+.lifecycle-pill.active { background: rgba(29,158,117,0.16); color: #1d9e75; border: 1px solid rgba(29,158,117,0.35); }
+.lifecycle-pill.parked { background: rgba(160,170,200,0.12); color: #aab; border: 1px solid rgba(160,170,200,0.25); }
+.lifecycle-pill.archived { background: rgba(240,80,96,0.12); color: #f05060; border: 1px solid rgba(240,80,96,0.28); }
+.lifecycle-select { font-size: 11px; padding: 3px 6px; background: rgba(7,9,26,0.7); border: 1px solid var(--border); color: var(--text); border-radius: 6px; margin-left: 8px; cursor: pointer; }
+
 /* T6 — App Access overlay (reuses users-overlay base; adds card layout) */
 .app-access-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.7);
@@ -1036,7 +1090,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.1.1 #6</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.0 #7</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1047,6 +1101,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <button class="btn-sm" onclick="tidyResolvedAdminCards(false)" title="Move resolved admin cards from Ready to QA passed">Tidy</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
     <button class="btn-sm" id="btn-users" onclick="openUsersPanel()" title="User management" style="display:none;">👥 Users</button>
+    <button class="btn-sm" id="btn-access-requests" onclick="openAccessRequestsPanel()" title="Pending access requests" style="display:none;">📥 Access Requests<span class="btn-pending-badge" id="ar-pending-badge" style="display:none;">0</span></button>
     <button class="btn-sm" id="btn-app-access" onclick="openAppAccessPanel()" title="App access — per-app grants" style="display:none;">🔑 App Access</button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (API keys, GitHub)" aria-label="Settings">⚙</button>
     <a class="btn-sm" href="index.html">← Platform</a>
@@ -1124,10 +1179,38 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <div class="app-access-panel-body">
       <div class="app-access-toolbar">
         <input type="search" id="app-access-search" placeholder="Filter apps by title or creator..." oninput="renderAppAccessList()">
+        <div class="lifecycle-chips">
+          <button class="lifecycle-chip active" data-lf="all" onclick="setLifecycleFilter('all')">All</button>
+          <button class="lifecycle-chip" data-lf="active" onclick="setLifecycleFilter('active')">Active</button>
+          <button class="lifecycle-chip" data-lf="parked" onclick="setLifecycleFilter('parked')">Parked</button>
+          <button class="lifecycle-chip" data-lf="archived" onclick="setLifecycleFilter('archived')">Archived</button>
+        </div>
         <button class="app-access-reload" onclick="loadAppAccess()">↻ Reload</button>
       </div>
       <div class="app-access-status" id="app-access-status">Loading...</div>
       <div class="app-access-list" id="app-access-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- T7 — Access Requests overlay (admin-only) -->
+<div class="access-requests-overlay" id="access-requests-overlay" onclick="if(event.target===this)closeAccessRequestsPanel()">
+  <div class="access-requests-panel">
+    <div class="access-requests-panel-head">
+      <div>
+        <div class="access-requests-panel-title">📥 Access requests</div>
+        <div class="access-requests-panel-sub">Users who clicked "Request access" on a gated app or in DN_Intent. Grant inserts the user into app_access; Deny records the decision and the user can still re-request later.</div>
+      </div>
+      <button class="access-requests-panel-close" onclick="closeAccessRequestsPanel()" aria-label="Close">×</button>
+    </div>
+    <div class="access-requests-panel-body">
+      <div class="access-requests-toolbar">
+        <input type="search" id="ar-search" placeholder="Filter by user, email, or app..." oninput="renderAccessRequestsList()">
+        <label class="ar-toolbar-toggle"><input type="checkbox" id="ar-show-resolved" onchange="renderAccessRequestsList()"> Show resolved</label>
+        <button class="access-requests-reload" onclick="loadAccessRequests()">↻ Reload</button>
+      </div>
+      <div class="access-requests-status" id="access-requests-status">Loading…</div>
+      <div class="access-requests-list" id="access-requests-list"></div>
     </div>
   </div>
 </div>
@@ -2183,7 +2266,7 @@ async function loadAppAccess() {
     // v1.0.3 #4 — include creator_access_revoked so we can render revoke/restore on creator row
     const { data: apps, error: aErr } = await supaClient
       .from('requests')
-      .select('id,title,creator_user_id,creator_access_revoked,submitted_by,shipped_url,shipped_filename,shipped_at,status,created_at')
+      .select('id,title,creator_user_id,creator_access_revoked,submitted_by,shipped_url,shipped_filename,shipped_at,status,lifecycle_status,created_at')
       .not('shipped_url', 'is', null)
       .order('shipped_at', { ascending: false });
     if (aErr) throw aErr;
@@ -2235,6 +2318,11 @@ function renderAppAccessList() {
   const searchEl = document.getElementById('app-access-search');
   const search = ((searchEl && searchEl.value) || '').trim().toLowerCase();
   const filtered = appAccessAppsCache.filter(function(a) {
+    // T7 — lifecycle filter (defaults to 'all')
+    if (lifecycleFilter && lifecycleFilter !== 'all') {
+      const lf = a.lifecycle_status || 'parked';
+      if (lf !== lifecycleFilter) return false;
+    }
     if (!search) return true;
     const hay = ((a.title || '') + ' ' + (a.submitted_by || '') + ' ' + (a.creator && a.creator.email || '')).toLowerCase();
     return hay.indexOf(search) !== -1;
@@ -2317,6 +2405,13 @@ function renderAppAccessList() {
         '<div style="min-width:0;flex:1">' +
           '<div class="app-card-title">' +
             (linkUrl ? '<a href="' + escapeAppAccessHtml(linkUrl) + '" target="_blank" rel="noopener">' + escapeAppAccessHtml(a.title || '(untitled)') + '</a>' : escapeAppAccessHtml(a.title || '(untitled)')) +
+            // T7 — lifecycle pill + change dropdown
+            (function(){
+              const lf = a.lifecycle_status || 'parked';
+              const opts = ['active','parked','archived'].map(function(v){ return '<option value="' + v + '"' + (v===lf?' selected':'') + '>' + v + '</option>'; }).join('');
+              return '<span class="lifecycle-pill ' + lf + '">' + lf + '</span>' +
+                     '<select class="lifecycle-select" title="Change lifecycle status" onchange="changeAppLifecycle(\'' + a.id + '\', this.value)">' + opts + '</select>';
+            })() +
           '</div>' +
           '<div class="app-card-meta">' +
             'Shipped ' + shippedDate + ' \u00b7 created by <strong>' + escapeAppAccessHtml(creatorName) + '</strong>' +
@@ -2406,6 +2501,222 @@ function escapeAppAccessHtml(s) {
 
 
 
+// ===========================================================
+// T7 — Access Requests inbox
+// ===========================================================
+let accessRequestsCache = []; // [{id,request_id,user_id,requested_at,status,profile,app}]
+
+function showAccessRequestsButtonIfAdmin() {
+  const btn = document.getElementById('btn-access-requests');
+  if (btn) btn.style.display = isAdmin() ? '' : 'none';
+}
+
+async function refreshAccessRequestsBadge() {
+  // Lightweight count of pending requests for the topbar badge
+  if (!supaClient || !isAdmin()) return;
+  try {
+    const { count, error } = await supaClient
+      .from('access_requests')
+      .select('id', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    if (error) throw error;
+    const badge = document.getElementById('ar-pending-badge');
+    if (badge) {
+      if (count && count > 0) { badge.style.display = ''; badge.textContent = String(count); }
+      else { badge.style.display = 'none'; }
+    }
+  } catch (e) {
+    // silent — badge is best-effort
+    console.debug('refreshAccessRequestsBadge:', e.message || e);
+  }
+}
+
+async function openAccessRequestsPanel() {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  document.getElementById('access-requests-overlay').classList.add('open');
+  await loadAccessRequests();
+}
+
+function closeAccessRequestsPanel() {
+  document.getElementById('access-requests-overlay').classList.remove('open');
+}
+
+async function loadAccessRequests() {
+  const statusEl = document.getElementById('access-requests-status');
+  if (statusEl) statusEl.textContent = 'Loading…';
+  if (!supaClient) { if (statusEl) statusEl.textContent = 'Not signed in.'; return; }
+  try {
+    // 1) Pull all access_requests (admin RLS allows full SELECT)
+    const { data: reqs, error: rErr } = await supaClient
+      .from('access_requests')
+      .select('id,request_id,user_id,requested_at,status,resolved_by,resolved_at,notes')
+      .order('requested_at', { ascending: false });
+    if (rErr) throw rErr;
+
+    const userIds = Array.from(new Set((reqs || []).map(function(r){ return r.user_id; })));
+    const appIds = Array.from(new Set((reqs || []).map(function(r){ return r.request_id; })));
+
+    // 2) Resolve user profiles + app titles for context
+    const [profsRes, appsRes] = await Promise.all([
+      userIds.length
+        ? supaClient.from('profiles').select('id,email,full_name').in('id', userIds)
+        : Promise.resolve({ data: [], error: null }),
+      appIds.length
+        ? supaClient.from('requests').select('id,title,shipped_url').in('id', appIds)
+        : Promise.resolve({ data: [], error: null })
+    ]);
+    if (profsRes.error) throw profsRes.error;
+    if (appsRes.error) throw appsRes.error;
+
+    const profById = {}; (profsRes.data || []).forEach(function(p){ profById[p.id] = p; });
+    const appById = {}; (appsRes.data || []).forEach(function(a){ appById[a.id] = a; });
+
+    accessRequestsCache = (reqs || []).map(function(r){
+      return Object.assign({}, r, {
+        profile: profById[r.user_id] || { email: '(unknown)', full_name: '(unknown user)' },
+        app: appById[r.request_id] || { title: '(unknown app)', shipped_url: null }
+      });
+    });
+
+    const pending = accessRequestsCache.filter(function(r){ return r.status === 'pending'; }).length;
+    if (statusEl) {
+      statusEl.textContent = pending
+        ? (pending + ' pending request(s) waiting on your review')
+        : 'No pending requests.';
+    }
+    renderAccessRequestsList();
+    refreshAccessRequestsBadge();
+  } catch (e) {
+    console.error('loadAccessRequests failed:', e);
+    if (statusEl) statusEl.textContent = 'Failed to load: ' + (e.message || e);
+  }
+}
+
+function renderAccessRequestsList() {
+  const listEl = document.getElementById('access-requests-list');
+  if (!listEl) return;
+  const searchEl = document.getElementById('ar-search');
+  const search = ((searchEl && searchEl.value) || '').trim().toLowerCase();
+  const showResolved = document.getElementById('ar-show-resolved');
+  const includeResolved = !!(showResolved && showResolved.checked);
+
+  let rows = accessRequestsCache.slice();
+  if (!includeResolved) rows = rows.filter(function(r){ return r.status === 'pending'; });
+  if (search) {
+    rows = rows.filter(function(r){
+      const hay = ((r.profile.full_name || '') + ' ' + (r.profile.email || '') + ' ' + (r.app.title || '')).toLowerCase();
+      return hay.indexOf(search) !== -1;
+    });
+  }
+
+  if (!rows.length) {
+    listEl.innerHTML = '<div class="ar-empty">' + (includeResolved ? 'No requests yet.' : 'No pending requests. ✨') + '</div>';
+    return;
+  }
+
+  listEl.innerHTML = rows.map(function(r){
+    const name = r.profile.full_name || '(no name)';
+    const email = r.profile.email || '';
+    const appTitle = r.app.title || '(unknown app)';
+    const ts = r.requested_at ? new Date(r.requested_at).toLocaleString() : '';
+    const pillClass = r.status === 'approved' ? 'approved' : (r.status === 'denied' ? 'denied' : '');
+    const pillLabel = r.status.charAt(0).toUpperCase() + r.status.slice(1);
+    const actions = r.status === 'pending'
+      ? '<button class="app-btn primary" onclick="grantAccessRequest(\'' + r.id + '\',\'' + r.request_id + '\',\'' + r.user_id + '\')">Grant</button>' +
+        '<button class="app-btn danger" onclick="denyAccessRequest(\'' + r.id + '\')">Deny</button>'
+      : '';
+    return '<div class="ar-card">' +
+      '<div class="ar-card-info">' +
+        '<span class="ar-card-user">' + escapeAppAccessHtml(name) + '</span>' +
+        (email ? '<span class="ar-card-email">&lt;' + escapeAppAccessHtml(email) + '&gt;</span>' : '') +
+        '<span class="ar-card-pill ' + pillClass + '">' + pillLabel + '</span>' +
+        '<div class="ar-card-meta">requests access to <span class="ar-card-app">' + escapeAppAccessHtml(appTitle) + '</span> <span class="ar-card-time">· ' + escapeAppAccessHtml(ts) + '</span></div>' +
+      '</div>' +
+      '<div class="ar-card-actions">' + actions + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function grantAccessRequest(accessRequestId, appId, userId) {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  try {
+    // 1) Insert into app_access (no-op if already granted)
+    const ins = await supaClient.from('app_access').insert({
+      request_id: appId,
+      user_id: userId,
+      granted_by: currentSession && currentSession.user ? currentSession.user.id : null
+    });
+    if (ins.error && ins.error.code !== '23505' && (ins.error.message || '').indexOf('duplicate') === -1) {
+      throw ins.error;
+    }
+    // 2) Mark the access_request as approved
+    const upd = await supaClient.from('access_requests')
+      .update({
+        status: 'approved',
+        resolved_by: currentSession && currentSession.user ? currentSession.user.id : null,
+        resolved_at: new Date().toISOString()
+      })
+      .eq('id', accessRequestId);
+    if (upd.error) throw upd.error;
+    await loadAccessRequests();
+  } catch (e) {
+    console.error('grantAccessRequest failed:', e);
+    alert('Grant failed: ' + (e.message || e));
+  }
+}
+
+async function denyAccessRequest(accessRequestId) {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  if (!confirm('Deny this access request? The user can still request again later.')) return;
+  try {
+    const { error } = await supaClient.from('access_requests')
+      .update({
+        status: 'denied',
+        resolved_by: currentSession && currentSession.user ? currentSession.user.id : null,
+        resolved_at: new Date().toISOString()
+      })
+      .eq('id', accessRequestId);
+    if (error) throw error;
+    await loadAccessRequests();
+  } catch (e) {
+    console.error('denyAccessRequest failed:', e);
+    alert('Deny failed: ' + (e.message || e));
+  }
+}
+
+// ===========================================================
+// T7 — Lifecycle status (active / parked / archived) on App Access panel
+// ===========================================================
+let lifecycleFilter = 'all'; // 'all' | 'active' | 'parked' | 'archived'
+
+function setLifecycleFilter(f) {
+  lifecycleFilter = f;
+  // Highlight chips
+  const chips = document.querySelectorAll('.lifecycle-chip');
+  chips.forEach(function(c){ c.classList.toggle('active', c.getAttribute('data-lf') === f); });
+  renderAppAccessList();
+}
+
+async function changeAppLifecycle(appId, newStatus) {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  if (['active','parked','archived'].indexOf(newStatus) === -1) return;
+  try {
+    const { error } = await supaClient
+      .from('requests')
+      .update({ lifecycle_status: newStatus })
+      .eq('id', appId);
+    if (error) throw error;
+    // Optimistic update of local cache so we don't refetch everything
+    const cached = appAccessAppsCache.find(function(a){ return a.id === appId; });
+    if (cached) cached.lifecycle_status = newStatus;
+    renderAppAccessList();
+  } catch (e) {
+    console.error('changeAppLifecycle failed:', e);
+    alert('Lifecycle update failed: ' + (e.message || e));
+    await loadAppAccess();
+  }
+}
+
 window.addEventListener('load', async function() {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
   applySidebarCollapsedState();
@@ -2424,6 +2735,11 @@ window.addEventListener('load', async function() {
   const ov = document.getElementById('dn-auth-overlay'); if (ov) ov.remove();
   // Refresh data now that we have a session JWT (any earlier load with anon key would have been blocked by RLS)
   if (typeof loadData === 'function') loadData();
+  // T7 — surface admin buttons + pending-request badge as soon as profile is known
+  if (typeof showUsersButtonIfAdmin === 'function') showUsersButtonIfAdmin();
+  if (typeof showAppAccessButtonIfAdmin === 'function') showAppAccessButtonIfAdmin();
+  if (typeof showAccessRequestsButtonIfAdmin === 'function') showAccessRequestsButtonIfAdmin();
+  if (typeof refreshAccessRequestsBadge === 'function') refreshAccessRequestsBadge();
 });
 
 
@@ -2444,6 +2760,9 @@ function openSettingsPanel() {
     showUsersButtonIfAdmin();
     // T6 — show App Access button only for admins
     showAppAccessButtonIfAdmin();
+    // T7 — show Access Requests button only for admins
+    showAccessRequestsButtonIfAdmin();
+    refreshAccessRequestsBadge();
   }
   document.getElementById('settings-overlay').classList.add('open');
   setTimeout(function() {
