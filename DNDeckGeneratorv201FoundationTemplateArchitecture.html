@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.17.2</title>
+<title>DN Deck Generator v2.18.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -657,7 +657,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.17.2 #91</div>
+      <div class="brand-version">v2.18.0 #92</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -4877,10 +4877,252 @@ async function analyzeSlideForSkillPrompt(referenceB64, skillName) {
   return { prompt: promptText.trim(), cost: cost };
 }
 
+// =====================================================================
+// Build #92 — Fan out one skill into a coherent group of variants
+// =====================================================================
+const FAN_OUT_VARIANT_PRESETS = [
+  {
+    best_for: 'title slides',
+    name_suffix: ' \u2014 Title',
+    description: 'Hero / opening treatment',
+    brief: 'TITLE SLIDES: hero-style treatment for opening/section slides. Single dominant headline area, minimal supporting text, dramatic negative space, the biggest visual impact of any layout variant. CONTENT PANELS should be sparse \u2014 the title itself IS the centerpiece. EMOTIONAL TONE: confident, cinematic, attention-commanding. Layout should feel like a poster or magazine cover \u2014 not a content slide.'
+  },
+  {
+    best_for: 'content slides',
+    name_suffix: ' \u2014 Content',
+    description: 'Mixed body content',
+    brief: 'CONTENT SLIDES: balanced workhorse layout for the bulk of the deck. Headline + 2-4 supporting blocks (bullets, short paragraphs, mini-panels). Moderate density, clear visual hierarchy. CONTENT PANELS: 2-4 evenly distributed cards or sections. EMOTIONAL TONE: clear, professional, informative \u2014 lets the content breathe but uses the canvas efficiently.'
+  },
+  {
+    best_for: 'data slides',
+    name_suffix: ' \u2014 Data',
+    description: 'Charts, grids, numbers',
+    brief: 'DATA SLIDES: optimized for showcasing statistics, charts, KPIs, or grid layouts. Larger CONTENT PANELS sized for chart graphics or big-number callouts. Grid lines or subtle structural cues may appear. ICONOGRAPHY may include data-related glyphs (arrows, trend indicators). EMOTIONAL TONE: analytical, precise, evidence-driven. Layout should make numbers feel important and trustworthy.'
+  },
+  {
+    best_for: 'callout slides',
+    name_suffix: ' \u2014 Callout',
+    description: 'Single big idea or quote',
+    brief: 'CALLOUT SLIDES: single dominant statement \u2014 a customer quote, a hero statistic, a bold claim. ONE large central treatment instead of multiple panels. Often centered, with generous negative space around the focal element. TYPOGRAPHY emphasized \u2014 the words ARE the visual. EMOTIONAL TONE: punchy, memorable, dramatic. Should feel like a pull-quote in a magazine article.'
+  }
+];
+
+async function deriveSkillVariantPrompt(seedPrompt, seedName, variantSpec) {
+  const ak = (state.apiKeys.anthropic || '').trim();
+  if (!ak) throw new Error('Anthropic key required for variant derivation');
+  const sysPrompt = 'You are an expert presentation designer producing structured visual prompts for an AI image generation pipeline. ' +
+    'You will be given a SEED SKILL PROMPT (which defines an aesthetic) and a VARIANT BRIEF (which defines a slide-type specialization). ' +
+    'Produce a new complete SKILL PROMPT that keeps the seed\u2019s OVERALL STYLE / COLOR PALETTE / TYPOGRAPHY / ICONOGRAPHY exactly the same, but adjusts LAYOUT RULES / CONTENT PANELS / EMOTIONAL TONE / OVERALL DESIGN GOAL to match the variant brief. ' +
+    'All [STANDARD] sections (BRANDING RULES, CORNER QUIET ZONES, HEADLINE PLACEMENT, OUTPUT) must appear verbatim. ' +
+    'Output ONLY the new skill prompt as plain text \u2014 no JSON, no markdown fences, no preamble, no closing remarks.';
+  const userPrompt = 'SEED SKILL PROMPT (defines the aesthetic to preserve):\n' +
+    '---\n' +
+    seedPrompt +
+    '\n---\n\n' +
+    'VARIANT BRIEF (defines what this variant should specialize in):\n' +
+    'best_for tag: ' + variantSpec.best_for + '\n' +
+    variantSpec.brief + '\n\n' +
+    'INSTRUCTIONS:\n' +
+    '- Produce a complete SKILL PROMPT following the EXACT same section structure as the seed (Create a 16:9... / OVERALL STYLE / VISUAL CONSISTENCY / LAYOUT RULES / TYPOGRAPHY RULES / COLOR PALETTE / ICONOGRAPHY / CONTENT PANELS / EMOTIONAL TONE / OVERALL DESIGN GOAL / BRANDING RULES [STANDARD] / CORNER QUIET ZONES [STANDARD] / HEADLINE PLACEMENT [STANDARD] / OUTPUT).\n' +
+    '- Keep OVERALL STYLE / COLOR PALETTE / TYPOGRAPHY / ICONOGRAPHY content unchanged or only lightly reworded \u2014 these MUST match the seed so all variants feel like one suite.\n' +
+    '- Rewrite LAYOUT RULES / CONTENT PANELS / EMOTIONAL TONE / OVERALL DESIGN GOAL to match the variant brief above.\n' +
+    '- Keep all [STANDARD] sections verbatim from the seed.\n' +
+    '- Target length: 700-1100 words total.\n' +
+    '- Output ONLY the prompt text. No commentary.';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-5-20250929',
+      max_tokens: 4000,
+      system: sysPrompt,
+      messages: [{ role: 'user', content: [{ type: 'text', text: userPrompt }] }]
+    })
+  });
+  if (!resp.ok) { const t = await resp.text(); throw new Error('Variant derivation ' + resp.status + ': ' + t.slice(0, 200)); }
+  const data = await resp.json();
+  let cost = 0.03;
+  if (data.usage) { try { cost = getAnthropicCost('claude-sonnet-4-5-20250929', data.usage.input_tokens || 0, data.usage.output_tokens || 0); } catch (e) {} }
+  const promptText = (data.content && data.content[0] && data.content[0].text) || '';
+  return { prompt: promptText.trim(), cost: cost };
+}
+
+async function runSkillFanOut(opts, onProgress) {
+  // opts: { seedPrompt, seedName, seedDescription, variantSpecs, groupName, groupDescription }
+  // onProgress: (step, message) => void  // step: 'derive' | 'save' | 'group' | 'done' | 'error'
+  const seedPrompt = opts.seedPrompt || '';
+  const seedName = opts.seedName || 'Skill';
+  const variantSpecs = opts.variantSpecs && opts.variantSpecs.length ? opts.variantSpecs : FAN_OUT_VARIANT_PRESETS;
+  const groupName = opts.groupName || (seedName + ' \u00b7 Group');
+  const groupDescription = opts.groupDescription || ('Fan-out group derived from "' + seedName + '"');
+  let totalCost = 0;
+  const createdSkillIds = [];
+  const sb = getSupabaseClient();
+  if (!sb) throw new Error('Supabase required for fan-out (offline mode not supported)');
+  // Step 1 \u2014 derive each variant prompt
+  const derivedPrompts = [];
+  for (let i = 0; i < variantSpecs.length; i++) {
+    const v = variantSpecs[i];
+    onProgress && onProgress('derive', 'Deriving variant ' + (i + 1) + '/' + variantSpecs.length + ': ' + v.best_for + '\u2026');
+    const result = await deriveSkillVariantPrompt(seedPrompt, seedName, v);
+    derivedPrompts.push({ ...v, prompt: result.prompt, cost: result.cost });
+    totalCost += result.cost;
+    if (typeof deckCost !== 'undefined') {
+      deckCost.polish += result.cost;
+      if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-sonnet-4-5', quality: 'derive-variant', cost: result.cost, kind: 'fan-out-derive' });
+      if (typeof renderCostBadge === 'function') renderCostBadge();
+    }
+  }
+  // Step 2 \u2014 save each variant as a leaf skill (this auto-generates preview)
+  for (let i = 0; i < derivedPrompts.length; i++) {
+    const v = derivedPrompts[i];
+    onProgress && onProgress('save', 'Saving variant ' + (i + 1) + '/' + derivedPrompts.length + ': ' + v.best_for + ' (generating preview\u2026 ~30s)');
+    const newSkill = {
+      id: null,
+      name: seedName + v.name_suffix,
+      description: v.description,
+      prompt: v.prompt,
+      best_for: v.best_for,
+      change_note: 'Created by fan-out from "' + seedName + '" (Build #92)'
+    };
+    // saveSkill triggers auto-preview and reloads allSkills; we capture the new id afterwards
+    await saveSkill(newSkill);
+    // Find the newly-created skill by name match (most-recent updated_at)
+    const candidates = (window.allSkills || allSkills || []).filter(s => s.name === newSkill.name && s.is_skill && s.is_active);
+    if (candidates.length > 0) {
+      candidates.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+      createdSkillIds.push(candidates[0].id);
+    }
+  }
+  // Step 3 \u2014 create the group skill bundling all variants
+  onProgress && onProgress('group', 'Bundling ' + createdSkillIds.length + ' variants into group: ' + groupName);
+  const groupSkill = {
+    id: null,
+    name: groupName,
+    description: groupDescription,
+    prompt: '',
+    is_group: true,
+    member_skill_ids: createdSkillIds,
+    change_note: 'Fan-out group created from "' + seedName + '" with ' + createdSkillIds.length + ' variants'
+  };
+  await saveSkill(groupSkill);
+  const groupCandidates = (window.allSkills || allSkills || []).filter(s => s.name === groupName && s.is_group);
+  let groupId = null;
+  if (groupCandidates.length > 0) {
+    groupCandidates.sort((a, b) => new Date(b.updated_at || 0) - new Date(a.updated_at || 0));
+    groupId = groupCandidates[0].id;
+  }
+  onProgress && onProgress('done', 'Fan-out complete \u00b7 ' + createdSkillIds.length + ' variants + 1 group \u00b7 ' + fmtUsd4(totalCost) + ' on derivation');
+  return { groupId: groupId, memberIds: createdSkillIds, totalCost: totalCost };
+}
+
+function openFanOutModal(seedSpec) {
+  // seedSpec: { seedPrompt, seedName, seedDescription }
+  if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
+  if (!(state.apiKeys.anthropic || '').trim()) { toast({ type: 'error', message: 'Anthropic key required (Settings)' }); return; }
+  const seedName = (seedSpec && seedSpec.seedName) || 'Skill';
+  const seedDescription = (seedSpec && seedSpec.seedDescription) || '';
+  const seedPrompt = (seedSpec && seedSpec.seedPrompt) || '';
+  if (!seedPrompt.trim()) { toast({ type: 'error', message: 'Seed prompt is empty \u2014 cannot derive variants' }); return; }
+  const fanState = {
+    running: false,
+    log: [],
+    groupName: seedName + ' \u00b7 Group',
+    groupDescription: 'Fan-out group derived from "' + seedName + '"',
+    selectedBestFor: FAN_OUT_VARIANT_PRESETS.map(v => v.best_for) // all selected by default
+  };
+  function renderFanModal() {
+    const variantRows = FAN_OUT_VARIANT_PRESETS.map((v, i) => {
+      const checked = fanState.selectedBestFor.indexOf(v.best_for) >= 0;
+      return '<label style="display:flex;gap:8px;align-items:flex-start;padding:8px;border:1px solid var(--border);border-radius:6px;background:var(--surface-2,var(--surface));margin-bottom:6px;cursor:pointer">' +
+        '<input type="checkbox" data-fan-variant="' + v.best_for + '"' + (checked ? ' checked' : '') + ' style="margin-top:2px"' + (fanState.running ? ' disabled' : '') + '>' +
+        '<div style="flex:1">' +
+          '<div style="font-size:12px;font-weight:600">' + seedName + escapeHtml(v.name_suffix) + ' <span class="subtle" style="font-weight:400;color:var(--text-muted)">(best_for: ' + v.best_for + ')</span></div>' +
+          '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + escapeHtml(v.description) + ' \u2014 ' + escapeHtml(v.brief.slice(0, 140)) + '\u2026</div>' +
+        '</div>' +
+      '</label>';
+    }).join('');
+    const logHtml = fanState.log.length === 0 ? '' :
+      '<div style="margin-top:14px;padding:10px;background:#0b1220;color:#a8d8ff;border-radius:6px;font-family:var(--mono);font-size:11px;max-height:200px;overflow-y:auto">' +
+        fanState.log.map(l => '<div style="margin-bottom:4px">[' + l.step + '] ' + escapeHtml(l.message) + '</div>').join('') +
+      '</div>';
+    const html =
+      '<div class="modal-header"><div><div class="h1">\u{1F39B}\u{FE0F} Fan out to group</div>' +
+        '<div class="muted body-sm" style="margin-top:4px">Derive ' + fanState.selectedBestFor.length + ' style variants from <strong>' + escapeHtml(seedName) + '</strong> and bundle them into a new skill group. Each variant keeps the same visual language but is tuned for a different slide type.</div>' +
+      '</div><button class="btn-ghost" onclick="closeModal()"' + (fanState.running ? ' disabled' : '') + '>\u00d7</button></div>' +
+      '<div class="field"><label class="field-label">Group name</label>' +
+        '<input class="input" id="fanGroupName" value="' + escapeAttr(fanState.groupName) + '"' + (fanState.running ? ' disabled' : '') + '>' +
+      '</div>' +
+      '<div class="field"><label class="field-label">Variants to create <span class="subtle">uncheck to skip a use case</span></label>' +
+        variantRows +
+      '</div>' +
+      '<div style="padding:10px;background:rgba(217,138,52,0.10);border:1px solid #D89834;border-radius:6px;color:#5C3F00;font-size:12px">' +
+        '\u26a1 Cost: ~$0.05 per variant in derivation + ~$0.30 per preview image. For 4 variants \u2192 ~$1.40 total. Time: ~2-3 minutes.' +
+      '</div>' +
+      logHtml +
+      '<div class="modal-footer">' +
+        '<button class="btn-ghost" onclick="closeModal()"' + (fanState.running ? ' disabled' : '') + '>Cancel</button>' +
+        '<button class="btn-primary" id="fanRunBtn"' + (fanState.running ? ' disabled' : '') + '>' + (fanState.running ? '<span class="spinner"></span> Working\u2026' : '\u2728 Create group of ' + fanState.selectedBestFor.length + ' variants') + '</button>' +
+      '</div>';
+    openModal(html, { lg: true });
+    const gnInp = document.getElementById('fanGroupName');
+    if (gnInp) gnInp.oninput = e => { fanState.groupName = e.target.value; };
+    document.querySelectorAll('[data-fan-variant]').forEach(cb => {
+      cb.onchange = e => {
+        const bf = cb.getAttribute('data-fan-variant');
+        if (cb.checked) {
+          if (fanState.selectedBestFor.indexOf(bf) < 0) fanState.selectedBestFor.push(bf);
+        } else {
+          fanState.selectedBestFor = fanState.selectedBestFor.filter(x => x !== bf);
+        }
+        renderFanModal();
+      };
+    });
+    const runBtn = document.getElementById('fanRunBtn');
+    if (runBtn) runBtn.onclick = async () => {
+      if (fanState.selectedBestFor.length === 0) { toast({ type: 'error', message: 'Select at least one variant' }); return; }
+      if (!fanState.groupName.trim()) { toast({ type: 'error', message: 'Group name required' }); return; }
+      fanState.running = true;
+      fanState.log = [];
+      renderFanModal();
+      const variantSpecs = FAN_OUT_VARIANT_PRESETS.filter(v => fanState.selectedBestFor.indexOf(v.best_for) >= 0);
+      try {
+        const result = await runSkillFanOut({
+          seedPrompt: seedPrompt,
+          seedName: seedName,
+          seedDescription: seedDescription,
+          variantSpecs: variantSpecs,
+          groupName: fanState.groupName,
+          groupDescription: fanState.groupDescription
+        }, (step, message) => {
+          fanState.log.push({ step: step, message: message });
+          renderFanModal();
+        });
+        toast({ type: 'success', message: 'Group "' + fanState.groupName + '" created with ' + result.memberIds.length + ' variants' });
+        closeModal();
+        // Open the new group editor so user can review/tweak
+        if (result.groupId) {
+          setTimeout(() => { openSkillGroupEditor(result.groupId); }, 250);
+        }
+        renderSkills();
+      } catch (e) {
+        fanState.running = false;
+        fanState.log.push({ step: 'error', message: e.message || String(e) });
+        renderFanModal();
+        toast({ type: 'error', message: 'Fan-out failed: ' + (e.message || String(e)) });
+      }
+    };
+  }
+  renderFanModal();
+}
+// =====================================================================
+// end Build #92
+// =====================================================================
+
 // Build #84 — Modal for importing a skill from a slide image
 function openSkillImportModal() {
   if (!state.adminMode) { toast({ type: 'error', message: 'Admin mode required' }); return; }
-  const state2 = { fileB64: null, fileName: null, skillName: '', skillDesc: '', analyzing: false };
+  const state2 = { fileB64: null, fileName: null, skillName: '', skillDesc: '', analyzing: false, fanOut: false /* Build #92 */ };
   function renderImportModal() {
     const html =
       '<div class="modal-header"><div><div class="h1">\ud83d\udce5 Import skill from slide image</div>' +
@@ -4898,10 +5140,20 @@ function openSkillImportModal() {
           : '<label style="display:flex;align-items:center;justify-content:center;min-height:120px;padding:20px;background:var(--surface-2,var(--surface));border:2px dashed var(--border);border-radius:6px;cursor:pointer;text-align:center"><div><div style="font-size:14px;margin-bottom:6px">\ud83d\udcc1 Click to upload</div><div class="muted body-sm" style="font-size:11px">PNG or JPG of the slide whose style you want to copy</div><input type="file" id="impFileInput" accept="image/*" style="display:none"></div></label>'
         ) +
       '</div>' +
+      // Build #92 — optional fan-out toggle
+      '<div class="field" style="margin-top:14px;padding:10px;background:rgba(13,148,136,0.06);border:1px solid #0d9488;border-radius:6px">' +
+        '<label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer">' +
+          '<input type="checkbox" id="impFanOutCheck"' + (state2.fanOut ? ' checked' : '') + ' style="margin-top:2px">' +
+          '<div style="flex:1">' +
+            '<div style="font-size:13px;font-weight:500">\u2728 Create as a group of 4 variants <span class="subtle" style="font-weight:400;color:var(--text-muted)">(adds ~2-3 min + ~$1.40)</span></div>' +
+            '<div class="muted body-sm" style="font-size:11px;margin-top:4px">Analyzes the slide, then derives 4 stylistic variants (title / content / data / callout) and bundles them into a new skill group ready for the smart picker. Leave unchecked to create a single skill (default).</div>' +
+          '</div>' +
+        '</label>' +
+      '</div>' +
       '<div id="impStatus"></div>' +
       '<div class="modal-footer">' +
         '<button class="btn-ghost" onclick="closeModal()">Cancel</button>' +
-        '<button class="btn-primary" id="impAnalyzeBtn" ' + (state2.analyzing ? 'disabled' : '') + '>' + (state2.analyzing ? '<span class="spinner"></span> Analyzing with Claude vision\u2026' : '\u2728 Analyze and create skill') + '</button>' +
+        '<button class="btn-primary" id="impAnalyzeBtn" ' + (state2.analyzing ? 'disabled' : '') + '>' + (state2.analyzing ? '<span class="spinner"></span> Analyzing with Claude vision\u2026' : (state2.fanOut ? '\u2728 Analyze and create group of 4 variants' : '\u2728 Analyze and create skill')) + '</button>' +
       '</div>';
     openModal(html, { lg: true });
     const nameInp = document.getElementById('impSkillName');
@@ -4923,6 +5175,9 @@ function openSkillImportModal() {
     };
     const clrBtn = document.getElementById('impClearFile');
     if (clrBtn) clrBtn.onclick = () => { state2.fileB64 = null; state2.fileName = null; renderImportModal(); };
+    // Build #92 — wire fan-out checkbox
+    const fanCb = document.getElementById('impFanOutCheck');
+    if (fanCb) fanCb.onchange = e => { state2.fanOut = !!e.target.checked; renderImportModal(); };
     const analyzeBtn = document.getElementById('impAnalyzeBtn');
     if (analyzeBtn) analyzeBtn.onclick = async () => {
       if (!state2.fileB64) { toast({ type: 'error', message: 'Upload a reference image first' }); return; }
@@ -4940,9 +5195,20 @@ function openSkillImportModal() {
           if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-sonnet-4-5', quality: 'vision', cost: result.cost || 0.02, kind: 'skill-import' });
           if (typeof renderCostBadge === 'function') renderCostBadge();
         }
-        toast({ type: 'success', message: 'Analysis complete \u00b7 ' + fmtUsd4(result.cost || 0.02) + ' \u00b7 opening editor' });
-        closeModal();
-        openSkillEditor(null, { name: state2.skillName, description: state2.skillDesc, prompt: result.prompt });
+        // Build #92 — branch on fan-out checkbox
+        if (state2.fanOut) {
+          toast({ type: 'success', message: 'Analysis complete \u00b7 ' + fmtUsd4(result.cost || 0.02) + ' \u00b7 starting fan-out\u2026' });
+          closeModal();
+          openFanOutModal({
+            seedPrompt: result.prompt,
+            seedName: state2.skillName,
+            seedDescription: state2.skillDesc
+          });
+        } else {
+          toast({ type: 'success', message: 'Analysis complete \u00b7 ' + fmtUsd4(result.cost || 0.02) + ' \u00b7 opening editor' });
+          closeModal();
+          openSkillEditor(null, { name: state2.skillName, description: state2.skillDesc, prompt: result.prompt });
+        }
       } catch (e) {
         state2.analyzing = false;
         renderImportModal();
@@ -4987,6 +5253,7 @@ function openSkillEditor(id, initialDraft) {
       <div class="modal-footer">
         <button class="btn-ghost" onclick="closeModal()">Cancel</button>
         ${existing ? '<button class="btn-secondary" id="saveAsNewBtn">Save as new skill</button>' : ''}
+        ${existing && !existing.is_group ? '<button class="btn-secondary" id="fanOutSkillBtn" type="button" title="Derive variants and bundle into a new group">\u2728 Fan out to group</button>' : ''}
         <button class="btn-secondary" id="regenPreviewSkillBtn" type="button" ${existing && state.skillsGenerating.has(existing.id) ? 'disabled' : ''}>${existing && state.skillsGenerating.has(existing.id) ? '<span class="spinner"></span> Generating\u2026' : 'Regenerate preview'}</button><button class="btn-primary" id="saveSkillBtn">Save</button>
       </div>`;
     openModal(html, { lg: true });
@@ -5037,6 +5304,17 @@ function openSkillEditor(id, initialDraft) {
         if (sasn) sasn.disabled = false;
         if (cancelBtn) cancelBtn.disabled = false;
       }
+    };
+    // Build #92 — wire Fan-out button (leaf skills only)
+    const fanBtn = document.getElementById('fanOutSkillBtn');
+    if (fanBtn) fanBtn.onclick = () => {
+      if (!draft.prompt.trim()) { toast({ type: 'error', message: 'Save the skill with a prompt first' }); return; }
+      closeModal();
+      openFanOutModal({
+        seedPrompt: draft.prompt,
+        seedName: draft.name || (existing ? existing.name : 'Skill'),
+        seedDescription: draft.description || ''
+      });
     };
     const sasn = document.getElementById('saveAsNewBtn');
     if (sasn) sasn.onclick = async (ev) => {
@@ -5578,7 +5856,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.17.2</span> (build #91 — inline best_for tagging in group editor)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.18.0</span> (build #92 — fan out one skill into a coherent group of variants)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
