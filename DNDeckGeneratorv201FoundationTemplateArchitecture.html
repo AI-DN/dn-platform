@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.16.2</title>
+<title>DN Deck Generator v2.16.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -595,7 +595,12 @@ tbody tr:hover { background: var(--surface-2); }
 /* ===== end Build #57 CSS ===== */
 
 /* ===== Build #87 — skill group visual distinction ===== */
-.skill-row-group-thumb { width: 60px; height: 60px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; background: var(--border); border-radius: 4px; overflow: hidden; flex-shrink: 0; padding: 0; border: 1px solid var(--border); }
+.skill-row-group-thumb { width: 88px; height: 56px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; background: var(--border); border-radius: var(--radius-sm); overflow: hidden; flex-shrink: 0; padding: 0; border: 1px solid var(--border); }
+/* Build #88 — group preview grid for skill picker cards (Compose Step 0) */
+.skill-card-thumb-group { width: 100%; aspect-ratio: 16/10.5; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 2px; background: var(--border); border-bottom: 1px solid var(--border); overflow: hidden; }
+.skill-card-thumb-group .grp-cell { background: var(--surface-2, var(--surface)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.skill-card-thumb-group .grp-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.skill-card-thumb-group .grp-cell.empty { color: var(--text-tertiary); font-size: 10px; font-family: var(--mono); text-align: center; padding: 4px; }
 .skill-row-group-thumb .grp-cell { background: var(--surface-2, var(--surface)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
 .skill-row-group-thumb .grp-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .skill-row-group-thumb .grp-cell.empty { color: var(--text-tertiary); font-size: 8px; font-style: italic; }
@@ -652,7 +657,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.16.2 #87</div>
+      <div class="brand-version">v2.16.3 #88</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -3326,10 +3331,33 @@ function renderStep0() {
             ${skills.length === 0 ? '<div class="muted body-sm" style="grid-column:1/-1;padding:24px;text-align:center">No skills loaded from Supabase yet.</div>' : skills.map(s => {
               const isSel = state.selectedSkillId === s.id;
               const isFavS = favoriteSkillIds.has(s.id);
+              const isGen = state.skillsGenerating.has(s.id);
+              // Build #88 — group cards render a 2x2 mini-grid + GROUP badge
+              if (s.is_group) {
+                const members = resolveGroupMembers(s);
+                const cells = [];
+                for (let i = 0; i < 4; i++) {
+                  const m = members[i];
+                  if (m && m.preview_image_b64) cells.push('<div class="grp-cell"><img src="data:image/jpeg;base64,' + m.preview_image_b64 + '" alt=""></div>');
+                  else if (m) cells.push('<div class="grp-cell empty">' + escapeHtml((m.name || '?').slice(0, 8)) + '</div>');
+                  else cells.push('<div class="grp-cell empty"></div>');
+                }
+                const memberLabel = members.length + ' skill' + (members.length === 1 ? '' : 's');
+                return '<div class="skill-card ' + (isSel ? 'selected' : '') + '" data-skill-pick="' + s.id + '">' +
+                  '<div class="skill-card-thumb-group">' + cells.join('') + '</div>' +
+                  '<div class="skill-card-body">' +
+                    '<div class="skill-card-head">' +
+                      (isFavS ? '<span class="skill-card-fav" title="Favorite">' + starSvg(true) + '</span>' : '') +
+                      '<span class="skill-card-name">' + escapeHtml(s.name) + '</span>' +
+                      '<span class="skill-group-badge">\ud83c\udf9b\ufe0f Group</span>' +
+                    '</div>' +
+                    '<div class="skill-card-desc">' + (s.description ? escapeHtml(s.description) + ' \u00b7 ' : '') + memberLabel + (members.length > 0 ? ' \u00b7 ' + escapeHtml(members.slice(0, 3).map(m => m.name).join(', ')) : '') + '</div>' +
+                  '</div>' +
+                '</div>';
+              }
               const thumb = s.preview_image_b64
                 ? `<img src="data:image/jpeg;base64,${s.preview_image_b64}" alt="">`
                 : `<div class="placeholder">No preview yet<br><span class="subtle">Edit the skill and save<br>to auto-generate</span></div>`;
-              const isGen = state.skillsGenerating.has(s.id);
               return `<div class="skill-card ${isSel ? 'selected' : ''}" data-skill-pick="${s.id}">
                 <div class="skill-card-thumb ${isGen ? 'is-loading' : ''}">${thumb}${isGen ? '<div class="loading-overlay"><div class="spinner"></div></div>' : ''}</div>
                 <div class="skill-card-body">
@@ -5427,7 +5455,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.16.2</span> (build #87 — group visual distinction + drill-down)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.16.3</span> (build #88 — group thumb sizing + Compose picker)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
