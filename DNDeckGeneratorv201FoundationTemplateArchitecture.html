@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.17.1</title>
+<title>DN Deck Generator v2.17.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -657,7 +657,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.17.1 #90</div>
+      <div class="brand-version">v2.17.2 #91</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1389,6 +1389,18 @@ function currentEffectiveModel() { return parseModelSpec(state.selectedModel || 
 
 // Build #85 — Skill group helpers
 function skillIsGroup(skill) { return !!(skill && skill.is_group); }
+// Build #91 — Update only the best_for field on a skill (used by inline tagging in group editor)
+async function saveSkillBestForTag(skillId, bestForValue) {
+  const sk = skillById(skillId);
+  if (sk) sk.best_for = bestForValue || null;
+  const sb = getSupabaseClient();
+  if (!sb) return;
+  const { error } = await sb.from('deck_templates').update({ best_for: bestForValue || null, updated_at: new Date().toISOString() }).eq('id', skillId);
+  if (error) {
+    console.warn('saveSkillBestForTag failed:', error);
+    toast({ type: 'error', message: 'Failed to save tag: ' + (error.message || String(error)).slice(0, 80) });
+  }
+}
 function resolveGroupMembers(group) {
   if (!skillIsGroup(group)) return [];
   const ids = Array.isArray(group.member_skill_ids) ? group.member_skill_ids : [];
@@ -4689,13 +4701,22 @@ function openSkillGroupEditor(id) {
   };
   function renderEditor() {
     const leafSkills = (window.allSkills || []).filter(s => !skillIsGroup(s)).filter(s => s.is_active !== false);
+    // Build #91 — inline best_for dropdown per tile
+    const BEST_FOR_CANONICAL = ['title slides', 'agenda slides', 'content slides', 'data slides', 'diagram slides', 'callout slides', 'comparison slides', 'case study slides', 'closing slides'];
     const memberTiles = leafSkills.map(s => {
       const selected = draft.member_skill_ids.indexOf(s.id) >= 0;
+      const bfCurrent = (s.best_for || '').trim();
+      const isOther = bfCurrent && BEST_FOR_CANONICAL.indexOf(bfCurrent) < 0;
+      const bfOpts = ['<option value="">\u2014 untagged \u2014</option>']
+        .concat(BEST_FOR_CANONICAL.map(c => '<option value="' + c + '"' + (bfCurrent === c ? ' selected' : '') + '>' + c + '</option>'))
+        .concat(['<option value="__other__"' + (isOther ? ' selected' : '') + '>Other\u2026</option>'])
+        .join('');
       return '<label class="branding-picker-tile' + (selected ? ' is-selected' : '') + '" style="cursor:pointer;padding:8px;position:relative">' +
         '<input type="checkbox" data-member-id="' + s.id + '"' + (selected ? ' checked' : '') + ' style="position:absolute;top:6px;right:6px">' +
         (s.preview_image_b64 ? '<img src="data:image/jpeg;base64,' + s.preview_image_b64 + '" alt="" style="width:100%;height:60px;object-fit:cover;border-radius:4px">' : '<div style="width:100%;height:60px;background:var(--surface-2,var(--surface));border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:10px">no preview</div>') +
         '<div class="tile-label" style="margin-top:4px">' + escapeHtml(s.name) + '</div>' +
-        (s.best_for ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">best for: ' + escapeHtml(s.best_for) + '</div>' : '') +
+        '<select class="select" data-bf-tag="' + s.id + '" onclick="event.stopPropagation()" style="font-size:10px;padding:2px 4px;margin-top:4px;width:100%">' + bfOpts + '</select>' +
+        (isOther ? '<div style="font-size:9px;color:var(--text-muted);margin-top:2px">custom: ' + escapeHtml(bfCurrent) + '</div>' : '') +
       '</label>';
     }).join('');
     const html = '<div class="modal-header"><div><div class="h1">' + (existing ? 'Edit skill group' : '\ud83c\udf9b\ufe0f New skill group') + '</div>' +
@@ -4724,6 +4745,26 @@ function openSkillGroupEditor(id) {
         } else {
           draft.member_skill_ids = draft.member_skill_ids.filter(x => x !== mid);
         }
+        renderEditor();
+      };
+    });
+    // Build #91 — inline best_for dropdown handlers
+    document.querySelectorAll('select[data-bf-tag]').forEach(sel => {
+      sel.onclick = e => e.stopPropagation();
+      sel.onchange = async e => {
+        const sid = sel.getAttribute('data-bf-tag');
+        let value = e.target.value;
+        if (value === '__other__') {
+          const custom = window.prompt('Custom best-for label:', '');
+          if (custom && custom.trim()) {
+            value = custom.trim();
+          } else {
+            // Cancelled or empty — revert to untagged
+            sel.value = '';
+            value = '';
+          }
+        }
+        await saveSkillBestForTag(sid, value);
         renderEditor();
       };
     });
@@ -5537,7 +5578,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.17.1</span> (build #90 — best-for dropdown)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.17.2</span> (build #91 — inline best_for tagging in group editor)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
