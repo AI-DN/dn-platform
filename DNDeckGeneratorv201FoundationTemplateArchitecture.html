@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.23.2</title>
+<title>DN Deck Generator v2.23.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.23.2 #106</div>
+      <div class="brand-version">v2.23.3 #107</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1980,7 +1980,16 @@ async function regenerateOne(idx, newPrompt, overrideSpec) {
     // Build #106 \u2014 hybrid composition auto-routing DISABLED (was: persons[] -> hybrid)
     // Build #80 — if slide has a reference image, use image-to-image regen (matches ChatGPT/Gemini direct)
     const useRef = !useGeminiImg2Img && !!(slide.referenceImageB64);
-    const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+    // Build #107 \u2014 resolve skill via effectiveSkillIdForSlide so per-slide skill override (assignedSkillId) is respected
+    let skill = null;
+    try {
+      const effId = await effectiveSkillIdForSlide(slide, idx);
+      if (effId) skill = skillById(effId);
+    } catch (e) { console.warn('effectiveSkillIdForSlide failed in regenerateOne:', e); }
+    if (!skill && state.selectedSkillId) {
+      const baseSkill = skillById(state.selectedSkillId);
+      if (baseSkill && !skillIsGroup(baseSkill)) skill = baseSkill;
+    }
     const promptToUse = newPrompt || composeSkillPrompt(skill, slide);
     const result = useGeminiImg2Img
       ? await generateSlideImageWithGemini(slide, promptToUse, slide.referenceImageB64, activeSpec)
@@ -4689,6 +4698,22 @@ function renderImgCard(s, i) {
                 return '<option value="' + id + '"' + sel + '>' + escapeHtml(lbl) + '</option>';
               }).join('');
               const modelPicker = candidates.length > 0 ? ('<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Regenerate with model</label><select class="select" data-act="regenModel" style="font-size:12px;width:100%">' + opts + '</select><div class="field-hint" style="margin-top:4px;font-size:10px">Per-slide override. Bumping to medium/high helps when low quality misses reservations.</div></div>') : '';
+              // Build #107 — per-slide skill override dropdown
+              const skillCandidates = (window.allSkills || allSkills || []).filter(sk => sk && sk.is_skill && sk.is_active && !skillIsGroup(sk)).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
+              const overrideSkillId = s.assignedSkillId || '';
+              const deckSkillLabel = skill ? skill.name : '(none selected at deck level)';
+              const skillOpts = ['<option value="">↵ Use deck skill (' + escapeHtml(deckSkillLabel) + ')</option>']
+                .concat(skillCandidates.map(sk => '<option value="' + sk.id + '"' + (overrideSkillId === sk.id ? ' selected' : '') + '>' + escapeHtml(sk.name) + (sk.best_for ? ' · ' + escapeHtml(sk.best_for) : '') + '</option>'))
+                .join('');
+              const skillPicker = skillCandidates.length > 0 ? ('<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Regenerate with skill</label><select class="select" data-act="regenSkill" style="font-size:12px;width:100%">' + skillOpts + '</select><div class="field-hint" style="margin-top:4px;font-size:10px">Per-slide skill override. The skill controls the visual style; changing it re-seeds the prompt below with that skill\'s visual language.</div></div>') : '';
+              // Effective skill for prompt seeding: per-slide override > deck skill
+              const effectiveSkillForSeed = (function() {
+                if (s.assignedSkillId) {
+                  const a = skillById(s.assignedSkillId);
+                  if (a && !skillIsGroup(a)) return a;
+                }
+                return skill;
+              })();
               // Build #80 — Reference image (image-to-image regeneration)
               const refSet = !!(s.referenceImageB64);
               const refSection = '<div style="margin-top:12px;padding:10px;background:var(--surface-2,var(--surface));border:1px dashed ' + (refSet ? '#0d9488' : 'var(--border)') + ';border-radius:6px">' +
@@ -4701,11 +4726,13 @@ function renderImgCard(s, i) {
                   : '<div class="muted body-sm" style="font-size:11px;margin-bottom:6px">Upload a reference image (or use the current slide) and the next Regenerate will use it as visual inspiration alongside your prompt.</div><div style="display:flex;gap:6px;flex-wrap:wrap"><label class="btn-secondary" style="font-size:11px;padding:4px 10px;cursor:pointer"><input type="file" data-act="refUpload" accept="image/*" style="display:none">\ud83d\udcc1 Upload image</label>' + (s.imageB64 ? '<button class="btn-ghost" data-act="refUseCurrent" style="font-size:11px;padding:4px 10px">\ud83d\udd04 Use current slide</button>' : '') + '</div>') +
               '</div>';
               // Build #76 — when slide has pending text/block changes, seed textarea with FRESH composeSkillPrompt
-              // so the AI gets the up-to-date reservations. Otherwise lastPrompt (preserves manual edits).
-              const stale = !!(s.blocksChangedSinceGeneration || s.textChangedSinceGeneration);
-              const seedPrompt = stale ? composeSkillPrompt(skill, s) : (s.lastPrompt || composeSkillPrompt(skill, s));
-              const staleNotice = stale ? '<div class="refine-stale-notice" style="margin:6px 0 4px;padding:6px 10px;background:rgba(186,117,23,0.10);border:1px solid #BA7517;border-radius:4px;font-size:11px;color:#412402">\u2728 Prompt refreshed to include your recent layout/text changes. Manual prompt edits from the last regeneration were dropped \u2014 edit again here if needed.</div>' : '';
-              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label>' + staleNotice + '<textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(seedPrompt) + '</textarea>' + modelPicker + refSection + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : (refSet ? 'Regenerate (image-to-image)' : 'Regenerate')) + '</button><button class="btn-secondary" data-act="bakeLayout" title="Rebuild the prompt above with current layout blocks (drops manual edits)">\u270F\uFE0F Bake current layout into prompt</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
+              // Build #107 \u2014 seed uses effectiveSkillForSeed (respects per-slide skill override)
+              const stale = !!(s.blocksChangedSinceGeneration || s.textChangedSinceGeneration || s.skillOverrideJustChanged);
+              const seedPrompt = stale ? composeSkillPrompt(effectiveSkillForSeed, s) : (s.lastPrompt || composeSkillPrompt(effectiveSkillForSeed, s));
+              // Clear the just-changed flag after consuming it
+              if (s.skillOverrideJustChanged) s.skillOverrideJustChanged = false;
+              const staleNotice = stale ? '<div class="refine-stale-notice" style="margin:6px 0 4px;padding:6px 10px;background:rgba(186,117,23,0.10);border:1px solid #BA7517;border-radius:4px;font-size:11px;color:#412402">\u2728 Prompt refreshed to include your recent layout/text/skill changes. Manual prompt edits from the last regeneration were dropped \u2014 edit again here if needed.</div>' : '';
+              return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Edit prompt</label>' + staleNotice + '<textarea class="textarea" data-act="refinePrompt" rows="8" style="font-size:11px">' + escapeHtml(seedPrompt) + '</textarea>' + skillPicker + modelPicker + refSection + '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap"><button class="btn-primary" data-act="regen" ' + (s.status === 'generating' ? 'disabled' : '') + '>' + (s.status === 'generating' ? '<span class="spinner"></span> Regenerating\u2026' : (refSet ? 'Regenerate (image-to-image)' : 'Regenerate')) + '</button><button class="btn-secondary" data-act="bakeLayout" title="Rebuild the prompt above with current layout blocks (drops manual edits)">\u270F\uFE0F Bake current layout into prompt</button><button class="btn-ghost" data-act="resetPrompt">Reset</button></div>' + renderLayoutBlocksSection(s, i) + '</div>';
             })() : ''}
           </div>
           <div class="refine-section">
@@ -4726,6 +4753,16 @@ function bindImgCard(i) {
   const enlarge = card.querySelector('[data-act="enlarge"]'); if (enlarge) enlarge.onclick = () => openLightbox(i);
   const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => regenerateOne(i);
   const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep5Slides(); };
+  // Build #107 \u2014 per-slide skill override dropdown
+  const skillSel = card.querySelector('select[data-act="regenSkill"]');
+  if (skillSel) skillSel.onchange = e => {
+    const val = e.target.value;
+    state.slides[i].assignedSkillId = val || null;
+    // Mark prompt as stale so the textarea re-seeds with the new skill\'s composeSkillPrompt
+    state.slides[i].skillOverrideJustChanged = true;
+    state.slides[i].lastPrompt = null; // drop the old prompt so reseed kicks in
+    renderStep5Slides();
+  };
   // Build #75 — per-slide model override
   const mdlSel = card.querySelector('[data-act="regenModel"]');
   if (mdlSel) mdlSel.onchange = e => { state.regenModelOverride[i] = e.target.value; };
@@ -6755,7 +6792,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.2</span> (build #106 — disable hybrid auto-routing; slides with persons go through single-pass image-to-image)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.3</span> (build #107 — per-slide skill override dropdown in image-to-image refine panel)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
