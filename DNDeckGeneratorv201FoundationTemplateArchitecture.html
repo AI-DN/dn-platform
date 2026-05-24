@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.16.3</title>
+<title>DN Deck Generator v2.17.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -657,7 +657,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.16.3 #88</div>
+      <div class="brand-version">v2.17.1 #90</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1400,15 +1400,33 @@ async function pickMemberForSlide(group, slide, slideIdx) {
   if (members.length === 1) return members[0].id;
   const ak = (state.apiKeys.anthropic || '').trim();
   if (!ak) return members[slideIdx % members.length].id;
-  const memberDescs = members.map((m, i) =>
-    i + ': "' + m.name + '"' + (m.best_for ? ' (best for: ' + m.best_for + ')' : '') + (m.description ? ' \u2014 ' + m.description : '')
-  ).join('\n');
-  const sys = 'You match presentation slides to the best-fitting visual style from a small set of options. Return ONLY a single digit integer \u2014 the 0-based index of the best match. No explanation.';
+  // Build #89 — richer fingerprint per member: name + best_for + description + style snippet
+  const memberDescs = members.map((m, i) => {
+    const styleSnippet = (m.prompt || '').slice(0, 320).replace(/\s+/g, ' ').trim();
+    return '[' + i + '] "' + m.name + '"' +
+      (m.best_for ? ' \u2014 BEST FOR: ' + m.best_for : '') +
+      (m.description ? ' \u2014 Description: ' + m.description : '') +
+      (styleSnippet ? '\n    Style fingerprint: ' + styleSnippet + (m.prompt && m.prompt.length > 320 ? '...' : '') : '');
+  }).join('\n\n');
+  // Build #89 — list of already-picked members for diversification
+  const previouslyPicked = (state.slides || []).slice(0, slideIdx)
+    .map(s => s.pickedMemberSkillId)
+    .filter(Boolean);
+  const previouslyPickedNames = previouslyPicked.map(id => {
+    const m = skillById(id);
+    return m ? m.name : null;
+  }).filter(Boolean);
+  // Count usage
+  const usage = {};
+  previouslyPicked.forEach(id => { usage[id] = (usage[id] || 0) + 1; });
+  const usageSummary = members.map((m, i) => i + ': ' + m.name + ' used ' + (usage[m.id] || 0) + ' times').join('\n');
+  const sys = 'You match presentation slides to the best-fitting visual style from a small set of options. You aim for variety \u2014 prefer styles that have been used less, UNLESS one is dramatically more appropriate for this specific slide content. Return ONLY a single digit integer \u2014 the 0-based index of the best match. No explanation.';
   const userPrompt = 'Slide position: ' + (slideIdx + 1) + ' of ' + state.slides.length +
     '\nSlide title: ' + (slide.title || '') +
     '\nSlide body:\n' + (slide.body || '').slice(0, 500) +
     '\n\nAvailable styles:\n' + memberDescs +
-    '\n\nReturn the single digit index of the best-fitting style:';
+    '\n\nUsage so far (count of how many slides have already used each style):\n' + usageSummary +
+    '\n\nRules:\n- Prefer underused styles to give the deck visual variety\n- Only repeat a style if its style fingerprint is a noticeably better match for this slide than the alternatives\n- Across the whole deck, aim to use ALL styles roughly evenly when slide content allows\n\nReturn the single digit index of the best-fitting style:';
   try {
     const resp = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -3764,6 +3782,23 @@ function bindSlideEditCard(i) {
     b.onclick = () => exitDrawMode();
   });
   // Build #71 — canvas mouse events for drawing
+  // Build #89 — per-slide style override (group members only)
+  const styleSel = card.querySelector('[data-act="styleOverride"]');
+  if (styleSel) styleSel.onchange = e => {
+    const val = e.target.value;
+    if (val) {
+      state.slides[i].assignedSkillId = val;
+      // Clear any cached picker result so future regenerations honour the manual choice
+      state.slides[i].pickedMemberSkillId = val;
+      state.slides[i].blocksChangedSinceGeneration = true; // flag as stale so user knows to regen
+      toast({ type: 'info', message: 'Style set to "' + (skillById(val) || {}).name + '" \u00b7 click Refine \u2192 Regenerate to apply' });
+    } else {
+      state.slides[i].assignedSkillId = null;
+      state.slides[i].pickedMemberSkillId = null;
+      toast({ type: 'info', message: 'Style reset to auto-pick \u00b7 next regenerate will let Claude choose' });
+    }
+    renderStep5Slides();
+  };
   card.querySelectorAll('[data-block-canvas-slide-idx]').forEach(canvasEl => {
     const slideIdxAttr = parseInt(canvasEl.getAttribute('data-block-canvas-slide-idx'));
     if (state.layoutDrawMode && state.layoutDrawMode.active && state.layoutDrawMode.slideIdx === slideIdxAttr) {
@@ -4290,6 +4325,21 @@ function renderImgCard(s, i) {
         ${s.status === 'done' ? '<span class="badge badge-success">✓</span>' : ''}
         ${s.status === 'error' ? '<span class="badge badge-danger">Error</span>' : ''}
         ${(s.status === 'done' && (s.textChangedSinceGeneration || s.blocksChangedSinceGeneration)) ? (function() { const reasons = []; if (s.textChangedSinceGeneration) reasons.push('text edited'); if (s.blocksChangedSinceGeneration) reasons.push('layout changed'); return '<span class="badge badge-warning" title="Slide changed since image was generated. Click Refine → Regenerate to refresh.">⚠ ' + reasons.join(' + ') + '</span>'; })() : ''}
+        ${(function() {
+          // Build #89 — show which member skill was picked when the deck-level skill is a group
+          const baseSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
+          if (!baseSkill || !skillIsGroup(baseSkill)) return '';
+          const members = resolveGroupMembers(baseSkill);
+          if (members.length === 0) return '';
+          const activeId = s.assignedSkillId || s.pickedMemberSkillId;
+          const activeMember = activeId ? skillById(activeId) : null;
+          const activeName = activeMember ? activeMember.name : '(picked at generation)';
+          const opts = members.map(m => '<option value="' + m.id + '"' + (activeId === m.id ? ' selected' : '') + '>' + escapeHtml(m.name) + '</option>').join('');
+          return '<select class="select" data-act="styleOverride" data-slide-idx="' + i + '" title="Manually pick which group member styles this slide. Save then Regenerate to apply." style="font-size:11px;padding:2px 6px;max-width:200px;margin-left:auto">' +
+            '<option value="">\u{1F39B}\u{FE0F} Auto-pick</option>' +
+            opts +
+          '</select>';
+        })()}
       </div>
       <div class="slide-img-body">
         <div class="slide-img-thumb ${s.status === 'generating' ? 'loading' : ''}" data-act="open">${thumbContent}${(s.layoutBlocks && s.layoutBlocks.length > 0) ? `<div class="slide-thumb-blocks-overlay">${s.layoutBlocks.map((b, idx) => { const letter = String.fromCharCode(65 + idx); const cls = b.assetId ? 'has-asset' : 'is-empty'; return '<div class="thumb-block ' + cls + '" style="left:' + b.x + '%;top:' + b.y + '%;width:' + b.w + '%;height:' + b.h + '%" title="Block ' + letter + (b.assetId ? '' : ' (empty / reserved)') + '"><span class="thumb-block-letter">' + letter + '</span></div>'; }).join('')}</div>` : ''}</div>
@@ -4682,6 +4732,12 @@ function openSkillGroupEditor(id) {
       if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
       if (draft.member_skill_ids.length < 2) { toast({ type: 'error', message: 'Pick at least 2 member skills' }); return; }
       if (draft.member_skill_ids.length > 8) { toast({ type: 'error', message: 'Max 8 members (2-4 recommended)' }); return; }
+      // Build #89 — warn if members are untagged (picker will struggle)
+      const untagged = draft.member_skill_ids.filter(id => { const sk = skillById(id); return sk && !((sk.best_for || '').trim()); });
+      if (untagged.length > 0) {
+        const proceed = window.confirm(untagged.length + ' member skill' + (untagged.length === 1 ? '' : 's') + ' lack a "best for" tag. The picker will struggle to differentiate them. Save anyway?');
+        if (!proceed) return;
+      }
       // Build #86 — disable + spinner while saving
       const btn = ev && ev.currentTarget;
       const cancelBtn = document.querySelector('.modal-footer .btn-ghost');
@@ -4872,7 +4928,19 @@ function openSkillEditor(id, initialDraft) {
       ${existing ? `<div class="skill-edit-preview"><div class="sep-thumb ${state.skillsGenerating.has(existing.id) ? 'is-loading' : ''}">${existing.preview_image_b64 ? `<img src="data:image/jpeg;base64,${existing.preview_image_b64}" alt="">` : '<span class="ph">No preview generated yet.<br>Click \u201cRegenerate preview\u201d below.</span>'}${state.skillsGenerating.has(existing.id) ? '<div class="loading-overlay"><div class="spinner"></div><div class="lbl">Generating preview\u2026</div></div>' : ''}</div><div class="sep-info"><div class="sep-title">${existing.preview_image_b64 ? 'Current preview' : 'No preview yet'}</div><div class="sep-meta">${existing.preview_image_b64 ? 'Click <strong>Regenerate preview</strong> to make a fresh sample slide with the current prompt. Cost: ~$0.02\u2013$0.30 depending on your default model.' : 'Saving the skill will trigger auto-preview. Or click <strong>Regenerate preview</strong> below if it already exists but didn\'t generate.'}</div></div></div>` : ''}
       <div class="field"><label class="field-label">Name <span class="subtle">required</span></label><input class="input" id="skName" value="${escapeHtml(draft.name)}" placeholder="e.g. DN Telco Sales Pitch — Dark"></div>
       <div class="field"><label class="field-label">Description</label><input class="input" id="skDesc" value="${escapeHtml(draft.description || '')}" placeholder="One-line summary shown in dropdowns"></div>
-      <div class="field"><label class="field-label">Best for <span class="subtle">optional tag — helps the group picker route slides to this skill</span></label><input class="input" id="skBestFor" value="${escapeHtml(draft.best_for || '')}" placeholder="e.g. title/hero slides, data-heavy slides, callout/quote slides"></div>
+      <div class="field"><label class="field-label">Best for <span class="subtle">optional tag — helps the group picker route slides to this skill</span></label>
+        ${(function() {
+          const canonical = ['title slides', 'agenda slides', 'content slides', 'data slides', 'diagram slides', 'callout slides', 'comparison slides', 'case study slides', 'closing slides'];
+          const current = (draft.best_for || '').trim();
+          const isOther = current && canonical.indexOf(current) < 0;
+          const opts = ['<option value="">— none —</option>']
+            .concat(canonical.map(c => '<option value="' + c + '"' + (current === c ? ' selected' : '') + '>' + c + '</option>'))
+            .concat(['<option value="__other__"' + (isOther ? ' selected' : '') + '>Other (free text)…</option>'])
+            .join('');
+          return '<select class="select" id="skBestForSel" style="width:100%">' + opts + '</select>' +
+            '<input class="input" id="skBestForOther" value="' + escapeHtml(isOther ? current : '') + '" placeholder="Custom best-for label…" style="margin-top:6px;' + (isOther ? '' : 'display:none') + '">';
+        })()}
+      </div>
       <div class="field"><label class="field-label">Skill prompt <span class="subtle" id="skPromptCount">${promptLen.toLocaleString()} chars</span></label><textarea class="textarea" id="skPrompt" rows="18" placeholder="Paste the full visual prompt sent to the image model.">${escapeHtml(draft.prompt || '')}</textarea></div>
       <div class="field"><label class="field-label">Change note <span class="subtle">optional</span></label><input class="input" id="skChange" placeholder="What changed in this version?"></div>
       <div class="modal-footer">
@@ -4883,8 +4951,22 @@ function openSkillEditor(id, initialDraft) {
     openModal(html, { lg: true });
     document.getElementById('skName').oninput = e => { draft.name = e.target.value; };
     document.getElementById('skDesc').oninput = e => { draft.description = e.target.value; };
-    const bfInp = document.getElementById('skBestFor');
-    if (bfInp) bfInp.oninput = e => { draft.best_for = e.target.value; };
+    // Build #90 — best_for select + Other-text fallback
+    const bfSel = document.getElementById('skBestForSel');
+    const bfOther = document.getElementById('skBestForOther');
+    if (bfSel) bfSel.onchange = e => {
+      const v = e.target.value;
+      if (v === '__other__') {
+        if (bfOther) { bfOther.style.display = ''; bfOther.focus(); }
+        draft.best_for = bfOther && bfOther.value ? bfOther.value : '';
+      } else {
+        if (bfOther) { bfOther.style.display = 'none'; bfOther.value = ''; }
+        draft.best_for = v;
+      }
+    };
+    if (bfOther) bfOther.oninput = e => {
+      if (bfSel && bfSel.value === '__other__') draft.best_for = e.target.value;
+    };
     document.getElementById('skPrompt').oninput = e => { draft.prompt = e.target.value; document.getElementById('skPromptCount').textContent = e.target.value.length.toLocaleString() + ' chars'; };
     const rpBtn = document.getElementById('regenPreviewSkillBtn');
     if (rpBtn) rpBtn.onclick = async () => {
@@ -5455,7 +5537,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.16.3</span> (build #88 — group thumb sizing + Compose picker)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.17.1</span> (build #90 — best-for dropdown)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
