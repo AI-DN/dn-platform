@@ -667,7 +667,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.1 #2</span>
+  <span class="topbar-version" title="DN_Intent build">v1.1.1 #3</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1205,7 +1205,7 @@ async function loadPlatformContext() {
     // v1.1 #2 — fetch requests + the current user's app_access grants in parallel.
     // RLS gives admins all requests; we apply an explicit per-user access filter at
     // the app layer so admins' DN_Intent view matches what a regular granted user sees.
-    const requestsUrl = url + '/rest/v1/requests?select=id,creator_user_id,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50';
+    const requestsUrl = url + '/rest/v1/requests?select=id,creator_user_id,creator_access_revoked,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50';
     const grantsUrl = myId
       ? url + '/rest/v1/app_access?select=request_id&user_id=eq.' + encodeURIComponent(myId)
       : null;
@@ -1224,15 +1224,15 @@ async function loadPlatformContext() {
       (grantRows || []).forEach(function(g) { grantedIds.add(g.request_id); });
     }
 
-    // Helper: does the current user have access to this request?
-    // Access = creator (via creator_user_id) OR explicit grant in app_access.
-    // NB: legacy rows without creator_user_id fall back to submitted_by name match.
+    // v1.1.1 #3 — strict access: creator (unless revoked by admin) OR explicit grant.
+    // No legacy submitted_by fallback here \u2014 that was over-permissive and let
+    // pre-auth row submitters see apps they were never explicitly granted.
     const myName = (currentUser || '').toLowerCase();
     function hasAccess(req) {
-      if (myId && req.creator_user_id === myId) return true;
+      // Explicit grant via app_access
       if (grantedIds.has(req.id)) return true;
-      // Legacy fallback: pre-auth rows have submitted_by name but no creator_user_id
-      if (!req.creator_user_id && myName && (req.submitted_by || '').toLowerCase() === myName) return true;
+      // Creator with implicit access, unless admin has revoked it
+      if (myId && req.creator_user_id === myId && !req.creator_access_revoked) return true;
       return false;
     }
 
@@ -1257,11 +1257,11 @@ async function loadPlatformContext() {
 
     platformContext.loadedAt = new Date().toISOString();
 
-    console.log('Platform context loaded:',
+    console.log('Platform context loaded (v1.1.1 #3):',
       platformContext.myRequests.length + ' mine, ' +
-      platformContext.shipped.length + ' shipped (accessible), ' +
-      platformContext.active.length + ' active (accessible), ' +
-      grantedIds.size + ' explicit grant(s)');
+      platformContext.shipped.length + ' shipped (accessible to you), ' +
+      platformContext.active.length + ' active (accessible to you), ' +
+      grantedIds.size + ' explicit grant(s) \u00b7 access = explicit grant OR creator (unless admin revoked)');
     renderDashboard();
   } catch (e) {
     console.warn('Context load error:', e);

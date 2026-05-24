@@ -1036,7 +1036,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.0.2 #3</span>
+  <span class="topbar-version" title="DN_Admin build">v1.0.3 #4</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -2180,9 +2180,10 @@ async function loadAppAccess() {
     appAccessProfilesCache = profiles || [];
 
     // 2) shipped apps only (shipped_url IS NOT NULL)
+    // v1.0.3 #4 — include creator_access_revoked so we can render revoke/restore on creator row
     const { data: apps, error: aErr } = await supaClient
       .from('requests')
-      .select('id,title,creator_user_id,submitted_by,shipped_url,shipped_filename,shipped_at,status,created_at')
+      .select('id,title,creator_user_id,creator_access_revoked,submitted_by,shipped_url,shipped_filename,shipped_at,status,created_at')
       .not('shipped_url', 'is', null)
       .order('shipped_at', { ascending: false });
     if (aErr) throw aErr;
@@ -2265,15 +2266,19 @@ function renderAppAccessList() {
         return '<option value="' + p.id + '">' + escapeAppAccessHtml(label) + '</option>';
       }).join('');
 
-    // Implicit-creator row + explicit grants
+    // v1.0.3 #4 — creator row now has revoke/restore action instead of just "implicit" badge
+    const creatorRevoked = !!a.creator_access_revoked;
     const creatorRow = creator ?
       '<div class="access-row">' +
         '<div class="access-row-info">' +
           '<span class="access-row-name">' + escapeAppAccessHtml(creatorName) + '</span>' +
           (creatorEmail ? '<span class="access-row-email">' + escapeAppAccessHtml(creatorEmail) + '</span>' : '') +
-          '<span class="access-pill access-pill-creator">creator</span>' +
+          '<span class="access-pill access-pill-creator">creator' + (creatorRevoked ? ' \u00b7 revoked' : '') + '</span>' +
         '</div>' +
-        '<span class="access-empty-note" style="font-style:normal">implicit</span>' +
+        (creatorRevoked
+          ? '<button class="app-btn primary" onclick="toggleCreatorAccess(\'' + a.id + '\', false)" title="Restore creator\'s implicit access">Restore</button>'
+          : '<button class="app-btn danger" onclick="toggleCreatorAccess(\'' + a.id + '\', true)" title="Revoke creator\'s implicit access \u2014 they will no longer see this app in DN_Intent unless explicitly granted">Revoke creator access</button>'
+        ) +
       '</div>' : '';
 
     const grantRows = a.access.length
@@ -2371,6 +2376,27 @@ async function revokeAppAccess(appId, userId) {
     alert('Revoke failed: ' + (e.message || e));
   }
 }
+
+// v1.0.3 #4 — admin can revoke (or restore) the creator's implicit access to their own app
+async function toggleCreatorAccess(appId, revoke) {
+  const verb = revoke ? 'revoke' : 'restore';
+  const promptMsg = revoke
+    ? 'Revoke the creator\'s implicit access? After this, the creator will only see this app in DN_Intent if you also explicitly grant them access via the dropdown above.'
+    : 'Restore the creator\'s implicit access? They\'ll be able to see this app in DN_Intent again automatically.';
+  if (!confirm(promptMsg)) return;
+  try {
+    const { error } = await supaClient
+      .from('requests')
+      .update({ creator_access_revoked: !!revoke })
+      .eq('id', appId);
+    if (error) throw error;
+    await loadAppAccess();
+  } catch (e) {
+    console.error('toggleCreatorAccess failed:', e);
+    alert(verb.charAt(0).toUpperCase() + verb.slice(1) + ' failed: ' + (e.message || e));
+  }
+}
+
 
 function escapeAppAccessHtml(s) {
   return String(s == null ? '' : s)
