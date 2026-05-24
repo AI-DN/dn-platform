@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.18.0</title>
+<title>DN Deck Generator v2.18.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -657,7 +657,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.18.0 #92</div>
+      <div class="brand-version">v2.18.1 #93</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -5254,6 +5254,7 @@ function openSkillEditor(id, initialDraft) {
         <button class="btn-ghost" onclick="closeModal()">Cancel</button>
         ${existing ? '<button class="btn-secondary" id="saveAsNewBtn">Save as new skill</button>' : ''}
         ${existing && !existing.is_group ? '<button class="btn-secondary" id="fanOutSkillBtn" type="button" title="Derive variants and bundle into a new group">\u2728 Fan out to group</button>' : ''}
+        ${existing && !existing.is_group && existing.preview_image_b64 ? '<button class="btn-secondary" id="rederivePromptBtn" type="button" title="Use Claude vision to re-derive the prompt from the preview image — useful if the prompt got lost">\u{1F50D} Re-derive prompt from preview</button>' : ''}
         <button class="btn-secondary" id="regenPreviewSkillBtn" type="button" ${existing && state.skillsGenerating.has(existing.id) ? 'disabled' : ''}>${existing && state.skillsGenerating.has(existing.id) ? '<span class="spinner"></span> Generating\u2026' : 'Regenerate preview'}</button><button class="btn-primary" id="saveSkillBtn">Save</button>
       </div>`;
     openModal(html, { lg: true });
@@ -5315,6 +5316,40 @@ function openSkillEditor(id, initialDraft) {
         seedName: draft.name || (existing ? existing.name : 'Skill'),
         seedDescription: draft.description || ''
       });
+    };
+    // Build #93 — wire Re-derive prompt from preview button
+    const rederiveBtn = document.getElementById('rederivePromptBtn');
+    if (rederiveBtn) rederiveBtn.onclick = async (ev) => {
+      if (!existing || !existing.preview_image_b64) { toast({ type: 'error', message: 'No preview image to derive from' }); return; }
+      if (!(state.apiKeys.anthropic || '').trim()) { toast({ type: 'error', message: 'Anthropic key required (Settings)' }); return; }
+      const currentLen = (draft.prompt || '').trim().length;
+      if (currentLen > 0) {
+        const proceed = window.confirm('This will REPLACE the current prompt (' + currentLen.toLocaleString() + ' chars) with a fresh derivation from the preview image. The current prompt will be lost unless you Cancel before saving. Continue?');
+        if (!proceed) return;
+      }
+      const btn = ev && ev.currentTarget;
+      const origText = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Analyzing preview\u2026'; }
+      try {
+        const result = await analyzeSlideForSkillPrompt(existing.preview_image_b64, draft.name || existing.name || 'Skill');
+        // Track cost
+        if (typeof deckCost !== 'undefined') {
+          deckCost.polish += (result.cost || 0.02);
+          if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-sonnet-4-5', quality: 'vision', cost: result.cost || 0.02, kind: 'prompt-rederive' });
+          if (typeof renderCostBadge === 'function') renderCostBadge();
+        }
+        // Update draft + textarea in place
+        draft.prompt = result.prompt;
+        const promptEl = document.getElementById('skPrompt');
+        const countEl = document.getElementById('skPromptCount');
+        if (promptEl) promptEl.value = result.prompt;
+        if (countEl) countEl.textContent = result.prompt.length.toLocaleString() + ' chars';
+        toast({ type: 'success', message: 'Prompt re-derived \u00b7 ' + result.prompt.length.toLocaleString() + ' chars \u00b7 ' + fmtUsd4(result.cost || 0.02) + ' \u00b7 review and click Save to persist' });
+      } catch (e) {
+        toast({ type: 'error', message: 'Re-derive failed: ' + (e.message || String(e)) });
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+      }
     };
     const sasn = document.getElementById('saveAsNewBtn');
     if (sasn) sasn.onclick = async (ev) => {
@@ -5856,7 +5891,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.18.0</span> (build #92 — fan out one skill into a coherent group of variants)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.18.1</span> (build #93 — re-derive prompt from preview button)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
