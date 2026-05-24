@@ -533,6 +533,97 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   padding-top: 60px; padding-right: 24px;
 }
 .settings-overlay.open { display: flex; }
+
+/* T5 — User management overlay */
+.users-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; z-index: 210;
+  align-items: center; justify-content: center; padding: 32px;
+  backdrop-filter: blur(4px);
+}
+.users-overlay.open { display: flex; }
+.users-panel {
+  width: 100%; max-width: 920px; max-height: calc(100vh - 64px);
+  background: var(--navy2, #0c1024); border: 1px solid var(--border2, rgba(255,255,255,0.1));
+  border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.users-panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+.users-panel-title {
+  font-family: 'Syne', system-ui, sans-serif; font-weight: 700;
+  font-size: 18px; color: var(--text, #e8eaf0); margin-bottom: 4px;
+}
+.users-panel-sub { font-size: 12px; color: var(--text3, #7a8099); }
+.users-panel-close {
+  background: transparent; border: none; color: var(--text2, #b0b6c8);
+  font-size: 22px; cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+.users-panel-close:hover { color: var(--text, #e8eaf0); }
+.users-panel-body { padding: 16px 24px 20px; overflow-y: auto; flex: 1; }
+.users-toolbar {
+  display: flex; gap: 10px; align-items: center; margin-bottom: 14px;
+}
+.users-toolbar input[type="search"] {
+  flex: 1; padding: 9px 12px; background: var(--panel2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border2, rgba(255,255,255,0.1)); border-radius: 8px;
+  color: var(--text, #e8eaf0); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
+}
+.users-toolbar input[type="search"]:focus { border-color: rgba(71,209,255,0.4); }
+.users-reload {
+  padding: 9px 14px; background: transparent; color: var(--text2, #b0b6c8);
+  border: 1px solid var(--border2, rgba(255,255,255,0.1)); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
+}
+.users-reload:hover { color: var(--text, #e8eaf0); background: var(--panel, rgba(255,255,255,0.03)); }
+.users-status { font-size: 12px; color: var(--text3, #7a8099); margin-bottom: 10px; }
+.users-list { display: flex; flex-direction: column; gap: 6px; }
+.users-empty { font-size: 13px; color: var(--text3, #7a8099); padding: 24px; text-align: center; }
+.user-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto auto auto;
+  align-items: center; gap: 14px;
+  padding: 12px 14px;
+  background: var(--panel, rgba(255,255,255,0.03));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+}
+.user-avatar-sm {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: linear-gradient(135deg, #47d1ff 0%, #5e7bff 100%);
+  color: #07091a; font-weight: 700; font-size: 14px;
+  display: flex; align-items: center; justify-content: center;
+}
+.user-info { min-width: 0; }
+.user-name { font-weight: 600; font-size: 13px; color: var(--text, #e8eaf0); display: flex; align-items: center; gap: 8px; }
+.user-email { font-size: 11px; color: var(--text3, #7a8099); margin-top: 2px; }
+.user-pill-me {
+  font-size: 9px; padding: 2px 6px; border-radius: 9px;
+  background: rgba(71,209,255,0.18); color: #47d1ff;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.user-meta { text-align: right; font-size: 11px; color: var(--text3, #7a8099); }
+.user-meta-label { display: block; font-size: 10px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.04em; }
+.user-meta-value { display: block; color: var(--text2, #b0b6c8); font-weight: 500; margin-top: 2px; }
+.user-admin-toggle { display: flex; align-items: center; gap: 8px; }
+.user-admin-label { font-size: 11px; color: var(--text2, #b0b6c8); }
+.users-switch { position: relative; display: inline-block; width: 36px; height: 20px; }
+.users-switch input { opacity: 0; width: 0; height: 0; }
+.users-switch-slider {
+  position: absolute; cursor: pointer; inset: 0;
+  background: rgba(255,255,255,0.12); transition: 0.18s;
+  border-radius: 999px;
+}
+.users-switch-slider:before {
+  position: absolute; content: ""; height: 14px; width: 14px;
+  left: 3px; bottom: 3px; background: #e8eaf0; transition: 0.18s; border-radius: 50%;
+}
+.users-switch input:checked + .users-switch-slider { background: #47d1ff; }
+.users-switch input:checked + .users-switch-slider:before { transform: translateX(16px); background: #07091a; }
+.users-switch input:disabled + .users-switch-slider { opacity: 0.5; cursor: not-allowed; }
+
 .settings-panel {
   width: 100%; max-width: 460px;
   background: var(--navy3, var(--panel)); border: 1px solid var(--border2);
@@ -846,6 +937,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <button class="chat-toggle-btn" onclick="toggleChat()">Ask agent</button>
     <button class="btn-sm" onclick="tidyResolvedAdminCards(false)" title="Move resolved admin cards from Ready to QA passed">Tidy</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
+    <button class="btn-sm" id="btn-users" onclick="openUsersPanel()" title="User management" style="display:none;">👥 Users</button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (API keys, GitHub)" aria-label="Settings">⚙</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
@@ -887,6 +979,27 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   </div>
 </div>
 <div class="settings-saved-toast" id="settings-saved-toast">Settings saved</div>
+
+<!-- T5 — Users overlay (admin-only) -->
+<div class="users-overlay" id="users-overlay" onclick="if(event.target===this)closeUsersPanel()">
+  <div class="users-panel">
+    <div class="users-panel-head">
+      <div>
+        <div class="users-panel-title">User management</div>
+        <div class="users-panel-sub">All signed-in users. Toggle admin status per user. You cannot demote yourself.</div>
+      </div>
+      <button class="users-panel-close" onclick="closeUsersPanel()" aria-label="Close">×</button>
+    </div>
+    <div class="users-panel-body">
+      <div class="users-toolbar">
+        <input type="search" id="users-search" placeholder="Filter by name or email..." oninput="renderUsersList()">
+        <button class="users-reload" onclick="loadUsers()">↻ Reload</button>
+      </div>
+      <div class="users-status" id="users-status">Loading...</div>
+      <div class="users-list" id="users-list"></div>
+    </div>
+  </div>
+</div>
 
 <div class="body-flex">
   <aside class="req-sidebar" id="req-sidebar">
@@ -1765,6 +1878,140 @@ async function signOutUser() {
   location.reload();
 }
 
+// ===========================================================
+// T5 — Users management panel
+// ===========================================================
+let usersCache = [];           // [{id, email, full_name, avatar_url, is_admin, created_at, provider}]
+let grantsCountCache = {};     // user_id -> count of app_access rows
+
+function showUsersButtonIfAdmin() {
+  const btn = document.getElementById('btn-users');
+  if (btn) btn.style.display = isAdmin() ? '' : 'none';
+}
+
+async function openUsersPanel() {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  document.getElementById('users-overlay').classList.add('open');
+  await loadUsers();
+}
+
+function closeUsersPanel() {
+  document.getElementById('users-overlay').classList.remove('open');
+}
+
+async function loadUsers() {
+  const statusEl = document.getElementById('users-status');
+  if (statusEl) statusEl.textContent = 'Loading users and access grants\u2026';
+  if (!supaClient) { if (statusEl) statusEl.textContent = 'Not signed in.'; return; }
+  try {
+    // 1) all profiles (admins can SELECT via RLS)
+    const { data: profiles, error: pErr } = await supaClient
+      .from('profiles')
+      .select('id,email,full_name,avatar_url,is_admin,created_at,provider')
+      .order('created_at', { ascending: false });
+    if (pErr) throw pErr;
+    usersCache = profiles || [];
+
+    // 2) count app_access grants per user
+    const { data: grants, error: gErr } = await supaClient
+      .from('app_access')
+      .select('user_id');
+    if (gErr) throw gErr;
+    grantsCountCache = {};
+    (grants || []).forEach(function(g) {
+      grantsCountCache[g.user_id] = (grantsCountCache[g.user_id] || 0) + 1;
+    });
+
+    if (statusEl) {
+      const adminCount = usersCache.filter(function(u) { return u.is_admin; }).length;
+      statusEl.textContent = usersCache.length + ' user(s) \u00b7 ' + adminCount + ' admin(s) \u00b7 ' + (grants || []).length + ' app grant(s)';
+    }
+    renderUsersList();
+  } catch (e) {
+    console.error('loadUsers failed:', e);
+    if (statusEl) statusEl.textContent = 'Failed to load: ' + (e.message || e);
+  }
+}
+
+function renderUsersList() {
+  const listEl = document.getElementById('users-list');
+  if (!listEl) return;
+  const searchEl = document.getElementById('users-search');
+  const search = ((searchEl && searchEl.value) || '').trim().toLowerCase();
+  const filtered = usersCache.filter(function(u) {
+    if (!search) return true;
+    return ((u.email || '') + ' ' + (u.full_name || '')).toLowerCase().indexOf(search) !== -1;
+  });
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="users-empty">No users match.</div>';
+    return;
+  }
+  const myId = currentProfile && currentProfile.id;
+  listEl.innerHTML = filtered.map(function(u) {
+    const isMe = u.id === myId;
+    const grantCount = grantsCountCache[u.id] || 0;
+    const initial = ((u.full_name || u.email || '?') + '').trim().charAt(0).toUpperCase();
+    return '<div class="user-row">' +
+      '<div class="user-avatar-sm">' + escapeUsersHtml(initial) + '</div>' +
+      '<div class="user-info">' +
+        '<div class="user-name">' + escapeUsersHtml(u.full_name || '(no name)') + (isMe ? ' <span class="user-pill-me">you</span>' : '') + '</div>' +
+        '<div class="user-email">' + escapeUsersHtml(u.email || '') + '</div>' +
+      '</div>' +
+      '<div class="user-meta">' +
+        '<span class="user-meta-label">Signed up</span>' +
+        '<span class="user-meta-value">' + (u.created_at ? u.created_at.slice(0, 10) : '\u2014') + '</span>' +
+      '</div>' +
+      '<div class="user-meta">' +
+        '<span class="user-meta-label">Apps</span>' +
+        '<span class="user-meta-value">' + grantCount + '</span>' +
+      '</div>' +
+      '<div class="user-admin-toggle">' +
+        '<label class="users-switch" title="' + (isMe ? 'You cannot demote yourself' : 'Toggle admin status') + '">' +
+          '<input type="checkbox"' + (u.is_admin ? ' checked' : '') + (isMe ? ' disabled' : '') + ' onchange="toggleAdminStatus(\'' + u.id + '\', this.checked)">' +
+          '<span class="users-switch-slider"></span>' +
+        '</label>' +
+        '<span class="user-admin-label">Admin</span>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+async function toggleAdminStatus(userId, newValue) {
+  const myId = currentProfile && currentProfile.id;
+  if (userId === myId) {
+    alert('You cannot demote yourself. Have another admin do it.');
+    await loadUsers();
+    return;
+  }
+  try {
+    const { error } = await supaClient
+      .from('profiles')
+      .update({ is_admin: newValue, updated_at: new Date().toISOString() })
+      .eq('id', userId);
+    if (error) throw error;
+    const u = usersCache.find(function(x) { return x.id === userId; });
+    if (u) u.is_admin = newValue;
+    renderUsersList();
+    // Update status line
+    const statusEl = document.getElementById('users-status');
+    if (statusEl) {
+      const adminCount = usersCache.filter(function(x) { return x.is_admin; }).length;
+      statusEl.textContent = usersCache.length + ' user(s) \u00b7 ' + adminCount + ' admin(s) \u00b7 last update ' + new Date().toLocaleTimeString();
+    }
+  } catch (e) {
+    console.error('toggleAdminStatus failed:', e);
+    alert('Update failed: ' + (e.message || e));
+    await loadUsers();
+  }
+}
+
+function escapeUsersHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+
 window.addEventListener('load', async function() {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
   applySidebarCollapsedState();
@@ -1799,6 +2046,8 @@ function openSettingsPanel() {
     const inpEmail = document.getElementById('inp-email');
     if (inpName) inpName.value = currentProfile.full_name || '';
     if (inpEmail) inpEmail.value = currentProfile.email || '';
+    // T5 — show Users button only for admins
+    showUsersButtonIfAdmin();
   }
   document.getElementById('settings-overlay').classList.add('open');
   setTimeout(function() {
