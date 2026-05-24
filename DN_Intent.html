@@ -60,6 +60,13 @@ body::before {
   font-size: 13px; letter-spacing: 0.12em; text-transform: uppercase;
   color: var(--cyan); opacity: 0.85;
 }
+.topbar-version {
+  font-family: ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+  font-size: 10px; color: var(--text3, #7a8099); opacity: 0.75;
+  padding: 2px 8px; background: var(--panel, rgba(255,255,255,0.03));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 999px; letter-spacing: 0.02em; user-select: text;
+}
 .topbar-right { margin-left: auto; display: flex; align-items: center; gap: 16px; }
 .user-pill { display: flex; align-items: center; gap: 8px; font-size: 12px; color: var(--text2); }
 .user-avatar {
@@ -660,6 +667,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
+  <span class="topbar-version" title="DN_Intent build">v1.0 #1</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
