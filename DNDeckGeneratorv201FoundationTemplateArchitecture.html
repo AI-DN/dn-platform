@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.22.2</title>
+<title>DN Deck Generator v2.22.3</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.22.2 #101</div>
+      <div class="brand-version">v2.22.3 #102</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1863,26 +1863,33 @@ async function generateSlideImageWithReference(slide, fullPrompt, referenceB64, 
     fullPrompt + '\n' +
     '=== END VISUAL STYLE ===\n\n' +
     'OUTPUT: One 16:9 widescreen slide. Same content as the input image, restyled in the visual language described above.';
-  // Toast (let user know we\u2019re forcing gpt-image-1 since edits endpoint requires it)
-  const selectedLabel = (spec && spec.provider && spec.model) ? (spec.provider + ':' + spec.model) : '';
-  if (selectedLabel && selectedLabel !== 'openai:gpt-image-1') {
-    toast({ type: 'info', message: 'Image-to-image forces gpt-image-1 (edits endpoint) \u00b7 your selected ' + selectedLabel + ' is text-to-image only' });
-  } else {
-    toast({ type: 'info', message: 'Image-to-image with gpt-image-1 (' + quality + ')\u2026' });
+  // Build #102 \u2014 honor user's selected OpenAI model; fall back to gpt-image-1 only if the API rejects
+  const primaryModel = (spec && spec.provider === 'openai' && spec.model) ? spec.model : 'gpt-image-2';
+  let modelUsed = primaryModel;
+  toast({ type: 'info', message: 'Image-to-image with ' + primaryModel + ' (' + quality + ')\u2026' });
+  async function callEditsEndpoint(model) {
+    const fd = new FormData();
+    fd.append('model', model);
+    fd.append('image', refBlob, 'reference.png');
+    fd.append('prompt', editPrompt);
+    fd.append('size', '1536x1024');
+    fd.append('quality', quality);
+    fd.append('n', '1');
+    return await fetch('https://api.openai.com/v1/images/edits', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + apiKey },
+      body: fd
+    });
   }
-  // POST to /v1/images/edits
-  const fd = new FormData();
-  fd.append('model', 'gpt-image-1');
-  fd.append('image', refBlob, 'reference.png');
-  fd.append('prompt', editPrompt);
-  fd.append('size', '1536x1024');
-  fd.append('quality', quality);
-  fd.append('n', '1');
-  const resp = await fetch('https://api.openai.com/v1/images/edits', {
-    method: 'POST',
-    headers: { 'Authorization': 'Bearer ' + apiKey },
-    body: fd
-  });
+  let resp = await callEditsEndpoint(primaryModel);
+  if (!resp.ok && primaryModel !== 'gpt-image-1') {
+    let errText = '';
+    try { errText = await resp.text(); } catch (e) {}
+    console.warn('Edits with ' + primaryModel + ' failed (' + resp.status + '):', errText.slice(0, 200));
+    toast({ type: 'info', message: primaryModel + ' rejected /v1/images/edits (' + resp.status + ') \u00b7 falling back to gpt-image-1\u2026' });
+    modelUsed = 'gpt-image-1';
+    resp = await callEditsEndpoint('gpt-image-1');
+  }
   if (!resp.ok) {
     const t = await resp.text();
     throw new Error('Image-edit ' + resp.status + ': ' + t.slice(0, 300));
@@ -1897,10 +1904,14 @@ async function generateSlideImageWithReference(slide, fullPrompt, referenceB64, 
     genB64 = await new Promise(res => { const fr = new FileReader(); fr.onload = () => res(fr.result.split(',')[1]); fr.readAsDataURL(blob); });
   }
   if (!genB64) throw new Error('Image-edit response missing b64_json/url');
-  // Cost \u2014 gpt-image-1 edits pricing approx (per OpenAI docs, landscape ~1.5x square)
-  const costMap = { low: 0.02, medium: 0.07, high: 0.25 };
+  // Build #102 \u2014 cost map covers both gpt-image-1 and gpt-image-2 (gpt-image-2 slightly higher)
+  const costMaps = {
+    'gpt-image-1': { low: 0.02, medium: 0.07, high: 0.25 },
+    'gpt-image-2': { low: 0.03, medium: 0.10, high: 0.30 }
+  };
+  const costMap = costMaps[modelUsed] || costMaps['gpt-image-1'];
   const cost = costMap[quality] || 0.25;
-  const finalSpec = { provider: 'openai', model: 'gpt-image-1', quality: quality, originalSelection: (spec && spec.provider) ? selectedLabel : null };
+  const finalSpec = { provider: 'openai', model: modelUsed, quality: quality, originalSelection: (spec && spec.provider && spec.model) ? (spec.provider + ':' + spec.model) : null };
   return { b64: genB64, prompt: editPrompt, cost: cost, spec: finalSpec };
 }
 
@@ -6713,7 +6724,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.22.2</span> (build #101 — PptxGenJS hybrid composition: backdrop + real text boxes + real photo crops on export)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.22.3</span> (build #102 — honor user-selected OpenAI model on edits endpoint; fall back to gpt-image-1 only on rejection)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
