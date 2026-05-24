@@ -555,88 +555,7 @@ body::before {
 }
 .settings-overlay.open { display: flex; }
 
-/* Admin: access management overlay */
-.admin-overlay {
-  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-  display: none; z-index: 210;
-  align-items: center; justify-content: center; padding: 32px;
-  backdrop-filter: blur(4px);
-}
-.admin-overlay.open { display: flex; }
-.admin-panel {
-  width: 100%; max-width: 880px; max-height: calc(100vh - 64px);
-  background: var(--navy2); border: 1px solid var(--border2);
-  border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
-  display: flex; flex-direction: column; overflow: hidden;
-}
-.admin-panel-head {
-  display: flex; align-items: flex-start; justify-content: space-between;
-  padding: 20px 24px; border-bottom: 1px solid var(--border);
-}
-.admin-panel-title {
-  font-family: 'Syne', system-ui, sans-serif; font-weight: 700;
-  font-size: 18px; color: var(--text); margin-bottom: 4px;
-}
-.admin-panel-sub { font-size: 12px; color: var(--text3); }
-.admin-panel-body { padding: 16px 24px 20px; overflow-y: auto; flex: 1; }
-.admin-toolbar {
-  display: flex; gap: 10px; align-items: center; margin-bottom: 14px;
-}
-.admin-toolbar input[type="search"] {
-  flex: 1; padding: 9px 12px; background: var(--panel2);
-  border: 1px solid var(--border2); border-radius: 8px;
-  color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
-}
-.admin-toolbar input[type="search"]:focus { border-color: rgba(71,209,255,0.4); }
-.admin-reload {
-  padding: 9px 14px; background: transparent; color: var(--text2);
-  border: 1px solid var(--border2); border-radius: 8px;
-  font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
-}
-.admin-reload:hover { color: var(--text); background: var(--panel); }
-.admin-status { font-size: 12px; color: var(--text3); margin-bottom: 10px; }
-.admin-apps-list { display: flex; flex-direction: column; gap: 10px; }
-.admin-app-card {
-  background: var(--panel); border: 1px solid var(--border);
-  border-radius: 10px; padding: 14px 16px;
-}
-.admin-app-head {
-  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
-  margin-bottom: 10px;
-}
-.admin-app-title { font-weight: 600; font-size: 14px; color: var(--text); }
-.admin-app-meta { font-size: 11px; color: var(--text3); margin-top: 2px; }
-.admin-app-actions { display: flex; gap: 6px; }
-.admin-btn {
-  padding: 6px 10px; background: transparent; color: var(--text2);
-  border: 1px solid var(--border2); border-radius: 6px;
-  font-size: 11px; font-family: 'DM Sans', sans-serif; cursor: pointer;
-}
-.admin-btn:hover { color: var(--text); background: var(--panel2); }
-.admin-btn.primary { background: var(--cyan); color: var(--navy); border-color: var(--cyan); font-weight: 600; }
-.admin-btn.primary:hover { background: #5fdcff; }
-.admin-btn.danger:hover { color: #ff7a7a; border-color: rgba(255,122,122,0.4); }
-.admin-access-list {
-  display: flex; flex-direction: column; gap: 6px;
-  padding-top: 10px; border-top: 1px dashed var(--border);
-}
-.admin-access-row {
-  display: flex; align-items: center; justify-content: space-between;
-  font-size: 12px; color: var(--text2); padding: 4px 0;
-}
-.admin-access-empty { font-size: 11px; color: var(--text3); font-style: italic; padding: 4px 0; }
-.admin-grant-form {
-  display: none; gap: 8px; margin-top: 8px;
-  padding: 10px; background: var(--navy3); border-radius: 8px;
-}
-.admin-grant-form.open { display: flex; }
-.admin-grant-form input[type="email"] {
-  flex: 1; padding: 7px 10px; background: var(--panel2);
-  border: 1px solid var(--border2); border-radius: 6px;
-  color: var(--text); font-size: 12px; outline: none;
-}
-.admin-pill-creator { font-size: 10px; color: var(--cyan); margin-left: 6px; }
-.admin-pill-admin { font-size: 10px; color: #f0a500; margin-left: 6px; }
+/* T4 — Access Management CSS removed (panel moved to DN_Admin) */
 .settings-panel {
   width: 100%; max-width: 460px;
   background: var(--panel); border: 1px solid var(--border2);
@@ -751,7 +670,6 @@ body::before {
       <span id="user-name-display">Guest</span>
     </div>
     <button class="btn-refresh-intent" id="btn-refresh" onclick="manualRefresh()" title="Refresh platform data"><span class="ri-icon">↻</span><span>Refresh</span></button>
-    <button class="btn-refresh-intent" id="btn-admin" onclick="openAdminPanel()" title="Access management (admins only)" style="display:none;"><span class="ri-icon">🔐</span><span>Admin</span></button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (name, API keys)" aria-label="Settings">⚙</button>
   </div>
 </div>
@@ -800,26 +718,7 @@ body::before {
   <div class="settings-saved-toast" id="settings-saved-toast">Settings saved</div>
   <div class="refresh-toast" id="refresh-toast">Updated</div>
 
-  <!-- Admin: Access management overlay (admin-only) -->
-  <div class="admin-overlay" id="admin-overlay" onclick="if(event.target===this)closeAdminPanel()">
-    <div class="admin-panel">
-      <div class="admin-panel-head">
-        <div>
-          <div class="admin-panel-title">Access management</div>
-          <div class="admin-panel-sub">Grant or revoke per-app access. Creators are always granted by default.</div>
-        </div>
-        <button class="settings-panel-close" onclick="closeAdminPanel()" aria-label="Close">×</button>
-      </div>
-      <div class="admin-panel-body">
-        <div class="admin-toolbar">
-          <input type="search" id="admin-search" placeholder="Filter apps by name or creator..." oninput="renderAdminApps()">
-          <button class="admin-reload" onclick="loadAdminData(true)">↻ Reload</button>
-        </div>
-        <div class="admin-status" id="admin-status">Loading...</div>
-        <div class="admin-apps-list" id="admin-apps-list"></div>
-      </div>
-    </div>
-  </div>
+  <!-- T4 — Access Management modal removed (panel moved to DN_Admin) -->
 
   <!-- Platform dashboard -->
   <div class="platform-dashboard" id="platform-dashboard" style="display:none">
@@ -1758,188 +1657,7 @@ async function signOutUser() {
 }
 
 // ── Admin: access management ─────────────────────────────────────────────────
-let adminAppsCache = [];    // [{id,title,submitted_by,creator_user_id,created_at,access:[{user_id,full_name,email,granted_by,granted_at}]}]
-let adminProfilesCache = []; // [{id,email,full_name,is_admin}]
-
-function showAdminButtonIfAdmin() {
-  const btn = document.getElementById('btn-admin');
-  if (btn) btn.style.display = isAdmin() ? '' : 'none';
-}
-
-async function openAdminPanel() {
-  if (!isAdmin()) { alert('Admins only.'); return; }
-  document.getElementById('admin-overlay').classList.add('open');
-  await loadAdminData(false);
-}
-
-function closeAdminPanel() {
-  document.getElementById('admin-overlay').classList.remove('open');
-}
-
-async function loadAdminData(forceReload) {
-  const statusEl = document.getElementById('admin-status');
-  statusEl.textContent = 'Loading apps and access grants...';
-  if (!supaClient) { statusEl.textContent = 'Not signed in.'; return; }
-  try {
-    // 1) all profiles (admins can SELECT via RLS)
-    const { data: profiles, error: pErr } = await supaClient
-      .from('profiles')
-      .select('id,email,full_name,is_admin')
-      .order('full_name');
-    if (pErr) throw pErr;
-    adminProfilesCache = profiles || [];
-
-    // 2) all requests (admins can SELECT via RLS)
-    const { data: apps, error: aErr } = await supaClient
-      .from('requests')
-      .select('id,title,submitted_by,creator_user_id,created_at,status')
-      .order('created_at', { ascending: false })
-      .limit(200);
-    if (aErr) throw aErr;
-
-    // 3) all access grants
-    const { data: grants, error: gErr } = await supaClient
-      .from('app_access')
-      .select('request_id,user_id,granted_by,granted_at');
-    if (gErr) throw gErr;
-
-    // Stitch: per app, list of granted users
-    const profileById = {};
-    adminProfilesCache.forEach(function(p) { profileById[p.id] = p; });
-    const grantsByApp = {};
-    (grants || []).forEach(function(g) {
-      if (!grantsByApp[g.request_id]) grantsByApp[g.request_id] = [];
-      const p = profileById[g.user_id] || { id: g.user_id, email: '(unknown)', full_name: '(unknown)' };
-      grantsByApp[g.request_id].push({
-        user_id: g.user_id, full_name: p.full_name, email: p.email,
-        granted_by: g.granted_by, granted_at: g.granted_at
-      });
-    });
-
-    adminAppsCache = (apps || []).map(function(a) {
-      return Object.assign({}, a, {
-        creator: a.creator_user_id ? profileById[a.creator_user_id] : null,
-        access: grantsByApp[a.id] || []
-      });
-    });
-
-    statusEl.textContent = adminAppsCache.length + ' app(s) loaded, ' + (grants || []).length + ' grant(s) total.';
-    renderAdminApps();
-  } catch (e) {
-    console.error(e);
-    statusEl.textContent = 'Failed to load: ' + (e.message || e);
-  }
-}
-
-function renderAdminApps() {
-  const listEl = document.getElementById('admin-apps-list');
-  const search = (document.getElementById('admin-search').value || '').trim().toLowerCase();
-  const filtered = adminAppsCache.filter(function(a) {
-    if (!search) return true;
-    const hay = ((a.title || '') + ' ' + (a.submitted_by || '') + ' ' + (a.creator && a.creator.email || '')).toLowerCase();
-    return hay.indexOf(search) !== -1;
-  });
-  if (!filtered.length) {
-    listEl.innerHTML = '<div class="admin-access-empty">No apps match.</div>';
-    return;
-  }
-  listEl.innerHTML = filtered.map(function(a) {
-    const creator = a.creator ? (a.creator.full_name || a.creator.email) : (a.submitted_by || 'unknown');
-    const creatorEmail = a.creator ? a.creator.email : '';
-    const accessRows = a.access.length
-      ? a.access.map(function(ax) {
-          return '<div class="admin-access-row">' +
-            '<div>' + escapeAdminHtml(ax.full_name || ax.email) + ' <span style="color:var(--text3);font-size:11px;">&lt;' + escapeAdminHtml(ax.email) + '&gt;</span></div>' +
-            '<button class="admin-btn danger" onclick="revokeAccess(\'' + a.id + '\',\'' + ax.user_id + '\')">Revoke</button>' +
-          '</div>';
-        }).join('')
-      : '<div class="admin-access-empty">No additional users granted. Only creator (and admins) can access.</div>';
-    return '<div class="admin-app-card">' +
-      '<div class="admin-app-head">' +
-        '<div>' +
-          '<div class="admin-app-title">' + escapeAdminHtml(a.title || '(untitled)') + '</div>' +
-          '<div class="admin-app-meta">Created by <strong>' + escapeAdminHtml(creator) + '</strong>' +
-            (creatorEmail ? ' &lt;' + escapeAdminHtml(creatorEmail) + '&gt;' : '') +
-            ' · ' + (a.status || 'unknown') + ' · ' + (a.created_at ? a.created_at.slice(0,10) : '') +
-          '</div>' +
-        '</div>' +
-        '<div class="admin-app-actions">' +
-          '<button class="admin-btn primary" onclick="toggleGrantForm(\'' + a.id + '\')">+ Grant access</button>' +
-        '</div>' +
-      '</div>' +
-      '<div class="admin-grant-form" id="grant-form-' + a.id + '">' +
-        '<input type="email" id="grant-email-' + a.id + '" placeholder="user@digitatanetworks.com" list="admin-profile-emails">' +
-        '<button class="admin-btn primary" onclick="grantAccess(\'' + a.id + '\')">Grant</button>' +
-        '<button class="admin-btn" onclick="toggleGrantForm(\'' + a.id + '\')">Cancel</button>' +
-      '</div>' +
-      '<div class="admin-access-list">' + accessRows + '</div>' +
-    '</div>';
-  }).join('') +
-  // Datalist of known emails for autocomplete
-  '<datalist id="admin-profile-emails">' +
-    adminProfilesCache.map(function(p) { return '<option value="' + escapeAdminHtml(p.email) + '">'; }).join('') +
-  '</datalist>';
-}
-
-function escapeAdminHtml(s) {
-  return String(s == null ? '' : s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
-    .replace(/"/g,'&quot;').replace(/'/g,'&#39;');
-}
-
-function toggleGrantForm(appId) {
-  const f = document.getElementById('grant-form-' + appId);
-  if (f) {
-    f.classList.toggle('open');
-    if (f.classList.contains('open')) {
-      const inp = document.getElementById('grant-email-' + appId);
-      if (inp) { inp.value = ''; inp.focus(); }
-    }
-  }
-}
-
-async function grantAccess(appId) {
-  const inp = document.getElementById('grant-email-' + appId);
-  const email = (inp.value || '').trim().toLowerCase();
-  if (!email) { alert('Enter an email address.'); return; }
-  // Find the matching profile (must already exist — user must have signed in once)
-  const target = adminProfilesCache.find(function(p) { return (p.email || '').toLowerCase() === email; });
-  if (!target) {
-    alert('No user found with that email. The user must sign in once before they can be granted access. Ask them to open DN_Intent and sign in with Google, then try again.');
-    return;
-  }
-  try {
-    const { error } = await supaClient.from('app_access').insert({
-      request_id: appId,
-      user_id: target.id,
-      granted_by: currentSession.user.id
-    });
-    if (error) {
-      // unique violation = already granted
-      if ((error.code === '23505') || (error.message || '').indexOf('duplicate') !== -1) {
-        alert('This user already has access.');
-      } else throw error;
-    }
-    toggleGrantForm(appId);
-    await loadAdminData(true);
-  } catch (e) {
-    alert('Grant failed: ' + (e.message || e));
-  }
-}
-
-async function revokeAccess(appId, userId) {
-  if (!confirm('Revoke access for this user?')) return;
-  try {
-    const { error } = await supaClient.from('app_access')
-      .delete()
-      .eq('request_id', appId)
-      .eq('user_id', userId);
-    if (error) throw error;
-    await loadAdminData(true);
-  } catch (e) {
-    alert('Revoke failed: ' + (e.message || e));
-  }
-}
+// T4 — Access Management JS removed (panel moved to DN_Admin)
 
 function isValidName(name) {
   // After Supabase Auth: if there's an authenticated session, the name is whatever the
@@ -2312,8 +2030,6 @@ function refreshUserDisplay() {
   const inpEmail = document.getElementById('inp-email');
   if (inpName && currentProfile) inpName.value = currentProfile.full_name || '';
   if (inpEmail && currentProfile) inpEmail.value = currentProfile.email || '';
-  // Show admin button only for admins.
-  showAdminButtonIfAdmin();
 }
 
 // ── Supabase ──────────────────────────────────────────────────────────────────
