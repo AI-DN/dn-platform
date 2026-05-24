@@ -667,7 +667,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.1.2 #4</span>
+  <span class="topbar-version" title="DN_Intent build">v1.2.0 #5</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1203,7 +1203,7 @@ async function loadPlatformContext() {
     const myId = currentSession && currentSession.user && currentSession.user.id || null;
 
     // v1.1.2 #4 — fetch requests + app_access grants + the user's pending access_requests in parallel.
-    const requestsUrl = url + '/rest/v1/requests?select=id,creator_user_id,creator_access_revoked,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50';
+    const requestsUrl = url + '/rest/v1/requests?select=id,creator_user_id,creator_access_revoked,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes,lifecycle_status&order=created_at.desc&limit=50';
     const grantsUrl = myId
       ? url + '/rest/v1/app_access?select=request_id&user_id=eq.' + encodeURIComponent(myId)
       : null;
@@ -1257,15 +1257,22 @@ async function loadPlatformContext() {
       return false;
     });
 
-    // 'shipped' = status shipped/qa_passed AND I have explicit access (creator or granted)
+    // 'shipped' = status shipped/qa_passed AND lifecycle is active AND I have explicit access (creator or granted)
+    // v1.2.0 #5 — parked/archived apps are hidden from the Tools view by default; admins manage lifecycle in DN_Admin.
     platformContext.shipped = rows.filter(function(r) {
       if (r.status !== 'shipped' && r.status !== 'qa_passed') return false;
+      if ((r.lifecycle_status || 'parked') !== 'active') return false;
       return hasAccess(r);
     });
 
     // 'active' = in-flight statuses AND I have access (creator or granted)
+    // v1.2.0 #5 — in-flight (pending/building/iterating) is NOT lifecycle-filtered
+    // (lifecycle only applies to shipped apps). The 'active' build_status overlaps
+    // with the 'active' lifecycle_status name but they're different concepts.
     platformContext.active = rows.filter(function(r) {
       if (r.status !== 'active' && r.status !== 'pending' && r.status !== 'building' && r.status !== 'iterating') return false;
+      // Only apply lifecycle gate to build_status='active' (post-ship state); pending/building/iterating are in-flight.
+      if (r.status === 'active' && (r.lifecycle_status || 'parked') !== 'active') return false;
       return hasAccess(r);
     });
 
