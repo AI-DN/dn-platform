@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.21.1</title>
+<title>DN Deck Generator v2.22.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.21.1 #98</div>
+      <div class="brand-version">v2.22.0 #99</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -5465,30 +5465,47 @@ function openSkillEditor(id, initialDraft) {
 // =====================================================================
 // Build #95 — Import .pdf for re-styling with current skill/group
 // =====================================================================
-// Build #98 — extract clean {title, body} from a rendered page image via Claude vision
+// Build #99 — extract structured slide content from a rendered page image via Claude vision
+// Returns: { title, body, layout_type, persons: [{name, role, photo_bbox: {x,y,w,h}}], logos: [{company}], cost }
+// Bounding boxes are 0-100 percentages of slide dimensions (x,y = top-left corner, w,h = width/height).
 async function extractSlideContentWithClaude(imageB64, pdfTextHint, pageNum) {
   const ak = (state.apiKeys.anthropic || '').trim();
   if (!ak) throw new Error('Anthropic key required for vision extraction');
   const visionImage = await downscaleImageForVision(imageB64);
-  const sysPrompt = 'You extract structured content from a presentation slide image. Return ONLY a JSON object with keys "title" and "body". No markdown fences, no commentary, no surrounding prose.';
+  const sysPrompt = 'You extract structured content from a presentation slide image. Return ONLY a JSON object with the schema specified by the user. No markdown fences, no commentary, no surrounding prose.';
   const hint = (pdfTextHint || '').slice(0, 1500);
   const userPrompt =
-    'Extract the MAIN TITLE and BODY CONTENT from this slide image (page ' + pageNum + ').\n\n' +
+    'Analyze this slide image (page ' + pageNum + ') and return structured JSON.\n\n' +
+    'SCHEMA:\n' +
+    '{\n' +
+    '  "title": "main headline (or empty string if slide is a divider/blank)",\n' +
+    '  "body": "main supporting text \u2014 bullets/paragraphs separated by \u005Cn, NOT including person names or logo company names which go in the arrays below",\n' +
+    '  "layout_type": "1-sentence description of the layout (e.g. \'8 portrait cards on world map background\', \'two-column with chart on left and bullets on right\', \'centered hero title only\')",\n' +
+    '  "persons": [\n' +
+    '    { "name": "Person Name", "role": "their job title or empty string", "photo_bbox": {"x": 12.5, "y": 25.0, "w": 8.0, "h": 13.5} }\n' +
+    '  ],\n' +
+    '  "logos": [\n' +
+    '    { "company": "Company Name" }\n' +
+    '  ]\n' +
+    '}\n\n' +
     'STRICT RULES:\n' +
-    '1. IGNORE all repeating chrome: footers, headers, page numbers, watermarks, slide-number labels, dates, confidentiality stamps (e.g. "Private & confidential", "Confidential", "Draft"), copyright lines, and company logos in corners. None of these belong in the title or body.\n' +
-    '2. The TITLE is the slide\'s main headline \u2014 usually large text near the top of the slide. If the slide is a section divider with only a page number or no real headline, return an EMPTY STRING for title.\n' +
-    '3. The BODY is the main content \u2014 bullets, paragraphs, key points, captions on diagrams. Preserve text verbatim. Use \u005Cn line breaks between distinct bullet points or paragraphs.\n' +
-    '4. If the slide is essentially blank or only contains a number/divider, return empty strings for both.\n' +
-    '5. Do NOT include footer chrome anywhere in title or body. "Private & confidential" must never appear in either field.\n\n' +
-    'PDF.js raw text hint from this page (jumbled order \u2014 use only as a spelling/exact-wording aid; trust the IMAGE for structure):\n' +
-    hint + '\n\n' +
-    'Return JSON: {"title": "...", "body": "..."}';
+    '1. IGNORE all repeating chrome: footers, headers, page numbers, watermarks ("Private & confidential", "Confidential", "Draft"), copyright lines, brand stamps in corners, slide-number labels. None of these belong in title, body, persons, or logos.\n' +
+    '2. PERSONS array \u2014 every visible portrait or headshot of a person in the slide content area. For each:\n' +
+    '   - name: the person\'s name as labeled (verbatim)\n' +
+    '   - role: their job title/role label, or empty if not visible\n' +
+    '   - photo_bbox: tight bounding box around just the photograph (not the name label). Coordinates as PERCENTAGES of the slide (0-100). x,y is the TOP-LEFT corner. Be conservative and precise \u2014 these boxes will be used to crop the actual photos from the source image.\n' +
+    '3. LOGOS array \u2014 every visible company/brand logo in the slide content (not in chrome). Just the company name; positions are not needed for now.\n' +
+    '4. The BODY field must NOT contain text that already appears in the persons array (their names/roles) or the logos array (company names). It is for OTHER body text only \u2014 bullets, paragraphs, captions.\n' +
+    '5. If the slide is blank or only contains a page number, return empty strings/arrays.\n' +
+    '6. Return ONLY the JSON object, nothing else. No markdown fences.\n\n' +
+    'PDF.js raw text hint from this page (jumbled order \u2014 use only as a spelling aid; trust the IMAGE for structure and positions):\n' +
+    hint;
   const resp = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6',
-      max_tokens: 1500,
+      max_tokens: 2500,
       system: sysPrompt,
       messages: [{ role: 'user', content: [
         { type: 'image', source: { type: 'base64', media_type: visionImage.mediaType, data: visionImage.b64 } },
@@ -5498,15 +5515,49 @@ async function extractSlideContentWithClaude(imageB64, pdfTextHint, pageNum) {
   });
   if (!resp.ok) { const t = await resp.text(); throw new Error('Vision extract ' + resp.status + ': ' + t.slice(0, 200)); }
   const data = await resp.json();
-  let cost = 0.02;
+  let cost = 0.03;
   if (data.usage) { try { cost = getAnthropicCost('claude-sonnet-4-6', data.usage.input_tokens || 0, data.usage.output_tokens || 0); } catch (e) {} }
   const responseText = (data.content && data.content[0] && data.content[0].text) || '';
-  let parsed = { title: '', body: '' };
+  let parsed = { title: '', body: '', layout_type: '', persons: [], logos: [] };
   try {
     const m = responseText.match(/\{[\s\S]*\}/);
     if (m) parsed = JSON.parse(m[0]);
   } catch (e) { console.warn('Vision JSON parse failed for page ' + pageNum + ':', responseText.slice(0, 200)); }
-  return { title: (parsed.title || '').trim(), body: (parsed.body || '').trim(), cost: cost };
+  // Normalize
+  const persons = Array.isArray(parsed.persons) ? parsed.persons.filter(p => p && (p.name || p.photo_bbox)).map(p => ({
+    name: (p.name || '').trim(),
+    role: (p.role || '').trim(),
+    photo_bbox: p.photo_bbox && typeof p.photo_bbox.x === 'number' ? {
+      x: Math.max(0, Math.min(100, p.photo_bbox.x)),
+      y: Math.max(0, Math.min(100, p.photo_bbox.y)),
+      w: Math.max(0, Math.min(100, p.photo_bbox.w)),
+      h: Math.max(0, Math.min(100, p.photo_bbox.h))
+    } : null
+  })) : [];
+  const logos = Array.isArray(parsed.logos) ? parsed.logos.filter(l => l && l.company).map(l => ({ company: String(l.company).trim() })) : [];
+  return {
+    title: (parsed.title || '').trim(),
+    body: (parsed.body || '').trim(),
+    layout_type: (parsed.layout_type || '').trim(),
+    persons: persons,
+    logos: logos,
+    cost: cost
+  };
+}
+
+// Build #99 — crop a region from a canvas at percentage-based bbox coordinates
+function cropFromCanvas(canvas, bbox) {
+  if (!canvas || !bbox) return null;
+  const cw = canvas.width, ch = canvas.height;
+  const sx = Math.max(0, (bbox.x / 100) * cw);
+  const sy = Math.max(0, (bbox.y / 100) * ch);
+  const sw = Math.max(1, Math.min((bbox.w / 100) * cw, cw - sx));
+  const sh = Math.max(1, Math.min((bbox.h / 100) * ch, ch - sy));
+  const out = document.createElement('canvas');
+  out.width = Math.round(sw);
+  out.height = Math.round(sh);
+  out.getContext('2d').drawImage(canvas, sx, sy, sw, sh, 0, 0, out.width, out.height);
+  return out.toDataURL('image/png').split(',')[1];
 }
 
 // Build #98 — font-size heuristic extracted as fallback for no-Anthropic or vision-failure paths
@@ -5539,6 +5590,7 @@ async function parsePdfDeck(file, onProgress) {
   const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
   const total = pdf.numPages;
   // === Phase 1: render every page + collect raw PDF text items ===
+  // Build #99 — keep the canvas around per page so we can crop person photos later
   const pages = [];
   for (let i = 1; i <= total; i++) {
     onProgress && onProgress(i, total, 'render');
@@ -5557,7 +5609,7 @@ async function parsePdfDeck(file, onProgress) {
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
     const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-    pages.push({ idx: i - 1, textItems: textItems, imageB64: b64 });
+    pages.push({ idx: i - 1, textItems: textItems, imageB64: b64, canvas: canvas });
   }
   // === Phase 2: Claude vision extraction (preferred) or heuristic (fallback) ===
   const hasAnthropic = !!(state.apiKeys.anthropic || '').trim();
@@ -5572,16 +5624,37 @@ async function parsePdfDeck(file, onProgress) {
       try {
         const result = await extractSlideContentWithClaude(p.imageB64, pdfTextHint, p.idx + 1);
         totalCost += result.cost || 0;
+        // Build #99 — crop person photos from the canvas using bboxes Claude returned
+        const personsWithCrops = (result.persons || []).map(person => {
+          const photoB64 = person.photo_bbox ? cropFromCanvas(p.canvas, person.photo_bbox) : null;
+          return {
+            name: person.name || '',
+            role: person.role || '',
+            bbox: person.photo_bbox,
+            photoB64: photoB64
+          };
+        }).filter(p => p.name || p.photoB64);
         slides[p.idx] = {
           idx: p.idx,
           title: result.title || ('Slide ' + (p.idx + 1)),
           body: result.body || '',
+          layout_type: result.layout_type || '',
+          persons: personsWithCrops,
+          logos: result.logos || [],
           referenceImageB64: p.imageB64
         };
       } catch (e) {
         console.warn('Vision extract failed for page ' + (p.idx + 1) + ':', e);
         const fb = fontHeuristicExtract(p.textItems, p.idx + 1);
-        slides[p.idx] = { idx: p.idx, title: fb.title, body: fb.body, referenceImageB64: p.imageB64 };
+        slides[p.idx] = {
+          idx: p.idx,
+          title: fb.title,
+          body: fb.body,
+          layout_type: '',
+          persons: [],
+          logos: [],
+          referenceImageB64: p.imageB64
+        };
       }
       completed++;
       onProgress && onProgress(completed, pages.length, 'vision');
@@ -5599,7 +5672,15 @@ async function parsePdfDeck(file, onProgress) {
     // No Anthropic key \u2014 fall back to font heuristic (warn user via toast at caller level)
     for (const p of pages) {
       const fb = fontHeuristicExtract(p.textItems, p.idx + 1);
-      slides[p.idx] = { idx: p.idx, title: fb.title, body: fb.body, referenceImageB64: p.imageB64 };
+      slides[p.idx] = {
+        idx: p.idx,
+        title: fb.title,
+        body: fb.body,
+        layout_type: '',
+        persons: [],
+        logos: [],
+        referenceImageB64: p.imageB64
+      };
     }
   }
   return { slides: slides, slideCount: slides.length, fileName: file.name };
@@ -5634,7 +5715,15 @@ function openPdfImportModal() {
         '<div class="muted body-sm" style="font-size:11px;margin-top:8px">' + hint + '</div>' +
         '</div>';
     } else if (s.stage === 'parsed') {
-      const rows = s.parsed.slides.slice(0, 15).map(m => '<tr><td style="padding:6px;border-bottom:1px solid var(--border);width:30px;text-align:center;font-size:11px;color:var(--text-muted)">' + (m.idx + 1) + '</td><td style="padding:6px;border-bottom:1px solid var(--border);font-size:12px"><div style="font-weight:500">' + escapeHtml(m.title.slice(0, 60)) + '</div>' + (m.body ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + escapeHtml(m.body.slice(0, 80)) + (m.body.length > 80 ? '\u2026' : '') + '</div>' : '') + '</td><td style="padding:6px;border-bottom:1px solid var(--border);width:80px"><img src="data:image/jpeg;base64,' + m.referenceImageB64 + '" alt="" style="width:72px;height:auto;border:1px solid var(--border);border-radius:3px"></td></tr>').join('');
+      const rows = s.parsed.slides.slice(0, 15).map(m => {
+        const pCount = (m.persons || []).length;
+        const lCount = (m.logos || []).length;
+        const detect = (pCount > 0 || lCount > 0) ? '<div style="font-size:10px;color:var(--text-muted);margin-top:4px;display:flex;gap:6px;flex-wrap:wrap">' +
+          (pCount > 0 ? '<span style="background:rgba(13,148,136,0.15);padding:1px 6px;border-radius:9px">\ud83d\udc64 ' + pCount + ' portrait' + (pCount === 1 ? '' : 's') + '</span>' : '') +
+          (lCount > 0 ? '<span style="background:rgba(13,148,136,0.15);padding:1px 6px;border-radius:9px">\ud83c\udff7\ufe0f ' + lCount + ' logo' + (lCount === 1 ? '' : 's') + '</span>' : '') +
+          '</div>' : '';
+        return '<tr><td style="padding:6px;border-bottom:1px solid var(--border);width:30px;text-align:center;font-size:11px;color:var(--text-muted)">' + (m.idx + 1) + '</td><td style="padding:6px;border-bottom:1px solid var(--border);font-size:12px"><div style="font-weight:500">' + escapeHtml(m.title.slice(0, 60)) + '</div>' + (m.body ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + escapeHtml(m.body.slice(0, 80)) + (m.body.length > 80 ? '\u2026' : '') + '</div>' : '') + detect + '</td><td style="padding:6px;border-bottom:1px solid var(--border);width:80px"><img src="data:image/jpeg;base64,' + m.referenceImageB64 + '" alt="" style="width:72px;height:auto;border:1px solid var(--border);border-radius:3px"></td></tr>';
+      }).join('');
       const more = s.parsed.slideCount > 15 ? '<tr><td colspan="3" style="padding:6px;font-size:11px;color:var(--text-muted);text-align:center">\u2026 and ' + (s.parsed.slideCount - 15) + ' more</td></tr>' : '';
       const currentSkill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
       const skillLabel = currentSkill ? escapeHtml(currentSkill.name) + (currentSkill.is_group ? ' <span class="subtle" style="color:var(--text-muted)">(group of ' + (currentSkill.member_skill_ids || []).length + ')</span>' : '') : '<em style="color:var(--warning)">none selected \u2014 pick one in Step 0 after import</em>';
@@ -5679,10 +5768,14 @@ function openPdfImportModal() {
       const confirm = document.getElementById('pdfConfirmBtn');
       if (confirm) confirm.onclick = () => {
         s.populating = true; renderModal();
+        // Build #99 — carry structured data into state.slides
         state.slides = s.parsed.slides.map((m) => ({
           title: m.title,
           body: m.body,
           referenceImageB64: m.referenceImageB64 || null,
+          persons: m.persons || [],
+          logos: m.logos || [],
+          layoutType: m.layout_type || '',
           status: 'idle',
           notes: '',
           assignedSkillId: null,
@@ -6431,7 +6524,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.21.1</span> (build #98 — Claude vision extracts clean title/body per PDF page)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.22.0</span> (build #99 — structured extraction: persons + logos with bboxes, foundation for hybrid composition)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
