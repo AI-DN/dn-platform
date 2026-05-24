@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.22.4</title>
+<title>DN Deck Generator v2.23.0</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.22.4 #103</div>
+      <div class="brand-version">v2.23.0 #104</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1346,7 +1346,9 @@ async function generateOpenAIImage(model, quality, prompt) {
   throw new Error('OpenAI response missing b64_json/url');
 }
 
-async function generateGoogleImage(model, prompt) {
+async function generateGoogleImage(model, prompt, referenceB64) {
+  // Build #104 \u2014 optional referenceB64 enables multimodal image-to-image for Gemini models.
+  // Imagen models don't support image input, so referenceB64 is ignored for those (text-only).
   const apiKey = (state.apiKeys.gemini || '').trim();
   if (!apiKey) throw new Error('NO_GEMINI_KEY: Set Gemini API key in Settings.');
   const MODEL_ROUTE = {
@@ -1360,6 +1362,7 @@ async function generateGoogleImage(model, prompt) {
   const route = MODEL_ROUTE[model];
   if (!route) throw new Error(`Unknown Google model: ${model}`);
   if (route.kind === 'imagen') {
+    if (referenceB64) console.warn('Imagen models do not accept reference images; ignoring referenceB64 for ' + route.id);
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${route.id}:predict?key=${encodeURIComponent(apiKey)}`;
     const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ instances: [{ prompt }], parameters: { sampleCount: 1, aspectRatio: '16:9' } }) });
     if (!resp.ok) { const errText = await resp.text(); throw new Error(`Google ${route.id} ${resp.status}: ${errText.slice(0,500)}`); }
@@ -1370,15 +1373,44 @@ async function generateGoogleImage(model, prompt) {
   }
   if (route.kind === 'gemini') {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${route.id}:generateContent?key=${encodeURIComponent(apiKey)}`;
-    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } }) });
+    // Build #104 \u2014 multimodal parts: optional reference image, then text prompt
+    const parts = [];
+    if (referenceB64) parts.push({ inlineData: { mimeType: 'image/jpeg', data: referenceB64 } });
+    parts.push({ text: prompt });
+    const resp = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ contents: [{ parts: parts }], generationConfig: { responseModalities: ['TEXT', 'IMAGE'] } }) });
     if (!resp.ok) { const errText = await resp.text(); throw new Error(`Google ${route.id} ${resp.status}: ${errText.slice(0,500)}`); }
     const data = await resp.json();
-    const parts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
-    const imgPart = parts.find(p => p.inlineData && p.inlineData.data);
+    const respParts = (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) || [];
+    const imgPart = respParts.find(p => p.inlineData && p.inlineData.data);
     if (!imgPart) throw new Error(`${route.id} returned no image`);
     return imgPart.inlineData.data;
   }
   throw new Error(`Unhandled route kind: ${route.kind}`);
+}
+
+// Build #104 \u2014 Gemini multimodal image-to-image wrapper (parallels generateSlideImageWithReference)
+async function generateSlideImageWithGemini(slide, fullPrompt, referenceB64, overrideSpec) {
+  const apiKey = (state.apiKeys.gemini || '').trim();
+  if (!apiKey) throw new Error('Gemini key required for image-to-image (Settings)');
+  if (!referenceB64) throw new Error('No reference image provided');
+  const spec = overrideSpec || currentEffectiveModel();
+  if (spec.provider !== 'google') throw new Error('generateSlideImageWithGemini called with non-Google spec: ' + spec.provider);
+  const editPrompt =
+    '=== CONTENT PRESERVATION \u2014 STRICT ===\n' +
+    'You are recreating an existing presentation slide in a new visual style. The input image shows the original slide. Critical rules:\n' +
+    '1. ALL TEXT must appear in the output EXACTLY as it appears in the input image \u2014 every headline, subhead, bullet, body line, caption, label, footer, name, role, and number. Do not rephrase, summarize, translate, or omit any text.\n' +
+    '2. ALL VISUAL ELEMENTS must be preserved in approximately the same positions \u2014 logos, photographs, charts, diagrams, icons, panels, illustrations. Do not invent new content. Do not omit existing content.\n' +
+    '3. The OVERALL LAYOUT (column structure, focal point placement, hierarchy, alignment) must match the input image.\n' +
+    '4. If the input has a chart or diagram, the output must contain the same chart with the same data \u2014 same axes, same labels, same shapes.\n' +
+    '=== END CONTENT PRESERVATION ===\n\n' +
+    '=== APPLY THIS VISUAL STYLE ===\n' +
+    fullPrompt + '\n' +
+    '=== END VISUAL STYLE ===\n\n' +
+    'OUTPUT: One 16:9 widescreen slide. Same content as the input image, restyled in the visual language described above.';
+  toast({ type: 'info', message: 'Image-to-image with ' + spec.model + ' (Gemini multimodal)\u2026' });
+  const genB64 = await generateGoogleImage(spec.model, editPrompt, referenceB64);
+  const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
+  return { b64: genB64, prompt: editPrompt, cost: cost, spec: spec };
 }
 
 function modelLabel(provider, model, quality) {
@@ -1615,6 +1647,12 @@ async function generateSlideImage(slide, customPromptOverride, overrideSpec, sli
   }
   const prompt = customPromptOverride || composeSkillPrompt(skill, slide);
   const spec = overrideSpec || currentEffectiveModel();
+  // Build #104 \u2014 Gemini multimodal image-to-image takes precedence over hybrid when user picks
+  // a Google image model AND the slide has a reference. Bypasses hybrid backdrop composition entirely.
+  if (spec && spec.provider === 'google' && slide.referenceImageB64) {
+    const result = await generateSlideImageWithGemini(slide, prompt, slide.referenceImageB64, spec);
+    return result;
+  }
   // Build #100 — Hybrid composition route: when slide has detected persons (from PDF import
   // Build #99 structured extraction), generate ONLY a styled backdrop; we'll compose real
   // photo crops + text on top for the preview, and PptxGenJS will do proper composition on export.
@@ -1952,24 +1990,29 @@ async function regenerateOne(idx, newPrompt, overrideSpec) {
   slide.status = 'generating'; slide.error = null;
   renderStep5Slides();
   try {
+    // Build #104 \u2014 Gemini multimodal image-to-image takes precedence over hybrid when user picks Google
+    const activeSpec = overrideSpec || currentEffectiveModel();
+    const useGeminiImg2Img = !!(activeSpec && activeSpec.provider === 'google' && slide.referenceImageB64);
     // Build #100 — hybrid composition (persons[]) takes precedence over reference-image regen
-    const useHybrid = !!(slide.persons && slide.persons.length > 0);
+    const useHybrid = !useGeminiImg2Img && !!(slide.persons && slide.persons.length > 0);
     // Build #80 — if slide has a reference image AND no hybrid persons, use image-to-image regen
-    const useRef = !useHybrid && !!(slide.referenceImageB64);
+    const useRef = !useGeminiImg2Img && !useHybrid && !!(slide.referenceImageB64);
     const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
     const promptToUse = newPrompt || composeSkillPrompt(skill, slide);
-    const result = useHybrid
-      ? await generateSlideImage(slide, newPrompt, overrideSpec, idx)
-      : (useRef
-          ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64, overrideSpec)
-          : await generateSlideImage(slide, newPrompt, overrideSpec, idx));
+    const result = useGeminiImg2Img
+      ? await generateSlideImageWithGemini(slide, promptToUse, slide.referenceImageB64, activeSpec)
+      : (useHybrid
+          ? await generateSlideImage(slide, newPrompt, overrideSpec, idx)
+          : (useRef
+              ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64, overrideSpec)
+              : await generateSlideImage(slide, newPrompt, overrideSpec, idx)));
     const { b64, prompt, cost, spec } = result;
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
     slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
     slide.status = 'done'; slide.regenCount++;
     slide.costAccrued = (slide.costAccrued || 0) + cost; slide.modelUsed = spec;
     deckCost.image += cost;
-    deckCost.imageDetails.push({ ...spec, cost, kind: (useHybrid ? 'hybrid-backdrop' : (useRef ? 'reference-regen' : 'regen')) });
+    deckCost.imageDetails.push({ ...spec, cost, kind: (useGeminiImg2Img ? 'gemini-img2img' : (useHybrid ? 'hybrid-backdrop' : (useRef ? 'reference-regen' : 'regen'))) });
     renderCostBadge();
     toast({ type: 'success', message: `Slide ${idx+1} regenerated · ${fmtUsd(cost)}` });
     // Build #78 — inpaint reserved zones deterministically
@@ -6731,7 +6774,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.22.4</span> (build #103 — bulk generation routes through image-to-image when reference image is set)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.0</span> (build #104 — Gemini multimodal image-to-image bypasses hybrid for Google-selected slides)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
