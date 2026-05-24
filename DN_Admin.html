@@ -1036,7 +1036,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.1.0 #5</span>
+  <span class="topbar-version" title="DN_Admin build">v1.1.1 #6</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4603,8 +4603,14 @@ DN_HOUSE_STYLE.trim() + '\n' +
 '- Before submitting your output, mentally validate: (a) the JavaScript parses with no duplicate identifier declarations, (b) every onclick handler references a function that is actually defined, (c) the page renders something meaningful in its empty state.\n\n';
 
   if (isRebuild) {
+    // v1.1.1 #6 — guarantee auth-gate retrofits emit full HTML, not patches
+    const prevHasGate = previousHtml.indexOf('DN Platform Auth Gate v1.0') !== -1;
     prompt +=
 'THIS IS A REBUILD.\n\n' +
+(!prevHasGate ?
+  ('\u26a0\ufe0f AUTH-GATE RETROFIT REQUIRED: the previous HTML below does NOT contain the DN Platform Auth Gate. This rebuild MUST emit FULL HTML (not patches) with the auth gate inserted as the first elements of <body>. The gate addition is a security-critical change \u2014 you MUST verify the entire output is complete (proper <!DOCTYPE html>, fully formed <head>, fully formed <body>, all closing tags present). Do NOT emit patches under any circumstance for this rebuild.\n\n') :
+  ''
+) +
 'The previous version of this app exists below. CRITICAL OUTPUT POLICY: your DEFAULT response is FULL HTML — respond with {"html": "<!DOCTYPE html>..."} containing the complete updated document. Patches are RESERVED for trivial single-region changes (under 5 lines, find strings copied verbatim). For ANY multi-region change, ANY new capability, ANY feature addition, or whenever the QA reviewer mentions full HTML — emit FULL HTML, never patches. When in any doubt at all, emit FULL HTML.\n\n' +
 'PREVIOUS VERSION HTML (read carefully — your output will modify or replace this):\n' +
 '```html\n' + previousHtml + '\n```\n\n';
