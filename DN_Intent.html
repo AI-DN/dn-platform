@@ -682,7 +682,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.2.2 #7</span>
+  <span class="topbar-version" title="DN_Intent build">v1.2.3 #8</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -750,7 +750,7 @@ body::before {
       <div class="dash-card-count" id="dash-mine-count">0</div>
       <div class="dash-card-sub" id="dash-mine-sub">none yet</div>
     </div>
-    <div class="dash-card green" onclick="showDashDetail('shipped')">
+    <div class="dash-card green" onclick="showDashDetail('shipped')" style="display:none">
       <div class="dash-card-label">Tools available</div>
       <div class="dash-card-count" id="dash-shipped-count">0</div>
       <div class="dash-card-sub" id="dash-shipped-sub">shipped & ready</div>
@@ -1300,10 +1300,12 @@ async function loadPlatformContext() {
       return true;
     });
 
-    // 'shipped' = status shipped/qa_passed AND lifecycle is active AND I have explicit access (creator or granted)
-    // v1.2.0 #5 — parked/archived apps are hidden from the Tools view by default; admins manage lifecycle in DN_Admin.
+    // 'shipped' = has a shipped_url (live URL exists) AND lifecycle is active AND I have access
+    // v1.2.3 #8 — use shipped_url existence instead of current build_status. This way an app
+    // stays "available" while a newer version is in QA review — the previously-shipped version
+    // is still live and accessible at the GitHub Pages URL.
     platformContext.shipped = rows.filter(function(r) {
-      if (r.status !== 'shipped' && r.status !== 'qa_passed') return false;
+      if (!r.shipped_url) return false;
       if ((r.lifecycle_status || 'parked') !== 'active') return false;
       return hasAccess(r);
     });
@@ -3126,8 +3128,11 @@ function renderDashboard() {
     return;
   }
   dash.style.display = 'grid';
-  document.getElementById('dash-mine-count').textContent = platformContext.myRequests.length;
-  document.getElementById('dash-mine-sub').textContent = platformContext.myRequests.length ? 'click to see' : 'none yet';
+  // v1.2.3 #8 — "Available apps" (mine card) now shows all active+accessible apps
+  // (was myRequests = only my creations). The "Tools available" green card is hidden
+  // because it would duplicate this data after the rebinding.
+  document.getElementById('dash-mine-count').textContent = platformContext.shipped.length;
+  document.getElementById('dash-mine-sub').textContent = platformContext.shipped.length ? 'click to see' : 'none yet';
   document.getElementById('dash-shipped-count').textContent = platformContext.shipped.length;
   document.getElementById('dash-shipped-sub').textContent = platformContext.shipped.length ? 'click to see' : 'shipped & ready';
   document.getElementById('dash-active-count').textContent = platformContext.active.length;
@@ -3137,10 +3142,12 @@ function renderDashboard() {
 
 // ── Derive a launch URL even when shipped_url isn't set in DB ──────────
 function deriveAppUrl(req) {
-  if (!req || req.status !== 'shipped') return null;
-
-  // 1. Best case: URL is recorded
+  if (!req) return null;
+  // v1.2.3 #8 — return URL whenever shipped_url exists (don't require current status='shipped');
+  // a newer version might be in QA but the previously-shipped URL is still live.
   if (req.shipped_url) return req.shipped_url;
+  // For non-shipped requests with no shipped_url, no URL to derive.
+  if (req.status !== 'shipped') return null;
 
   // 2. Have a filename + a GitHub repo configured? Reconstruct.
   const repo = localStorage.getItem('dn_gh_repo');
@@ -3169,7 +3176,7 @@ function deriveAppUrl(req) {
 
 function showDashDetail(which) {
   const titleMap = { mine: 'Available apps', shipped: 'Available tools', active: 'In progress' };
-  const dataMap = { mine: platformContext.myRequests, shipped: platformContext.shipped, active: platformContext.active };
+  const dataMap = { mine: platformContext.shipped, shipped: platformContext.shipped, active: platformContext.active };
   const data = dataMap[which];
   const title = titleMap[which];
   document.getElementById('dash-detail-title-text').textContent = title;
