@@ -624,6 +624,107 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .users-switch input:checked + .users-switch-slider:before { transform: translateX(16px); background: #07091a; }
 .users-switch input:disabled + .users-switch-slider { opacity: 0.5; cursor: not-allowed; }
 
+/* T6 — App Access overlay (reuses users-overlay base; adds card layout) */
+.app-access-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.7);
+  display: none; z-index: 210;
+  align-items: center; justify-content: center; padding: 32px;
+  backdrop-filter: blur(4px);
+}
+.app-access-overlay.open { display: flex; }
+.app-access-panel {
+  width: 100%; max-width: 980px; max-height: calc(100vh - 64px);
+  background: var(--navy2, #0c1024); border: 1px solid var(--border2, rgba(255,255,255,0.1));
+  border-radius: 14px; box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  display: flex; flex-direction: column; overflow: hidden;
+}
+.app-access-panel-head {
+  display: flex; align-items: flex-start; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+}
+.app-access-panel-title {
+  font-family: 'Syne', system-ui, sans-serif; font-weight: 700;
+  font-size: 18px; color: var(--text, #e8eaf0); margin-bottom: 4px;
+}
+.app-access-panel-sub { font-size: 12px; color: var(--text3, #7a8099); }
+.app-access-panel-close {
+  background: transparent; border: none; color: var(--text2, #b0b6c8);
+  font-size: 22px; cursor: pointer; padding: 4px 8px; line-height: 1;
+}
+.app-access-panel-close:hover { color: var(--text, #e8eaf0); }
+.app-access-panel-body { padding: 16px 24px 20px; overflow-y: auto; flex: 1; }
+.app-access-toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 14px; }
+.app-access-toolbar input[type="search"] {
+  flex: 1; padding: 9px 12px; background: var(--panel2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border2, rgba(255,255,255,0.1)); border-radius: 8px;
+  color: var(--text, #e8eaf0); font-family: 'DM Sans', sans-serif; font-size: 13px; outline: none;
+}
+.app-access-toolbar input[type="search"]:focus { border-color: rgba(71,209,255,0.4); }
+.app-access-reload {
+  padding: 9px 14px; background: transparent; color: var(--text2, #b0b6c8);
+  border: 1px solid var(--border2, rgba(255,255,255,0.1)); border-radius: 8px;
+  font-family: 'DM Sans', sans-serif; font-size: 12px; cursor: pointer;
+}
+.app-access-reload:hover { color: var(--text, #e8eaf0); background: var(--panel, rgba(255,255,255,0.03)); }
+.app-access-status { font-size: 12px; color: var(--text3, #7a8099); margin-bottom: 10px; }
+.app-access-list { display: flex; flex-direction: column; gap: 10px; }
+.app-access-empty { font-size: 13px; color: var(--text3, #7a8099); padding: 24px; text-align: center; }
+.app-card {
+  background: var(--panel, rgba(255,255,255,0.03));
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px; padding: 14px 16px;
+}
+.app-card-head {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  margin-bottom: 10px;
+}
+.app-card-title { font-weight: 600; font-size: 14px; color: var(--text, #e8eaf0); display: flex; align-items: center; gap: 8px; }
+.app-card-title a { color: var(--text, #e8eaf0); text-decoration: none; border-bottom: 1px dashed rgba(71,209,255,0.3); }
+.app-card-title a:hover { color: #47d1ff; border-bottom-color: #47d1ff; }
+.app-card-meta { font-size: 11px; color: var(--text3, #7a8099); margin-top: 4px; }
+.app-card-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.app-btn {
+  padding: 6px 10px; background: transparent; color: var(--text2, #b0b6c8);
+  border: 1px solid var(--border2, rgba(255,255,255,0.1)); border-radius: 6px;
+  font-size: 11px; font-family: 'DM Sans', sans-serif; cursor: pointer;
+}
+.app-btn:hover { color: var(--text, #e8eaf0); background: var(--panel2, rgba(255,255,255,0.04)); }
+.app-btn.primary { background: #47d1ff; color: #07091a; border-color: #47d1ff; font-weight: 600; }
+.app-btn.primary:hover { background: #5fdcff; }
+.app-btn.danger { color: #ff9a9a; border-color: rgba(255,154,154,0.3); }
+.app-btn.danger:hover { color: #ff7a7a; border-color: rgba(255,122,122,0.6); background: rgba(255,122,122,0.06); }
+.app-access-rows {
+  display: flex; flex-direction: column; gap: 6px;
+  padding-top: 10px; border-top: 1px dashed var(--border, rgba(255,255,255,0.08));
+}
+.access-row {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; color: var(--text2, #b0b6c8); padding: 5px 0;
+}
+.access-row-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.access-row-name { font-weight: 500; }
+.access-row-email { font-size: 11px; color: var(--text3, #7a8099); }
+.access-pill {
+  font-size: 9px; padding: 2px 6px; border-radius: 9px;
+  font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+}
+.access-pill-creator { background: rgba(71,209,255,0.18); color: #47d1ff; }
+.access-pill-admin   { background: rgba(240,165,0,0.18); color: #f0a500; }
+.access-empty-note { font-size: 11px; color: var(--text3, #7a8099); font-style: italic; padding: 4px 0; }
+.grant-form {
+  display: none; gap: 8px; margin-top: 10px;
+  padding: 10px; background: var(--navy3, rgba(255,255,255,0.02)); border-radius: 8px;
+  align-items: center;
+}
+.grant-form.open { display: flex; }
+.grant-form select {
+  flex: 1; padding: 7px 10px; background: var(--panel2, rgba(255,255,255,0.04));
+  border: 1px solid var(--border2, rgba(255,255,255,0.1)); border-radius: 6px;
+  color: var(--text, #e8eaf0); font-size: 12px; outline: none;
+}
+.grant-form-note { font-size: 10px; color: var(--text3, #7a8099); margin-top: 6px; }
+
+
 .settings-panel {
   width: 100%; max-width: 460px;
   background: var(--navy3, var(--panel)); border: 1px solid var(--border2);
@@ -938,6 +1039,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
     <button class="btn-sm" onclick="tidyResolvedAdminCards(false)" title="Move resolved admin cards from Ready to QA passed">Tidy</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
     <button class="btn-sm" id="btn-users" onclick="openUsersPanel()" title="User management" style="display:none;">👥 Users</button>
+    <button class="btn-sm" id="btn-app-access" onclick="openAppAccessPanel()" title="App access — per-app grants" style="display:none;">🔑 App Access</button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (API keys, GitHub)" aria-label="Settings">⚙</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
@@ -997,6 +1099,27 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
       </div>
       <div class="users-status" id="users-status">Loading...</div>
       <div class="users-list" id="users-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- T6 — App Access overlay (admin-only) -->
+<div class="app-access-overlay" id="app-access-overlay" onclick="if(event.target===this)closeAppAccessPanel()">
+  <div class="app-access-panel">
+    <div class="app-access-panel-head">
+      <div>
+        <div class="app-access-panel-title">App access</div>
+        <div class="app-access-panel-sub">Per-app access grants for shipped apps. Creators and admins have implicit access. Users must sign in to DN_Intent at least once before they can be granted access here.</div>
+      </div>
+      <button class="app-access-panel-close" onclick="closeAppAccessPanel()" aria-label="Close">×</button>
+    </div>
+    <div class="app-access-panel-body">
+      <div class="app-access-toolbar">
+        <input type="search" id="app-access-search" placeholder="Filter apps by title or creator..." oninput="renderAppAccessList()">
+        <button class="app-access-reload" onclick="loadAppAccess()">↻ Reload</button>
+      </div>
+      <div class="app-access-status" id="app-access-status">Loading...</div>
+      <div class="app-access-list" id="app-access-list"></div>
     </div>
   </div>
 </div>
@@ -2011,6 +2134,231 @@ function escapeUsersHtml(s) {
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
 }
 
+// ===========================================================
+// T6 — App Access management panel
+// ===========================================================
+let appAccessAppsCache = [];        // [{id,title,creator_user_id,shipped_url,shipped_at,status,creator,access:[...]}]
+let appAccessProfilesCache = [];    // [{id,email,full_name,is_admin}]
+
+function showAppAccessButtonIfAdmin() {
+  const btn = document.getElementById('btn-app-access');
+  if (btn) btn.style.display = isAdmin() ? '' : 'none';
+}
+
+async function openAppAccessPanel() {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  document.getElementById('app-access-overlay').classList.add('open');
+  await loadAppAccess();
+}
+
+function closeAppAccessPanel() {
+  document.getElementById('app-access-overlay').classList.remove('open');
+}
+
+async function loadAppAccess() {
+  const statusEl = document.getElementById('app-access-status');
+  if (statusEl) statusEl.textContent = 'Loading shipped apps and grants\u2026';
+  if (!supaClient) { if (statusEl) statusEl.textContent = 'Not signed in.'; return; }
+  try {
+    // 1) all profiles (admin RLS allows full SELECT)
+    const { data: profiles, error: pErr } = await supaClient
+      .from('profiles')
+      .select('id,email,full_name,is_admin')
+      .order('full_name');
+    if (pErr) throw pErr;
+    appAccessProfilesCache = profiles || [];
+
+    // 2) shipped apps only (shipped_url IS NOT NULL)
+    const { data: apps, error: aErr } = await supaClient
+      .from('requests')
+      .select('id,title,creator_user_id,submitted_by,shipped_url,shipped_filename,shipped_at,status,created_at')
+      .not('shipped_url', 'is', null)
+      .order('shipped_at', { ascending: false });
+    if (aErr) throw aErr;
+
+    // 3) all grants
+    const { data: grants, error: gErr } = await supaClient
+      .from('app_access')
+      .select('request_id,user_id,granted_by,granted_at');
+    if (gErr) throw gErr;
+
+    const profileById = {};
+    appAccessProfilesCache.forEach(function(p) { profileById[p.id] = p; });
+
+    const grantsByApp = {};
+    (grants || []).forEach(function(g) {
+      if (!grantsByApp[g.request_id]) grantsByApp[g.request_id] = [];
+      const p = profileById[g.user_id] || { id: g.user_id, email: '(unknown)', full_name: '(unknown user)' };
+      grantsByApp[g.request_id].push({
+        user_id: g.user_id, full_name: p.full_name, email: p.email,
+        granted_by: g.granted_by, granted_at: g.granted_at
+      });
+    });
+
+    appAccessAppsCache = (apps || []).map(function(a) {
+      return Object.assign({}, a, {
+        creator: a.creator_user_id ? profileById[a.creator_user_id] : null,
+        access: grantsByApp[a.id] || []
+      });
+    });
+
+    if (statusEl) {
+      statusEl.textContent = appAccessAppsCache.length + ' shipped app(s) \u00b7 ' + (grants || []).length + ' total grant(s)';
+    }
+    renderAppAccessList();
+  } catch (e) {
+    console.error('loadAppAccess failed:', e);
+    if (statusEl) statusEl.textContent = 'Failed to load: ' + (e.message || e);
+  }
+}
+
+function renderAppAccessList() {
+  const listEl = document.getElementById('app-access-list');
+  if (!listEl) return;
+  const searchEl = document.getElementById('app-access-search');
+  const search = ((searchEl && searchEl.value) || '').trim().toLowerCase();
+  const filtered = appAccessAppsCache.filter(function(a) {
+    if (!search) return true;
+    const hay = ((a.title || '') + ' ' + (a.submitted_by || '') + ' ' + (a.creator && a.creator.email || '')).toLowerCase();
+    return hay.indexOf(search) !== -1;
+  });
+  if (!filtered.length) {
+    listEl.innerHTML = '<div class="app-access-empty">No shipped apps match.</div>';
+    return;
+  }
+
+  // Profile <option> list for the grant dropdown — used by every app card
+  const optsHtml = appAccessProfilesCache
+    .filter(function(p) { return !p.is_admin; })  // admins have implicit access; don't offer them
+    .map(function(p) {
+      const label = (p.full_name || p.email || '(no name)') + (p.email ? ' <' + p.email + '>' : '');
+      return '<option value="' + p.id + '">' + escapeAppAccessHtml(label) + '</option>';
+    }).join('');
+
+  listEl.innerHTML = filtered.map(function(a) {
+    const creator = a.creator;
+    const creatorName = creator ? (creator.full_name || creator.email || 'unknown') : (a.submitted_by || 'unknown');
+    const creatorEmail = creator ? (creator.email || '') : '';
+    const shippedDate = a.shipped_at ? a.shipped_at.slice(0, 10) : (a.created_at ? a.created_at.slice(0, 10) : '');
+    const linkUrl = a.shipped_url || '';
+
+    // Filter grant dropdown to exclude users already granted on this app + the creator
+    const grantedIds = new Set(a.access.map(function(ax) { return ax.user_id; }));
+    if (creator) grantedIds.add(creator.id);
+    const availableOpts = appAccessProfilesCache
+      .filter(function(p) { return !p.is_admin && !grantedIds.has(p.id); })
+      .map(function(p) {
+        const label = (p.full_name || p.email || '(no name)') + (p.email ? ' <' + p.email + '>' : '');
+        return '<option value="' + p.id + '">' + escapeAppAccessHtml(label) + '</option>';
+      }).join('');
+
+    // Implicit-creator row + explicit grants
+    const creatorRow = creator ?
+      '<div class="access-row">' +
+        '<div class="access-row-info">' +
+          '<span class="access-row-name">' + escapeAppAccessHtml(creatorName) + '</span>' +
+          (creatorEmail ? '<span class="access-row-email">' + escapeAppAccessHtml(creatorEmail) + '</span>' : '') +
+          '<span class="access-pill access-pill-creator">creator</span>' +
+        '</div>' +
+        '<span class="access-empty-note" style="font-style:normal">implicit</span>' +
+      '</div>' : '';
+
+    const grantRows = a.access.length
+      ? a.access.map(function(ax) {
+          return '<div class="access-row">' +
+            '<div class="access-row-info">' +
+              '<span class="access-row-name">' + escapeAppAccessHtml(ax.full_name || '(no name)') + '</span>' +
+              '<span class="access-row-email">' + escapeAppAccessHtml(ax.email || '') + '</span>' +
+            '</div>' +
+            '<button class="app-btn danger" onclick="revokeAppAccess(\'' + a.id + '\', \'' + ax.user_id + '\')">Revoke</button>' +
+          '</div>';
+        }).join('')
+      : '';
+
+    const accessSection = (creatorRow || grantRows)
+      ? '<div class="app-access-rows">' + creatorRow + grantRows + '</div>'
+      : '<div class="app-access-rows"><div class="access-empty-note">No additional users granted. Only creator and admins can access.</div></div>';
+
+    const grantForm = availableOpts
+      ? '<div class="grant-form" id="grant-form-' + a.id + '">' +
+          '<select id="grant-select-' + a.id + '">' + availableOpts + '</select>' +
+          '<button class="app-btn primary" onclick="grantAppAccess(\'' + a.id + '\')">Grant</button>' +
+          '<button class="app-btn" onclick="toggleGrantForm(\'' + a.id + '\')">Cancel</button>' +
+        '</div>'
+      : '<div class="grant-form" id="grant-form-' + a.id + '"><span class="access-empty-note">No remaining users to grant. Either everyone has access already, or they need to sign in to DN_Intent first.</span><button class="app-btn" onclick="toggleGrantForm(\'' + a.id + '\')">Close</button></div>';
+
+    return '<div class="app-card">' +
+      '<div class="app-card-head">' +
+        '<div style="min-width:0;flex:1">' +
+          '<div class="app-card-title">' +
+            (linkUrl ? '<a href="' + escapeAppAccessHtml(linkUrl) + '" target="_blank" rel="noopener">' + escapeAppAccessHtml(a.title || '(untitled)') + '</a>' : escapeAppAccessHtml(a.title || '(untitled)')) +
+          '</div>' +
+          '<div class="app-card-meta">' +
+            'Shipped ' + shippedDate + ' \u00b7 created by <strong>' + escapeAppAccessHtml(creatorName) + '</strong>' +
+            (creatorEmail ? ' &lt;' + escapeAppAccessHtml(creatorEmail) + '&gt;' : '') +
+            ' \u00b7 ' + a.access.length + ' grant(s)' +
+          '</div>' +
+        '</div>' +
+        '<div class="app-card-actions">' +
+          '<button class="app-btn primary" onclick="toggleGrantForm(\'' + a.id + '\')">+ Grant access</button>' +
+        '</div>' +
+      '</div>' +
+      grantForm +
+      accessSection +
+    '</div>';
+  }).join('');
+}
+
+function toggleGrantForm(appId) {
+  const f = document.getElementById('grant-form-' + appId);
+  if (f) f.classList.toggle('open');
+}
+
+async function grantAppAccess(appId) {
+  const sel = document.getElementById('grant-select-' + appId);
+  if (!sel) return;
+  const userId = sel.value;
+  if (!userId) { alert('Pick a user to grant access to.'); return; }
+  try {
+    const { error } = await supaClient.from('app_access').insert({
+      request_id: appId,
+      user_id: userId,
+      granted_by: currentSession && currentSession.user ? currentSession.user.id : null
+    });
+    if (error) {
+      if (error.code === '23505' || ((error.message || '') + '').indexOf('duplicate') !== -1) {
+        alert('This user already has access.');
+      } else throw error;
+    }
+    await loadAppAccess();
+  } catch (e) {
+    console.error('grantAppAccess failed:', e);
+    alert('Grant failed: ' + (e.message || e));
+  }
+}
+
+async function revokeAppAccess(appId, userId) {
+  if (!confirm('Revoke access for this user?')) return;
+  try {
+    const { error } = await supaClient.from('app_access')
+      .delete()
+      .eq('request_id', appId)
+      .eq('user_id', userId);
+    if (error) throw error;
+    await loadAppAccess();
+  } catch (e) {
+    console.error('revokeAppAccess failed:', e);
+    alert('Revoke failed: ' + (e.message || e));
+  }
+}
+
+function escapeAppAccessHtml(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+
 
 window.addEventListener('load', async function() {
   document.getElementById('logo-img').src = 'data:image/jpeg;base64,' + LOGO_B64;
@@ -2048,6 +2396,8 @@ function openSettingsPanel() {
     if (inpEmail) inpEmail.value = currentProfile.email || '';
     // T5 — show Users button only for admins
     showUsersButtonIfAdmin();
+    // T6 — show App Access button only for admins
+    showAppAccessButtonIfAdmin();
   }
   document.getElementById('settings-overlay').classList.add('open');
   setTimeout(function() {
