@@ -1090,7 +1090,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.1 #8</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.2 #9</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -2719,14 +2719,23 @@ async function changeAppLifecycle(appId, newStatus) {
       .update({ lifecycle_status: newStatus })
       .eq('id', appId);
     if (error) throw error;
-    // Optimistic update of local cache so we don't refetch everything
-    const cached = appAccessAppsCache.find(function(a){ return a.id === appId; });
-    if (cached) cached.lifecycle_status = newStatus;
-    renderAppAccessList();
+    // v1.2.2 #9 — sync both caches and re-render any visible view that depends on lifecycle
+    if (typeof appAccessAppsCache !== 'undefined') {
+      const cached = appAccessAppsCache.find(function(a){ return a.id === appId; });
+      if (cached) cached.lifecycle_status = newStatus;
+    }
+    if (typeof allReqs !== 'undefined') {
+      const r = allReqs.find(function(x){ return x.id === appId; });
+      if (r) r.lifecycle_status = newStatus;
+    }
+    if (typeof renderAppAccessList === 'function') renderAppAccessList();
+    if (typeof activeId !== 'undefined' && activeId === appId && typeof renderEpic === 'function') {
+      renderEpic(appId);
+    }
   } catch (e) {
     console.error('changeAppLifecycle failed:', e);
     alert('Lifecycle update failed: ' + (e.message || e));
-    await loadAppAccess();
+    if (typeof loadAppAccess === 'function') await loadAppAccess();
   }
 }
 
@@ -3951,6 +3960,13 @@ function renderMonolithicView(req) {
     actions += '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview source</button>' +
                '<button class="mono-btn mono-btn-secondary" onclick="openShipModalMono(\'' + req.id + '\')">Re-ship</button>' +
                '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>';
+    // v1.2.2 #9 — inline lifecycle controls so admins can park/activate from the natural spot
+    const lf = req.lifecycle_status || 'parked';
+    const lfOpts = ['active','parked','archived'].map(function(v){
+      return '<option value="' + v + '"' + (v===lf?' selected':'') + '>' + v + '</option>';
+    }).join('');
+    actions += '<span class="lifecycle-pill ' + lf + '" style="margin-left:12px;">' + lf + '</span>' +
+               '<select class="lifecycle-select" title="Lifecycle status — Active = visible to users in DN_Intent" onchange="changeAppLifecycle(\'' + req.id + '\', this.value)">' + lfOpts + '</select>';
   }
 
   // Needs input notes panel
