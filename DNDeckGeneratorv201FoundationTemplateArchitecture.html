@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.16.0</title>
+<title>DN Deck Generator v2.16.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -594,6 +594,18 @@ tbody tr:hover { background: var(--surface-2); }
 .branding-picker-quickpicks .qp-chip:hover { background: var(--accent-soft, var(--surface-2)); border-color: var(--accent, var(--border-strong)); }
 /* ===== end Build #57 CSS ===== */
 
+/* ===== Build #87 — skill group visual distinction ===== */
+.skill-row-group-thumb { width: 60px; height: 60px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 1px; background: var(--border); border-radius: 4px; overflow: hidden; flex-shrink: 0; padding: 0; border: 1px solid var(--border); }
+.skill-row-group-thumb .grp-cell { background: var(--surface-2, var(--surface)); display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.skill-row-group-thumb .grp-cell img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.skill-row-group-thumb .grp-cell.empty { color: var(--text-tertiary); font-size: 8px; font-style: italic; }
+.skill-group-badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 6px; background: rgba(13, 148, 136, 0.12); color: #04342C; border: 1px solid #0d9488; border-radius: 999px; font-size: 9px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; margin-left: 6px; vertical-align: middle; }
+@media (prefers-color-scheme: dark) {
+  .skill-group-badge { background: rgba(45, 212, 191, 0.18); color: #5DCAA5; border-color: #1D9E75; }
+}
+[data-theme="dark"] .skill-group-badge { background: rgba(45, 212, 191, 0.18); color: #5DCAA5; border-color: #1D9E75; }
+/* ===== end Build #87 CSS ===== */
+
 /* ===== Build #65 — slide thumb block overlay ===== */
 .slide-img-thumb { position: relative; }
 .slide-thumb-blocks-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
@@ -640,7 +652,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.16.0 #85</div>
+      <div class="brand-version">v2.16.2 #87</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -4493,7 +4505,7 @@ function renderSkills() {
   document.querySelectorAll('[data-skill-act]').forEach(el => {
     const act = el.dataset.skillAct; const id = el.dataset.id;
     if (act === 'fav') el.onclick = async () => { await toggleFavoriteSkill(id); renderSkills(); };
-    else if (act === 'edit') el.onclick = () => openSkillEditor(id);
+    else if (act === 'edit') el.onclick = () => { const sk = skillById(id); if (sk && sk.is_group) openSkillGroupEditor(id); else openSkillEditor(id); };
     else if (act === 'dup') el.onclick = () => duplicateSkill(id);
     else if (act === 'del') el.onclick = () => confirmDeleteSkill(id);
     else if (act === 'view') el.onclick = () => openSkillViewer(id);
@@ -4503,6 +4515,37 @@ function renderSkills() {
 function renderSkillRow(s) {
   const isFav = favoriteSkillIds.has(s.id);
   const promptLen = (s.prompt || '').length;
+  // Build #87 — branch on is_group
+  if (s.is_group) {
+    const members = resolveGroupMembers(s);
+    // Build a 2x2 grid of up to 4 member preview thumbnails
+    const cells = [];
+    for (let i = 0; i < 4; i++) {
+      const m = members[i];
+      if (m && m.preview_image_b64) {
+        cells.push('<div class="grp-cell"><img src="data:image/jpeg;base64,' + m.preview_image_b64 + '" alt=""></div>');
+      } else if (m) {
+        cells.push('<div class="grp-cell empty">' + escapeHtml((m.name || '?').slice(0, 6)) + '</div>');
+      } else {
+        cells.push('<div class="grp-cell empty"></div>');
+      }
+    }
+    const memberNames = members.slice(0, 4).map(m => escapeHtml(m.name)).join(', ');
+    const memberCountLabel = members.length + ' member' + (members.length === 1 ? '' : 's');
+    return '<div class="skill-row">' +
+      '<button class="skill-star ' + (isFav ? 'active' : '') + '" data-skill-act="fav" data-id="' + s.id + '" title="' + (isFav ? 'Unfavorite' : 'Favorite') + '" aria-label="Toggle favorite">' + starSvg(isFav) + '</button>' +
+      '<div class="skill-row-group-thumb">' + cells.join('') + '</div>' +
+      '<div class="skill-main">' +
+        '<div class="skill-name">' + escapeHtml(s.name) + '<span class="skill-group-badge">\ud83c\udf9b\ufe0f Group</span></div>' +
+        '<div class="skill-desc">' + escapeHtml(s.description || '(no description)') + (members.length > 0 ? ' \u00b7 ' + escapeHtml(memberNames) : '') + '</div>' +
+      '</div>' +
+      '<div class="skill-meta">' + memberCountLabel + '</div>' +
+      '<div class="skill-actions">' +
+        '<button class="btn-ghost" data-skill-act="view" data-id="' + s.id + '">View members</button>' +
+        (state.adminMode ? '<button class="btn-secondary" data-skill-act="edit" data-id="' + s.id + '">Edit</button><button class="btn-ghost" data-skill-act="dup" data-id="' + s.id + '">Duplicate</button><button class="btn-ghost" data-skill-act="del" data-id="' + s.id + '" style="color:var(--danger)">Delete</button>' : '') +
+      '</div>' +
+    '</div>';
+  }
   return `
     <div class="skill-row">
       <button class="skill-star ${isFav ? 'active' : ''}" data-skill-act="fav" data-id="${s.id}" title="${isFav ? 'Unfavorite' : 'Favorite'}" aria-label="Toggle favorite">${starSvg(isFav)}</button>
@@ -4520,6 +4563,35 @@ function renderSkillRow(s) {
 }
 function openSkillViewer(id) {
   const s = skillById(id); if (!s) return;
+  // Build #87 — branch to group viewer when applicable
+  if (s.is_group) {
+    const members = resolveGroupMembers(s);
+    const memberRows = members.length === 0
+      ? '<div class="muted body-sm" style="padding:20px;text-align:center">This group has no members. Edit it to add some.</div>'
+      : members.map((m, idx) =>
+          '<div style="display:flex;gap:12px;align-items:center;padding:10px;border:1px solid var(--border);border-radius:6px;margin-bottom:8px;background:var(--surface)">' +
+            '<div style="font-size:11px;color:var(--text-muted);font-family:var(--mono);width:24px;flex-shrink:0">#' + (idx+1) + '</div>' +
+            (m.preview_image_b64 ? '<img src="data:image/jpeg;base64,' + m.preview_image_b64 + '" alt="" style="width:80px;height:45px;object-fit:cover;border-radius:4px;flex-shrink:0">' : '<div style="width:80px;height:45px;background:var(--surface-2,var(--surface));border-radius:4px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:10px;flex-shrink:0">no preview</div>') +
+            '<div style="flex:1;min-width:0">' +
+              '<div style="font-size:13px;font-weight:500">' + escapeHtml(m.name) + '</div>' +
+              '<div class="muted body-sm" style="font-size:11px;margin-top:2px">' + (m.best_for ? '<strong>Best for:</strong> ' + escapeHtml(m.best_for) + ' \u00b7 ' : '') + ((m.prompt || '').length.toLocaleString()) + ' chars</div>' +
+            '</div>' +
+            '<button class="btn-ghost" data-view-member="' + m.id + '" style="font-size:11px;padding:4px 8px;flex-shrink:0">View skill</button>' +
+          '</div>'
+        ).join('');
+    openModal(
+      '<div class="modal-header"><div><div class="h1">' + escapeHtml(s.name) + '<span class="skill-group-badge">\ud83c\udf9b\ufe0f Group</span></div><div class="muted body-sm" style="margin-top:4px">' + escapeHtml(s.description || '') + '</div></div><button class="btn-ghost" onclick="closeModal()">\u00d7</button></div>' +
+      '<div class="muted body-sm" style="margin-bottom:14px;font-size:12px;padding:10px;background:var(--surface-2,var(--surface));border-radius:6px"><strong>How groups work:</strong> When a deck uses this group, Claude Haiku picks the best-fitting member skill for each slide based on slide content and best-for tags. You can also override per-slide via Refine \u2192 Edit prompt.</div>' +
+      '<div class="field"><label class="field-label">Members <span class="subtle">' + members.length + ' skill' + (members.length === 1 ? '' : 's') + '</span></label>' + memberRows + '</div>' +
+      '<div class="modal-footer">' + (state.adminMode ? '<button class="btn-secondary" id="editFromView">Edit group</button>' : '') + '<button class="btn-primary" onclick="closeModal()">Close</button></div>',
+      { lg: true }
+    );
+    document.querySelectorAll('[data-view-member]').forEach(b => {
+      b.onclick = () => { const memId = b.getAttribute('data-view-member'); closeModal(); openSkillViewer(memId); };
+    });
+    const eb = document.getElementById('editFromView'); if (eb) eb.onclick = () => { closeModal(); openSkillGroupEditor(id); };
+    return;
+  }
   openModal(`<div class="modal-header"><div><div class="h1">${escapeHtml(s.name)}</div><div class="muted body-sm" style="margin-top:4px">${escapeHtml(s.description || '')}</div></div><button class="btn-ghost" onclick="closeModal()">×</button></div>
     <div class="field"><label class="field-label">Prompt <span class="subtle">${(s.prompt||'').length} chars</span></label><div class="composed-preview" style="max-height:420px">${escapeHtml(s.prompt || '')}</div></div>
     <div class="modal-footer">${state.adminMode ? `<button class="btn-secondary" id="editFromView">Edit</button>` : ''}<button class="btn-primary" onclick="closeModal()">Close</button></div>`, { lg: true });
@@ -4578,16 +4650,26 @@ function openSkillGroupEditor(id) {
       };
     });
     const saveBtn = document.getElementById('sgSaveBtn');
-    if (saveBtn) saveBtn.onclick = async () => {
+    if (saveBtn) saveBtn.onclick = async (ev) => {
       if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
       if (draft.member_skill_ids.length < 2) { toast({ type: 'error', message: 'Pick at least 2 member skills' }); return; }
       if (draft.member_skill_ids.length > 8) { toast({ type: 'error', message: 'Max 8 members (2-4 recommended)' }); return; }
+      // Build #86 — disable + spinner while saving
+      const btn = ev && ev.currentTarget;
+      const cancelBtn = document.querySelector('.modal-footer .btn-ghost');
+      const origText = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving\u2026'; }
+      if (cancelBtn) cancelBtn.disabled = true;
       try {
         await saveSkill(draft);
         closeModal();
         toast({ type: 'success', message: 'Skill group saved' });
         renderSkills();
-      } catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+      } catch (e) {
+        toast({ type: 'error', message: e.message || String(e) });
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        if (cancelBtn) cancelBtn.disabled = false;
+      }
     };
   }
   renderEditor();
@@ -4781,20 +4863,54 @@ function openSkillEditor(id, initialDraft) {
       if (!draft.id) { toast({ type: 'info', message: 'Save the skill first, then regenerate preview' }); return; }
       await regenerateSkillPreview(draft.id);
     };
-    document.getElementById('saveSkillBtn').onclick = async () => {
+    document.getElementById('saveSkillBtn').onclick = async (ev) => {
       if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
       if (!draft.prompt.trim()) { toast({ type: 'error', message: 'Prompt is required' }); return; }
       const note = document.getElementById('skChange').value || null;
-      try { await saveSkill({ ...draft, change_note: note }); closeModal(); toast({ type: 'success', message: 'Skill saved' }); renderSkills(); }
-      catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+      // Build #86 — disable + spinner while saving (auto-preview can take ~30s)
+      const btn = ev && ev.currentTarget;
+      const sasn = document.getElementById('saveAsNewBtn');
+      const cancelBtn = document.querySelector('.modal-footer .btn-ghost');
+      const origText = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving\u2026'; }
+      if (sasn) sasn.disabled = true;
+      if (cancelBtn) cancelBtn.disabled = true;
+      try {
+        await saveSkill({ ...draft, change_note: note });
+        closeModal();
+        toast({ type: 'success', message: 'Skill saved' });
+        renderSkills();
+      } catch (e) {
+        toast({ type: 'error', message: e.message || String(e) });
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        if (sasn) sasn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+      }
     };
     const sasn = document.getElementById('saveAsNewBtn');
-    if (sasn) sasn.onclick = async () => {
+    if (sasn) sasn.onclick = async (ev) => {
       if (!draft.name.trim()) { toast({ type: 'error', message: 'Name is required' }); return; }
       if (!draft.prompt.trim()) { toast({ type: 'error', message: 'Prompt is required' }); return; }
       const note = document.getElementById('skChange').value || null;
-      try { await saveSkill({ id: null, name: draft.name + ' (copy)', description: draft.description, prompt: draft.prompt, change_note: note }); closeModal(); toast({ type: 'success', message: 'New skill created' }); renderSkills(); }
-      catch (e) { toast({ type: 'error', message: e.message || String(e) }); }
+      // Build #86 — disable + spinner while saving
+      const btn = ev && ev.currentTarget;
+      const saveBtn = document.getElementById('saveSkillBtn');
+      const cancelBtn = document.querySelector('.modal-footer .btn-ghost');
+      const origText = btn ? btn.innerHTML : '';
+      if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Saving\u2026'; }
+      if (saveBtn) saveBtn.disabled = true;
+      if (cancelBtn) cancelBtn.disabled = true;
+      try {
+        await saveSkill({ id: null, name: draft.name + ' (copy)', description: draft.description, prompt: draft.prompt, change_note: note });
+        closeModal();
+        toast({ type: 'success', message: 'New skill created' });
+        renderSkills();
+      } catch (e) {
+        toast({ type: 'error', message: e.message || String(e) });
+        if (btn) { btn.disabled = false; btn.innerHTML = origText; }
+        if (saveBtn) saveBtn.disabled = false;
+        if (cancelBtn) cancelBtn.disabled = false;
+      }
     };
   };
   renderEditor();
@@ -5311,7 +5427,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.16.0</span> (build #85 — skill groups + smart per-slide picker)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.16.2</span> (build #87 — group visual distinction + drill-down)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
