@@ -1036,7 +1036,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.0 #1</span>
+  <span class="topbar-version" title="DN_Admin build">v1.0.1 #2</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -2210,8 +2210,15 @@ async function loadAppAccess() {
       });
     });
 
+    // v1.0.1 #2 — show user counts so empty grant dropdowns are explainable
+    const totalUsers = appAccessProfilesCache.length;
+    const grantableUsers = appAccessProfilesCache.filter(function(p) { return !p.is_admin; }).length;
     if (statusEl) {
-      statusEl.textContent = appAccessAppsCache.length + ' shipped app(s) \u00b7 ' + (grants || []).length + ' total grant(s)';
+      statusEl.textContent =
+        appAccessAppsCache.length + ' shipped app(s) \u00b7 ' +
+        (grants || []).length + ' total grant(s) \u00b7 ' +
+        totalUsers + ' signed-up user(s) \u00b7 ' +
+        grantableUsers + ' grantable (non-admin)';
     }
     renderAppAccessList();
   } catch (e) {
@@ -2293,7 +2300,14 @@ function renderAppAccessList() {
           '<button class="app-btn primary" onclick="grantAppAccess(\'' + a.id + '\')">Grant</button>' +
           '<button class="app-btn" onclick="toggleGrantForm(\'' + a.id + '\')">Cancel</button>' +
         '</div>'
-      : '<div class="grant-form" id="grant-form-' + a.id + '"><span class="access-empty-note">No remaining users to grant. Either everyone has access already, or they need to sign in to DN_Intent first.</span><button class="app-btn" onclick="toggleGrantForm(\'' + a.id + '\')">Close</button></div>';
+      : '<div class="grant-form" id="grant-form-' + a.id + '" style="flex-direction:column;align-items:stretch;gap:6px"><span class="access-empty-note" style="font-style:normal;line-height:1.5">' +
+          (appAccessProfilesCache.filter(function(p) { return !p.is_admin; }).length === 0
+            ? '<strong>No other users signed up yet.</strong><br>Ask a colleague to sign in to DN_Intent first (' +
+              '<a href="https://ai-dn.github.io/dn-platform/DN_Intent.html" target="_blank" rel="noopener" style="color:#47d1ff">ai-dn.github.io/dn-platform/DN_Intent.html</a>' +
+              '). Once they sign in, their profile is created and they\'ll appear in this dropdown for you to grant access.'
+            : 'No remaining users to grant on this app \u2014 either everyone non-admin has access already, or the creator has it implicitly.'
+          ) +
+        '</span><button class="app-btn" style="align-self:flex-end" onclick="toggleGrantForm(\'' + a.id + '\')">Close</button></div>';
 
     return '<div class="app-card">' +
       '<div class="app-card-head">' +
