@@ -667,7 +667,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.1.1 #3</span>
+  <span class="topbar-version" title="DN_Intent build">v1.1.2 #4</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1202,17 +1202,19 @@ async function loadPlatformContext() {
     const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
     const myId = currentSession && currentSession.user && currentSession.user.id || null;
 
-    // v1.1 #2 — fetch requests + the current user's app_access grants in parallel.
-    // RLS gives admins all requests; we apply an explicit per-user access filter at
-    // the app layer so admins' DN_Intent view matches what a regular granted user sees.
+    // v1.1.2 #4 — fetch requests + app_access grants + the user's pending access_requests in parallel.
     const requestsUrl = url + '/rest/v1/requests?select=id,creator_user_id,creator_access_revoked,submitted_by,title,goal,users,status,mode,created_at,artifacts,stories,conversation,rejected_reason,rejected_by,rejected_at,shipped_url,shipped_filename,shipped_at,qa_status,qa_notes,artifact_version,capabilities,needs_input,needs_input_notes&order=created_at.desc&limit=50';
     const grantsUrl = myId
       ? url + '/rest/v1/app_access?select=request_id&user_id=eq.' + encodeURIComponent(myId)
       : null;
+    const accessReqsUrl = myId
+      ? url + '/rest/v1/access_requests?select=request_id&user_id=eq.' + encodeURIComponent(myId) + '&status=eq.pending'
+      : null;
 
-    const [reqResp, grantResp] = await Promise.all([
+    const [reqResp, grantResp, accReqResp] = await Promise.all([
       fetch(requestsUrl, { headers }),
-      grantsUrl ? fetch(grantsUrl, { headers }) : Promise.resolve(null)
+      grantsUrl ? fetch(grantsUrl, { headers }) : Promise.resolve(null),
+      accessReqsUrl ? fetch(accessReqsUrl, { headers }) : Promise.resolve(null)
     ]);
     if (!reqResp.ok) { console.warn('Context load failed:', reqResp.status); return; }
     const rows = await reqResp.json();
@@ -1223,6 +1225,18 @@ async function loadPlatformContext() {
       const grantRows = await grantResp.json();
       (grantRows || []).forEach(function(g) { grantedIds.add(g.request_id); });
     }
+
+    // v1.1.2 #4 — pending access_requests so we can show "Pending" instead of "Request access"
+    let pendingAccessIds = new Set();
+    if (accReqResp && accReqResp.ok) {
+      const arRows = await accReqResp.json();
+      (arRows || []).forEach(function(r) { pendingAccessIds.add(r.request_id); });
+    }
+
+    // Persist for top-level helpers (reqHasAccess, requestAppAccess, etc.)
+    platformContext.myId = myId;
+    platformContext.grantedIds = grantedIds;
+    platformContext.pendingAccessIds = pendingAccessIds;
 
     // v1.1.1 #3 — strict access: creator (unless revoked by admin) OR explicit grant.
     // No legacy submitted_by fallback here \u2014 that was over-permissive and let
@@ -1257,14 +1271,74 @@ async function loadPlatformContext() {
 
     platformContext.loadedAt = new Date().toISOString();
 
-    console.log('Platform context loaded (v1.1.1 #3):',
+    console.log('Platform context loaded (v1.1.2 #4):',
       platformContext.myRequests.length + ' mine, ' +
       platformContext.shipped.length + ' shipped (accessible to you), ' +
       platformContext.active.length + ' active (accessible to you), ' +
-      grantedIds.size + ' explicit grant(s) \u00b7 access = explicit grant OR creator (unless admin revoked)');
+      grantedIds.size + ' explicit grant(s), ' +
+      pendingAccessIds.size + ' pending access request(s)');
     renderDashboard();
   } catch (e) {
     console.warn('Context load error:', e);
+  }
+}
+
+// v1.1.2 #4 — top-level access helpers consumed by showDashDetail
+function reqHasAccess(req) {
+  if (!platformContext || !platformContext.myId) return false;
+  // Explicit grant via app_access
+  if (platformContext.grantedIds && platformContext.grantedIds.has(req.id)) return true;
+  // Creator with implicit access, unless admin has revoked it
+  if (req.creator_user_id === platformContext.myId && !req.creator_access_revoked) return true;
+  return false;
+}
+
+function reqHasPendingRequest(req) {
+  return !!(platformContext && platformContext.pendingAccessIds && platformContext.pendingAccessIds.has(req.id));
+}
+
+async function requestAppAccess(requestId) {
+  const url = localStorage.getItem('dn_supa_url');
+  const key = localStorage.getItem('dn_supa_key');
+  const myId = platformContext && platformContext.myId;
+  if (!myId) { alert('Please sign in first.'); return; }
+  if (!url || !key) { alert('Supabase not configured.'); return; }
+  try {
+    const resp = await fetch(url + '/rest/v1/access_requests', {
+      method: 'POST',
+      headers: {
+        'apikey': key,
+        'Authorization': 'Bearer ' + getJwt(key),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ request_id: requestId, user_id: myId, status: 'pending' })
+    });
+    if (!resp.ok) {
+      const errText = await resp.text();
+      // 23505 = unique violation (already a pending row for this request+user)
+      if (resp.status === 409 || errText.indexOf('duplicate') !== -1 || errText.indexOf('23505') !== -1) {
+        alert('You already have a pending access request for this app. The admin will review it.');
+      } else {
+        throw new Error('HTTP ' + resp.status + ': ' + errText.slice(0, 200));
+      }
+    } else {
+      alert('Access requested. Admin will review and grant access soon.');
+    }
+    // Refresh so the button flips to "Pending"
+    await loadPlatformContext();
+    // Re-render currently-open dash detail if it's open
+    const detail = document.getElementById('dash-detail');
+    if (detail && detail.classList.contains('open')) {
+      const titleEl = document.getElementById('dash-detail-title-text');
+      const which = titleEl && titleEl.textContent === 'Your requests' ? 'mine'
+                  : titleEl && titleEl.textContent === 'Available tools' ? 'shipped'
+                  : titleEl && titleEl.textContent === 'In progress' ? 'active' : null;
+      if (which) showDashDetail(which);
+    }
+  } catch (e) {
+    console.error('requestAppAccess failed:', e);
+    alert('Request failed: ' + (e.message || e));
   }
 }
 
@@ -3049,10 +3123,17 @@ function showDashDetail(which) {
       const ver = (req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
       const meta = (req.submitted_by || '?') + (ver ? ' · ' + ver : '') + ' · ' + (req.status || '?');
 
-      // Build action buttons depending on whether the app is shipped
+      // v1.1.2 #4 — access-aware buttons. OPEN only when user has access.
+      // Otherwise show "Pending" (if there's an open access_requests row) or "Request access".
       let actionsHtml = '<div class="dash-row-actions">';
       if (isShipped) {
-        actionsHtml += '<a class="dash-row-launch" href="' + esc(launchUrl) + '" target="_blank" rel="noopener">Open ↗</a>';
+        if (reqHasAccess(req)) {
+          actionsHtml += '<a class="dash-row-launch" href="' + esc(launchUrl) + '" target="_blank" rel="noopener">Open \u2197</a>';
+        } else if (reqHasPendingRequest(req)) {
+          actionsHtml += '<button class="dash-row-action" disabled title="Access requested \u2014 awaiting admin review" style="opacity:0.6;cursor:not-allowed">Pending</button>';
+        } else {
+          actionsHtml += '<button class="dash-row-action" onclick="requestAppAccess(\'' + (req.id || '') + '\')" title="Ask admin to grant you access to this tool">Request access</button>';
+        }
       }
       actionsHtml += '<button class="dash-row-action" onclick="askAboutRequest(\'' + (req.id || '') + '\')">Ask</button>';
       actionsHtml += '</div>';
