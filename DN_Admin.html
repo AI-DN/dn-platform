@@ -1090,7 +1090,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.0 #7</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.1 #8</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -2625,12 +2625,17 @@ function renderAccessRequestsList() {
       ? '<button class="app-btn primary" onclick="grantAccessRequest(\'' + r.id + '\',\'' + r.request_id + '\',\'' + r.user_id + '\')">Grant</button>' +
         '<button class="app-btn danger" onclick="denyAccessRequest(\'' + r.id + '\')">Deny</button>'
       : '';
+    // v1.2.1 #8 — inline denial reason so admins can see what the previous admin said
+    const noteLine = (r.status === 'denied' && r.notes)
+      ? '<div class="ar-card-meta" style="color:#f05060;margin-top:3px"><strong>Reason:</strong> ' + escapeAppAccessHtml(r.notes) + '</div>'
+      : '';
     return '<div class="ar-card">' +
       '<div class="ar-card-info">' +
         '<span class="ar-card-user">' + escapeAppAccessHtml(name) + '</span>' +
         (email ? '<span class="ar-card-email">&lt;' + escapeAppAccessHtml(email) + '&gt;</span>' : '') +
         '<span class="ar-card-pill ' + pillClass + '">' + pillLabel + '</span>' +
         '<div class="ar-card-meta">requests access to <span class="ar-card-app">' + escapeAppAccessHtml(appTitle) + '</span> <span class="ar-card-time">· ' + escapeAppAccessHtml(ts) + '</span></div>' +
+        noteLine +
       '</div>' +
       '<div class="ar-card-actions">' + actions + '</div>' +
     '</div>';
@@ -2667,14 +2672,22 @@ async function grantAccessRequest(accessRequestId, appId, userId) {
 
 async function denyAccessRequest(accessRequestId) {
   if (!isAdmin()) { alert('Admins only.'); return; }
-  if (!confirm('Deny this access request? The user can still request again later.')) return;
+  // v1.2.1 #8 — capture an optional reason. The user sees it on their "Request denied" pill.
+  const reason = prompt(
+    'Deny this access request?\n\nOptional: add a short reason the user will see (e.g. "use Financial Dashboard instead", "wait until tool is active"). Leave blank to deny without a reason. Press Cancel to abort.',
+    ''
+  );
+  if (reason === null) return;  // user cancelled
+  const trimmed = (reason || '').trim();
   try {
+    const update = {
+      status: 'denied',
+      resolved_by: currentSession && currentSession.user ? currentSession.user.id : null,
+      resolved_at: new Date().toISOString()
+    };
+    if (trimmed) update.notes = trimmed;
     const { error } = await supaClient.from('access_requests')
-      .update({
-        status: 'denied',
-        resolved_by: currentSession && currentSession.user ? currentSession.user.id : null,
-        resolved_at: new Date().toISOString()
-      })
+      .update(update)
       .eq('id', accessRequestId);
     if (error) throw error;
     await loadAccessRequests();

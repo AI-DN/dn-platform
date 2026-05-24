@@ -519,6 +519,21 @@ body::before {
 .dash-row-dot.pending { background: var(--text3); }
 .dash-row-title { flex: 1; color: var(--text); }
 .dash-row-meta { font-size: 11px; color: var(--text3); }
+.dash-row-pill {
+  display: inline-block;
+  font-size: 11.5px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  margin-right: 4px;
+  vertical-align: middle;
+  cursor: default;
+  user-select: none;
+}
+.dash-row-pill.parked { background: rgba(160,170,200,0.12); color: #aab; border: 1px solid rgba(160,170,200,0.25); }
+.dash-row-pill.archived { background: rgba(240,80,96,0.10); color: #d56b78; border: 1px solid rgba(240,80,96,0.22); }
+.dash-row-pill.denied { background: rgba(240,80,96,0.16); color: #f05060; border: 1px solid rgba(240,80,96,0.32); }
 .dash-row-action {
   font-size: 11px;
   padding: 3px 9px;
@@ -667,7 +682,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.2.0 #5</span>
+  <span class="topbar-version" title="DN_Intent build">v1.2.1 #6</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1208,7 +1223,7 @@ async function loadPlatformContext() {
       ? url + '/rest/v1/app_access?select=request_id&user_id=eq.' + encodeURIComponent(myId)
       : null;
     const accessReqsUrl = myId
-      ? url + '/rest/v1/access_requests?select=request_id&user_id=eq.' + encodeURIComponent(myId) + '&status=eq.pending'
+      ? url + '/rest/v1/access_requests?select=request_id,status,notes,resolved_at&user_id=eq.' + encodeURIComponent(myId) + '&status=in.(pending,denied)&order=resolved_at.desc.nullsfirst'
       : null;
 
     const [reqResp, grantResp, accReqResp] = await Promise.all([
@@ -1226,17 +1241,36 @@ async function loadPlatformContext() {
       (grantRows || []).forEach(function(g) { grantedIds.add(g.request_id); });
     }
 
-    // v1.1.2 #4 — pending access_requests so we can show "Pending" instead of "Request access"
+    // v1.2.1 #6 — split pending vs denied access_requests so we can surface denial state
     let pendingAccessIds = new Set();
+    let deniedAccessIds = new Set();
+    let deniedNotesByApp = {};
     if (accReqResp && accReqResp.ok) {
       const arRows = await accReqResp.json();
-      (arRows || []).forEach(function(r) { pendingAccessIds.add(r.request_id); });
+      // Order in URL is resolved_at desc nullsfirst, so 'pending' rows are first.
+      // We mark an app as "pending" if any current row is pending; otherwise we
+      // use the most recent denied row for the denial note.
+      (arRows || []).forEach(function(r) {
+        if (r.status === 'pending') {
+          pendingAccessIds.add(r.request_id);
+        } else if (r.status === 'denied') {
+          // Don't override pending state — pending wins (user just re-asked)
+          if (!pendingAccessIds.has(r.request_id)) {
+            deniedAccessIds.add(r.request_id);
+            if (r.notes && !deniedNotesByApp[r.request_id]) {
+              deniedNotesByApp[r.request_id] = r.notes;
+            }
+          }
+        }
+      });
     }
 
     // Persist for top-level helpers (reqHasAccess, requestAppAccess, etc.)
     platformContext.myId = myId;
     platformContext.grantedIds = grantedIds;
     platformContext.pendingAccessIds = pendingAccessIds;
+    platformContext.deniedAccessIds = deniedAccessIds;
+    platformContext.deniedNotesByApp = deniedNotesByApp;
 
     // v1.1.1 #3 — strict access: creator (unless revoked by admin) OR explicit grant.
     // No legacy submitted_by fallback here \u2014 that was over-permissive and let
@@ -1302,6 +1336,21 @@ function reqHasAccess(req) {
 
 function reqHasPendingRequest(req) {
   return !!(platformContext && platformContext.pendingAccessIds && platformContext.pendingAccessIds.has(req.id));
+}
+
+// v1.2.1 #6 — denied access requests so the user knows when their ask was rejected
+function reqHasDeniedRequest(req) {
+  return !!(platformContext && platformContext.deniedAccessIds && platformContext.deniedAccessIds.has(req.id));
+}
+function reqDenialNote(req) {
+  if (!platformContext || !platformContext.deniedNotesByApp) return '';
+  return platformContext.deniedNotesByApp[req.id] || '';
+}
+
+// v1.2.1 #6 — lifecycle hard-gate helper
+function reqLifecycleAllowsOpen(req) {
+  const lf = (req && req.lifecycle_status) || 'parked';
+  return lf === 'active';
 }
 
 async function requestAppAccess(requestId) {
@@ -3130,14 +3179,28 @@ function showDashDetail(which) {
       const ver = (req.artifacts && req.artifacts.length) ? ' v' + (req.artifacts[req.artifacts.length-1].version || 1) : '';
       const meta = (req.submitted_by || '?') + (ver ? ' · ' + ver : '') + ' · ' + (req.status || '?');
 
-      // v1.1.2 #4 — access-aware buttons. OPEN only when user has access.
-      // Otherwise show "Pending" (if there's an open access_requests row) or "Request access".
+      // v1.2.1 #6 — access + lifecycle aware buttons.
+      // Order: lifecycle parked/archived (hard gate) > has access (Open) >
+      //        pending (Pending pill) > denied (Resubmit + note) > no request (Request access).
       let actionsHtml = '<div class="dash-row-actions">';
       if (isShipped) {
-        if (reqHasAccess(req)) {
+        const lf = (req.lifecycle_status || 'parked');
+        if (lf !== 'active') {
+          // Parked / archived = no actions, just a pill so the user knows it exists but is dormant
+          const pillLabel = lf.charAt(0).toUpperCase() + lf.slice(1);
+          const pillTitle = lf === 'parked'
+            ? 'This tool is currently parked. Ask an admin to mark it active before using it.'
+            : 'This tool has been archived and is no longer in use.';
+          actionsHtml += '<span class="dash-row-pill ' + lf + '" title="' + esc(pillTitle) + '">' + esc(pillLabel) + '</span>';
+        } else if (reqHasAccess(req)) {
           actionsHtml += '<a class="dash-row-launch" href="' + esc(launchUrl) + '" target="_blank" rel="noopener">Open \u2197</a>';
         } else if (reqHasPendingRequest(req)) {
           actionsHtml += '<button class="dash-row-action" disabled title="Access requested \u2014 awaiting admin review" style="opacity:0.6;cursor:not-allowed">Pending</button>';
+        } else if (reqHasDeniedRequest(req)) {
+          const note = reqDenialNote(req);
+          const tip = note ? ('Denied: ' + note) : 'Your earlier access request was denied.';
+          actionsHtml += '<span class="dash-row-pill denied" title="' + esc(tip) + '">Request denied</span>';
+          actionsHtml += '<button class="dash-row-action" onclick="requestAppAccess(\'' + (req.id || '') + '\')" title="Submit a new access request">Resubmit</button>';
         } else {
           actionsHtml += '<button class="dash-row-action" onclick="requestAppAccess(\'' + (req.id || '') + '\')" title="Ask admin to grant you access to this tool">Request access</button>';
         }
