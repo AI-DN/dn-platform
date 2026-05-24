@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.22.0</title>
+<title>DN Deck Generator v2.22.2</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.22.0 #99</div>
+      <div class="brand-version">v2.22.2 #101</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1482,6 +1482,124 @@ async function effectiveSkillIdForSlide(slide, slideIdx) {
   return memberId;
 }
 
+// Build #100 — Backdrop-only generation: produces a clean styled background
+// when the slide has detected persons[]. Real text/photos/logos are composed
+// on top later (preview = composeHybridPreview, final = PptxGenJS in Build #101).
+async function generateSlideBackdrop(slide, fullPrompt, overrideSpec) {
+  const layoutType = slide.layoutType || '';
+  const personZones = (slide.persons || []).map((p, i) => {
+    if (!p.bbox) return null;
+    return '  - Person photo zone ' + (i + 1) +
+      ' (will be filled with a real headshot AFTER generation): x=' + p.bbox.x.toFixed(0) +
+      '%, y=' + p.bbox.y.toFixed(0) + '%, w=' + p.bbox.w.toFixed(0) +
+      '%, h=' + p.bbox.h.toFixed(0) +
+      '% \u2014 leave this region as clean styled background, no faces, no figures, no decorative content';
+  }).filter(Boolean).join('\n');
+  const backdropPrompt =
+    '=== BACKDROP-ONLY GENERATION ===\n' +
+    'You are generating ONLY the styled BACKGROUND of a presentation slide. Real text, photographs, and logos will be overlaid by PowerPoint AFTER this image is generated. Do NOT generate any of those elements yourself.\n\n' +
+    'STRICT RULES:\n' +
+    '1. NO TEXT anywhere in the output. No headlines, no body text, no labels, no captions, no numbers, no chart text.\n' +
+    '2. NO HUMAN FACES OR PORTRAITS anywhere. No people, no headshots, no figures, no silhouettes of people.\n' +
+    '3. NO LOGOS, brand marks, badges, wordmarks, or company symbols.\n' +
+    '4. NO CHARTS, diagrams, or icons that would conflict with overlaid content.\n' +
+    '5. The output is a clean styled BACKGROUND that supports overlaid content \u2014 use decorative shapes, gradients, world maps, geometric accents, color washes, soft patterns, etc. Whatever the visual style calls for, MINUS text/faces/logos.\n\n' +
+    (layoutType ? '=== LAYOUT INTENT ===\nThe original slide layout was: ' + layoutType + '. The backdrop should naturally accommodate that layout when content is overlaid on top.\n\n' : '') +
+    (personZones ? '=== RESERVED CONTENT ZONES \u2014 KEEP AS CLEAN STYLED BACKGROUND ===\n' + personZones + '\n\n' : '') +
+    '=== VISUAL STYLE TO APPLY ===\n' +
+    fullPrompt + '\n\n' +
+    '=== OUTPUT ===\n' +
+    'One 16:9 widescreen slide BACKGROUND. No text. No people. No logos. Just the styled empty canvas ready for real content to be overlaid.';
+  const spec = overrideSpec || currentEffectiveModel();
+  const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, backdropPrompt);
+  const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
+  return { b64: b64, prompt: backdropPrompt, cost: cost, spec: spec };
+}
+
+// Build #100 — Compose a hybrid preview image: backdrop + photo crops + simple text labels.
+// Used for in-app display in Step 3 / Step 5. The real export composition (with proper
+// PowerPoint text rendering) happens in PptxGenJS in Build #101.
+async function composeHybridPreview(backdropB64, slide) {
+  const W = 1536, H = 1024;
+  const canvas = document.createElement('canvas');
+  canvas.width = W; canvas.height = H;
+  const ctx = canvas.getContext('2d');
+  // Backdrop
+  try {
+    const bd = await new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('Backdrop decode failed'));
+      // Backdrop may be PNG or JPEG; try PNG first
+      im.src = 'data:image/png;base64,' + backdropB64;
+    }).catch(() => new Promise((res, rej) => {
+      const im = new Image();
+      im.onload = () => res(im);
+      im.onerror = () => rej(new Error('Backdrop decode failed (JPEG fallback)'));
+      im.src = 'data:image/jpeg;base64,' + backdropB64;
+    }));
+    ctx.drawImage(bd, 0, 0, W, H);
+  } catch (e) {
+    ctx.fillStyle = '#f5f5f5';
+    ctx.fillRect(0, 0, W, H);
+    console.warn('Backdrop draw failed, using grey fill:', e);
+  }
+  // Person photos
+  for (const p of (slide.persons || [])) {
+    if (!p.bbox || !p.photoB64) continue;
+    const x = (p.bbox.x / 100) * W;
+    const y = (p.bbox.y / 100) * H;
+    const w = (p.bbox.w / 100) * W;
+    const h = (p.bbox.h / 100) * H;
+    try {
+      const photoImg = await new Promise((res, rej) => {
+        const im = new Image();
+        im.onload = () => res(im);
+        im.onerror = () => rej(new Error('Photo decode failed'));
+        im.src = 'data:image/png;base64,' + p.photoB64;
+      });
+      ctx.drawImage(photoImg, x, y, w, h);
+      // Name + role label below the photo
+      if (p.name) {
+        ctx.fillStyle = '#000';
+        ctx.font = 'bold 16px sans-serif';
+        ctx.textAlign = 'start';
+        ctx.fillText(p.name.slice(0, 32), x, y + h + 22);
+        if (p.role) {
+          ctx.fillStyle = '#555';
+          ctx.font = 'italic 14px sans-serif';
+          ctx.fillText(p.role.slice(0, 40), x, y + h + 42);
+        }
+      }
+    } catch (e) { console.warn('Failed to overlay person photo:', e); }
+  }
+  // Title at top center (preview only \u2014 PptxGenJS will render real text)
+  if (slide.title) {
+    ctx.fillStyle = '#000';
+    ctx.font = 'bold 38px sans-serif';
+    ctx.textAlign = 'center';
+    // Simple word-wrap at ~50 chars
+    const titleWords = slide.title.split(/\s+/);
+    const lines = [];
+    let cur = '';
+    for (const w of titleWords) {
+      if ((cur + ' ' + w).length > 50) { lines.push(cur); cur = w; }
+      else { cur = cur ? cur + ' ' + w : w; }
+    }
+    if (cur) lines.push(cur);
+    lines.slice(0, 2).forEach((line, i) => ctx.fillText(line, W / 2, 70 + i * 44));
+    ctx.textAlign = 'start';
+  }
+  // Body text below title (small preview)
+  if (slide.body) {
+    ctx.fillStyle = '#333';
+    ctx.font = '18px sans-serif';
+    const lines = slide.body.split('\n').filter(l => l.trim()).slice(0, 6);
+    lines.forEach((line, i) => ctx.fillText(line.slice(0, 90), 60, 180 + i * 26));
+  }
+  return canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
+}
+
 async function generateSlideImage(slide, customPromptOverride, overrideSpec, slideIdx) {
   // Build #85 — resolve effective skill (handles per-slide override and skill groups)
   let skill = null;
@@ -1497,6 +1615,17 @@ async function generateSlideImage(slide, customPromptOverride, overrideSpec, sli
   }
   const prompt = customPromptOverride || composeSkillPrompt(skill, slide);
   const spec = overrideSpec || currentEffectiveModel();
+  // Build #100 — Hybrid composition route: when slide has detected persons (from PDF import
+  // Build #99 structured extraction), generate ONLY a styled backdrop; we'll compose real
+  // photo crops + text on top for the preview, and PptxGenJS will do proper composition on export.
+  if (slide.persons && slide.persons.length > 0) {
+    const backdrop = await generateSlideBackdrop(slide, prompt, spec);
+    slide.backdropB64 = backdrop.b64;
+    slide.backdropPrompt = backdrop.prompt;
+    slide.compositionMode = 'hybrid';
+    const previewB64 = await composeHybridPreview(backdrop.b64, slide);
+    return { b64: previewB64, prompt: backdrop.prompt, cost: backdrop.cost, spec: backdrop.spec };
+  }
   const b64 = await generateImageWithProvider(spec.provider, spec.model, spec.quality, prompt);
   const cost = getImageCost(spec.provider, spec.model, '1536x1024', spec.quality);
   return { b64, prompt, cost, spec };
@@ -1805,20 +1934,24 @@ async function regenerateOne(idx, newPrompt, overrideSpec) {
   slide.status = 'generating'; slide.error = null;
   renderStep5Slides();
   try {
-    // Build #80 — if slide has a reference image, use image-to-image regeneration
-    const useRef = !!(slide.referenceImageB64);
+    // Build #100 — hybrid composition (persons[]) takes precedence over reference-image regen
+    const useHybrid = !!(slide.persons && slide.persons.length > 0);
+    // Build #80 — if slide has a reference image AND no hybrid persons, use image-to-image regen
+    const useRef = !useHybrid && !!(slide.referenceImageB64);
     const skill = state.selectedSkillId ? skillById(state.selectedSkillId) : null;
     const promptToUse = newPrompt || composeSkillPrompt(skill, slide);
-    const result = useRef
-      ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64, overrideSpec)
-      : await generateSlideImage(slide, newPrompt, overrideSpec, idx);
+    const result = useHybrid
+      ? await generateSlideImage(slide, newPrompt, overrideSpec, idx)
+      : (useRef
+          ? await generateSlideImageWithReference(slide, promptToUse, slide.referenceImageB64, overrideSpec)
+          : await generateSlideImage(slide, newPrompt, overrideSpec, idx));
     const { b64, prompt, cost, spec } = result;
     slide.imageB64 = b64; slide.imagePrompt = prompt; slide.lastPrompt = prompt;
     slide.textChangedSinceGeneration = false; slide.blocksChangedSinceGeneration = false;
     slide.status = 'done'; slide.regenCount++;
     slide.costAccrued = (slide.costAccrued || 0) + cost; slide.modelUsed = spec;
     deckCost.image += cost;
-    deckCost.imageDetails.push({ ...spec, cost, kind: (useRef ? 'reference-regen' : 'regen') });
+    deckCost.imageDetails.push({ ...spec, cost, kind: (useHybrid ? 'hybrid-backdrop' : (useRef ? 'reference-regen' : 'regen')) });
     renderCostBadge();
     toast({ type: 'success', message: `Slide ${idx+1} regenerated · ${fmtUsd(cost)}` });
     // Build #78 — inpaint reserved zones deterministically
@@ -2457,7 +2590,63 @@ async function assemblePptx() {
     const slide = state.slides[i];
     if (!slide.imageB64) continue;
     const s = prs.addSlide();
-    s.addImage({ data: `data:image/jpeg;base64,${slide.imageB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
+    // Build #101 — hybrid composition: backdrop + real text + real photo crops
+    if (slide.compositionMode === 'hybrid' && slide.backdropB64) {
+      // 1) Backdrop as full-slide background
+      s.addImage({ data: `data:image/png;base64,${slide.backdropB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
+      // 2) Title text box at top (PowerPoint dimensions: 13.33 x 7.5 inches)
+      if (slide.title) {
+        s.addText(slide.title, {
+          x: 1.0, y: 0.5, w: 11.3, h: 1.0,
+          fontSize: 28, fontFace: 'Arial', bold: true, color: '111111', align: 'center', valign: 'middle'
+        });
+      }
+      // 3) Body text below title (if present and persons aren't taking up most of the canvas)
+      if (slide.body) {
+        s.addText(slide.body, {
+          x: 1.0, y: 1.6, w: 11.3, h: 1.4,
+          fontSize: 14, fontFace: 'Arial', color: '333333', align: 'left', valign: 'top'
+        });
+      }
+      // 4) Per-person: photo crop + name + role label
+      const persons = slide.persons || [];
+      for (const person of persons) {
+        if (!person.bbox) continue;
+        // Convert percentage bbox to PowerPoint inches (slide is 13.33 x 7.5)
+        const px = 13.33 * (person.bbox.x / 100);
+        const py = 7.5 * (person.bbox.y / 100);
+        const pw = 13.33 * (person.bbox.w / 100);
+        const ph = 7.5 * (person.bbox.h / 100);
+        // Photo
+        if (person.photoB64) {
+          s.addImage({
+            data: `data:image/png;base64,${person.photoB64}`,
+            x: px, y: py, w: pw, h: ph
+          });
+        }
+        // Name + role label below the photo
+        if (person.name || person.role) {
+          const labelY = Math.min(py + ph + 0.05, 7.0);
+          const labelH = Math.min(0.5, 7.5 - labelY);
+          if (labelH > 0.15) {
+            const labelText = [
+              { text: person.name || '', options: { bold: true, fontSize: 11, color: '111111' } },
+              ...(person.role ? [{ text: '\n' + person.role, options: { italic: true, fontSize: 9, color: '555555' } }] : [])
+            ];
+            // Center the label horizontally on the photo, give some padding
+            const labelW = Math.max(pw + 0.6, 1.5);
+            const labelX = Math.max(0, Math.min(13.33 - labelW, px - 0.3));
+            s.addText(labelText, {
+              x: labelX, y: labelY, w: labelW, h: labelH,
+              fontFace: 'Arial', align: 'center', valign: 'top', margin: 0
+            });
+          }
+        }
+      }
+    } else {
+      // Legacy single-image path (slides without detected persons)
+      s.addImage({ data: `data:image/jpeg;base64,${slide.imageB64}`, x: 0, y: 0, w: 13.3, h: 7.5 });
+    }
     // Backing panels (logos only)
     if (showLogoBacking) {
       if (tl && tl.kind === 'logo') s.addShape(prs.ShapeType.roundRect, { x: LOGO_X_LEFT - 0.08, y: LOGO_Y - 0.06, w: tlW + 0.16, h: tlH + 0.12, fill: { color: '080C1A' }, line: { color: '080C1A', width: 0 }, rectRadius: 0.05 });
@@ -6524,7 +6713,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.22.0</span> (build #99 — structured extraction: persons + logos with bboxes, foundation for hybrid composition)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.22.2</span> (build #101 — PptxGenJS hybrid composition: backdrop + real text boxes + real photo crops on export)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
