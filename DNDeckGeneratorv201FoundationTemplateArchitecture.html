@@ -1,7 +1,7 @@
 <!DOCTYPE html><html lang="en" data-theme="light"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>DN Deck Generator v2.21.0</title>
+<title>DN Deck Generator v2.21.1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%23080C1A'/%3E%3Ctext x='50%25' y='52%25' dominant-baseline='central' text-anchor='middle' font-family='Arial,sans-serif' font-weight='700' font-size='24' fill='%232dd4bf'%3EDN%3C/text%3E%3C/svg%3E">
@@ -659,7 +659,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.21.0 #97</div>
+      <div class="brand-version">v2.21.1 #98</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -5465,6 +5465,71 @@ function openSkillEditor(id, initialDraft) {
 // =====================================================================
 // Build #95 — Import .pdf for re-styling with current skill/group
 // =====================================================================
+// Build #98 — extract clean {title, body} from a rendered page image via Claude vision
+async function extractSlideContentWithClaude(imageB64, pdfTextHint, pageNum) {
+  const ak = (state.apiKeys.anthropic || '').trim();
+  if (!ak) throw new Error('Anthropic key required for vision extraction');
+  const visionImage = await downscaleImageForVision(imageB64);
+  const sysPrompt = 'You extract structured content from a presentation slide image. Return ONLY a JSON object with keys "title" and "body". No markdown fences, no commentary, no surrounding prose.';
+  const hint = (pdfTextHint || '').slice(0, 1500);
+  const userPrompt =
+    'Extract the MAIN TITLE and BODY CONTENT from this slide image (page ' + pageNum + ').\n\n' +
+    'STRICT RULES:\n' +
+    '1. IGNORE all repeating chrome: footers, headers, page numbers, watermarks, slide-number labels, dates, confidentiality stamps (e.g. "Private & confidential", "Confidential", "Draft"), copyright lines, and company logos in corners. None of these belong in the title or body.\n' +
+    '2. The TITLE is the slide\'s main headline \u2014 usually large text near the top of the slide. If the slide is a section divider with only a page number or no real headline, return an EMPTY STRING for title.\n' +
+    '3. The BODY is the main content \u2014 bullets, paragraphs, key points, captions on diagrams. Preserve text verbatim. Use \u005Cn line breaks between distinct bullet points or paragraphs.\n' +
+    '4. If the slide is essentially blank or only contains a number/divider, return empty strings for both.\n' +
+    '5. Do NOT include footer chrome anywhere in title or body. "Private & confidential" must never appear in either field.\n\n' +
+    'PDF.js raw text hint from this page (jumbled order \u2014 use only as a spelling/exact-wording aid; trust the IMAGE for structure):\n' +
+    hint + '\n\n' +
+    'Return JSON: {"title": "...", "body": "..."}';
+  const resp = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-api-key': ak, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 1500,
+      system: sysPrompt,
+      messages: [{ role: 'user', content: [
+        { type: 'image', source: { type: 'base64', media_type: visionImage.mediaType, data: visionImage.b64 } },
+        { type: 'text', text: userPrompt }
+      ] }]
+    })
+  });
+  if (!resp.ok) { const t = await resp.text(); throw new Error('Vision extract ' + resp.status + ': ' + t.slice(0, 200)); }
+  const data = await resp.json();
+  let cost = 0.02;
+  if (data.usage) { try { cost = getAnthropicCost('claude-sonnet-4-6', data.usage.input_tokens || 0, data.usage.output_tokens || 0); } catch (e) {} }
+  const responseText = (data.content && data.content[0] && data.content[0].text) || '';
+  let parsed = { title: '', body: '' };
+  try {
+    const m = responseText.match(/\{[\s\S]*\}/);
+    if (m) parsed = JSON.parse(m[0]);
+  } catch (e) { console.warn('Vision JSON parse failed for page ' + pageNum + ':', responseText.slice(0, 200)); }
+  return { title: (parsed.title || '').trim(), body: (parsed.body || '').trim(), cost: cost };
+}
+
+// Build #98 — font-size heuristic extracted as fallback for no-Anthropic or vision-failure paths
+function fontHeuristicExtract(textItems, pageNum) {
+  if (!textItems || textItems.length === 0) return { title: 'Slide ' + pageNum, body: '' };
+  const heights = textItems.map(it => it.height || 0);
+  const maxH = Math.max.apply(null, heights);
+  const titleThreshold = maxH * 0.9;
+  const titleParts = [];
+  const bodyParts = [];
+  for (const it of textItems) {
+    if ((it.height || 0) >= titleThreshold && titleParts.length < 6) titleParts.push(it.str);
+    else bodyParts.push(it.str);
+  }
+  let title = titleParts.join(' ').replace(/\s+/g, ' ').trim();
+  let body = bodyParts.join(' ').replace(/\s+/g, ' ').trim();
+  if (!title && textItems[0]) {
+    title = textItems[0].str;
+    body = textItems.slice(1).map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+  }
+  return { title: title || ('Slide ' + pageNum), body: body };
+}
+
 async function parsePdfDeck(file, onProgress) {
   if (typeof pdfjsLib === 'undefined') throw new Error('pdf.js not loaded \u2014 reload the page');
   try {
@@ -5472,54 +5537,70 @@ async function parsePdfDeck(file, onProgress) {
   } catch (e) {}
   const ab = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: ab }).promise;
-  const slides = [];
   const total = pdf.numPages;
+  // === Phase 1: render every page + collect raw PDF text items ===
+  const pages = [];
   for (let i = 1; i <= total; i++) {
-    onProgress && onProgress(i, total, 'extract');
+    onProgress && onProgress(i, total, 'render');
     const page = await pdf.getPage(i);
-    // --- Text extraction with font-size title heuristic ---
-    let title = '';
-    let body = '';
+    let textItems = [];
     try {
       const tc = await page.getTextContent();
-      const items = (tc.items || []).filter(it => it.str && it.str.trim());
-      if (items.length > 0) {
-        const heights = items.map(it => it.height || 0);
-        const maxH = Math.max.apply(null, heights);
-        const titleThreshold = maxH * 0.9;
-        const titleParts = [];
-        const bodyParts = [];
-        for (const it of items) {
-          if ((it.height || 0) >= titleThreshold && titleParts.length < 6) titleParts.push(it.str);
-          else bodyParts.push(it.str);
-        }
-        title = titleParts.join(' ').replace(/\s+/g, ' ').trim();
-        body = bodyParts.join(' ').replace(/\s+/g, ' ').trim();
-        // If hierarchy unclear (all items same height), use first line as title
-        if (!title && items[0]) {
-          title = items[0].str;
-          body = items.slice(1).map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
-        }
-      }
+      textItems = (tc.items || []).filter(it => it.str && it.str.trim());
     } catch (e) { console.warn('PDF text extract failed for page ' + i + ':', e); }
-    // --- Render page to canvas \u2192 base64 JPEG ---
-    onProgress && onProgress(i, total, 'render');
     const viewport = page.getViewport({ scale: 1.5 });
     const canvas = document.createElement('canvas');
     canvas.width = viewport.width;
     canvas.height = viewport.height;
     const ctx = canvas.getContext('2d');
-    // White background under any transparent PDFs
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     await page.render({ canvasContext: ctx, viewport: viewport }).promise;
     const b64 = canvas.toDataURL('image/jpeg', 0.85).split(',')[1];
-    slides.push({
-      idx: i - 1,
-      title: title || ('Slide ' + i),
-      body: body || '',
-      referenceImageB64: b64
-    });
+    pages.push({ idx: i - 1, textItems: textItems, imageB64: b64 });
+  }
+  // === Phase 2: Claude vision extraction (preferred) or heuristic (fallback) ===
+  const hasAnthropic = !!(state.apiKeys.anthropic || '').trim();
+  const slides = new Array(pages.length);
+  if (hasAnthropic) {
+    let completed = 0;
+    onProgress && onProgress(completed, pages.length, 'vision');
+    const CONCURRENCY = 4;
+    let totalCost = 0;
+    const runOne = async (p) => {
+      const pdfTextHint = p.textItems.map(it => it.str).join(' ').replace(/\s+/g, ' ').trim();
+      try {
+        const result = await extractSlideContentWithClaude(p.imageB64, pdfTextHint, p.idx + 1);
+        totalCost += result.cost || 0;
+        slides[p.idx] = {
+          idx: p.idx,
+          title: result.title || ('Slide ' + (p.idx + 1)),
+          body: result.body || '',
+          referenceImageB64: p.imageB64
+        };
+      } catch (e) {
+        console.warn('Vision extract failed for page ' + (p.idx + 1) + ':', e);
+        const fb = fontHeuristicExtract(p.textItems, p.idx + 1);
+        slides[p.idx] = { idx: p.idx, title: fb.title, body: fb.body, referenceImageB64: p.imageB64 };
+      }
+      completed++;
+      onProgress && onProgress(completed, pages.length, 'vision');
+    };
+    // Process in batches of CONCURRENCY
+    for (let i = 0; i < pages.length; i += CONCURRENCY) {
+      await Promise.all(pages.slice(i, i + CONCURRENCY).map(runOne));
+    }
+    if (typeof deckCost !== 'undefined') {
+      deckCost.polish += totalCost;
+      if (deckCost.imageDetails) deckCost.imageDetails.push({ provider: 'anthropic', model: 'claude-sonnet-4-6', quality: 'vision', cost: totalCost, kind: 'pdf-text-extract' });
+      if (typeof renderCostBadge === 'function') renderCostBadge();
+    }
+  } else {
+    // No Anthropic key \u2014 fall back to font heuristic (warn user via toast at caller level)
+    for (const p of pages) {
+      const fb = fontHeuristicExtract(p.textItems, p.idx + 1);
+      slides[p.idx] = { idx: p.idx, title: fb.title, body: fb.body, referenceImageB64: p.imageB64 };
+    }
   }
   return { slides: slides, slideCount: slides.length, fileName: file.name };
 }
@@ -5541,11 +5622,16 @@ function openPdfImportModal() {
         (s.parseError ? '<div style="margin-top:14px;padding:10px;background:rgba(217,52,49,0.10);border:1px solid #D14343;border-radius:6px;color:#791F1F;font-size:12px">\u26a0 ' + escapeHtml(s.parseError) + '</div>' : '');
     } else if (s.stage === 'parsing') {
       const pct = s.parseProgress.total > 0 ? Math.round((s.parseProgress.page / s.parseProgress.total) * 100) : 0;
-      const phaseLabel = s.parseProgress.phase === 'render' ? 'rendering' : 'extracting text';
+      let phaseLabel = 'extracting text';
+      if (s.parseProgress.phase === 'render') phaseLabel = 'rendering page';
+      else if (s.parseProgress.phase === 'vision') phaseLabel = 'Claude vision extracting clean title + body';
+      const hint = s.parseProgress.phase === 'vision'
+        ? 'Vision pass runs 4 pages in parallel \u00b7 ~$0.02/page \u00b7 ignores footers, page numbers, watermarks'
+        : '~1-2 seconds per page \u00b7 don\'t close this modal';
       body = '<div style="padding:20px;text-align:center;background:var(--surface-2,var(--surface));border-radius:6px">' +
-        '<div style="margin-bottom:10px"><span class="spinner"></span> Processing page <strong>' + s.parseProgress.page + '</strong> of <strong>' + s.parseProgress.total + '</strong> (' + phaseLabel + '\u2026)</div>' +
+        '<div style="margin-bottom:10px"><span class="spinner"></span> ' + (s.parseProgress.phase === 'vision' ? 'Page ' : 'Processing page ') + '<strong>' + s.parseProgress.page + '</strong> of <strong>' + s.parseProgress.total + '</strong> (' + phaseLabel + '\u2026)</div>' +
         '<div style="background:var(--border);height:6px;border-radius:3px;overflow:hidden;max-width:400px;margin:0 auto"><div style="background:#0d9488;height:100%;width:' + pct + '%;transition:width 0.3s"></div></div>' +
-        '<div class="muted body-sm" style="font-size:11px;margin-top:8px">~1-2 seconds per page \u00b7 don\'t close this modal</div>' +
+        '<div class="muted body-sm" style="font-size:11px;margin-top:8px">' + hint + '</div>' +
         '</div>';
     } else if (s.stage === 'parsed') {
       const rows = s.parsed.slides.slice(0, 15).map(m => '<tr><td style="padding:6px;border-bottom:1px solid var(--border);width:30px;text-align:center;font-size:11px;color:var(--text-muted)">' + (m.idx + 1) + '</td><td style="padding:6px;border-bottom:1px solid var(--border);font-size:12px"><div style="font-weight:500">' + escapeHtml(m.title.slice(0, 60)) + '</div>' + (m.body ? '<div style="font-size:11px;color:var(--text-muted);margin-top:2px">' + escapeHtml(m.body.slice(0, 80)) + (m.body.length > 80 ? '\u2026' : '') + '</div>' : '') + '</td><td style="padding:6px;border-bottom:1px solid var(--border);width:80px"><img src="data:image/jpeg;base64,' + m.referenceImageB64 + '" alt="" style="width:72px;height:auto;border:1px solid var(--border);border-radius:3px"></td></tr>').join('');
@@ -6345,7 +6431,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.21.0</span> (build #97 — real image-to-image via gpt-image-1 edits endpoint for content preservation)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.21.1</span> (build #98 — Claude vision extracts clean title/body per PDF page)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
