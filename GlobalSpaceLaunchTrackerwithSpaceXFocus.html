@@ -1130,6 +1130,32 @@ button { font-family: inherit; }
 </style>
 </head>
 <body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = '05caf2ad-895a-46a2-82f0-3eed8aa0df38';
+  var APP_TITLE = "Global Space Launch Tracker with SpaceX Focus";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
 <div class="app" id="app">
   <header class="header">
     <div class="brand">
