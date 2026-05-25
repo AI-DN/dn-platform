@@ -1114,7 +1114,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.8 #15</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.9 #16</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4189,23 +4189,45 @@ async function syncArtifactFromLive(reqId, silent) {
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const liveText = await resp.text();
     const beforeKB = req.artifact_html ? Math.round(req.artifact_html.length / 1024) : 0;
-    await patchRequest(reqId, { artifact_html: liveText });
+    // v1.2.9 #16 — extract the live build number so the displayed version label updates too
+    const beforeVersion = req.artifact_version || 0;
+    let extractedVersion = 0;
+    try {
+      const candidates = [];
+      // Pattern 1: 'v2.23.3 #107' style — # number wins
+      const re1 = /v\d+(?:\.\d+)+\s*#(\d+)/g;
+      let m;
+      while ((m = re1.exec(liveText)) !== null) candidates.push(parseInt(m[1], 10));
+      // Pattern 2: 'vNN' standalone — only consider 2+ digit versions to avoid 'v1' noise
+      const re2 = /\bv(\d{2,3})\b(?!\.\d)/g;
+      while ((m = re2.exec(liveText)) !== null) candidates.push(parseInt(m[1], 10));
+      if (candidates.length) {
+        extractedVersion = Math.max.apply(null, candidates);
+      }
+    } catch(e) { /* keep extractedVersion = 0 on parse failure */ }
+    const patch = { artifact_html: liveText };
+    if (extractedVersion > 0 && extractedVersion !== beforeVersion) {
+      patch.artifact_version = extractedVersion;
+    }
+    await patchRequest(reqId, patch);
     req.artifact_html = liveText;
+    if (patch.artifact_version) req.artifact_version = patch.artifact_version;
     const afterKB = Math.round(liveText.length / 1024);
     // v1.2.8 #15 — mark for the green pulse and re-render the detail so the size chip updates
     window._lastSyncedReqId = reqId;
     try { if (typeof activeId !== 'undefined' && activeId === reqId) renderMonolithicView(req); } catch(e){}
     setTimeout(function(){ window._lastSyncedReqId = null; }, 1700);
     if (!silent) {
-      try { showSettingsToast('\u2713 Synced ' + afterKB + ' KB from live URL (was ' + beforeKB + ' KB)'); }
-      catch(e){ alert('Synced ' + afterKB + ' KB from live (was ' + beforeKB + ' KB).'); }
+      const verNote = patch.artifact_version ? (' \u00b7 v' + beforeVersion + ' \u2192 v' + patch.artifact_version) : '';
+      try { showSettingsToast('\u2713 Synced ' + afterKB + ' KB from live URL (was ' + beforeKB + ' KB)' + verNote); }
+      catch(e){ alert('Synced ' + afterKB + ' KB from live (was ' + beforeKB + ' KB).' + verNote); }
     }
     await logActivity({
       request_id: reqId,
       actor: 'admin',
       actor_name: 'admin',
       action: 'artifact_synced',
-      description: 'Stored artifact synced from live URL (' + afterKB + ' KB, was ' + beforeKB + ' KB)'
+      description: 'Stored artifact synced from live URL (' + afterKB + ' KB, was ' + beforeKB + ' KB' + (patch.artifact_version ? ', v' + beforeVersion + ' \u2192 v' + patch.artifact_version : '') + ')'
     });
     return true;
   } catch (e) {
