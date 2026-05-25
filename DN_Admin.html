@@ -1114,7 +1114,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.9 #16</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.10 #17</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4209,9 +4209,19 @@ async function syncArtifactFromLive(reqId, silent) {
     if (extractedVersion > 0 && extractedVersion !== beforeVersion) {
       patch.artifact_version = extractedVersion;
     }
+    // v1.2.10 #17 — after sync, artifact_html === live URL by definition, so this IS the
+    // 'shipped' terminal state. Don't override if a build is currently in flight, or if the
+    // request is rejected, or if there's no shipped_url yet (defensive).
+    const currentQa = req.qa_status || 'not_built';
+    const safeToResolve = (currentQa !== 'building' && currentQa !== 'iterating' && req.status !== 'rejected');
+    if (safeToResolve && currentQa !== 'shipped') {
+      patch.qa_status = 'shipped';
+    }
+    const beforeQa = currentQa;
     await patchRequest(reqId, patch);
     req.artifact_html = liveText;
     if (patch.artifact_version) req.artifact_version = patch.artifact_version;
+    if (patch.qa_status) req.qa_status = patch.qa_status;
     const afterKB = Math.round(liveText.length / 1024);
     // v1.2.8 #15 — mark for the green pulse and re-render the detail so the size chip updates
     window._lastSyncedReqId = reqId;
@@ -4219,8 +4229,9 @@ async function syncArtifactFromLive(reqId, silent) {
     setTimeout(function(){ window._lastSyncedReqId = null; }, 1700);
     if (!silent) {
       const verNote = patch.artifact_version ? (' \u00b7 v' + beforeVersion + ' \u2192 v' + patch.artifact_version) : '';
-      try { showSettingsToast('\u2713 Synced ' + afterKB + ' KB from live URL (was ' + beforeKB + ' KB)' + verNote); }
-      catch(e){ alert('Synced ' + afterKB + ' KB from live (was ' + beforeKB + ' KB).' + verNote); }
+      const qaNote = patch.qa_status ? (' \u00b7 QA \u2192 shipped') : '';
+      try { showSettingsToast('\u2713 Synced ' + afterKB + ' KB from live URL (was ' + beforeKB + ' KB)' + verNote + qaNote); }
+      catch(e){ alert('Synced ' + afterKB + ' KB from live (was ' + beforeKB + ' KB).' + verNote + qaNote); }
     }
     await logActivity({
       request_id: reqId,
