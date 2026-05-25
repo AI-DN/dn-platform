@@ -96,6 +96,30 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .mono-status-row { display: flex; align-items: center; gap: 10px; }
 .mono-dot { width: 10px; height: 10px; border-radius: 50%; }
 .mono-status-label { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 14px; color: var(--text); }
+.mono-artifact-size {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-family: 'Syne', sans-serif;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text2);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 999px;
+  padding: 2px 9px;
+  margin-left: 6px;
+}
+.mono-artifact-size.fresh-sync {
+  background: rgba(29,158,117,0.18);
+  border-color: rgba(29,158,117,0.4);
+  color: #5fe0c1;
+  animation: artifactPulse 1.6s ease 1;
+}
+@keyframes artifactPulse {
+  0% { box-shadow: 0 0 0 0 rgba(29,158,117,0.5); }
+  100% { box-shadow: 0 0 0 12px rgba(29,158,117,0); }
+}
 .mono-version { font-size: 11px; color: var(--text3); background: var(--panel); padding: 2px 8px; border-radius: 4px; }
 .mono-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
 .mono-btn { border: 1px solid var(--border2); border-radius: 8px; padding: 8px 16px; font-family: 'Syne', sans-serif; font-weight: 600; font-size: 12px; cursor: pointer; transition: all 0.2s; text-decoration: none; display: inline-block; }
@@ -1090,7 +1114,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.7 #14</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.8 #15</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4088,6 +4112,12 @@ function renderMonolithicView(req) {
   const version = req.artifact_version || 0;
   const versionLabel = version > 0 ? ('v' + version) : '';
 
+  // v1.2.8 #15 — show artifact_html size right next to version so admin can see sync results
+  const storedKB = req.artifact_html ? Math.round(req.artifact_html.length / 1024) : 0;
+  const sizeChipCls = (window._lastSyncedReqId === req.id) ? 'mono-artifact-size fresh-sync' : 'mono-artifact-size';
+  const sizeChip = storedKB > 0
+    ? '<span class="' + sizeChipCls + '" title="DN_Admin\'s stored artifact size">Stored ' + storedKB + ' KB</span>'
+    : '';
   wrap.innerHTML =
     '<div class="mono-view">' +
       '<div class="mono-header">' +
@@ -4095,6 +4125,7 @@ function renderMonolithicView(req) {
           '<span class="mono-dot" style="background:' + dotColor + '"></span>' +
           '<span class="mono-status-label">' + label + '</span>' +
           (versionLabel ? '<span class="mono-version">' + versionLabel + '</span>' : '') +
+          sizeChip +
         '</div>' +
         '<div class="mono-actions">' + actions + '</div>' +
       '</div>' +
@@ -4157,22 +4188,32 @@ async function syncArtifactFromLive(reqId, silent) {
     const resp = await fetch(req.shipped_url, { cache: 'no-store' });
     if (!resp.ok) throw new Error('HTTP ' + resp.status);
     const liveText = await resp.text();
+    const beforeKB = req.artifact_html ? Math.round(req.artifact_html.length / 1024) : 0;
     await patchRequest(reqId, { artifact_html: liveText });
     req.artifact_html = liveText;
+    const afterKB = Math.round(liveText.length / 1024);
+    // v1.2.8 #15 — mark for the green pulse and re-render the detail so the size chip updates
+    window._lastSyncedReqId = reqId;
+    try { if (typeof activeId !== 'undefined' && activeId === reqId) renderMonolithicView(req); } catch(e){}
+    setTimeout(function(){ window._lastSyncedReqId = null; }, 1700);
     if (!silent) {
-      alert('Synced ' + Math.round(liveText.length / 1024) + ' KB from live URL into DN_Admin\'s artifact store. Rebuilds will now use the current live version as their base.');
+      try { showSettingsToast('\u2713 Synced ' + afterKB + ' KB from live URL (was ' + beforeKB + ' KB)'); }
+      catch(e){ alert('Synced ' + afterKB + ' KB from live (was ' + beforeKB + ' KB).'); }
     }
     await logActivity({
       request_id: reqId,
       actor: 'admin',
       actor_name: 'admin',
       action: 'artifact_synced',
-      description: 'Stored artifact synced from live URL (' + Math.round(liveText.length / 1024) + ' KB)'
+      description: 'Stored artifact synced from live URL (' + afterKB + ' KB, was ' + beforeKB + ' KB)'
     });
     return true;
   } catch (e) {
     console.error('syncArtifactFromLive failed:', e);
-    if (!silent) alert('Sync failed: ' + (e.message || e));
+    if (!silent) {
+      try { showSettingsToast('\u2717 Sync failed: ' + (e.message || e)); }
+      catch(_){ alert('Sync failed: ' + (e.message || e)); }
+    }
     return false;
   }
 }
