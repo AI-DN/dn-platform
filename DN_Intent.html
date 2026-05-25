@@ -682,7 +682,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.2.3 #8</span>
+  <span class="topbar-version" title="DN_Intent build">v1.2.4 #9</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -750,7 +750,7 @@ body::before {
       <div class="dash-card-count" id="dash-mine-count">0</div>
       <div class="dash-card-sub" id="dash-mine-sub">none yet</div>
     </div>
-    <div class="dash-card green" onclick="showDashDetail('shipped')" style="display:none">
+    <div class="dash-card green" onclick="showDashDetail('shipped')">
       <div class="dash-card-label">Tools available</div>
       <div class="dash-card-count" id="dash-shipped-count">0</div>
       <div class="dash-card-sub" id="dash-shipped-sub">shipped & ready</div>
@@ -1277,6 +1277,9 @@ async function loadPlatformContext() {
     // pre-auth row submitters see apps they were never explicitly granted.
     const myName = (currentUser || '').toLowerCase();
     function hasAccess(req) {
+      // v1.2.4 #9 — admin bypass: admins always see every active+shipped app in DN_Intent
+      // (use a non-admin test account if you want to verify the non-admin UX).
+      if (typeof isAdmin === 'function' && isAdmin()) return true;
       // Explicit grant via app_access
       if (grantedIds.has(req.id)) return true;
       // Creator with implicit access, unless admin has revoked it
@@ -1338,6 +1341,8 @@ async function loadPlatformContext() {
 // v1.1.2 #4 — top-level access helpers consumed by showDashDetail
 function reqHasAccess(req) {
   if (!platformContext || !platformContext.myId) return false;
+  // v1.2.4 #9 — admin bypass: admins always have access in DN_Intent
+  if (typeof isAdmin === 'function' && isAdmin()) return true;
   // Explicit grant via app_access
   if (platformContext.grantedIds && platformContext.grantedIds.has(req.id)) return true;
   // Creator with implicit access, unless admin has revoked it
@@ -3128,11 +3133,10 @@ function renderDashboard() {
     return;
   }
   dash.style.display = 'grid';
-  // v1.2.3 #8 — "Available apps" (mine card) now shows all active+accessible apps
-  // (was myRequests = only my creations). The "Tools available" green card is hidden
-  // because it would duplicate this data after the rebinding.
-  document.getElementById('dash-mine-count').textContent = platformContext.shipped.length;
-  document.getElementById('dash-mine-sub').textContent = platformContext.shipped.length ? 'click to see' : 'none yet';
+  // v1.2.4 #9 — AVAILABLE APPS card shows your creations (myRequests filtered).
+  // For "everything I can use", see the Tools available card next to it.
+  document.getElementById('dash-mine-count').textContent = platformContext.myRequests.length;
+  document.getElementById('dash-mine-sub').textContent = platformContext.myRequests.length ? 'click to see' : 'none yet';
   document.getElementById('dash-shipped-count').textContent = platformContext.shipped.length;
   document.getElementById('dash-shipped-sub').textContent = platformContext.shipped.length ? 'click to see' : 'shipped & ready';
   document.getElementById('dash-active-count').textContent = platformContext.active.length;
@@ -3176,7 +3180,7 @@ function deriveAppUrl(req) {
 
 function showDashDetail(which) {
   const titleMap = { mine: 'Available apps', shipped: 'Available tools', active: 'In progress' };
-  const dataMap = { mine: platformContext.shipped, shipped: platformContext.shipped, active: platformContext.active };
+  const dataMap = { mine: platformContext.myRequests, shipped: platformContext.shipped, active: platformContext.active };
   const data = dataMap[which];
   const title = titleMap[which];
   document.getElementById('dash-detail-title-text').textContent = title;
