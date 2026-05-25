@@ -682,7 +682,7 @@ body::before {
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.2.4 #9</span>
+  <span class="topbar-version" title="DN_Intent build">v1.2.5 #10</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -751,9 +751,9 @@ body::before {
       <div class="dash-card-sub" id="dash-mine-sub">none yet</div>
     </div>
     <div class="dash-card green" onclick="showDashDetail('shipped')">
-      <div class="dash-card-label">Tools available</div>
+      <div class="dash-card-label">Authorized apps</div>
       <div class="dash-card-count" id="dash-shipped-count">0</div>
-      <div class="dash-card-sub" id="dash-shipped-sub">shipped & ready</div>
+      <div class="dash-card-sub" id="dash-shipped-sub">none authorized</div>
     </div>
     <div class="dash-card amber" onclick="showDashDetail('active')">
       <div class="dash-card-label">In progress</div>
@@ -1203,6 +1203,7 @@ function buildPendingQuestionsSection() {
 // ── Platform context (loaded from Supabase) ─────────────────────────────────
 let platformContext = {
   myRequests: [],
+  allAvailable: [],
   shipped: [],
   active: [],
   loadedAt: null
@@ -1303,14 +1304,23 @@ async function loadPlatformContext() {
       return true;
     });
 
-    // 'shipped' = has a shipped_url (live URL exists) AND lifecycle is active AND I have access
-    // v1.2.3 #8 — use shipped_url existence instead of current build_status. This way an app
-    // stays "available" while a newer version is in QA review — the previously-shipped version
-    // is still live and accessible at the GitHub Pages URL.
+    // 'shipped' = has a shipped_url AND lifecycle=active AND I have access (creator/grant/admin)
+    // This is the per-user "Authorized apps" set. v1.2.5 #10 — see allAvailable below for the
+    // platform-wide catalog (no access filter).
     platformContext.shipped = rows.filter(function(r) {
       if (!r.shipped_url) return false;
       if ((r.lifecycle_status || 'parked') !== 'active') return false;
       return hasAccess(r);
+    });
+
+    // v1.2.5 #10 — 'allAvailable' is the platform-wide catalog of usable apps. Every signed-in
+    // user sees the same list here, regardless of grants. Per-row OPEN vs Request-access vs
+    // Denied is decided by the rendering layer using reqHasAccess / reqHasPendingRequest /
+    // reqHasDeniedRequest.
+    platformContext.allAvailable = rows.filter(function(r) {
+      if (!r.shipped_url) return false;
+      if ((r.lifecycle_status || 'parked') !== 'active') return false;
+      return true;
     });
 
     // 'active' = in-flight statuses AND I have access (creator or granted)
@@ -3133,12 +3143,12 @@ function renderDashboard() {
     return;
   }
   dash.style.display = 'grid';
-  // v1.2.4 #9 — AVAILABLE APPS card shows your creations (myRequests filtered).
-  // For "everything I can use", see the Tools available card next to it.
-  document.getElementById('dash-mine-count').textContent = platformContext.myRequests.length;
-  document.getElementById('dash-mine-sub').textContent = platformContext.myRequests.length ? 'click to see' : 'none yet';
+  // v1.2.5 #10 — Available apps = platform-wide catalog (same for all users).
+  // Authorized apps = subset this specific user can open.
+  document.getElementById('dash-mine-count').textContent = (platformContext.allAvailable || []).length;
+  document.getElementById('dash-mine-sub').textContent = (platformContext.allAvailable || []).length ? 'click to see' : 'none yet';
   document.getElementById('dash-shipped-count').textContent = platformContext.shipped.length;
-  document.getElementById('dash-shipped-sub').textContent = platformContext.shipped.length ? 'click to see' : 'shipped & ready';
+  document.getElementById('dash-shipped-sub').textContent = platformContext.shipped.length ? 'click to see' : 'none authorized';
   document.getElementById('dash-active-count').textContent = platformContext.active.length;
   document.getElementById('dash-active-sub').textContent = platformContext.active.length ? 'click to see' : 'none right now';
 }
@@ -3179,8 +3189,8 @@ function deriveAppUrl(req) {
 
 
 function showDashDetail(which) {
-  const titleMap = { mine: 'Available apps', shipped: 'Available tools', active: 'In progress' };
-  const dataMap = { mine: platformContext.myRequests, shipped: platformContext.shipped, active: platformContext.active };
+  const titleMap = { mine: 'Available apps', shipped: 'Authorized apps', active: 'In progress' };
+  const dataMap = { mine: (platformContext.allAvailable || []), shipped: platformContext.shipped, active: platformContext.active };
   const data = dataMap[which];
   const title = titleMap[which];
   document.getElementById('dash-detail-title-text').textContent = title;
