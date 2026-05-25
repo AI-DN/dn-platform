@@ -886,6 +886,76 @@ body.side-panel-collapsed .main { padding-right: 0; }
   .side-panel { width: 100%; max-width: 320px; }
 }
 
+/* ─── v1.3.2 #13 — strip legacy chrome; chat is the visual center ─── */
+.main .hero,
+.main .stages,
+.main .platform-dashboard,
+.main .dash-detail,
+.main .mode-grid {
+  display: none !important;
+}
+
+/* Greeting tightens and centers above the chat */
+.intent-greeting {
+  margin: 28px auto 22px;
+  text-align: center;
+}
+.intent-greeting-sub { justify-content: center; }
+.intent-greeting-line { font-size: 24px; }
+
+/* Composer / input area becomes the focal centerpiece */
+.main .panel-wrap {
+  max-width: 760px;
+  margin: 0 auto;
+}
+.main .panel-wrap .chat-window {
+  background: rgba(7,9,26,0.4);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 18px;
+  min-height: 220px;
+}
+.main .panel-wrap .input-bar {
+  margin-top: 14px;
+  background: linear-gradient(180deg, rgba(71,209,255,0.05), rgba(184,156,255,0.02));
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 12px 14px;
+  display: flex; gap: 10px; align-items: flex-end;
+}
+.main .panel-wrap .input-bar .chat-textarea {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.5;
+  padding: 6px 4px;
+  min-height: 40px;
+  resize: none;
+}
+.main .panel-wrap .input-bar .btn-send {
+  background: var(--cyan, #47d1ff);
+  color: var(--navy, #07091a);
+  border: none;
+  border-radius: 8px;
+  padding: 9px 18px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+}
+.main .panel-wrap .input-bar .btn-send:hover { filter: brightness(1.08); }
+.main .panel-wrap .quick-panel,
+.main .panel-wrap .upload-panel {
+  background: rgba(7,9,26,0.4);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 14px;
+  padding: 18px;
+}
+
 </style>
 <link rel="icon" type="image/svg+xml"  href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head>
 <body>
@@ -894,7 +964,7 @@ body.side-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.3.1 #12</span>
+  <span class="topbar-version" title="DN_Intent build">v1.3.2 #13</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
