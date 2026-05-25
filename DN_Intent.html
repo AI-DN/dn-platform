@@ -1012,6 +1012,39 @@ body.side-panel-collapsed .main { padding-left: 0; }
   padding: 18px;
 }
 
+/* ─── v1.3.4 #15 — fill the viewport instead of floating in the middle ─── */
+.main {
+  min-height: calc(100vh - 56px);
+  display: flex;
+  flex-direction: column;
+  padding-bottom: 24px;
+}
+.intent-greeting { margin: 18px auto 14px; }
+.main .panel-wrap {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+/* panel-guided wraps the chat window + input bar */
+.main .panel-wrap > #panel-guided,
+.main .panel-wrap > #panel-quick,
+.main .panel-wrap > #panel-upload {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.main .panel-wrap > #panel-quick[style*="display:none"],
+.main .panel-wrap > #panel-upload[style*="display:none"] { flex: 0; }
+.main .panel-wrap .chat-window {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+.main .panel-wrap .input-bar { flex-shrink: 0; }
+.main .panel-wrap .chat-attach-pills { flex-shrink: 0; }
+
 </style>
 <link rel="icon" type="image/svg+xml"  href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head>
 <body>
@@ -1020,7 +1053,7 @@ body.side-panel-collapsed .main { padding-left: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.3.3 #14</span>
+  <span class="topbar-version" title="DN_Intent build">v1.3.4 #15</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
