@@ -729,24 +729,25 @@ body::before {
   letter-spacing: 0.02em;
 }
 
-/* Side panel — right rail */
-body.with-side-panel .main { padding-right: 340px; transition: padding-right .25s; }
-body.side-panel-collapsed .main { padding-right: 0; }
+/* Side panel — LEFT rail (v1.3.3 #14) */
+body.with-side-panel .main { padding-left: 340px; padding-right: 0; transition: padding-left .25s; }
+body.side-panel-collapsed .main { padding-left: 0; }
 .side-panel {
   position: fixed;
   top: 56px;
-  right: 0;
+  left: 0;
   bottom: 0;
   width: 320px;
   background: rgba(7,9,26,0.86);
-  border-left: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-right: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-left: none;
   backdrop-filter: blur(14px);
   overflow-y: auto;
   z-index: 40;
   transform: translateX(0);
   transition: transform .25s ease;
 }
-.side-panel.collapsed { transform: translateX(100%); }
+.side-panel.collapsed { transform: translateX(-100%); }
 .side-panel-head {
   display: flex; align-items: center; gap: 10px;
   padding: 18px 22px 10px;
@@ -948,6 +949,61 @@ body.side-panel-collapsed .main { padding-right: 0; }
   letter-spacing: -0.01em;
 }
 .main .panel-wrap .input-bar .btn-send:hover { filter: brightness(1.08); }
+
+/* v1.3.3 #14 — chat attachments */
+.chat-attach-btn {
+  background: transparent;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  color: var(--text2);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 16px;
+  cursor: pointer;
+  display: inline-flex; align-items: center;
+  transition: color .15s, border-color .15s, background .15s;
+}
+.chat-attach-btn:hover { color: var(--text); border-color: var(--border2); background: rgba(255,255,255,0.04); }
+.chat-attach-input { display: none; }
+.chat-attach-pills {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  margin-bottom: 8px;
+}
+.chat-attach-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  background: rgba(71,209,255,0.08);
+  border: 1px solid rgba(71,209,255,0.22);
+  color: var(--cyan);
+  font-size: 12px;
+  padding: 4px 8px 4px 6px;
+  border-radius: 999px;
+  max-width: 240px;
+}
+.chat-attach-pill img {
+  width: 22px; height: 22px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+.chat-attach-pill .pill-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.chat-attach-pill .pill-size {
+  font-size: 10px;
+  color: var(--text2);
+  opacity: 0.7;
+}
+.chat-attach-pill button {
+  background: transparent;
+  border: none;
+  color: var(--cyan);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+.chat-attach-pill button:hover { color: #fff; }
 .main .panel-wrap .quick-panel,
 .main .panel-wrap .upload-panel {
   background: rgba(7,9,26,0.4);
@@ -964,7 +1020,7 @@ body.side-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.3.2 #13</span>
+  <span class="topbar-version" title="DN_Intent build">v1.3.3 #14</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1091,7 +1147,10 @@ body.side-panel-collapsed .main { padding-right: 0; }
     <div id="panel-guided">
       <div class="chat-window" id="chat-window"></div>
       <div class="error-bar" id="chat-error"></div>
+      <div class="chat-attach-pills" id="chat-attach-pills"></div>
       <div class="input-bar">
+        <input type="file" id="chat-attach-input" class="chat-attach-input" multiple accept=".txt,.md,.csv,.png,.jpg,.jpeg,.gif,.webp" onchange="onChatAttachChange(this)">
+        <button class="chat-attach-btn" type="button" onclick="document.getElementById('chat-attach-input').click()" title="Attach a file or image">📎</button>
         <textarea class="chat-textarea" id="chat-input" rows="1"
           placeholder="Type your answer..."
           onkeydown="handleChatKey(event)"
@@ -3886,6 +3945,172 @@ function shipApp() {
     </div>
   </div>
 </aside>
+
+<script>
+// v1.3.3 #14 — chat attachments
+window.chatAttachments = [];  // [{name, size, type, kind: 'text'|'image', text?, data_b64?, media_type?}]
+
+function chatAttachIsImage(file) {
+  return /^image\//.test(file.type);
+}
+function chatAttachIsText(file) {
+  return /text\/|\.(txt|md|csv)$/i.test(file.type + ' ' + (file.name || ''));
+}
+function chatAttachReadAsText(file) {
+  return new Promise(function(res, rej){
+    var r = new FileReader();
+    r.onload = function(){ res(r.result); };
+    r.onerror = function(){ rej(r.error); };
+    r.readAsText(file);
+  });
+}
+function chatAttachReadAsDataUrl(file) {
+  return new Promise(function(res, rej){
+    var r = new FileReader();
+    r.onload = function(){ res(r.result); };
+    r.onerror = function(){ rej(r.error); };
+    r.readAsDataURL(file);
+  });
+}
+
+async function onChatAttachChange(input) {
+  var files = Array.from(input.files || []);
+  input.value = '';
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    if (f.size > 8 * 1024 * 1024) {
+      alert('File "' + f.name + '" is over 8 MB. Skipping.');
+      continue;
+    }
+    try {
+      if (chatAttachIsImage(f)) {
+        var dataUrl = await chatAttachReadAsDataUrl(f);
+        var commaIdx = dataUrl.indexOf(',');
+        var b64 = dataUrl.slice(commaIdx + 1);
+        window.chatAttachments.push({
+          name: f.name, size: f.size, type: f.type, kind: 'image',
+          data_b64: b64, media_type: f.type || 'image/png', preview_url: dataUrl
+        });
+      } else if (chatAttachIsText(f)) {
+        var txt = await chatAttachReadAsText(f);
+        window.chatAttachments.push({
+          name: f.name, size: f.size, type: f.type || 'text/plain', kind: 'text', text: txt
+        });
+      } else {
+        alert('"' + f.name + '" is not a supported file type. Use .txt, .md, .csv, or an image.');
+      }
+    } catch(e) {
+      console.error('Attach read failed', f.name, e);
+      alert('Could not read "' + f.name + '": ' + (e.message || e));
+    }
+  }
+  renderChatAttachPills();
+}
+
+function removeChatAttach(idx) {
+  window.chatAttachments.splice(idx, 1);
+  renderChatAttachPills();
+}
+
+function renderChatAttachPills() {
+  var host = document.getElementById('chat-attach-pills');
+  if (!host) return;
+  if (!window.chatAttachments.length) { host.innerHTML = ''; return; }
+  host.innerHTML = window.chatAttachments.map(function(a, idx){
+    var size = (a.size / 1024 < 1024)
+      ? (Math.round(a.size / 1024 * 10) / 10) + ' KB'
+      : (Math.round(a.size / 1024 / 1024 * 10) / 10) + ' MB';
+    var nameEsc = String(a.name).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    var thumb = (a.kind === 'image' && a.preview_url)
+      ? '<img src="' + a.preview_url + '" alt="">'
+      : '<span style="font-size:14px">\ud83d\udcc4</span>';
+    return '<span class="chat-attach-pill" title="' + nameEsc + '">' +
+      thumb +
+      '<span class="pill-name">' + nameEsc + '</span>' +
+      '<span class="pill-size">' + size + '</span>' +
+      '<button onclick="removeChatAttach(' + idx + ')" aria-label="Remove">\u00d7</button>' +
+    '</span>';
+  }).join('');
+}
+
+// Build the user message content to push to chatHistory + send.
+// Returns:
+//   - a string if no images (text-only, possibly with appended text-file content)
+//   - a content array if images are attached (Claude content blocks)
+//   - { displayText } separately for showing in chat UI
+window.buildChatUserPayload = function(text) {
+  var attachments = window.chatAttachments || [];
+  var textOnly = attachments.filter(function(a){ return a.kind === 'text'; });
+  var images = attachments.filter(function(a){ return a.kind === 'image'; });
+
+  var displayText = text;
+  if (attachments.length) {
+    var labels = attachments.map(function(a){ return a.name; }).join(', ');
+    displayText = text + (text ? '\n' : '') + '[Attached: ' + labels + ']';
+  }
+
+  // Compose extended text body if text files attached
+  var extendedText = text;
+  if (textOnly.length) {
+    var parts = textOnly.map(function(a){
+      return '\n\n--- Attached file: ' + a.name + ' ---\n' + (a.text || '') + '\n--- end ' + a.name + ' ---';
+    });
+    extendedText = (text || '') + parts.join('');
+  }
+
+  // If we have images, use content blocks; otherwise return a plain string
+  if (images.length) {
+    var blocks = images.map(function(a){
+      return {
+        type: 'image',
+        source: { type: 'base64', media_type: a.media_type || 'image/png', data: a.data_b64 }
+      };
+    });
+    blocks.push({ type: 'text', text: extendedText || '(see attached image)' });
+    return { messageContent: blocks, displayText: displayText };
+  } else {
+    return { messageContent: extendedText || text, displayText: displayText };
+  }
+};
+
+// Wrap the existing sendMessage to inject attachments before it runs.
+// Original sendMessage reads from input.value, pushes {role:'user', content: text} into chatHistory.
+// We intercept: read attachments, build payload, replace the textarea value with a sentinel,
+// then call the original — and patch chatHistory after.
+(function(){
+  var origSend = window.sendMessage;
+  if (typeof origSend !== 'function') return;
+  window.sendMessage = async function() {
+    var attachments = window.chatAttachments || [];
+    if (!attachments.length) return origSend.apply(this, arguments);
+    var input = document.getElementById('chat-input');
+    var text = (input && input.value || '').trim();
+    if (!text && !attachments.length) return;
+    var payload = window.buildChatUserPayload(text);
+    // Call the existing send with a tweak: the original pushes a string content.
+    // We let it push the display text, then immediately patch the last user entry to use the
+    // content blocks (when images) or the extended text (for text-only files).
+    // First, set the input value to the display text so the original adds it visibly.
+    var origValue = input.value;
+    input.value = payload.displayText;
+    var result = origSend.apply(this, arguments);
+    // origSend is async and has already pushed the user message string into chatHistory.
+    // Patch the last user entry's content to the real message we want to send to the API.
+    try {
+      for (var i = chatHistory.length - 1; i >= 0; i--) {
+        if (chatHistory[i].role === 'user') {
+          chatHistory[i].content = payload.messageContent;
+          break;
+        }
+      }
+    } catch(e) { console.error('Could not patch chatHistory user message', e); }
+    // Clear attachments after send dispatch
+    window.chatAttachments = [];
+    renderChatAttachPills();
+    return result;
+  };
+})();
+</script>
 
 <script>
 // v1.3.0 #11 Phase A — side panel toggle + greeting wiring
