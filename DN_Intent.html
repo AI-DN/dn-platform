@@ -674,15 +674,227 @@ body::before {
   text-decoration: none; display: inline-flex; align-items: center; gap: 4px;
 }
 .dash-row-launch:hover { opacity: 0.9; }
+
+/* ─── v1.3.0 #11 Phase A — greeting + side panel + topbar refresh ─── */
+.intent-greeting {
+  margin: 28px auto 18px;
+  max-width: 1100px;
+  padding: 0 24px;
+}
+.intent-greeting-line {
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: -0.015em;
+}
+.intent-greeting-sub {
+  font-size: 13px;
+  color: var(--text3, #6e7591);
+  margin-top: 6px;
+  display: flex; gap: 14px; align-items: center; flex-wrap: wrap;
+}
+.intent-greeting-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--text2);
+}
+.intent-greeting-pill::before {
+  content: ''; width: 5px; height: 5px; border-radius: 50%; background: var(--cyan);
+}
+.intent-greeting-pill.warning::before { background: var(--amber, #f7c34e); }
+.intent-greeting-pill.muted::before { background: var(--text2); opacity: 0.5; }
+
+/* Topbar apps toggle */
+.btn-apps-toggle {
+  background: transparent;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 8px;
+  color: var(--text2);
+  font-size: 12.5px;
+  padding: 6px 11px;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 7px;
+  transition: all .15s;
+  font-family: inherit;
+}
+.btn-apps-toggle:hover { color: var(--text); border-color: var(--border2); background: rgba(255,255,255,0.04); }
+.btn-apps-toggle .toggle-count {
+  background: rgba(71,209,255,0.16);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 0 6px;
+  border-radius: 999px;
+  min-width: 18px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+/* Side panel — right rail */
+body.with-side-panel .main { padding-right: 340px; transition: padding-right .25s; }
+body.side-panel-collapsed .main { padding-right: 0; }
+.side-panel {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: 320px;
+  background: rgba(7,9,26,0.86);
+  border-left: 1px solid var(--border, rgba(255,255,255,0.1));
+  backdrop-filter: blur(14px);
+  overflow-y: auto;
+  z-index: 40;
+  transform: translateX(0);
+  transition: transform .25s ease;
+}
+.side-panel.collapsed { transform: translateX(100%); }
+.side-panel-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 22px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+.side-panel-close {
+  margin-left: auto;
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 6px;
+  border-radius: 4px;
+  line-height: 1;
+  transition: color .15s, background .15s;
+}
+.side-panel-close:hover { color: var(--text); background: rgba(255,255,255,0.05); }
+.side-panel-body {
+  padding: 18px 22px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.side-panel-placeholder {
+  padding: 24px 0;
+  text-align: center;
+  color: var(--text2);
+  font-size: 12.5px;
+  border: 1px dashed var(--border, rgba(255,255,255,0.1));
+  border-radius: 10px;
+}
+
+.side-section {
+  padding: 6px 22px 16px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+.side-section:last-child { border-bottom: none; }
+.side-section-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3, #6e7591);
+  margin: 14px 0 10px;
+}
+.side-section-count {
+  background: rgba(255,255,255,0.05);
+  color: var(--text2);
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.side-app-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 8px;
+  margin: 0 -8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--text);
+  border-radius: 7px;
+  transition: background .15s;
+}
+.side-app-row:hover { background: rgba(255,255,255,0.04); }
+.side-app-badge {
+  width: 28px; height: 28px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10.5px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--navy, #07091a);
+  flex-shrink: 0;
+}
+.side-app-info { flex: 1; min-width: 0; }
+.side-app-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.side-app-meta {
+  font-size: 11px;
+  color: var(--text3, #6e7591);
+  margin-top: 1px;
+  display: flex; gap: 5px; align-items: center;
+}
+.side-app-meta-dot { width: 4px; height: 4px; border-radius: 50%; background: var(--cyan); display: inline-block; }
+.side-app-meta-dot.warning { background: var(--amber, #f7c34e); }
+.side-app-meta-dot.muted { background: var(--text3, #6e7591); }
+.side-app-action {
+  font-size: 11px;
+  color: var(--cyan);
+  text-decoration: none;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(71,209,255,0.10);
+  border: 1px solid rgba(71,209,255,0.22);
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background .15s;
+  cursor: pointer;
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.side-app-action:hover { background: rgba(71,209,255,0.18); }
+.side-app-pill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+  flex-shrink: 0;
+}
+.side-app-pill.pending { background: rgba(247,195,78,0.14); color: var(--amber, #f7c34e); }
+.side-app-pill.denied { background: rgba(240,80,96,0.14); color: var(--red, #f05060); }
+.side-app-pill.request {
+  background: rgba(255,255,255,0.06);
+  color: var(--text2);
+  cursor: pointer;
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+.side-app-pill.request:hover { background: rgba(255,255,255,0.1); color: var(--text); }
+.side-empty {
+  font-size: 12px;
+  color: var(--text3, #6e7591);
+  padding: 10px 0;
+}
+
+@media (max-width: 1000px) {
+  body.with-side-panel .main { padding-right: 0; }
+  .side-panel { width: 100%; max-width: 320px; }
+}
+
 </style>
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head>
+<link rel="icon" type="image/svg+xml"  href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiByeD0iNiIgZmlsbD0iIzBiMTIyMCIvPjxnIGZpbGw9IiMzREQ2RjUiPjxwYXRoIGQ9Ik02IDEwIFE2IDcgOSA3IEgyMyBRMjYgNyAyNiAxMCBWMTggUTI2IDIxIDIzIDIxIEgxNCBMOSAyNSBWMjEgUTYgMjEgNiAxOCBaIi8+PC9nPjwvc3ZnPg=="><meta name="theme-color" content="#0b1220"><script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script></head>
 <body>
 
 <div class="topbar">
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.2.5 #10</span>
+  <span class="topbar-version" title="DN_Intent build">v1.3.1 #12</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -692,12 +904,19 @@ body::before {
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">Guest</span>
     </div>
-    <button class="btn-refresh-intent" id="btn-refresh" onclick="manualRefresh()" title="Refresh platform data"><span class="ri-icon">↻</span><span>Refresh</span></button>
+    <button class="btn-apps-toggle" id="btn-apps-toggle" onclick="toggleSidePanel()" title="Show or hide app panel">☰&nbsp; Apps <span class="toggle-count" id="apps-toggle-count">0</span></button>
+      <button class="btn-refresh-intent" id="btn-refresh" onclick="manualRefresh()" title="Refresh platform data"><span class="ri-icon">↻</span><span>Refresh</span></button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (name, API keys)" aria-label="Settings">⚙</button>
   </div>
 </div>
 
 <div class="main">
+
+  <!-- v1.3.0 #11 Phase A — time-aware greeting + inline status -->
+  <div class="intent-greeting" id="intent-greeting" style="display:none;">
+    <div class="intent-greeting-line" id="intent-greeting-line">Welcome</div>
+    <div class="intent-greeting-sub" id="intent-greeting-sub"></div>
+  </div>
 
   <div class="hero">
     <h1>What would you like to <em>build?</em></h1>
@@ -743,8 +962,8 @@ body::before {
 
   <!-- T4 — Access Management modal removed (panel moved to DN_Admin) -->
 
-  <!-- Platform dashboard -->
-  <div class="platform-dashboard" id="platform-dashboard" style="display:none">
+  <!-- Platform dashboard — hidden in v1.3.1 #12, app list lives in the side panel now -->
+  <div class="platform-dashboard" id="platform-dashboard" style="display:none !important">
     <div class="dash-card purple" onclick="showDashDetail('mine')">
       <div class="dash-card-label">Available apps</div>
       <div class="dash-card-count" id="dash-mine-count">0</div>
@@ -762,7 +981,7 @@ body::before {
     </div>
   </div>
 
-  <div class="dash-detail" id="dash-detail">
+  <div class="dash-detail" id="dash-detail" style="display:none !important">
     <div class="dash-detail-title">
       <span id="dash-detail-title-text">Details</span>
       <button class="dash-detail-close" onclick="hideDashDetail()">×</button>
@@ -3576,5 +3795,230 @@ function shipApp() {
 
 
 </script>
+<!-- v1.3.0 #11 Phase A — side panel scaffold (empty inner; Phase B fills it) -->
+<aside class="side-panel collapsed" id="side-panel" aria-label="Apps panel">
+  <div class="side-panel-head">
+    Apps
+    <button class="side-panel-close" id="side-panel-close" onclick="toggleSidePanel()" title="Collapse panel" aria-label="Close panel">×</button>
+  </div>
+  <div class="side-panel-body" id="side-panel-body">
+    <div class="side-section" id="side-section-authorized">
+      <div class="side-section-head">Authorized <span class="side-section-count" id="side-auth-count">0</span></div>
+      <div id="side-auth-list"><div class="side-empty">Loading…</div></div>
+    </div>
+    <div class="side-section" id="side-section-available">
+      <div class="side-section-head">Available platform-wide <span class="side-section-count" id="side-avail-count">0</span></div>
+      <div id="side-avail-list"><div class="side-empty">—</div></div>
+    </div>
+    <div class="side-section" id="side-section-progress">
+      <div class="side-section-head">In progress <span class="side-section-count" id="side-prog-count">0</span></div>
+      <div id="side-prog-list"><div class="side-empty">No builds in flight.</div></div>
+    </div>
+  </div>
+</aside>
+
+<script>
+// v1.3.0 #11 Phase A — side panel toggle + greeting wiring
+(function(){
+  var SIDE_KEY = 'dn_intent_side_panel_collapsed';
+  var collapsed = localStorage.getItem(SIDE_KEY) === '1';
+  var panel = document.getElementById('side-panel');
+  if (collapsed) {
+    panel.classList.add('collapsed');
+    document.body.classList.remove('with-side-panel');
+    document.body.classList.add('side-panel-collapsed');
+  } else {
+    panel.classList.remove('collapsed');
+    document.body.classList.add('with-side-panel');
+    document.body.classList.remove('side-panel-collapsed');
+  }
+})();
+
+function toggleSidePanel() {
+  var panel = document.getElementById('side-panel');
+  var SIDE_KEY = 'dn_intent_side_panel_collapsed';
+  var nowCollapsed = !panel.classList.contains('collapsed');
+  panel.classList.toggle('collapsed', nowCollapsed);
+  document.body.classList.toggle('with-side-panel', !nowCollapsed);
+  document.body.classList.toggle('side-panel-collapsed', nowCollapsed);
+  try { localStorage.setItem(SIDE_KEY, nowCollapsed ? '1' : '0'); } catch(e){}
+}
+
+function updateIntentGreeting() {
+  var g = document.getElementById('intent-greeting');
+  var line = document.getElementById('intent-greeting-line');
+  var sub = document.getElementById('intent-greeting-sub');
+  var countEl = document.getElementById('apps-toggle-count');
+  if (!g || !line || !sub) return;
+  // Resolve user name from existing global
+  var firstName = '';
+  try {
+    if (typeof currentProfile !== 'undefined' && currentProfile && currentProfile.full_name) {
+      firstName = (currentProfile.full_name || '').split(' ')[0];
+    } else if (typeof currentUser === 'string' && currentUser) {
+      firstName = currentUser.split(' ')[0];
+    }
+  } catch(e){}
+  // Time-aware greeting
+  var h = new Date().getHours();
+  var part = h < 12 ? 'morning' : (h < 18 ? 'afternoon' : 'evening');
+  line.textContent = firstName ? ('Good ' + part + ', ' + firstName) : ('Good ' + part);
+
+  // Inline status from platformContext if loaded
+  var authCount = 0, availCount = 0, progressCount = 0;
+  try {
+    if (typeof platformContext !== 'undefined' && platformContext) {
+      authCount = (platformContext.shipped || []).length;
+      availCount = (platformContext.allAvailable || []).length;
+      progressCount = (platformContext.active || []).length;
+    }
+  } catch(e){}
+
+  var pills = [];
+  pills.push('<span class="intent-greeting-pill">' + authCount + ' apps authorized</span>');
+  if (availCount > authCount) {
+    pills.push('<span class="intent-greeting-pill muted">' + availCount + ' available platform-wide</span>');
+  }
+  pills.push('<span class="intent-greeting-pill ' + (progressCount > 0 ? 'warning' : 'muted') + '">' + progressCount + ' in progress</span>');
+  sub.innerHTML = pills.join('');
+  g.style.display = '';
+
+  if (countEl) countEl.textContent = authCount;
+}
+
+// Hook into existing renderDashboard so the greeting and badge update with platform context
+(function(){
+  var orig = window.renderDashboard;
+  if (typeof orig === 'function') {
+    window.renderDashboard = function(){
+      var r = orig.apply(this, arguments);
+      try { updateIntentGreeting(); } catch(e){}
+      try { renderSidePanelApps(); } catch(e){}
+      return r;
+    };
+  }
+  // Initial paint after DOM ready in case platformContext hasn't loaded yet
+  document.addEventListener('DOMContentLoaded', function(){
+    setTimeout(function(){ updateIntentGreeting(); renderSidePanelApps(); }, 200);
+  });
+})();
+
+// v1.3.1 #12 Phase B — side panel app list rendering
+function sideEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function sideBadgeFor(title) {
+  // 3-letter abbreviation: first letter of first three significant words
+  var words = (title || '').replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+  var chars = words.slice(0, 3).map(function(w){ return w[0]; });
+  while (chars.length < 3 && (title || '').length > chars.length) chars.push((title || 'X').charAt(chars.length));
+  return chars.join('').toUpperCase().slice(0, 3);
+}
+function sideBadgeColor(title) {
+  // Stable color per app from title hash
+  var palette = ['#5fe0c1', '#b89cff', '#47d1ff', '#f7c34e', '#ff8db4', '#7be5a3'];
+  var s = (title || '');
+  var h = 0; for (var i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return palette[Math.abs(h) % palette.length];
+}
+function sideAppRow(req, kind) {
+  var title = req.title || '(untitled)';
+  var badge = sideBadgeFor(title);
+  var color = sideBadgeColor(title);
+  var meta = '';
+  var dotClass = '';
+  if (req.status === 'shipped' || req.status === 'qa_passed') {
+    meta = 'Active';
+    if (req.shipped_at) {
+      try {
+        var d = new Date(req.shipped_at);
+        var diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+        meta = 'Active · shipped ' + (diff === 0 ? 'today' : (diff + 'd ago'));
+      } catch(e){}
+    }
+  } else if (req.status === 'ready_for_qa') {
+    meta = 'v' + ((req.artifacts && req.artifacts.length) || 1) + ' in QA';
+    dotClass = 'warning';
+  } else if (req.status === 'building' || req.status === 'iterating' || req.status === 'pending') {
+    meta = (req.status === 'pending' ? 'Queued' : 'Building');
+    dotClass = 'warning';
+  } else {
+    meta = req.status || '';
+    dotClass = 'muted';
+  }
+  var action = '';
+  if (kind === 'auth') {
+    var url = (typeof deriveAppUrl === 'function' ? deriveAppUrl(req) : (req.shipped_url || ''));
+    if (url) {
+      action = '<a class="side-app-action" href="' + sideEsc(url) + '" target="_blank" rel="noopener" onclick="event.stopPropagation()">Open ↗</a>';
+    } else {
+      action = '<span class="side-app-pill request">Coming soon</span>';
+    }
+  } else if (kind === 'avail') {
+    var hasPending = (typeof reqHasPendingRequest === 'function') ? reqHasPendingRequest(req) : false;
+    var hasDenied = (typeof reqHasDeniedRequest === 'function') ? reqHasDeniedRequest(req) : false;
+    if (hasPending) {
+      action = '<span class="side-app-pill pending">Pending</span>';
+    } else if (hasDenied) {
+      action = '<span class="side-app-pill denied" onclick="event.stopPropagation(); requestAppAccess(\'' + sideEsc(req.id) + '\')" title="Resubmit access request">Denied</span>';
+    } else {
+      action = '<span class="side-app-pill request" onclick="event.stopPropagation(); requestAppAccess(\'' + sideEsc(req.id) + '\')" title="Request access from admin">Request</span>';
+    }
+  } else if (kind === 'progress') {
+    action = '<span class="side-app-pill request">' + sideEsc(req.status || '?') + '</span>';
+  }
+
+  return '<div class="side-app-row" title="' + sideEsc(title) + '">' +
+    '<div class="side-app-badge" style="background:' + color + '">' + sideEsc(badge) + '</div>' +
+    '<div class="side-app-info">' +
+      '<div class="side-app-name">' + sideEsc(title) + '</div>' +
+      '<div class="side-app-meta"><span class="side-app-meta-dot ' + dotClass + '"></span> ' + sideEsc(meta) + '</div>' +
+    '</div>' +
+    action +
+  '</div>';
+}
+
+function renderSidePanelApps() {
+  if (typeof platformContext === 'undefined') return;
+  var auth = (platformContext.shipped || []);
+  var all = (platformContext.allAvailable || []);
+  var prog = (platformContext.active || []);
+
+  // 'Available platform-wide' = allAvailable minus already-authorized
+  var authIds = {};
+  auth.forEach(function(r){ authIds[r.id] = 1; });
+  var availOnly = all.filter(function(r){ return !authIds[r.id]; });
+
+  var authList = document.getElementById('side-auth-list');
+  var availList = document.getElementById('side-avail-list');
+  var progList = document.getElementById('side-prog-list');
+  var authCountEl = document.getElementById('side-auth-count');
+  var availCountEl = document.getElementById('side-avail-count');
+  var progCountEl = document.getElementById('side-prog-count');
+
+  if (authCountEl) authCountEl.textContent = auth.length;
+  if (availCountEl) availCountEl.textContent = availOnly.length;
+  if (progCountEl) progCountEl.textContent = prog.length;
+
+  if (authList) {
+    authList.innerHTML = auth.length
+      ? auth.map(function(r){ return sideAppRow(r, 'auth'); }).join('')
+      : '<div class="side-empty">None yet. Request access to an app below.</div>';
+  }
+  if (availList) {
+    availList.innerHTML = availOnly.length
+      ? availOnly.map(function(r){ return sideAppRow(r, 'avail'); }).join('')
+      : '<div class="side-empty">Nothing else on the platform right now.</div>';
+  }
+  if (progList) {
+    progList.innerHTML = prog.length
+      ? prog.map(function(r){ return sideAppRow(r, 'progress'); }).join('')
+      : '<div class="side-empty">No builds in flight.</div>';
+  }
+}
+</script>
+
 </body>
 </html>
