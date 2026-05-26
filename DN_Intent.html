@@ -82,8 +82,9 @@ body::before {
 .main {
   position: relative; z-index: 1; flex: 1;
   display: flex; flex-direction: column;
-  max-width: 820px; margin: 0 auto; width: 100%;
+  width: 100%;
   padding: 36px 24px 48px;
+  transition: padding-left .25s, padding-right .25s;
 }
 .hero { text-align: center; margin-bottom: 28px; }
 .hero h1 {
@@ -729,9 +730,11 @@ body::before {
   letter-spacing: 0.02em;
 }
 
-/* Side panel — LEFT rail (v1.3.3 #14) */
-body.with-side-panel .main { padding-left: 340px; padding-right: 0; transition: padding-left .25s; }
+/* Side panel — LEFT rail (v1.3.3 #14) + Workspace panel — RIGHT rail (v1.4.1 #17) */
+body.with-side-panel .main { padding-left: 340px; }
 body.side-panel-collapsed .main { padding-left: 0; }
+body.with-workspace-panel .main { padding-right: 420px; }
+body.workspace-panel-collapsed .main { padding-right: 0; }
 .side-panel {
   position: fixed;
   top: 56px;
@@ -882,9 +885,339 @@ body.side-panel-collapsed .main { padding-left: 0; }
   padding: 10px 0;
 }
 
+/* Workspace panel — RIGHT rail (v1.4.1 #17) */
+.workspace-panel {
+  position: fixed;
+  top: 56px;
+  right: 0;
+  bottom: 0;
+  width: 400px;
+  background: rgba(7,9,26,0.86);
+  border-left: 1px solid var(--border, rgba(255,255,255,0.1));
+  backdrop-filter: blur(14px);
+  overflow-y: auto;
+  z-index: 40;
+  transform: translateX(0);
+  transition: transform .25s ease;
+}
+.workspace-panel.collapsed { transform: translateX(100%); }
+.workspace-head {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 22px 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text2);
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+.workspace-head-spark {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 10px var(--cyan);
+  margin-right: 2px;
+}
+.workspace-body {
+  padding: 6px 22px 22px;
+}
+.workspace-section {
+  padding: 14px 0 16px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.1));
+}
+.workspace-section:last-child { border-bottom: none; }
+.workspace-section-head {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3, #6e7591);
+  margin: 4px 0 10px;
+}
+.workspace-section-count {
+  background: rgba(255,255,255,0.05);
+  color: var(--text2);
+  font-size: 10.5px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.workspace-empty {
+  font-size: 12.5px;
+  color: var(--text3, #6e7591);
+  padding: 8px 0 2px;
+  line-height: 1.55;
+}
+.workspace-build-row {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 12px 14px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  margin-bottom: 8px;
+  transition: border-color .15s, background .15s;
+}
+.workspace-build-row:hover {
+  border-color: rgba(71,209,255,0.25);
+  background: rgba(71,209,255,0.04);
+}
+.workspace-build-top {
+  display: flex; align-items: center; gap: 10px;
+}
+.workspace-build-badge {
+  width: 26px; height: 26px;
+  border-radius: 7px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
+  color: var(--navy, #07091a);
+  flex-shrink: 0;
+}
+.workspace-build-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text);
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workspace-build-stage {
+  font-size: 11px;
+  color: var(--cyan);
+  background: rgba(71,209,255,0.10);
+  padding: 2px 8px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.workspace-build-meta {
+  font-size: 11.5px;
+  color: var(--text2);
+  line-height: 1.5;
+}
+.workspace-build-bar {
+  height: 4px;
+  background: rgba(255,255,255,0.06);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.workspace-build-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--purple, #8b7ff5));
+  border-radius: 999px;
+  transition: width .4s ease;
+}
+.workspace-quick-actions {
+  display: flex; flex-direction: column; gap: 8px;
+}
+.workspace-quick-btn {
+  display: flex; align-items: center; gap: 10px;
+  padding: 11px 14px;
+  background: rgba(255,255,255,0.025);
+  border: 1px solid var(--border, rgba(255,255,255,0.08));
+  border-radius: 10px;
+  color: var(--text);
+  font-family: inherit;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .15s, background .15s, color .15s;
+}
+.workspace-quick-btn:hover {
+  border-color: rgba(71,209,255,0.25);
+  background: rgba(71,209,255,0.04);
+  color: var(--cyan);
+}
+.workspace-quick-btn .qa-icon {
+  font-size: 16px;
+  line-height: 1;
+  width: 22px;
+  text-align: center;
+  color: var(--text2);
+  transition: color .15s;
+}
+.workspace-quick-btn:hover .qa-icon { color: var(--cyan); }
+.workspace-quick-btn .qa-text { flex: 1; }
+.workspace-quick-btn .qa-sub {
+  display: block;
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 1px;
+  font-weight: 400;
+}
+.workspace-recent {
+  font-size: 12.5px;
+  color: var(--text2);
+  line-height: 1.55;
+}
+.workspace-recent-item {
+  display: flex; gap: 8px;
+  padding: 7px 0;
+  border-bottom: 1px dashed rgba(255,255,255,0.05);
+}
+.workspace-recent-item:last-child { border-bottom: none; }
+.workspace-recent-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--text3);
+  margin-top: 7px;
+  flex-shrink: 0;
+}
+.workspace-recent-dot.ok { background: var(--green, #1fd8a4); }
+.workspace-recent-dot.warning { background: var(--amber, #f0a030); }
+.workspace-recent-body { flex: 1; min-width: 0; }
+.workspace-recent-title {
+  color: var(--text);
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.workspace-recent-time {
+  font-size: 11px;
+  color: var(--text3);
+  margin-top: 1px;
+}
+
+/* v1.4.0 #16 — App detail modal */
+.app-detail-modal {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(7,9,26,0.7);
+  backdrop-filter: blur(8px);
+  z-index: 200;
+  align-items: center; justify-content: center;
+  padding: 24px;
+}
+.app-detail-modal.open { display: flex; }
+.app-detail-card {
+  background: var(--bg2, #0c1024);
+  border: 1px solid var(--border, rgba(255,255,255,0.1));
+  border-radius: 16px;
+  width: min(720px, 100%);
+  max-height: 85vh;
+  display: flex; flex-direction: column;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+.app-detail-head {
+  padding: 22px 26px 16px;
+  border-bottom: 1px solid var(--border, rgba(255,255,255,0.08));
+  display: flex; gap: 14px; align-items: center;
+}
+.app-detail-badge {
+  width: 44px; height: 44px;
+  border-radius: 10px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; font-weight: 700; letter-spacing: 0.04em;
+  color: #07091a;
+  flex-shrink: 0;
+}
+.app-detail-titlewrap { flex: 1; min-width: 0; }
+.app-detail-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: -0.01em;
+}
+.app-detail-sub {
+  font-size: 12px;
+  color: var(--text3, #6e7591);
+  margin-top: 3px;
+  display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
+}
+.app-detail-close {
+  background: transparent;
+  border: none;
+  color: var(--text2);
+  font-size: 22px;
+  cursor: pointer;
+  padding: 4px 10px;
+  border-radius: 6px;
+  line-height: 1;
+}
+.app-detail-close:hover { color: var(--text); background: rgba(255,255,255,0.06); }
+.app-detail-body {
+  flex: 1; min-height: 0;
+  overflow-y: auto;
+  padding: 20px 26px;
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.55;
+}
+.app-detail-section { margin-bottom: 18px; }
+.app-detail-section-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text3, #6e7591);
+  margin-bottom: 6px;
+}
+.app-detail-section-body { color: var(--text); }
+.app-detail-section ul { padding-left: 20px; margin: 4px 0; }
+.app-detail-section ul li { margin-bottom: 4px; }
+.app-detail-foot {
+  padding: 16px 26px;
+  border-top: 1px solid var(--border, rgba(255,255,255,0.08));
+  display: flex; gap: 10px; flex-wrap: wrap;
+}
+.app-detail-btn {
+  border-radius: 8px;
+  padding: 9px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  letter-spacing: -0.01em;
+  border: 1px solid transparent;
+  display: inline-flex; align-items: center; gap: 6px;
+  text-decoration: none;
+  font-family: inherit;
+}
+.app-detail-btn.primary {
+  background: var(--cyan, #47d1ff);
+  color: var(--navy, #07091a);
+}
+.app-detail-btn.primary:hover { filter: brightness(1.08); }
+.app-detail-btn.ghost {
+  background: transparent;
+  color: var(--text);
+  border-color: var(--border, rgba(255,255,255,0.12));
+}
+.app-detail-btn.ghost:hover { background: rgba(255,255,255,0.04); border-color: rgba(255,255,255,0.2); }
+
+/* Context chip above composer */
+.chat-context-chip-wrap {
+  margin: 0 auto 6px;
+  display: flex; justify-content: center;
+}
+.chat-context-chip {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(71,209,255,0.08);
+  border: 1px solid rgba(71,209,255,0.22);
+  color: var(--cyan);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-weight: 500;
+}
+.chat-context-chip strong { color: var(--text); font-weight: 600; }
+.chat-context-chip button {
+  background: transparent; border: none;
+  color: var(--cyan);
+  font-size: 14px; line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+}
+.chat-context-chip button:hover { color: #fff; }
+
+/* Workspace rail hides below 1280px — chat keeps the full center column on laptops. */
+@media (max-width: 1280px) {
+  body.with-workspace-panel .main { padding-right: 0; }
+  .workspace-panel { display: none; }
+}
 @media (max-width: 1000px) {
-  body.with-side-panel .main { padding-right: 0; }
-  .side-panel { width: 100%; max-width: 320px; }
+  body.with-side-panel .main { padding-left: 0; }
+  .side-panel { width: 100%; max-width: 320px; transform: translateX(-100%); }
+  .side-panel:not(.collapsed) { transform: translateX(0); }
 }
 
 /* ─── v1.3.2 #13 — strip legacy chrome; chat is the visual center ─── */
@@ -906,8 +1239,9 @@ body.side-panel-collapsed .main { padding-left: 0; }
 
 /* Composer / input area becomes the focal centerpiece */
 .main .panel-wrap {
-  max-width: 760px;
+  max-width: 920px;
   margin: 0 auto;
+  width: 100%;
 }
 .main .panel-wrap .chat-window {
   background: rgba(7,9,26,0.4);
@@ -1053,7 +1387,7 @@ body.side-panel-collapsed .main { padding-left: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.3.4 #15</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.1 #17</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1063,8 +1397,7 @@ body.side-panel-collapsed .main { padding-left: 0; }
       <div class="user-avatar" id="user-avatar">?</div>
       <span id="user-name-display">Guest</span>
     </div>
-    <button class="btn-apps-toggle" id="btn-apps-toggle" onclick="toggleSidePanel()" title="Show or hide app panel">☰&nbsp; Apps <span class="toggle-count" id="apps-toggle-count">0</span></button>
-      <button class="btn-refresh-intent" id="btn-refresh" onclick="manualRefresh()" title="Refresh platform data"><span class="ri-icon">↻</span><span>Refresh</span></button>
+    <button class="btn-refresh-intent" id="btn-refresh" onclick="manualRefresh()" title="Refresh platform data"><span class="ri-icon">↻</span><span>Refresh</span></button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (name, API keys)" aria-label="Settings">⚙</button>
   </div>
 </div>
@@ -1180,6 +1513,9 @@ body.side-panel-collapsed .main { padding-left: 0; }
     <div id="panel-guided">
       <div class="chat-window" id="chat-window"></div>
       <div class="error-bar" id="chat-error"></div>
+      <div class="chat-context-chip-wrap" id="chat-context-chip-wrap" style="display:none;">
+        <span class="chat-context-chip" id="chat-context-chip"></span>
+      </div>
       <div class="chat-attach-pills" id="chat-attach-pills"></div>
       <div class="input-bar">
         <input type="file" id="chat-attach-input" class="chat-attach-input" multiple accept=".txt,.md,.csv,.png,.jpg,.jpeg,.gif,.webp" onchange="onChatAttachChange(this)">
@@ -3958,10 +4294,24 @@ function shipApp() {
 
 </script>
 <!-- v1.3.0 #11 Phase A — side panel scaffold (empty inner; Phase B fills it) -->
-<aside class="side-panel collapsed" id="side-panel" aria-label="Apps panel">
+<div class="app-detail-modal" id="app-detail-modal" onclick="if(event.target===this) closeAppDetail()" aria-hidden="true">
+  <div class="app-detail-card" role="dialog" aria-labelledby="app-detail-title">
+    <div class="app-detail-head">
+      <div class="app-detail-badge" id="app-detail-badge">···</div>
+      <div class="app-detail-titlewrap">
+        <div class="app-detail-title" id="app-detail-title">App</div>
+        <div class="app-detail-sub" id="app-detail-sub"></div>
+      </div>
+      <button class="app-detail-close" onclick="closeAppDetail()" aria-label="Close">×</button>
+    </div>
+    <div class="app-detail-body" id="app-detail-body"></div>
+    <div class="app-detail-foot" id="app-detail-foot"></div>
+  </div>
+</div>
+
+<aside class="side-panel" id="side-panel" aria-label="Apps panel">
   <div class="side-panel-head">
     Apps
-    <button class="side-panel-close" id="side-panel-close" onclick="toggleSidePanel()" title="Collapse panel" aria-label="Close panel">×</button>
   </div>
   <div class="side-panel-body" id="side-panel-body">
     <div class="side-section" id="side-section-authorized">
@@ -3975,6 +4325,51 @@ function shipApp() {
     <div class="side-section" id="side-section-progress">
       <div class="side-section-head">In progress <span class="side-section-count" id="side-prog-count">0</span></div>
       <div id="side-prog-list"><div class="side-empty">No builds in flight.</div></div>
+    </div>
+  </div>
+</aside>
+
+<!-- v1.4.1 #17 — Workspace panel (right rail). Context-aware: shows active build status, quick actions, recent activity. -->
+<aside class="workspace-panel" id="workspace-panel" aria-label="Workspace panel">
+  <div class="workspace-head">
+    <span class="workspace-head-spark" id="workspace-head-spark"></span>
+    Workspace
+  </div>
+  <div class="workspace-body">
+    <div class="workspace-section" id="workspace-section-now">
+      <div class="workspace-section-head">Now <span class="workspace-section-count" id="workspace-now-count">0</span></div>
+      <div id="workspace-now-list">
+        <div class="workspace-empty">Quiet workspace. Start a build from the chat below or open an authorized app from the left.</div>
+      </div>
+    </div>
+    <div class="workspace-section" id="workspace-section-quick">
+      <div class="workspace-section-head">Quick actions</div>
+      <div class="workspace-quick-actions">
+        <button class="workspace-quick-btn" type="button" onclick="workspaceFocusComposer()">
+          <span class="qa-icon">＋</span>
+          <span class="qa-text">Build a new app
+            <span class="qa-sub">Describe what you need in the chat</span>
+          </span>
+        </button>
+        <button class="workspace-quick-btn" type="button" onclick="workspaceAttachFile()">
+          <span class="qa-icon">↑</span>
+          <span class="qa-text">Upload a file
+            <span class="qa-sub">Attach a CSV, spec, or doc to the next message</span>
+          </span>
+        </button>
+        <button class="workspace-quick-btn" type="button" onclick="workspaceOpenLatestApp()">
+          <span class="qa-icon">↗</span>
+          <span class="qa-text">Open my latest app
+            <span class="qa-sub" id="workspace-latest-app-sub">No apps yet</span>
+          </span>
+        </button>
+      </div>
+    </div>
+    <div class="workspace-section" id="workspace-section-recent">
+      <div class="workspace-section-head">Recent</div>
+      <div id="workspace-recent-list" class="workspace-recent">
+        <div class="workspace-empty">Nothing recent yet.</div>
+      </div>
     </div>
   </div>
 </aside>
@@ -4146,30 +4541,27 @@ window.buildChatUserPayload = function(text) {
 </script>
 
 <script>
-// v1.3.0 #11 Phase A — side panel toggle + greeting wiring
+// v1.4.1 #17 — Sidebar Workspace layout: both rails permanent on wide screens.
+// Apps rail (left) is always-on; Workspace rail (right) is always-on and CSS-hides below 1280px.
 (function(){
-  var SIDE_KEY = 'dn_intent_side_panel_collapsed';
-  var collapsed = localStorage.getItem(SIDE_KEY) === '1';
   var panel = document.getElementById('side-panel');
-  if (collapsed) {
-    panel.classList.add('collapsed');
-    document.body.classList.remove('with-side-panel');
-    document.body.classList.add('side-panel-collapsed');
-  } else {
-    panel.classList.remove('collapsed');
-    document.body.classList.add('with-side-panel');
-    document.body.classList.remove('side-panel-collapsed');
-  }
+  if (panel) panel.classList.remove('collapsed');
+  document.body.classList.add('with-side-panel');
+  document.body.classList.remove('side-panel-collapsed');
+  document.body.classList.add('with-workspace-panel');
+  document.body.classList.remove('workspace-panel-collapsed');
+  // Clean up the old persisted-collapsed flag from v1.3.x so returning users see the new default.
+  try { localStorage.removeItem('dn_intent_side_panel_collapsed'); } catch(e){}
 })();
 
+// Legacy entrypoint kept as a no-op for any inline onclick handlers we may have missed.
+// On narrow screens (≤1000px) it still toggles the Apps rail so it can hide on mobile.
 function toggleSidePanel() {
   var panel = document.getElementById('side-panel');
-  var SIDE_KEY = 'dn_intent_side_panel_collapsed';
-  var nowCollapsed = !panel.classList.contains('collapsed');
-  panel.classList.toggle('collapsed', nowCollapsed);
-  document.body.classList.toggle('with-side-panel', !nowCollapsed);
-  document.body.classList.toggle('side-panel-collapsed', nowCollapsed);
-  try { localStorage.setItem(SIDE_KEY, nowCollapsed ? '1' : '0'); } catch(e){}
+  if (!panel) return;
+  if (window.matchMedia && window.matchMedia('(max-width: 1000px)').matches) {
+    panel.classList.toggle('collapsed');
+  }
 }
 
 function updateIntentGreeting() {
@@ -4298,7 +4690,7 @@ function sideAppRow(req, kind) {
     action = '<span class="side-app-pill request">' + sideEsc(req.status || '?') + '</span>';
   }
 
-  return '<div class="side-app-row" title="' + sideEsc(title) + '">' +
+  return '<div class="side-app-row" title="' + sideEsc(title) + '" onclick="openAppDetail(\'' + sideEsc(req.id) + '\')">' +
     '<div class="side-app-badge" style="background:' + color + '">' + sideEsc(badge) + '</div>' +
     '<div class="side-app-info">' +
       '<div class="side-app-name">' + sideEsc(title) + '</div>' +
@@ -4307,6 +4699,223 @@ function sideAppRow(req, kind) {
     action +
   '</div>';
 }
+
+// v1.4.0 #16 — App detail modal + Ask agent about an app
+window.askingAboutApp = null;
+
+function findReqById(id) {
+  if (!id || typeof platformContext === 'undefined') return null;
+  const pools = [
+    platformContext.shipped || [],
+    platformContext.allAvailable || [],
+    platformContext.active || [],
+    platformContext.myRequests || []
+  ];
+  for (let i = 0; i < pools.length; i++) {
+    const found = pools[i].find(function(r){ return r.id === id; });
+    if (found) return found;
+  }
+  return null;
+}
+
+function openAppDetail(reqId) {
+  const req = findReqById(reqId);
+  if (!req) return;
+  renderAppDetail(req);
+  const modal = document.getElementById('app-detail-modal');
+  if (modal) { modal.classList.add('open'); modal.setAttribute('aria-hidden', 'false'); }
+}
+
+function closeAppDetail() {
+  const modal = document.getElementById('app-detail-modal');
+  if (modal) { modal.classList.remove('open'); modal.setAttribute('aria-hidden', 'true'); }
+}
+
+function appBadgeForTitle(t) {
+  const w = (t || '').replace(/[^A-Za-z0-9 ]/g, ' ').split(/\s+/).filter(Boolean);
+  const c = w.slice(0,3).map(function(x){ return x[0]; });
+  while (c.length < 3 && (t || '').length > c.length) c.push((t || 'X').charAt(c.length));
+  return c.join('').toUpperCase().slice(0,3);
+}
+function appBadgeColor(t) {
+  const palette = ['#5fe0c1', '#b89cff', '#47d1ff', '#f7c34e', '#ff8db4', '#7be5a3'];
+  const s = (t || ''); let h = 0;
+  for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+  return palette[Math.abs(h) % palette.length];
+}
+function appDetailEsc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+function renderAppDetail(req) {
+  const badge = document.getElementById('app-detail-badge');
+  const title = document.getElementById('app-detail-title');
+  const sub = document.getElementById('app-detail-sub');
+  const body = document.getElementById('app-detail-body');
+  const foot = document.getElementById('app-detail-foot');
+  if (!body || !title) return;
+
+  const initials = appBadgeForTitle(req.title);
+  const color = appBadgeColor(req.title);
+  if (badge) {
+    badge.textContent = initials;
+    badge.style.background = color;
+    if (color === '#b89cff') badge.style.color = '#fff'; else badge.style.color = '#07091a';
+  }
+  title.textContent = req.title || '(untitled)';
+
+  // Subtitle
+  const lf = req.lifecycle_status || 'parked';
+  const ver = req.artifact_version ? 'v' + req.artifact_version : '';
+  const creator = req.submitted_by || '(unknown creator)';
+  const subParts = [];
+  if (lf === 'active') subParts.push('<span style="color:#1d9e75">\u25CF Active</span>');
+  else if (lf === 'parked') subParts.push('<span style="color:#aab">Parked</span>');
+  else subParts.push('<span style="color:#f05060">' + appDetailEsc(lf) + '</span>');
+  if (ver) subParts.push(appDetailEsc(ver));
+  subParts.push('by ' + appDetailEsc(creator));
+  if (req.shipped_at) {
+    try {
+      const d = new Date(req.shipped_at);
+      subParts.push('shipped ' + d.toLocaleDateString());
+    } catch(e){}
+  }
+  sub.innerHTML = subParts.join(' \u00b7 ');
+
+  // Body sections
+  const section = function(label, content) {
+    if (!content) return '';
+    return '<div class="app-detail-section">' +
+      '<div class="app-detail-section-label">' + label + '</div>' +
+      '<div class="app-detail-section-body">' + content + '</div>' +
+    '</div>';
+  };
+
+  // Capabilities list
+  let caps = [];
+  if (Array.isArray(req.capabilities)) caps = req.capabilities;
+  else if (typeof req.capabilities === 'string') {
+    try { caps = JSON.parse(req.capabilities); } catch(e) {}
+  }
+  let capsHtml = '';
+  if (caps && caps.length) {
+    capsHtml = '<ul>' + caps.map(function(c){
+      const txt = (c && typeof c === 'object') ? (c.text || c.name || JSON.stringify(c)) : String(c);
+      return '<li>' + appDetailEsc(txt) + '</li>';
+    }).join('') + '</ul>';
+  }
+
+  body.innerHTML =
+    section('Goal', appDetailEsc(req.goal || '—')) +
+    section('Users', appDetailEsc(req.users || '—')) +
+    section('Scope', appDetailEsc(req.scope || req.mode || '—')) +
+    section('Constraints', appDetailEsc(req.constraints || '—')) +
+    section('MVP', appDetailEsc(req.mvp || '—')) +
+    (capsHtml ? section('Capabilities (' + caps.length + ')', capsHtml) : '');
+
+  // Foot buttons
+  const launchUrl = (typeof deriveAppUrl === 'function' ? deriveAppUrl(req) : (req.shipped_url || ''));
+  const canOpen = !!launchUrl && (typeof reqHasAccess === 'function' ? reqHasAccess(req) : true);
+  const buttons = [];
+  if (canOpen) {
+    buttons.push('<a class="app-detail-btn primary" href="' + appDetailEsc(launchUrl) + '" target="_blank" rel="noopener">Open ↗</a>');
+  }
+  buttons.push('<button class="app-detail-btn ghost" onclick="askAgentAboutApp(\'' + appDetailEsc(req.id) + '\')">\u270E Ask agent about this app</button>');
+  foot.innerHTML = buttons.join('');
+}
+
+function askAgentAboutApp(reqId) {
+  const req = findReqById(reqId);
+  if (!req) return;
+  window.askingAboutApp = req;
+  closeAppDetail();
+  renderAppContextChip();
+  // Switch to guided chat if available, and focus the input
+  if (typeof switchMode === 'function') {
+    try { switchMode('guided'); } catch(e){}
+  }
+  const input = document.getElementById('chat-input');
+  if (input) { try { input.focus(); } catch(e){} }
+}
+
+function clearAppContext() {
+  window.askingAboutApp = null;
+  renderAppContextChip();
+}
+
+function renderAppContextChip() {
+  const wrap = document.getElementById('chat-context-chip-wrap');
+  const chip = document.getElementById('chat-context-chip');
+  if (!wrap || !chip) return;
+  if (!window.askingAboutApp) {
+    wrap.style.display = 'none';
+    chip.innerHTML = '';
+    return;
+  }
+  const t = window.askingAboutApp.title || '(app)';
+  chip.innerHTML = '\u270E Asking agent about <strong>' + appDetailEsc(t) + '</strong>' +
+    '<button onclick="clearAppContext()" title="Clear app context">×</button>';
+  wrap.style.display = 'flex';
+}
+
+// Wrap sendMessage one more time: if askingAboutApp is set, prepend an app context
+// block to the outgoing user turn. We do this by mutating the last user entry in
+// chatHistory AFTER the existing send pipeline has pushed it.
+(function(){
+  // Use a marker to avoid double-wrap if this script runs twice somehow.
+  if (window.__askAboutAppSendWrapped) return;
+  window.__askAboutAppSendWrapped = true;
+  const origSend = window.sendMessage;
+  if (typeof origSend !== 'function') return;
+  window.sendMessage = async function() {
+    const ctxApp = window.askingAboutApp;
+    if (!ctxApp) return origSend.apply(this, arguments);
+    const result = await origSend.apply(this, arguments);
+    try {
+      // Find the last user message and prepend the context block.
+      // The earlier attachment wrap may have set content to either a string or a content array.
+      let caps = [];
+      if (Array.isArray(ctxApp.capabilities)) caps = ctxApp.capabilities;
+      else if (typeof ctxApp.capabilities === 'string') {
+        try { caps = JSON.parse(ctxApp.capabilities); } catch(e){}
+      }
+      const capsLines = (caps || []).map(function(c){
+        const t = (c && typeof c === 'object') ? (c.text || c.name || JSON.stringify(c)) : String(c);
+        return '  - ' + t;
+      }).join('\n');
+      const ctxBlock =
+        '[CONTEXT for the agent: User is asking about the "' + (ctxApp.title || 'app') + '" app on the DN Platform. Use this app spec to answer their question.\n\n' +
+        'App ID: ' + (ctxApp.id || '?') + '\n' +
+        'Title: ' + (ctxApp.title || '?') + '\n' +
+        'Status: ' + (ctxApp.status || '?') + ' \u00b7 Lifecycle: ' + (ctxApp.lifecycle_status || '?') + ' \u00b7 Version: v' + (ctxApp.artifact_version || '?') + '\n' +
+        'Live URL: ' + (ctxApp.shipped_url || '(not deployed)') + '\n' +
+        'Goal: ' + (ctxApp.goal || '?') + '\n' +
+        'Users: ' + (ctxApp.users || '?') + '\n' +
+        'Scope: ' + (ctxApp.scope || '?') + '\n' +
+        'Constraints: ' + (ctxApp.constraints || '?') + '\n' +
+        'MVP: ' + (ctxApp.mvp || '?') + '\n' +
+        (capsLines ? 'Capabilities:\n' + capsLines + '\n' : '') +
+        ']\n\n';
+      for (let i = chatHistory.length - 1; i >= 0; i--) {
+        if (chatHistory[i].role === 'user') {
+          const c = chatHistory[i].content;
+          if (typeof c === 'string') {
+            chatHistory[i].content = ctxBlock + c;
+          } else if (Array.isArray(c)) {
+            // Find the text block, prepend context to it
+            for (let j = 0; j < c.length; j++) {
+              if (c[j].type === 'text') { c[j].text = ctxBlock + (c[j].text || ''); break; }
+            }
+          }
+          break;
+        }
+      }
+    } catch(e) { console.error('Could not inject app context into chat', e); }
+    return result;
+  };
+})();
 
 function renderSidePanelApps() {
   if (typeof platformContext === 'undefined') return;
@@ -4345,7 +4954,147 @@ function renderSidePanelApps() {
       ? prog.map(function(r){ return sideAppRow(r, 'progress'); }).join('')
       : '<div class="side-empty">No builds in flight.</div>';
   }
+
+  // v1.4.1 #17 — keep the right rail in sync with the same data.
+  try { renderWorkspacePanel(); } catch(e) { /* swallow — workspace panel is optional UI */ }
 }
+
+// v1.4.1 #17 — Workspace panel (right rail) renderers + quick-action handlers.
+function renderWorkspacePanel() {
+  if (typeof platformContext === 'undefined') return;
+  var prog = (platformContext.active || []);
+  var auth = (platformContext.shipped || []);
+
+  var nowList = document.getElementById('workspace-now-list');
+  var nowCount = document.getElementById('workspace-now-count');
+  var spark = document.getElementById('workspace-head-spark');
+  var latestSub = document.getElementById('workspace-latest-app-sub');
+  var recentList = document.getElementById('workspace-recent-list');
+
+  if (nowCount) nowCount.textContent = prog.length;
+  if (spark) spark.style.background = prog.length ? 'var(--cyan)' : 'var(--text3)';
+  if (spark) spark.style.boxShadow = prog.length ? '0 0 10px var(--cyan)' : 'none';
+
+  if (nowList) {
+    if (!prog.length) {
+      nowList.innerHTML = '<div class="workspace-empty">Quiet workspace. Start a build from the chat below or open an authorized app from the left.</div>';
+    } else {
+      nowList.innerHTML = prog.map(function(r){ return workspaceBuildRow(r); }).join('');
+    }
+  }
+
+  if (latestSub) {
+    if (auth.length) {
+      var newest = auth.slice().sort(function(a,b){
+        var ta = new Date(a.updated_at || a.created_at || 0).getTime();
+        var tb = new Date(b.updated_at || b.created_at || 0).getTime();
+        return tb - ta;
+      })[0];
+      latestSub.textContent = newest && newest.name ? newest.name : 'No apps yet';
+      window.__workspaceLatestApp = newest || null;
+    } else {
+      latestSub.textContent = 'No apps yet';
+      window.__workspaceLatestApp = null;
+    }
+  }
+
+  if (recentList) {
+    var combined = []
+      .concat(auth.map(function(r){ return { kind: 'auth', row: r, t: new Date(r.updated_at || r.created_at || 0).getTime() }; }))
+      .concat(prog.map(function(r){ return { kind: 'prog', row: r, t: new Date(r.updated_at || r.created_at || 0).getTime() }; }))
+      .sort(function(a,b){ return b.t - a.t; })
+      .slice(0, 5);
+    if (!combined.length) {
+      recentList.innerHTML = '<div class="workspace-empty">Nothing recent yet.</div>';
+    } else {
+      recentList.innerHTML = combined.map(function(item){
+        var name = (item.row.name || 'Untitled app');
+        var when = workspaceRelTime(item.t);
+        var dotClass = item.kind === 'auth' ? 'ok' : 'warning';
+        var label = item.kind === 'auth' ? 'Authorized' : 'Building';
+        return '<div class="workspace-recent-item">' +
+                 '<div class="workspace-recent-dot ' + dotClass + '"></div>' +
+                 '<div class="workspace-recent-body">' +
+                   '<div class="workspace-recent-title">' + workspaceEscape(name) + '</div>' +
+                   '<div class="workspace-recent-time">' + label + ' · ' + when + '</div>' +
+                 '</div>' +
+               '</div>';
+      }).join('');
+    }
+  }
+}
+
+function workspaceBuildRow(r) {
+  var name = workspaceEscape(r.name || 'Untitled build');
+  var stage = workspaceEscape(r.stage || r.status || 'building');
+  var pct = (typeof r.progress === 'number') ? Math.max(0, Math.min(100, r.progress)) : null;
+  var started = r.created_at ? workspaceRelTime(new Date(r.created_at).getTime()) : '';
+  var initial = (r.name || 'A').trim().charAt(0).toUpperCase();
+  var hue = workspaceHash(r.id || r.name || 'x') % 360;
+  return '<div class="workspace-build-row" onclick="workspaceOpenBuild(\'' + workspaceEscapeAttr(r.id || '') + '\')">' +
+           '<div class="workspace-build-top">' +
+             '<div class="workspace-build-badge" style="background:hsl(' + hue + ',75%,68%);">' + workspaceEscape(initial) + '</div>' +
+             '<div class="workspace-build-name">' + name + '</div>' +
+             '<div class="workspace-build-stage">' + stage + '</div>' +
+           '</div>' +
+           (pct !== null ? '<div class="workspace-build-bar"><div class="workspace-build-bar-fill" style="width:' + pct + '%"></div></div>' : '') +
+           (started ? '<div class="workspace-build-meta">Started ' + started + '</div>' : '') +
+         '</div>';
+}
+
+function workspaceFocusComposer() {
+  var ta = document.querySelector('.main .panel-wrap .input-bar .chat-textarea');
+  if (ta) { ta.focus(); ta.scrollIntoView({behavior:'smooth', block:'center'}); }
+}
+function workspaceAttachFile() {
+  var btn = document.querySelector('.chat-attach-btn');
+  if (btn) btn.click();
+  else workspaceFocusComposer();
+}
+function workspaceOpenLatestApp() {
+  var app = window.__workspaceLatestApp;
+  if (!app) { workspaceFocusComposer(); return; }
+  if (typeof openAppCard === 'function') { try { openAppCard(app); return; } catch(e){} }
+  if (app.url) window.open(app.url, '_blank', 'noopener');
+}
+function workspaceOpenBuild(id) {
+  if (!id) return;
+  if (typeof openAppCardById === 'function') { try { openAppCardById(id); return; } catch(e){} }
+  // Fallback: try to find the row in platformContext and open it.
+  try {
+    var all = [].concat(platformContext.active || [], platformContext.shipped || [], platformContext.allAvailable || []);
+    var row = all.filter(function(r){ return r.id === id; })[0];
+    if (row && typeof openAppCard === 'function') openAppCard(row);
+  } catch(e){}
+}
+function workspaceRelTime(ts) {
+  if (!ts) return '';
+  var diff = Date.now() - ts;
+  if (diff < 0) return 'just now';
+  var s = Math.floor(diff / 1000);
+  if (s < 60) return s + 's ago';
+  var m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  var h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  var d = Math.floor(h / 24);
+  if (d < 7) return d + 'd ago';
+  return new Date(ts).toLocaleDateString();
+}
+function workspaceEscape(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function workspaceEscapeAttr(s) { return workspaceEscape(s); }
+function workspaceHash(s) {
+  var h = 0; s = String(s);
+  for (var i = 0; i < s.length; i++) { h = ((h << 5) - h) + s.charCodeAt(i); h |= 0; }
+  return Math.abs(h);
+}
+
+// Initial render in case data loads before the side panel does.
+try { renderWorkspacePanel(); } catch(e){}
 </script>
 
 </body>
