@@ -1123,14 +1123,14 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.13 #20</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.14 #21</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
       <span id="db-txt">No config</span>
     </div>
-    <button class="chat-toggle-btn" onclick="toggleChat()">Ask agent</button>
+    <button class="chat-toggle-btn" onclick="toggleChat()">Ask AiDN</button>
     <button class="btn-sm" onclick="tidyResolvedAdminCards(false)" title="Move resolved admin cards from Ready to QA passed">Tidy</button>
     <button class="btn-sm" onclick="loadData()">↺ Refresh</button>
     <button class="btn-sm" id="btn-users" onclick="openUsersPanel()" title="User management" style="display:none;">👥 Users</button>
@@ -6759,7 +6759,7 @@ function buildPlatformSnapshot() {
 }
 
 const ADMIN_AGENT_SYSTEM = [
-  'You are the DN platform admin agent. You help the human admin manage the DN kanban board for Digitata Networks.',
+  'You are AiDN, the agentic AI agent for the DN Platform. You help the human admin manage the DN kanban board for Digitata Networks. When you introduce yourself, refer to yourself as "AiDN".',
   'You have full read access to the platform state — all epics, stories, columns, sprints, artifacts, QA notes, recent activity — provided to you in each message as a snapshot.',
   '',
   'Your current capabilities:',
@@ -7602,7 +7602,7 @@ async function resolveAdminCard(reqId, storyTitle, decisionText) {
     await logActivity({
       request_id: reqId,
       actor: 'admin_agent',
-      actor_name: 'Admin agent',
+      actor_name: 'AiDN',
       action: 'resolved_admin_card',
       description: '"' + (stories[foundIdx].title || '') + '": ' + decisionText
     });
@@ -7953,7 +7953,7 @@ function buildDbSetupProseAlert(id, schema) {
     '<div class="spec-db-body">The agent put text in the schema field, but it doesn\'t contain runnable DDL (no <code>create table</code>, <code>alter table</code>, etc.). Pasting this into Supabase will fail. Pick one:</div>' +
     '<div class="spec-db-prose-preview"><span class="spec-db-prose-label">Current schema text:</span><pre class="spec-db-sql">' + esc(schema) + '</pre></div>' +
     '<div class="spec-db-prose-actions">' +
-      '<button class="spec-db-btn spec-db-btn-prose-ask" onclick="askAgentToDraftDDL(\'' + id + '\')">🔁 Ask agent to draft proper DDL</button>' +
+      '<button class="spec-db-btn spec-db-btn-prose-ask" onclick="askAgentToDraftDDL(\'' + id + '\')">🔁 Ask AiDN to draft proper DDL</button>' +
       '<button class="spec-db-btn spec-db-btn-prose-edit" onclick="editDraftSpec(\'' + id + '\')">✏️ Edit schema myself</button>' +
     '</div>' +
     '<div class="spec-db-prose-hint">Approve is locked until the schema is runnable SQL.</div>' +
@@ -8097,7 +8097,7 @@ async function approveDraftSpec(id) {
   // Defense in depth: the Approve button should already be disabled when schema exists
   // and dbConfirmed is false, but enforce here as well in case of a stray click path.
   if (spec.schema && !schemaLooksLikeDDL(spec.schema)) {
-    alert('The schema field is not runnable SQL. Click "Ask agent to draft proper DDL" or edit the schema yourself before approving.');
+    alert('The schema field is not runnable SQL. Click "Ask AiDN to draft proper DDL" or edit the schema yourself before approving.');
     return;
   }
   if (spec.schema && !ds.dbConfirmed) {
@@ -8224,7 +8224,7 @@ function appendChatMsg(role, text) {
   const wrap = document.getElementById('chat-msgs');
   const row = document.createElement('div');
   row.className = 'chat-msg-row ' + role;
-  const av = role === 'user' ? 'ME' : 'DN';
+  const av = role === 'user' ? 'ME' : 'Ai';
   row.innerHTML = '<div class="chat-msg-av ' + role + '">' + av + '</div>' +
                   '<div class="chat-msg-bubble">' + esc(text).replace(/\n/g, '<br>') + '</div>';
   wrap.appendChild(row);
@@ -8348,12 +8348,12 @@ async function submitAskQuestion() {
 <!-- Admin chat drawer -->
 <div class="chat-drawer" id="chat-drawer">
   <div class="chat-drawer-head">
-    <span class="chat-drawer-title">Admin agent</span>
+    <span class="chat-drawer-title">AiDN</span>
     <button class="chat-drawer-close" onclick="toggleChat()">Close</button>
   </div>
   <div class="chat-drawer-msgs" id="chat-msgs">
     <div class="chat-empty-hint">
-      Ask anything about the platform. I can see all epics, stories, and artifacts.
+      Hello — I'm <strong>AiDN</strong>, your agentic AI agent for the DN Platform. Ask me anything about the platform: I can see every epic, story, capability and artifact, and help you triage, draft specs, ship updates, or summarise what's in flight.
       <strong style="display:block;margin-top:8px;">Try:</strong>
       <button class="chat-suggestion" onclick="quickAsk(this.textContent)">What is stuck right now and why?</button>
       <button class="chat-suggestion" onclick="quickAsk(this.textContent)">Summarise the active epics</button>
@@ -8363,7 +8363,7 @@ async function submitAskQuestion() {
   </div>
   <div class="chat-drawer-input">
     <textarea class="chat-drawer-textarea" id="chat-drawer-input" rows="1"
-      placeholder="Ask the admin agent..."
+      placeholder="Ask AiDN..."
       onkeydown="handleChatKey(event)"></textarea>
     <button class="chat-drawer-send" id="chat-drawer-send" onclick="sendChatMsg()">Send</button>
   </div>
