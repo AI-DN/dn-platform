@@ -52,7 +52,13 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
 .epic-tab.pending-tab.active { color: var(--amber); border-bottom-color: var(--amber); }
 .tab-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; background: rgba(240,160,48,0.15); color: var(--amber); }
 .empty-tabs { padding: 14px 0; font-size: 13px; color: var(--text3); }
-.board-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; }
+.board-wrap { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; z-index: 1; transition: padding-right .25s ease; }
+/* v1.2.12 #19 — when the Admin Agent drawer is open, push main content left so kanban columns aren't hidden under it. */
+body.chat-open .board-wrap { padding-right: 420px; }
+@media (max-width: 1100px) {
+  /* Below this width the drawer becomes the focus; let it overlay instead of shrinking the kanban to nothing. */
+  body.chat-open .board-wrap { padding-right: 0; }
+}
 .board { display: grid; grid-template-columns: repeat(7, minmax(170px,1fr)); gap: 12px; padding: 16px 24px; overflow-x: auto; overflow-y: auto; flex: 1; }
 .col { display: flex; flex-direction: column; gap: 8px; }
 .col-head { padding: 7px 12px; border-radius: 8px; font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 2px; display: flex; align-items: center; justify-content: space-between; }
@@ -1117,7 +1123,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.12 #19</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.13 #20</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -6693,6 +6699,8 @@ let chatHistory = []; // [{role, content}] for the LLM
 function toggleChat() {
   chatOpen = !chatOpen;
   document.getElementById('chat-drawer').classList.toggle('open', chatOpen);
+  // v1.2.12 #19 — toggle body class so the main layout can make room for the 420px drawer
+  document.body.classList.toggle('chat-open', chatOpen);
   if (chatOpen) {
     setTimeout(function() { document.getElementById('chat-drawer-input').focus(); }, 250);
   }

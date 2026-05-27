@@ -1051,9 +1051,14 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
 }
 .workspace-recent-item {
   display: flex; gap: 8px;
-  padding: 7px 0;
+  padding: 8px 8px;
+  margin: 0 -8px;
   border-bottom: 1px dashed rgba(255,255,255,0.05);
+  border-radius: 7px;
+  cursor: pointer;
+  transition: background .15s;
 }
+.workspace-recent-item:hover { background: rgba(71,209,255,0.06); }
 .workspace-recent-item:last-child { border-bottom: none; }
 .workspace-recent-dot {
   width: 6px; height: 6px;
@@ -1387,7 +1392,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.2 #18</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.3 #19</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -5058,7 +5063,8 @@ function renderWorkspacePanel() {
         var when = workspaceRelTime(item.t);
         var dotClass = item.kind === 'auth' ? 'ok' : 'warning';
         var label = item.kind === 'auth' ? 'Authorized' : 'Building';
-        return '<div class="workspace-recent-item">' +
+        var id = item.row.id || '';
+        return '<div class="workspace-recent-item" title="Open details" onclick="workspaceOpenRecent(\'' + workspaceEscapeAttr(id) + '\')">' +
                  '<div class="workspace-recent-dot ' + dotClass + '"></div>' +
                  '<div class="workspace-recent-body">' +
                    '<div class="workspace-recent-title">' + workspaceEscape(name) + '</div>' +
@@ -5105,9 +5111,14 @@ function workspaceOpenLatestApp() {
   if (app.url) window.open(app.url, '_blank', 'noopener');
 }
 function workspaceOpenBuild(id) {
+  workspaceOpenRecent(id);
+}
+// v1.4.2 #18 — Recent items + active builds use the same openAppDetail() entry
+// the left rail uses, so click behaviour is consistent across both rails.
+function workspaceOpenRecent(id) {
   if (!id) return;
+  if (typeof openAppDetail === 'function') { try { openAppDetail(id); return; } catch(e){} }
   if (typeof openAppCardById === 'function') { try { openAppCardById(id); return; } catch(e){} }
-  // Fallback: try to find the row in platformContext and open it.
   try {
     var all = [].concat(platformContext.active || [], platformContext.shipped || [], platformContext.allAvailable || []);
     var row = all.filter(function(r){ return r.id === id; })[0];
