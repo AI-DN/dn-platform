@@ -1114,7 +1114,7 @@ body::before { content: ''; position: fixed; inset: 0; background: radial-gradie
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.10 #17</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.11 #18</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1986,9 +1986,8 @@ function getJwt(anonKey) {
 
 function isAdmin() { return !!(currentProfile && currentProfile.is_admin); }
 function canAccessAdmin() {
-  // Currently: admins only. When the three-tier model lands (can_access_admin column),
-  // expand to: isAdmin() || !!currentProfile.can_access_admin
-  return isAdmin();
+  // Three-tier access model (2026-05-26): admins always pass; operators with can_access_admin pass.
+  return isAdmin() || !!(currentProfile && currentProfile.can_access_admin);
 }
 
 async function initAuth() {
@@ -2021,7 +2020,7 @@ async function loadProfile() {
   if (!supaClient || !currentSession) return;
   const { data, error } = await supaClient
     .from('profiles')
-    .select('id,email,full_name,avatar_url,is_admin,provider')
+    .select('id,email,full_name,avatar_url,is_admin,can_access_admin,can_access_intent,provider')
     .eq('id', currentSession.user.id)
     .single();
   if (error) {
@@ -2148,7 +2147,7 @@ async function loadUsers() {
     // 1) all profiles (admins can SELECT via RLS)
     const { data: profiles, error: pErr } = await supaClient
       .from('profiles')
-      .select('id,email,full_name,avatar_url,is_admin,created_at,provider')
+      .select('id,email,full_name,avatar_url,is_admin,can_access_admin,can_access_intent,created_at,provider')
       .order('created_at', { ascending: false });
     if (pErr) throw pErr;
     usersCache = profiles || [];
@@ -2207,11 +2206,25 @@ function renderUsersList() {
         '<span class="user-meta-value">' + grantCount + '</span>' +
       '</div>' +
       '<div class="user-admin-toggle">' +
-        '<label class="users-switch" title="' + (isMe ? 'You cannot demote yourself' : 'Toggle admin status') + '">' +
+        '<label class="users-switch" title="' + (isMe ? 'You cannot demote yourself' : 'Full admin (manage users + per-app access)') + '">' +
           '<input type="checkbox"' + (u.is_admin ? ' checked' : '') + (isMe ? ' disabled' : '') + ' onchange="toggleAdminStatus(\'' + u.id + '\', this.checked)">' +
           '<span class="users-switch-slider"></span>' +
         '</label>' +
         '<span class="user-admin-label">Admin</span>' +
+      '</div>' +
+      '<div class="user-admin-toggle">' +
+        '<label class="users-switch" title="' + (u.is_admin ? 'Admins always have DN_Admin access' : 'Allow sign-in to DN_Admin (operator tier)') + '">' +
+          '<input type="checkbox"' + ((u.is_admin || u.can_access_admin) ? ' checked' : '') + (u.is_admin ? ' disabled' : '') + ' onchange="toggleUserAccessFlag(\'' + u.id + '\', \'can_access_admin\', this.checked)">' +
+          '<span class="users-switch-slider"></span>' +
+        '</label>' +
+        '<span class="user-admin-label">Operator</span>' +
+      '</div>' +
+      '<div class="user-admin-toggle">' +
+        '<label class="users-switch" title="' + (u.is_admin ? 'Admins always have DN_Intent access' : 'Allow sign-in to DN_Intent') + '">' +
+          '<input type="checkbox"' + ((u.is_admin || u.can_access_intent) ? ' checked' : '') + (u.is_admin ? ' disabled' : '') + ' onchange="toggleUserAccessFlag(\'' + u.id + '\', \'can_access_intent\', this.checked)">' +
+          '<span class="users-switch-slider"></span>' +
+        '</label>' +
+        '<span class="user-admin-label">Intent</span>' +
       '</div>' +
     '</div>';
   }).join('');
@@ -2241,6 +2254,35 @@ async function toggleAdminStatus(userId, newValue) {
     }
   } catch (e) {
     console.error('toggleAdminStatus failed:', e);
+    alert('Update failed: ' + (e.message || e));
+    await loadUsers();
+  }
+}
+
+// v1.0.4 #14/#16 — generic toggle for the two operator-tier access flags.
+// Used by the Operator and Intent checkboxes in the Users panel.
+async function toggleUserAccessFlag(userId, flag, newValue) {
+  if (flag !== 'can_access_admin' && flag !== 'can_access_intent') {
+    console.warn('toggleUserAccessFlag: unknown flag', flag);
+    return;
+  }
+  try {
+    const patch = { updated_at: new Date().toISOString() };
+    patch[flag] = newValue;
+    const { error } = await supaClient
+      .from('profiles')
+      .update(patch)
+      .eq('id', userId);
+    if (error) throw error;
+    const u = usersCache.find(function(x) { return x.id === userId; });
+    if (u) u[flag] = newValue;
+    renderUsersList();
+    const statusEl = document.getElementById('users-status');
+    if (statusEl) {
+      statusEl.textContent = usersCache.length + ' user(s) · ' + flag + ' updated · ' + new Date().toLocaleTimeString();
+    }
+  } catch (e) {
+    console.error('toggleUserAccessFlag failed:', e);
     alert('Update failed: ' + (e.message || e));
     await loadUsers();
   }
