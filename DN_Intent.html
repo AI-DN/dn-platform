@@ -1426,7 +1426,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.6 #22</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.7 #23</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -3119,7 +3119,11 @@ function switchMode(mode) {
   ['quick','guided','upload'].forEach(function(m) {
     document.getElementById('mode-' + m).classList.toggle('active', m === mode);
     const p = document.getElementById('panel-' + m);
-    if (p) p.style.display = (m === mode) ? 'block' : 'none';
+    // v1.4.6 #22 — clear inline display on the active panel so the CSS rule
+    // (.main .panel-wrap > #panel-guided { display: flex; ... }) applies. Previously
+    // 'block' was set inline, which clobbered the flex layout and prevented
+    // .chat-window flex-growing to fill the viewport.
+    if (p) p.style.display = (m === mode) ? '' : 'none';
   });
   if (mode === 'guided' && chatHistory.length === 0) startChat();
 }
