@@ -1387,7 +1387,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.1 #17</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.2 #18</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -5036,7 +5036,7 @@ function renderWorkspacePanel() {
         var tb = new Date(b.updated_at || b.created_at || 0).getTime();
         return tb - ta;
       })[0];
-      latestSub.textContent = newest && newest.name ? newest.name : 'No apps yet';
+      latestSub.textContent = newest && (newest.title || newest.name) ? (newest.title || newest.name) : 'No apps yet';
       window.__workspaceLatestApp = newest || null;
     } else {
       latestSub.textContent = 'No apps yet';
@@ -5054,7 +5054,7 @@ function renderWorkspacePanel() {
       recentList.innerHTML = '<div class="workspace-empty">Nothing recent yet.</div>';
     } else {
       recentList.innerHTML = combined.map(function(item){
-        var name = (item.row.name || 'Untitled app');
+        var name = (item.row.title || item.row.name || 'Untitled app');
         var when = workspaceRelTime(item.t);
         var dotClass = item.kind === 'auth' ? 'ok' : 'warning';
         var label = item.kind === 'auth' ? 'Authorized' : 'Building';
@@ -5071,12 +5071,13 @@ function renderWorkspacePanel() {
 }
 
 function workspaceBuildRow(r) {
-  var name = workspaceEscape(r.name || 'Untitled build');
-  var stage = workspaceEscape(r.stage || r.status || 'building');
+  var displayName = r.title || r.name || 'Untitled build';
+  var name = workspaceEscape(displayName);
+  var stage = workspaceEscape(r.stage || r.qa_status || r.status || 'building');
   var pct = (typeof r.progress === 'number') ? Math.max(0, Math.min(100, r.progress)) : null;
   var started = r.created_at ? workspaceRelTime(new Date(r.created_at).getTime()) : '';
-  var initial = (r.name || 'A').trim().charAt(0).toUpperCase();
-  var hue = workspaceHash(r.id || r.name || 'x') % 360;
+  var initial = displayName.trim().charAt(0).toUpperCase();
+  var hue = workspaceHash(r.id || displayName) % 360;
   return '<div class="workspace-build-row" onclick="workspaceOpenBuild(\'' + workspaceEscapeAttr(r.id || '') + '\')">' +
            '<div class="workspace-build-top">' +
              '<div class="workspace-build-badge" style="background:hsl(' + hue + ',75%,68%);">' + workspaceEscape(initial) + '</div>' +
