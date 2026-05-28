@@ -577,11 +577,15 @@ body::before {
 
 .settings-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-  display: none; z-index: 200;
+  display: none; z-index: 1000;
   align-items: flex-start; justify-content: flex-end;
   padding-top: 60px; padding-right: 24px;
 }
 .settings-overlay.open { display: flex; }
+/* v1.4.10 #27 — Hide the two rails while Settings is open so its panel isn't
+   obscured by the workspace/apps panels that share the right edge. */
+body.settings-open .workspace-panel,
+body.settings-open .side-panel { display: none !important; }
 
 /* T4 — Access Management CSS removed (panel moved to DN_Admin) */
 .settings-panel {
@@ -1466,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.10 #26</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.11 #27</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -3006,6 +3010,8 @@ function toggleSettingsPanel() {
 function openSettingsPanel() {
   loadSettings();
   document.getElementById('settings-overlay').classList.add('open');
+  // v1.4.10 #27 — body flag so we can hide the workspace + apps rails while settings is open.
+  document.body.classList.add('settings-open');
   setTimeout(function() {
     const first = document.getElementById('inp-name');
     if (first && !first.value) first.focus();
@@ -3013,6 +3019,7 @@ function openSettingsPanel() {
 }
 function closeSettingsPanel() {
   document.getElementById('settings-overlay').classList.remove('open');
+  document.body.classList.remove('settings-open');
 }
 function refreshGearStatus() {
   const gear = document.getElementById('btn-settings-gear');
