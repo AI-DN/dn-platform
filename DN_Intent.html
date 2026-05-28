@@ -1470,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.11 #27</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.12 #28</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -2855,17 +2855,28 @@ async function addStoryForAgent(reqId, kind, title, what, test) {
       };
       caps.push(newCap);
 
-      const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
-      const p = await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
-        method: 'PATCH', headers: patchHeaders,
+      // v1.4.11 #28 — Use the SECURITY DEFINER RPC instead of a raw PATCH. The previous
+      // PATCH was silently dropped by the requests_update_creator_or_admin RLS policy
+      // when the caller wasn't the row's creator or an admin, producing a 204 / "0 rows
+      // affected" success that left the capabilities array unchanged. The RPC validates
+      // can_access_intent in-function and returns a capability_count so a silent drop
+      // becomes a real error.
+      const rpcHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json' });
+      const p = await fetch(url + '/rest/v1/rpc/add_capability_to_request', {
+        method: 'POST', headers: rpcHeaders,
         body: JSON.stringify({
-          capabilities: caps,
-          qa_status: 'not_built'  // signals to admin: there are unbuilt capabilities
+          p_request_id: reqId,
+          p_capability: newCap
         })
       });
       if (!p.ok) {
         const errText = await p.text();
         return { ok: false, error: 'Save failed: ' + errText.slice(0, 200) };
+      }
+      let rpcResult = null;
+      try { rpcResult = await p.json(); } catch(e) {}
+      if (!rpcResult || rpcResult.ok !== true) {
+        return { ok: false, error: 'Capability not saved (RPC returned no confirmation): ' + JSON.stringify(rpcResult || {}).slice(0, 200) };
       }
 
       await logActivity({
