@@ -208,11 +208,11 @@ tbody tr:last-child td { border-bottom: none; }
 .row-between { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .section-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
-.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; animation: fadeIn 150ms ease; }
+.modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; animation: fadeIn 150ms ease; }
 .modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 20px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
 .modal-title { font-size: 16px; font-weight: 600; }
-.toast-container { position: fixed; top: 16px; right: 16px; left: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
+.toast-container { position: fixed; top: 16px; right: 16px; left: 16px; z-index: 10100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
 @media (min-width: 480px) { .toast-container { left: auto; max-width: 360px; } }
 .toast { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 10px 12px; font-size: 13px; display: flex; align-items: center; gap: 8px; pointer-events: auto; animation: slideIn 200ms ease; }
 @keyframes slideIn { from { transform: translateY(-8px); opacity: 0; } to { transform: none; opacity: 1; } }
@@ -957,7 +957,7 @@ function initMap(){
   const el = document.getElementById('world-map');
   if (!el || !window.L) return;
   if (state.mapInstance) { try { state.mapInstance.remove(); } catch(e){} state.mapInstance = null; }
-  const map = L.map(el, { worldCopyJump: true, scrollWheelZoom: false }).setView([25, 15], 2);
+  const map = L.map(el, { worldCopyJump: true, scrollWheelZoom: true }).setView([25, 15], 2);
   state.mapInstance = map;
   const isDark = state.theme === 'dark';
   L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
