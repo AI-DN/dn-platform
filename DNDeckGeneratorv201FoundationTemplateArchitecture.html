@@ -613,6 +613,20 @@ tbody tr:hover { background: var(--surface-2); }
 [data-theme="dark"] .skill-group-badge { background: rgba(45, 212, 191, 0.18); color: #5DCAA5; border-color: #1D9E75; }
 /* ===== end Build #87 CSS ===== */
 
+/* ===== Build #109 — Regenerate-with-skill visual gallery (mirrors Step 0 cards) ===== */
+.regen-skill-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; max-height: 260px; overflow-y: auto; padding: 4px; background: var(--surface-2, var(--surface)); border: 1px solid var(--border); border-radius: var(--radius-sm); }
+.regen-skill-tile { background: var(--surface); border: 1px solid var(--border); border-radius: 4px; cursor: pointer; overflow: hidden; padding: 4px; display: flex; flex-direction: column; gap: 3px; transition: border-color 120ms ease, box-shadow 120ms ease; position: relative; }
+.regen-skill-tile:hover { border-color: var(--text-subtle); box-shadow: var(--shadow-1); }
+.regen-skill-tile.selected { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+.regen-skill-tile.selected::after { content: '\2713'; position: absolute; top: 3px; right: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); color: white; display: flex; align-items: center; justify-content: center; font-size: 9px; font-weight: 600; z-index: 2; }
+.regen-skill-thumb { aspect-ratio: 16/10; background: var(--surface-2); border-radius: 3px; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.regen-skill-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.regen-skill-thumb-default { background: var(--accent-bg); color: var(--accent); font-weight: 600; font-size: 16px; }
+.regen-skill-thumb-ph { color: var(--text-subtle); font-size: 9px; font-family: var(--mono); text-align: center; line-height: 1.2; }
+.regen-skill-name { font-size: 10px; font-weight: 500; color: var(--text); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.regen-skill-sub { font-size: 9px; color: var(--text-muted); line-height: 1.2; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* ===== end Build #109 CSS ===== */
+
 /* ===== Build #65 — slide thumb block overlay ===== */
 .slide-img-thumb { position: relative; }
 .slide-thumb-blocks-overlay { position: absolute; inset: 0; pointer-events: none; z-index: 2; }
@@ -686,7 +700,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.23.3 #108</div>
+      <div class="brand-version">v2.23.3 #109</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -4758,10 +4772,28 @@ function renderImgCard(s, i) {
               const skillCandidates = (window.allSkills || allSkills || []).filter(sk => sk && sk.is_skill && sk.is_active && !skillIsGroup(sk)).sort((a, b) => (a.name || '').localeCompare(b.name || ''));
               const overrideSkillId = s.assignedSkillId || '';
               const deckSkillLabel = skill ? skill.name : '(none selected at deck level)';
-              const skillOpts = ['<option value="">↵ Use deck skill (' + escapeHtml(deckSkillLabel) + ')</option>']
-                .concat(skillCandidates.map(sk => '<option value="' + sk.id + '"' + (overrideSkillId === sk.id ? ' selected' : '') + '>' + escapeHtml(sk.name) + (sk.best_for ? ' · ' + escapeHtml(sk.best_for) : '') + '</option>'))
-                .join('');
-              const skillPicker = skillCandidates.length > 0 ? ('<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Regenerate with skill</label><select class="select" data-act="regenSkill" style="font-size:12px;width:100%">' + skillOpts + '</select><div class="field-hint" style="margin-top:4px;font-size:10px">Per-slide skill override. The skill controls the visual style; changing it re-seeds the prompt below with that skill\'s visual language.</div></div>') : '';
+              // Build #109 — render skill picker as visual gallery (matches Step 0 skill cards) instead of dropdown
+              const skillPicker = skillCandidates.length > 0 ? (function() {
+                const deckTile = '<div class="regen-skill-tile ' + (overrideSkillId === '' ? 'selected' : '') + '" data-regen-skill-id="" title="Use deck skill">' +
+                  '<div class="regen-skill-thumb regen-skill-thumb-default">↵</div>' +
+                  '<div class="regen-skill-name">Use deck skill</div>' +
+                  '<div class="regen-skill-sub">' + escapeHtml(deckSkillLabel) + '</div>' +
+                '</div>';
+                const tiles = skillCandidates.map(sk => {
+                  const thumb = sk.preview_image_b64
+                    ? '<img src="data:image/jpeg;base64,' + sk.preview_image_b64 + '" alt="">'
+                    : '<div class="regen-skill-thumb-ph">no<br>preview</div>';
+                  return '<div class="regen-skill-tile ' + (overrideSkillId === sk.id ? 'selected' : '') + '" data-regen-skill-id="' + sk.id + '" title="' + escapeAttr(sk.name) + (sk.best_for ? ' · ' + escapeAttr(sk.best_for) : '') + '">' +
+                    '<div class="regen-skill-thumb">' + thumb + '</div>' +
+                    '<div class="regen-skill-name">' + escapeHtml(sk.name) + '</div>' +
+                    (sk.best_for ? '<div class="regen-skill-sub">' + escapeHtml(sk.best_for) + '</div>' : '') +
+                  '</div>';
+                }).join('');
+                return '<div style="margin-top:10px"><label class="field-label" style="margin-bottom:4px">Regenerate with skill</label>' +
+                  '<div class="regen-skill-gallery">' + deckTile + tiles + '</div>' +
+                  '<div class="field-hint" style="margin-top:4px;font-size:10px">Per-slide skill override. The skill controls the visual style; changing it re-seeds the prompt below with that skill\'s visual language.</div>' +
+                '</div>';
+              })() : '';
               // Effective skill for prompt seeding: per-slide override > deck skill
               const effectiveSkillForSeed = (function() {
                 if (s.assignedSkillId) {
@@ -4810,15 +4842,17 @@ function bindImgCard(i) {
   const retry = card.querySelector('[data-act="retry"]'); if (retry) retry.onclick = () => regenerateOne(i);
   const toggle = card.querySelector('[data-act="toggleRefine"]'); if (toggle) toggle.onclick = () => { state.expandedRefine[i] = !state.expandedRefine[i]; renderStep5Slides(); };
   // Build #107 \u2014 per-slide skill override dropdown
-  const skillSel = card.querySelector('select[data-act="regenSkill"]');
-  if (skillSel) skillSel.onchange = e => {
-    const val = e.target.value;
-    state.slides[i].assignedSkillId = val || null;
-    // Mark prompt as stale so the textarea re-seeds with the new skill\'s composeSkillPrompt
-    state.slides[i].skillOverrideJustChanged = true;
-    state.slides[i].lastPrompt = null; // drop the old prompt so reseed kicks in
-    renderStep5Slides();
-  };
+  // Build #109 — visual skill gallery tile clicks
+  card.querySelectorAll('[data-regen-skill-id]').forEach(tile => {
+    tile.onclick = () => {
+      const val = tile.getAttribute('data-regen-skill-id');
+      state.slides[i].assignedSkillId = val || null;
+      // Mark prompt as stale so the textarea re-seeds with the new skill's composeSkillPrompt
+      state.slides[i].skillOverrideJustChanged = true;
+      state.slides[i].lastPrompt = null; // drop the old prompt so reseed kicks in
+      renderStep5Slides();
+    };
+  });
   // Build #75 — per-slide model override
   const mdlSel = card.querySelector('[data-act="regenModel"]');
   if (mdlSel) mdlSel.onchange = e => { state.regenModelOverride[i] = e.target.value; };
