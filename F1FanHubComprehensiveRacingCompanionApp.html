@@ -1319,7 +1319,7 @@ function openRace(round){
   function bodyHtml(){
     let body = `<div class="tabs">
       <button class="tab ${tab==='schedule'?'active':''}" data-rtab="schedule">Schedule</button>
-      ${isFinished ? `<button class="tab ${tab==='results'?'active':''}" data-rtab="results">Results</button><button class="tab ${tab==='quali'?'active':''}" data-rtab="quali">Qualifying</button>` : ''}
+      ${isFinished ? '<button class="tab ' + (tab==='results'?'active':'') + '" data-rtab="results">Results</button><button class="tab ' + (tab==='quali'?'active':'') + '" data-rtab="quali">Qualifying</button>' : ''}
       <button class="tab ${tab==='circuit'?'active':''}" data-rtab="circuit">Circuit</button>
     </div>`;
     if (tab === 'schedule') {
