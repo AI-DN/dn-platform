@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.17 #24</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.18 #25</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -2832,6 +2832,12 @@ window.addEventListener('load', async function() {
   const ov = document.getElementById('dn-auth-overlay'); if (ov) ov.remove();
   // Refresh data now that we have a session JWT (any earlier load with anon key would have been blocked by RLS)
   if (typeof loadData === 'function') loadData();
+  // v1.2.17 #24 / task #19 — Recover orphaned builds (rows stuck on qa_status='building'
+  // because a previous browser session died mid-build without writing a terminal event).
+  // Fires after loadData so the kanban renders the rescue results on its next refresh.
+  if (typeof recoverOrphanedBuilds === 'function') {
+    setTimeout(function() { recoverOrphanedBuilds().catch(function(e){ console.warn('orphan recovery failed:', e); }); }, 2500);
+  }
   // T7 — surface admin buttons + pending-request badge as soon as profile is known
   if (typeof showUsersButtonIfAdmin === 'function') showUsersButtonIfAdmin();
   if (typeof showAppAccessButtonIfAdmin === 'function') showAppAccessButtonIfAdmin();
@@ -4310,6 +4316,68 @@ async function syncArtifactFromLive(reqId, silent) {
 // was a qa_send_back / build_failed / build_validation_failed within the last 2 hours,
 // meaning the stored-vs-live divergence is expected and self-inflicted (not external).
 // buildRequest uses this to silently auto-sync instead of prompting the admin.
+// v1.2.17 #24 / task #19 — Orphan recovery for stuck builds.
+// On page load, find any row whose qa_status='building' but which has had NO
+// activity_log event (heartbeat, complete, failed, etc.) in the last 10 minutes.
+// Such rows belong to dead browser sessions whose build agent died without writing
+// a terminal event. Reset their qa_status and emit build_failed reason='orphaned_on_reload'
+// so they reappear on the kanban as either Ready for QA (if a previous build exists)
+// or Improvement Requested / Inbox (if not).
+async function recoverOrphanedBuilds() {
+  try {
+    const supaUrl = localStorage.getItem('dn_supa_url');
+    const supaKey = localStorage.getItem('dn_supa_key');
+    if (!supaUrl || !supaKey) return;
+    const jwt = (typeof getJwt === 'function') ? getJwt(supaKey) : supaKey;
+    const headers = { 'apikey': supaKey, 'Authorization': 'Bearer ' + jwt };
+    const rResp = await fetch(supaUrl + '/rest/v1/requests?select=id,title,qa_status,artifact_html&qa_status=eq.building', { headers });
+    if (!rResp.ok) return;
+    const building = await rResp.json();
+    if (!Array.isArray(building) || building.length === 0) return;
+    const ORPHAN_THRESHOLD_MIN = 10;
+    const cutoff = new Date(Date.now() - ORPHAN_THRESHOLD_MIN * 60 * 1000).toISOString();
+    let recovered = 0;
+    for (let i = 0; i < building.length; i++) {
+      const row = building[i];
+      try {
+        const params = 'request_id=eq.' + encodeURIComponent(row.id) + '&created_at=gte.' + encodeURIComponent(cutoff) + '&limit=1';
+        const aResp = await fetch(supaUrl + '/rest/v1/activity_log?' + params, { headers });
+        if (!aResp.ok) continue;
+        const recent = await aResp.json();
+        if (Array.isArray(recent) && recent.length > 0) continue;  // recent activity = not orphaned
+        const rollbackTo = (row.artifact_html && row.artifact_html.length > 0) ? 'ready_for_qa' : 'not_built';
+        const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
+        await fetch(supaUrl + '/rest/v1/requests?id=eq.' + encodeURIComponent(row.id), {
+          method: 'PATCH', headers: patchHeaders,
+          body: JSON.stringify({ qa_status: rollbackTo })
+        });
+        try {
+          await logActivity({
+            request_id: row.id,
+            actor: 'admin',
+            actor_name: 'admin',
+            action: 'build_failed',
+            description: 'Build orphaned on page reload: no activity for > ' + ORPHAN_THRESHOLD_MIN + ' min. Reset qa_status to ' + rollbackTo + '. reason=orphaned_on_reload'
+          });
+        } catch(_) { /* never let logging block recovery */ }
+        recovered++;
+        console.warn('Orphan recovered: "' + (row.title || row.id) + '" → ' + rollbackTo);
+      } catch (rowErr) {
+        console.warn('Orphan recovery failed for ' + row.id + ':', rowErr);
+      }
+    }
+    if (recovered > 0) {
+      console.log('Orphan recovery: rescued ' + recovered + ' stuck row(s). Refresh the board to see them.');
+      // Trigger a board refresh so the rescued rows visually move to the right column
+      if (typeof loadData === 'function') {
+        try { loadData(); } catch(_) {}
+      }
+    }
+  } catch (e) {
+    console.warn('recoverOrphanedBuilds failed (non-fatal):', e);
+  }
+}
+
 async function isDivergenceFromRecentSendBack(reqId) {
   try {
     const supaUrl = localStorage.getItem('dn_supa_url');
@@ -4474,23 +4542,63 @@ async function buildRequest(reqId) {
     let resp;
     let usedBuildModel = null;
     let lastBuildErrText = '';
+    // v1.2.17 #24 / task #19 — Build telemetry: each fetch is wrapped in an AbortController
+    // with an 8-minute idle timeout (most builds complete in 1-2 min; 8 min is the cliff
+    // beyond which a stuck stream is almost certainly dead). A heartbeat interval writes
+    // build_heartbeat events to activity_log every 60s so admins can see the build is
+    // still alive even when it takes a while. On any exit (success/error/timeout) both
+    // the interval and the timeout are cleared.
+    const BUILD_TIMEOUT_MS    = 8 * 60 * 1000;
+    const HEARTBEAT_EVERY_MS  = 60 * 1000;
     for (let mi = 0; mi < buildChain.length; mi++) {
       const tryModel = buildChain[mi];
       console.log('Build agent: trying ' + tryModel + (mi > 0 ? ' (fallback ' + mi + ')' : ''));
-      resp = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST',
-        headers: {
-          'x-api-key': apiKey,
-          'anthropic-version': '2023-06-01',
-          'anthropic-dangerous-direct-browser-access': 'true',
-          'content-type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: tryModel,
-          max_tokens: 128000,
-          messages: [{ role: 'user', content: userContent }]
-        })
-      });
+      const attemptStartedAt = Date.now();
+      const controller = new AbortController();
+      const timeoutHandle = setTimeout(function() {
+        try { controller.abort(); } catch(_) {}
+      }, BUILD_TIMEOUT_MS);
+      const heartbeatHandle = setInterval(function() {
+        const elapsedSec = Math.round((Date.now() - attemptStartedAt) / 1000);
+        // Fire-and-forget — we don't want heartbeat failures to disrupt the build.
+        try {
+          logActivity({
+            request_id: reqId,
+            actor: 'admin',
+            actor_name: 'admin',
+            action: 'build_heartbeat',
+            description: 'Build in progress · model=' + tryModel + ' · ' + elapsedSec + 's elapsed'
+          });
+        } catch(_) {}
+      }, HEARTBEAT_EVERY_MS);
+      try {
+        resp = await fetch('https://api.anthropic.com/v1/messages', {
+          method: 'POST',
+          headers: {
+            'x-api-key': apiKey,
+            'anthropic-version': '2023-06-01',
+            'anthropic-dangerous-direct-browser-access': 'true',
+            'content-type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: tryModel,
+            max_tokens: 128000,
+            messages: [{ role: 'user', content: userContent }]
+          }),
+          signal: controller.signal
+        });
+      } catch (fetchErr) {
+        clearInterval(heartbeatHandle);
+        clearTimeout(timeoutHandle);
+        // AbortError → our 8-min timeout fired. Convert to a clearer error message
+        // so the outer catch can write a meaningful terminal event.
+        if (fetchErr && (fetchErr.name === 'AbortError' || /abort/i.test(fetchErr.message || ''))) {
+          throw new Error('Build aborted: no response within ' + (BUILD_TIMEOUT_MS / 60000) + ' minutes on ' + tryModel + ' (stream_idle_timeout).');
+        }
+        throw fetchErr;
+      }
+      clearInterval(heartbeatHandle);
+      clearTimeout(timeoutHandle);
       if (resp.ok) {
         usedBuildModel = tryModel;
         if (mi > 0) {
@@ -4641,6 +4749,24 @@ async function buildRequest(reqId) {
     window._buildInFlightReqId = null;
   } catch(e) {
     console.error('Build failed:', e);
+    // v1.2.17 #24 / task #19 — Always emit a terminal event so build hangs are no longer
+    // invisible. Reason is parsed from the error message: idle-timeout (our 8-min abort),
+    // network error (fetch threw), or generic error otherwise.
+    const errMsg = (e && e.message) || String(e);
+    let failReason = 'error';
+    if (/stream_idle_timeout|aborted: no response/i.test(errMsg)) failReason = 'stream_idle_timeout';
+    else if (/network|failed to fetch|networkerror/i.test(errMsg)) failReason = 'network_error';
+    else if (/max_tokens|truncated/i.test(errMsg)) failReason = 'max_tokens_truncation';
+    else if (/could not be parsed/i.test(errMsg)) failReason = 'unparseable_response';
+    try {
+      await logActivity({
+        request_id: reqId,
+        actor: 'admin',
+        actor_name: 'admin',
+        action: 'build_failed',
+        description: 'Build failed (' + failReason + '): ' + errMsg.slice(0, 280)
+      });
+    } catch(_) { /* never let logging block recovery */ }
     alert('Build failed: ' + e.message + '\n\nThe request has been reset to its previous state.');
     // Roll back qa_status
     const rollbackTo = (req.artifact_html && req.artifact_html.length > 0) ? 'ready_for_qa' : 'not_built';
