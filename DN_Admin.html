@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.16 #23</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.17 #24</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -5111,7 +5111,49 @@ function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
 
   let prompt =
 'You are an expert front-end engineer building a complete, working web application. ' +
-'You will produce ONE single self-contained HTML file that runs in the browser as a sandboxed iframe.\n\n' +
+'You will produce ONE single self-contained HTML file that runs in the browser as a sandboxed iframe.\n' +
+'"Self-contained" means: no separate JS/CSS files, no build step. It does NOT mean: embed all data inside the file.\n\n' +
+
+// v1.2.17 #24 — Live-data + refusal-format directives. The build agent has been embedding stale
+// training-data facts when asked for current/live data. These rules force runtime fetch instead.
+'═══════════════════════════════════════════════════════════════════════════\n' +
+'LIVE DATA & TIME-SENSITIVE CONTENT — HARD RULE\n' +
+'═══════════════════════════════════════════════════════════════════════════\n' +
+'Your training data has a cutoff in the past. You DO NOT KNOW current-year facts about:\n' +
+'  - Sports results, standings, schedules, rosters, season data\n' +
+'  - Stock prices, exchange rates, market data\n' +
+'  - News, weather, flight statuses, current office-holders\n' +
+'  - Product prices, inventory, availability\n' +
+'  - Anything else that changes over time\n\n' +
+'When the request mentions "current", "live", "real-time", "today", "latest", "this season",\n' +
+'or any specific year that is the present year or later, you MUST:\n' +
+'  1. Identify the data source URL the user has provided (look in epic, capabilities, QA feedback, data_sources).\n' +
+'  2. Generate JavaScript that calls fetch() against that URL on page load.\n' +
+'  3. Show a "Loading…" state until the fetch resolves.\n' +
+'  4. On fetch failure: show an error message. NEVER fall back to embedded hardcoded data.\n\n' +
+'You MUST NOT:\n' +
+'  - Embed named entities (drivers, teams, stock tickers, current office-holders, prices, etc.) as JS literals\n' +
+'    when the user has named a data source.\n' +
+'  - Pretend to "know" facts about the current year — your training cutoff is in the past; whatever you think\n' +
+'    you remember about "right now" is almost certainly wrong.\n' +
+'  - Generate a placeholder/sample dataset and ship it as if it were real.\n\n' +
+'If the request asks for live data but NO data source URL has been provided anywhere in the inputs,\n' +
+'REFUSE to build using the REFUSAL FORMAT below — do not guess at a likely URL and do not substitute embedded data.\n\n' +
+
+'═══════════════════════════════════════════════════════════════════════════\n' +
+'REFUSAL FORMAT — when you cannot satisfy a hard requirement\n' +
+'═══════════════════════════════════════════════════════════════════════════\n' +
+'The harness ONLY accepts a valid JSON object with an "html" field. Prose responses produce an\n' +
+'unparseable-build error and waste a build cycle. If you must refuse, output the JSON object with\n' +
+'html containing a minimal HTML page that DISPLAYS the refusal reason visibly, e.g.:\n\n' +
+'{"html":"<!DOCTYPE html><html><head><title>Build refused</title></head>' +
+'<body style=\\"font-family:system-ui;padding:40px;color:#e8eaf0;background:#07091a\\">' +
+'<h1 style=\\"color:#f0a030\\">Build refused</h1>' +
+'<p>The requested app needs live data from a specific URL, but no data source URL was provided. ' +
+'Please reply with the API endpoint to use.</p></body></html>"}\n\n' +
+'Never return prose, markdown, or naked text — only the JSON object. The admin reads your refusal in\n' +
+'the preview pane and sends back with the missing input.\n\n' +
+
 'BEFORE YOU START WRITING CODE — read the DN HOUSE STYLE document below carefully. Every UI decision must conform to it. ' +
 'This is not generic advice; it is the platform\'s permanent design system.\n\n' +
 '═══════════════════════════════════════════════════════════════════════════\n' +
