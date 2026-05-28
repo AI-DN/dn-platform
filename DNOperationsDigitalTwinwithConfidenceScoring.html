@@ -1,0 +1,1356 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>DN Operations Digital Twin</title><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet"><style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f5f5f5;--text:#18181b;--text-muted:#52525b;--text-subtle:#a1a1aa;--border:rgba(0,0,0,0.08);--border-strong:rgba(0,0,0,0.16);--accent:#5e6ad2;--accent-hover:#4f59c4;--accent-bg:rgba(94,106,210,0.08);--success:#16a34a;--success-bg:rgba(22,163,74,0.08);--warning:#d97706;--warning-bg:rgba(217,119,6,0.08);--danger:#dc2626;--danger-bg:rgba(220,38,38,0.08);--info:#0284c7;--info-bg:rgba(2,132,199,0.08);--radius-sm:4px;--radius-md:6px;--radius-lg:8px}
+[data-theme="dark"]{--bg:#09090b;--surface:#131316;--surface-2:#1c1c20;--text:#fafafa;--text-muted:#a1a1aa;--text-subtle:#71717a;--border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);--accent:#7b85e3;--accent-hover:#8d96e8;--accent-bg:rgba(123,133,227,0.10);--success:#22c55e;--success-bg:rgba(34,197,94,0.10);--warning:#f59e0b;--warning-bg:rgba(245,158,11,0.10);--danger:#ef4444;--danger-bg:rgba(239,68,68,0.10);--info:#38bdf8;--info-bg:rgba(56,189,248,0.10)}
+html,body{height:100%}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:10}
+.header-left{display:flex;align-items:center;gap:24px}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;letter-spacing:-0.01em}
+.brand-dot{width:8px;height:8px;background:var(--accent);border-radius:2px}
+.nav{display:flex;gap:4px}
+.nav-btn{background:transparent;border:1px solid transparent;color:var(--text-muted);padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms ease;font-family:inherit}
+.nav-btn:hover{background:var(--surface-2);color:var(--text)}
+.nav-btn.active{background:var(--accent-bg);color:var(--accent)}
+.header-right{display:flex;align-items:center;gap:8px}
+.time-selector{display:flex;align-items:center;gap:4px;padding:2px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm)}
+.time-btn{background:transparent;border:none;color:var(--text-muted);padding:4px 8px;border-radius:3px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;font-variant-numeric:tabular-nums}
+.time-btn.active{background:var(--surface);color:var(--text);border:1px solid var(--border)}
+.refresh-indicator{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.pulse{width:6px;height:6px;background:var(--success);border-radius:50%;animation:pulse 2s ease-in-out infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.4}}
+.icon-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);width:30px;height:30px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all 150ms ease}
+.icon-btn:hover{background:var(--surface-2);color:var(--text);border-color:var(--border-strong)}
+.role-select{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:5px 8px;border-radius:var(--radius-sm);font-size:12px;font-family:inherit;cursor:pointer}
+.btn-primary{background:var(--accent);color:white;border:1px solid var(--accent);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease;font-family:inherit}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms ease;font-family:inherit}
+.btn-secondary:hover{background:var(--surface-2);border-color:var(--text-subtle)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid transparent;padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;font-family:inherit;font-weight:500}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+.main{flex:1;padding:24px;max-width:1600px;margin:0 auto;width:100%}
+.breadcrumb{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted);margin-bottom:16px}
+.breadcrumb-link{color:var(--text-muted);background:none;border:none;cursor:pointer;font-family:inherit;font-size:12px;padding:0}
+.breadcrumb-link:hover{color:var(--text)}
+.breadcrumb-sep{color:var(--text-subtle)}
+.confidence-hero{display:grid;grid-template-columns:340px 1fr;gap:16px;margin-bottom:16px}
+.hero-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:20px;position:relative}
+.hero-label{font-size:12px;font-weight:500;letter-spacing:0.02em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.hero-score{font-size:56px;font-weight:600;letter-spacing:-0.02em;line-height:1;font-variant-numeric:tabular-nums;display:flex;align-items:baseline;gap:8px}
+.hero-score-suffix{font-size:18px;color:var(--text-muted);font-weight:500}
+.score-trend{display:flex;align-items:center;gap:6px;margin-top:10px;font-size:12px;font-variant-numeric:tabular-nums}
+.score-bar{height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden;margin-top:14px}
+.score-bar-fill{height:100%;background:var(--accent);transition:width 400ms ease}
+.score-meta{display:flex;justify-content:space-between;margin-top:10px;font-size:11px;color:var(--text-subtle);font-variant-numeric:tabular-nums}
+.hero-meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.kpi-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px}
+.kpi-label{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.kpi-value{font-size:24px;font-weight:600;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1.2}
+.kpi-sub{font-size:11px;color:var(--text-subtle);margin-top:4px;font-variant-numeric:tabular-nums}
+.kpi-value.critical{color:var(--danger)}
+.kpi-value.warning{color:var(--warning)}
+.kpi-value.success{color:var(--success)}
+.tiles-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px}
+.tile{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;cursor:pointer;transition:border-color 150ms ease}
+.tile:hover{border-color:var(--border-strong)}
+.tile-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.tile-title{font-size:13px;font-weight:600}
+.tile-health{font-size:28px;font-weight:600;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;line-height:1}
+.tile-footer{display:flex;justify-content:space-between;align-items:center;margin-top:10px;font-size:11px;color:var(--text-muted);font-variant-numeric:tabular-nums}
+.tile-bar{height:4px;background:var(--surface-2);border-radius:2px;overflow:hidden;margin-top:10px}
+.tile-bar-fill{height:100%;transition:width 400ms ease}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;font-variant-numeric:tabular-nums}
+.badge-success{background:var(--success-bg);color:var(--success)}
+.badge-warning{background:var(--warning-bg);color:var(--warning)}
+.badge-danger{background:var(--danger-bg);color:var(--danger)}
+.badge-info{background:var(--info-bg);color:var(--info)}
+.badge-neutral{background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.dot-success{background:var(--success)}
+.dot-warning{background:var(--warning)}
+.dot-danger{background:var(--danger)}
+.section{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);margin-bottom:16px;overflow:hidden}
+.section-header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;border-bottom:1px solid var(--border)}
+.section-title{font-size:14px;font-weight:600;display:flex;align-items:center;gap:8px}
+.section-actions{display:flex;align-items:center;gap:6px}
+.chips{display:flex;gap:6px;padding:10px 16px;border-bottom:1px solid var(--border);flex-wrap:wrap}
+.chip{background:var(--surface-2);border:1px solid var(--border);color:var(--text-muted);padding:3px 10px;border-radius:12px;font-size:12px;cursor:pointer;font-family:inherit;font-weight:500;transition:all 150ms ease}
+.chip:hover{color:var(--text);border-color:var(--border-strong)}
+.chip.active{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+thead th{text-align:left;font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px;border-bottom:1px solid var(--border);background:var(--surface)}
+tbody td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+tbody tr{cursor:pointer;transition:background 150ms ease}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr:last-child td{border-bottom:none}
+.numeric{text-align:right;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:12px}
+.row-expand-btn{background:none;border:none;color:var(--text-subtle);cursor:pointer;font-family:inherit;padding:0;width:14px;display:inline-flex;align-items:center;justify-content:center;font-size:10px;margin-right:6px;transition:transform 150ms ease}
+.row-expand-btn.expanded{transform:rotate(90deg)}
+.sub-row{background:var(--surface-2)}
+.sub-row td{padding:7px 12px 7px 36px;font-size:12px}
+.sparkline{display:inline-block;vertical-align:middle}
+.input{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;transition:all 150ms ease;width:100%}
+.input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.input::placeholder{color:var(--text-subtle)}
+.search-wrap{position:relative;width:240px}
+.search-icon{position:absolute;left:8px;top:50%;transform:translateY(-50%);color:var(--text-subtle);pointer-events:none}
+.search-wrap .input{padding-left:28px}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:100;animation:fadeIn 150ms ease}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+.modal{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:0;max-width:560px;width:92vw;max-height:85vh;overflow:hidden;display:flex;flex-direction:column}
+.modal-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.modal-title{font-size:15px;font-weight:600}
+.modal-body{padding:20px;overflow-y:auto;flex:1}
+.modal-footer{padding:12px 20px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px}
+.side-panel-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:90;animation:fadeIn 150ms ease}
+.side-panel{position:fixed;top:0;right:0;bottom:0;width:480px;max-width:90vw;background:var(--surface);border-left:1px solid var(--border-strong);z-index:91;display:flex;flex-direction:column;animation:slideIn 200ms ease}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.toasts{position:fixed;top:60px;right:24px;display:flex;flex-direction:column;gap:8px;z-index:200;pointer-events:none}
+.toast{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:8px;min-width:240px;max-width:380px;animation:toastIn 200ms ease;pointer-events:auto}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.toast.success{border-left:3px solid var(--success)}
+.toast.error{border-left:3px solid var(--danger)}
+.toast.info{border-left:3px solid var(--info)}
+.toast.warning{border-left:3px solid var(--warning)}
+.slider-row{display:grid;grid-template-columns:160px 1fr 60px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.slider-row:last-child{border-bottom:none}
+.slider{-webkit-appearance:none;appearance:none;width:100%;height:4px;background:var(--surface-2);border-radius:2px;outline:none}
+.slider::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;transition:background 150ms ease}
+.slider::-webkit-slider-thumb:hover{background:var(--accent-hover)}
+.slider::-moz-range-thumb{width:14px;height:14px;background:var(--accent);border-radius:50%;cursor:pointer;border:none}
+.slider-value{font-family:ui-monospace,monospace;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.flow-diagram{display:flex;align-items:center;gap:0;padding:20px;overflow-x:auto}
+.flow-node{flex-shrink:0;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:12px 14px;min-width:140px;text-align:center}
+.flow-node-title{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.flow-node-value{font-size:18px;font-weight:600;font-variant-numeric:tabular-nums}
+.flow-node-sub{font-size:11px;color:var(--text-subtle);margin-top:4px}
+.flow-arrow{flex-shrink:0;height:2px;background:var(--border-strong);width:32px;position:relative}
+.flow-arrow::after{content:'';position:absolute;right:-1px;top:-3px;width:0;height:0;border-left:6px solid var(--border-strong);border-top:4px solid transparent;border-bottom:4px solid transparent}
+.flow-node.success{border-color:var(--success);background:var(--success-bg)}
+.flow-node.warning{border-color:var(--warning);background:var(--warning-bg)}
+.flow-node.danger{border-color:var(--danger);background:var(--danger-bg)}
+.empty-state{padding:48px 24px;text-align:center;color:var(--text-muted)}
+.empty-icon{opacity:0.14;margin:0 auto 16px;display:block}
+.empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty-desc{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.simulation-banner{background:var(--warning-bg);border:1px solid var(--warning);border-radius:var(--radius-md);padding:10px 16px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;font-size:13px;color:var(--warning)}
+.simulation-banner strong{font-weight:600}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.detail-item{padding:10px 12px;background:var(--surface-2);border-radius:var(--radius-sm)}
+.detail-label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:3px}
+.detail-value{font-size:14px;font-weight:500;font-variant-numeric:tabular-nums}
+.threshold-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;margin-top:6px;background:var(--surface-2)}
+.threshold-seg-bau{background:var(--success);opacity:0.7}
+.threshold-seg-warn{background:var(--warning);opacity:0.7}
+.threshold-seg-crit{background:var(--danger);opacity:0.7}
+.threshold-marker{position:relative}
+.threshold-marker::after{content:'';position:absolute;top:-2px;width:2px;height:12px;background:var(--text)}
+.sim-watermark{position:absolute;top:8px;right:8px;font-size:10px;color:var(--warning);background:var(--warning-bg);padding:2px 6px;border-radius:3px;font-weight:600;letter-spacing:0.05em;text-transform:uppercase;border:1px solid var(--warning)}
+@media(max-width:1024px){.confidence-hero{grid-template-columns:1fr}.hero-meta-grid{grid-template-columns:repeat(2,1fr)}.tiles-grid{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:640px){.main{padding:12px}.tiles-grid{grid-template-columns:1fr}.hero-meta-grid{grid-template-columns:1fr 1fr}.header{padding:8px 12px}.nav{display:none}.side-panel{width:100vw}}
+</style></head><body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = 'ea3270ae-2447-4a35-aaac-e6aca0804a72';
+  var APP_TITLE = "DN Operations Digital Twin with Confidence Scoring";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
+
+<div class="app">
+  <header class="header">
+    <div class="header-left">
+      <div class="brand"><div class="brand-dot"></div>DN Operations Twin</div>
+      <nav class="nav" id="nav"></nav>
+    </div>
+    <div class="header-right">
+      <div class="refresh-indicator"><div class="pulse" id="pulseIndicator"></div><span id="lastUpdated">Updated just now</span></div>
+      <div class="time-selector" id="timeSelector"></div>
+      <select class="role-select" id="roleSelect" title="View role">
+        <option value="engineer">Support Engineer</option>
+        <option value="l2l3">L2/L3</option>
+        <option value="management">Management</option>
+      </select>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme"><svg id="themeIcon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg></button>
+    </div>
+  </header>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="toasts" id="toasts"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ===== THEME =====
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme = prefersDark ? 'dark' : 'light';
+  document.getElementById('themeToggle').addEventListener('click', function(){
+    const cur = document.documentElement.dataset.theme;
+    document.documentElement.dataset.theme = cur === 'dark' ? 'light' : 'dark';
+    updateThemeIcon();
+  });
+  function updateThemeIcon(){
+    const isDark = document.documentElement.dataset.theme === 'dark';
+    document.getElementById('themeIcon').innerHTML = isDark
+      ? '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>'
+      : '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
+  }
+  updateThemeIcon();
+
+  // ===== STATE =====
+  const STATE = {
+    view: 'operations',
+    timeRange: '1h',
+    role: 'engineer',
+    simulationMode: false,
+    activeSimulations: [],
+    autoRefresh: true,
+    selectedComponent: null,
+    expanded: {},
+    filters: { severity: 'all', search: '' },
+    weights: {
+      infrastructure: 30,
+      useCases: 35,
+      etl: 20,
+      applications: 15,
+      kpi: { availability: 40, performance: 30, dataQuality: 20, timeliness: 10 }
+    },
+    annotations: [
+      { time: '2h ago', text: 'Planned maintenance: NiFi cluster restart', system: 'pollers' }
+    ],
+    bookmarks: []
+  };
+
+  const VIEWS = [
+    { id: 'operations', label: 'Operations' },
+    { id: 'usecases', label: 'Use Cases' },
+    { id: 'etl', label: 'ETL Pipeline' },
+    { id: 'trends', label: 'Trends' },
+    { id: 'admin', label: 'Admin' },
+    { id: 'executive', label: 'Executive' }
+  ];
+
+  const TIME_RANGES = ['15m','1h','6h','24h','7d'];
+
+  // ===== MOCK DATA =====
+  function seededRand(seed){ let s = seed; return function(){ s = (s * 9301 + 49297) % 233280; return s / 233280; }; }
+  const rng = seededRand(42);
+
+  // Infrastructure: 6 Hetzner AX162-R servers
+  const INFRASTRUCTURE = [
+    { id: 'AX162-01', host: 'infinity-prod-01.hetzner', cpu: 34, mem: 58, swap: 2, diskIO: 142, storage: 67, status: 'bau' },
+    { id: 'AX162-02', host: 'infinity-prod-02.hetzner', cpu: 71, mem: 78, swap: 8, diskIO: 320, storage: 72, status: 'attention' },
+    { id: 'AX162-03', host: 'infinity-prod-03.hetzner', cpu: 28, mem: 45, swap: 1, diskIO: 98, storage: 54, status: 'bau' },
+    { id: 'AX162-04', host: 'infinity-prod-04.hetzner', cpu: 89, mem: 91, swap: 24, diskIO: 488, storage: 81, status: 'critical' },
+    { id: 'AX162-05', host: 'infinity-prod-05.hetzner', cpu: 42, mem: 61, swap: 3, diskIO: 178, storage: 63, status: 'bau' },
+    { id: 'AX162-06', host: 'infinity-prod-06.hetzner', cpu: 56, mem: 67, swap: 4, diskIO: 211, storage: 70, status: 'bau' }
+  ];
+
+  // Poller VMs (4 DIGSPOLSVR)
+  const POLLERS = [
+    { id: 'DIGSPOLSVR-01', host: 'poller01.dn.lan', nifi: 'healthy', zk: 'healthy', pg: 'healthy', queueDepth: 1247, lag: 4, status: 'bau' },
+    { id: 'DIGSPOLSVR-02', host: 'poller02.dn.lan', nifi: 'healthy', zk: 'healthy', pg: 'healthy', queueDepth: 892, lag: 2, status: 'bau' },
+    { id: 'DIGSPOLSVR-03', host: 'poller03.dn.lan', nifi: 'degraded', zk: 'healthy', pg: 'healthy', queueDepth: 4831, lag: 23, status: 'attention' },
+    { id: 'DIGSPOLSVR-04', host: 'poller04.dn.lan', nifi: 'healthy', zk: 'healthy', pg: 'degraded', queueDepth: 2104, lag: 8, status: 'attention' }
+  ];
+
+  // Software stack
+  const SOFTWARE_STACK = [
+    { name: 'Docker Swarm', version: '24.0.7', nodes: '6/6', status: 'bau' },
+    { name: 'Clickhouse', version: '23.8.4', nodes: '3/3', status: 'bau' },
+    { name: 'Postgres', version: '15.5', nodes: '2/2', status: 'bau' },
+    { name: 'NiFi', version: '1.23.2', nodes: '3/4', status: 'attention' },
+    { name: 'Airflow', version: '2.7.3', nodes: '1/1', status: 'bau' },
+    { name: 'Traefik', version: '3.0.0', nodes: '2/2', status: 'bau' },
+    { name: 'Keycloak', version: '22.0.5', nodes: '2/2', status: 'bau' },
+    { name: 'MinIO', version: 'RELEASE.2024', nodes: '4/4', status: 'bau' },
+    { name: 'Grafana', version: '10.2.2', nodes: '1/1', status: 'bau' },
+    { name: 'Prometheus', version: '2.48.0', nodes: '2/2', status: 'bau' },
+    { name: 'Redis', version: '7.2.3', nodes: '3/3', status: 'bau' }
+  ];
+
+  // 13 Use Cases
+  const USE_CASES = [
+    { id: 'UC01', name: 'CRFS Provisioning', tier: 'L1', weight: 12, throughput: 2451, success: 99.2, latency: 142, status: 'bau' },
+    { id: 'UC02', name: 'Delta/Delete Reconciliation', tier: 'L2', weight: 11, throughput: 8920, success: 97.4, latency: 388, status: 'attention' },
+    { id: 'UC03', name: 'VLAN/IPOE Activation', tier: 'L1', weight: 10, throughput: 1244, success: 99.8, latency: 89, status: 'bau' },
+    { id: 'UC04', name: 'XDB Wireline MSAN Sync', tier: 'L2', weight: 10, throughput: 5612, success: 91.3, latency: 712, status: 'critical' },
+    { id: 'UC05', name: 'Order Lifecycle Tracking', tier: 'L1', weight: 9, throughput: 3104, success: 99.6, latency: 110, status: 'bau' },
+    { id: 'UC06', name: 'Customer Service Index', tier: 'L2', weight: 8, throughput: 1822, success: 98.9, latency: 201, status: 'bau' },
+    { id: 'UC07', name: 'Network Inventory Audit', tier: 'L3', weight: 7, throughput: 612, success: 99.1, latency: 320, status: 'bau' },
+    { id: 'UC08', name: 'Workforce Allocation', tier: 'L2', weight: 6, throughput: 2218, success: 96.2, latency: 488, status: 'attention' },
+    { id: 'UC09', name: 'CPE Health Monitoring', tier: 'L1', weight: 6, throughput: 12440, success: 99.9, latency: 56, status: 'bau' },
+    { id: 'UC10', name: 'SLA Breach Detection', tier: 'L2', weight: 5, throughput: 4188, success: 98.4, latency: 178, status: 'bau' },
+    { id: 'UC11', name: 'Spare Parts Replenishment', tier: 'L3', weight: 5, throughput: 422, success: 99.4, latency: 244, status: 'bau' },
+    { id: 'UC12', name: 'Field Force Routing', tier: 'L2', weight: 6, throughput: 1640, success: 97.8, latency: 412, status: 'attention' },
+    { id: 'UC13', name: 'Quality Index Aggregation', tier: 'L3', weight: 5, throughput: 880, success: 99.0, latency: 156, status: 'bau' }
+  ];
+
+  // ETL Pipelines
+  const ETL_PIPELINES = [
+    { id: 'ETL-01', name: 'Maximo → Staging', rowCount: 142810, lastRun: '12m ago', success: true, status: 'bau' },
+    { id: 'ETL-02', name: 'Staging → MYCOM', rowCount: 98412, lastRun: '14m ago', success: true, status: 'bau' },
+    { id: 'ETL-03', name: 'Staging → TACTICS', rowCount: 87233, lastRun: '2h 12m ago', success: true, status: 'attention' },
+    { id: 'ETL-04', name: 'CRFS → Delta', rowCount: 24881, lastRun: '6m ago', success: true, status: 'bau' },
+    { id: 'ETL-05', name: 'XDB Wireline ETL', rowCount: 12042, lastRun: '4h 8m ago', success: false, status: 'critical' }
+  ];
+
+  // Applications
+  const APPLICATIONS = [
+    { name: 'Infinity V2 GUI', uptime: 99.94, responseTime: 187, concurrent: 142, status: 'bau' },
+    { name: 'Infinity V3 GUI', uptime: 99.81, responseTime: 268, concurrent: 88, status: 'bau' },
+    { name: 'Infinity API Gateway', uptime: 99.97, responseTime: 64, concurrent: 421, status: 'bau' },
+    { name: 'Reporting Portal', uptime: 98.62, responseTime: 488, concurrent: 24, status: 'attention' }
+  ];
+
+  // KPI thresholds (GLOBE Infinity KPI Annex 2025 style)
+  const KPI_THRESHOLDS = {
+    cpu:        { bau: 60, attention: 80 },
+    memory:     { bau: 70, attention: 85 },
+    swap:       { bau: 5,  attention: 15 },
+    diskIO:     { bau: 300, attention: 450 },
+    storage:    { bau: 75, attention: 90 },
+    successRate:{ bau: 99, attention: 95 },
+    latency:    { bau: 200, attention: 500 },
+    uptime:     { bau: 99.9, attention: 99.5 }
+  };
+
+  const FAILURE_SCENARIOS = [
+    { id: 'fs1', name: 'AX162-04 disk failure', impact: 'Loss of 1 node, redistribution required', severity: 'critical' },
+    { id: 'fs2', name: 'NiFi cluster split-brain', impact: 'Polling delays across DIGSPOLSVR-03/04', severity: 'critical' },
+    { id: 'fs3', name: 'Postgres replication lag', impact: 'Stale reads in V3 GUI', severity: 'attention' },
+    { id: 'fs4', name: 'Maximo source feed delay', impact: 'ETL backlog, downstream MYCOM impact', severity: 'attention' },
+    { id: 'fs5', name: 'XDB Wireline schema drift', impact: 'UC04 reconciliation errors', severity: 'critical' }
+  ];
+
+  // ===== STATUS HELPERS =====
+  function statusBadge(status, label){
+    if(!label){
+      label = status === 'bau' ? 'BAU' : status === 'attention' ? 'Attention' : status === 'critical' ? 'Critical' : status;
+    }
+    const cls = status === 'bau' ? 'badge-success' : status === 'attention' ? 'badge-warning' : status === 'critical' ? 'badge-danger' : 'badge-neutral';
+    const dotCls = status === 'bau' ? 'dot-success' : status === 'attention' ? 'dot-warning' : status === 'critical' ? 'dot-danger' : '';
+    return `<span class="badge ${cls}"><span class="dot ${dotCls}"></span>${label}</span>`;
+  }
+
+  function thresholdClass(value, thresholds, inverse){
+    if(inverse){
+      if(value >= thresholds.bau) return 'bau';
+      if(value >= thresholds.attention) return 'attention';
+      return 'critical';
+    } else {
+      if(value <= thresholds.bau) return 'bau';
+      if(value <= thresholds.attention) return 'attention';
+      return 'critical';
+    }
+  }
+
+  // ===== CONFIDENCE SCORE =====
+  function computeHealth(items){
+    if(!items.length) return 100;
+    let sum = 0;
+    items.forEach(i => {
+      sum += i.status === 'bau' ? 100 : i.status === 'attention' ? 70 : 30;
+    });
+    return Math.round(sum / items.length);
+  }
+
+  function computeWeightedHealth(items, weightKey){
+    if(!items.length) return 100;
+    let totalWeight = 0, weightedSum = 0;
+    items.forEach(i => {
+      const w = i[weightKey] || 1;
+      const v = i.status === 'bau' ? 100 : i.status === 'attention' ? 70 : 30;
+      totalWeight += w;
+      weightedSum += v * w;
+    });
+    return Math.round(weightedSum / totalWeight);
+  }
+
+  function getConfidenceScore(){
+    const infraHealth = computeHealth(INFRASTRUCTURE.concat(POLLERS));
+    const useCaseHealth = computeWeightedHealth(USE_CASES, 'weight');
+    const etlHealth = computeHealth(ETL_PIPELINES);
+    const appHealth = computeHealth(APPLICATIONS);
+    const w = STATE.weights;
+    const total = w.infrastructure + w.useCases + w.etl + w.applications;
+    const score = (
+      infraHealth * w.infrastructure +
+      useCaseHealth * w.useCases +
+      etlHealth * w.etl +
+      appHealth * w.applications
+    ) / total;
+    return { overall: Math.round(score), infra: infraHealth, useCases: useCaseHealth, etl: etlHealth, apps: appHealth };
+  }
+
+  function getCriticalCount(){
+    let c = 0;
+    [INFRASTRUCTURE, POLLERS, USE_CASES, ETL_PIPELINES, APPLICATIONS].forEach(arr =>
+      arr.forEach(i => { if(i.status === 'critical') c++; })
+    );
+    return c;
+  }
+
+  function getAttentionCount(){
+    let c = 0;
+    [INFRASTRUCTURE, POLLERS, USE_CASES, ETL_PIPELINES, APPLICATIONS].forEach(arr =>
+      arr.forEach(i => { if(i.status === 'attention') c++; })
+    );
+    return c;
+  }
+
+  // ===== TOAST =====
+  function toast(message, type){
+    type = type || 'info';
+    const container = document.getElementById('toasts');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    const icons = {
+      success: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12l5 5L20 7"/></svg>',
+      error: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 6l12 12M6 18L18 6"/></svg>',
+      info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>',
+      warning: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L2 22h20L12 2zM12 9v4M12 17h.01"/></svg>'
+    };
+    el.innerHTML = `<span style="color:var(--${type === 'success' ? 'success' : type === 'error' ? 'danger' : type === 'warning' ? 'warning' : 'info'})">${icons[type]||icons.info}</span><span>${message}</span>`;
+    container.appendChild(el);
+    setTimeout(() => {
+      el.style.transition = 'opacity 200ms ease, transform 200ms ease';
+      el.style.opacity = '0';
+      el.style.transform = 'translateX(20px)';
+      setTimeout(() => el.remove(), 200);
+    }, 4500);
+  }
+
+  // ===== SPARKLINE =====
+  function sparkline(data, w, h, color){
+    w = w || 70; h = h || 18; color = color || 'var(--text-muted)';
+    const max = Math.max(...data), min = Math.min(...data);
+    const range = max - min || 1;
+    const step = w / (data.length - 1);
+    let path = '';
+    data.forEach((v, i) => {
+      const x = i * step;
+      const y = h - ((v - min) / range) * h;
+      path += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+    });
+    return `<svg class="sparkline" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}"><path d="${path}" fill="none" stroke="${color}" stroke-width="1.2"/></svg>`;
+  }
+
+  function genSparkData(seed, trend){
+    const r = seededRand(seed);
+    const arr = [];
+    let v = 50 + r() * 30;
+    for(let i = 0; i < 20; i++){
+      v += (r() - 0.5) * 12 + (trend || 0);
+      v = Math.max(5, Math.min(95, v));
+      arr.push(v);
+    }
+    return arr;
+  }
+
+  // ===== HEADER NAV =====
+  function renderNav(){
+    const nav = document.getElementById('nav');
+    nav.innerHTML = VIEWS.map(v =>
+      `<button class="nav-btn ${STATE.view === v.id ? 'active' : ''}" data-view="${v.id}">${v.label}</button>`
+    ).join('');
+    nav.querySelectorAll('.nav-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        STATE.view = btn.dataset.view;
+        STATE.selectedComponent = null;
+        render();
+      });
+    });
+  }
+
+  function renderTimeSelector(){
+    const sel = document.getElementById('timeSelector');
+    sel.innerHTML = TIME_RANGES.map(t =>
+      `<button class="time-btn ${STATE.timeRange === t ? 'active' : ''}" data-range="${t}">${t}</button>`
+    ).join('');
+    sel.querySelectorAll('.time-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        STATE.timeRange = btn.dataset.range;
+        renderTimeSelector();
+        render();
+      });
+    });
+  }
+
+  // ===== VIEWS =====
+  function viewOperations(){
+    const cs = getConfidenceScore();
+    const critical = getCriticalCount();
+    const attention = getAttentionCount();
+    const scoreColor = cs.overall >= 85 ? 'var(--success)' : cs.overall >= 70 ? 'var(--warning)' : 'var(--danger)';
+    const scoreClass = cs.overall >= 85 ? 'success' : cs.overall >= 70 ? 'warning' : 'critical';
+
+    return `
+      ${STATE.simulationMode ? simulationBanner() : ''}
+      <div class="breadcrumb">
+        <button class="breadcrumb-link">Operations</button>
+        <span class="breadcrumb-sep">/</span>
+        <span>Live Dashboard</span>
+      </div>
+
+      <div class="confidence-hero">
+        <div class="hero-card" style="position:relative">
+          ${STATE.simulationMode ? '<div class="sim-watermark">SIMULATED</div>' : ''}
+          <div class="hero-label">Operations Confidence</div>
+          <div class="hero-score" style="color:${scoreColor}">${cs.overall}<span class="hero-score-suffix">/ 100</span></div>
+          <div class="score-bar"><div class="score-bar-fill" style="width:${cs.overall}%;background:${scoreColor}"></div></div>
+          <div class="score-meta">
+            <span>Threshold: 85 BAU · 70 Attention</span>
+            <span>${cs.overall >= 85 ? '+' : '−'}${Math.abs(cs.overall - 85)} vs target</span>
+          </div>
+          <div class="score-trend">
+            ${sparkline(genSparkData(1, -0.4), 100, 24, scoreColor)}
+            <span style="color:var(--text-muted)">7-day trend</span>
+          </div>
+        </div>
+        <div class="hero-meta-grid">
+          <div class="kpi-card">
+            <div class="kpi-label">Critical Alerts</div>
+            <div class="kpi-value ${critical > 0 ? 'critical' : ''}">${critical}</div>
+            <div class="kpi-sub">${critical > 0 ? 'Requires action' : 'All clear'}</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Attention</div>
+            <div class="kpi-value ${attention > 0 ? 'warning' : ''}">${attention}</div>
+            <div class="kpi-sub">Monitor closely</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Components Tracked</div>
+            <div class="kpi-value">${INFRASTRUCTURE.length + POLLERS.length + USE_CASES.length + ETL_PIPELINES.length + APPLICATIONS.length}</div>
+            <div class="kpi-sub">Across 5 systems</div>
+          </div>
+          <div class="kpi-card">
+            <div class="kpi-label">Last Sync</div>
+            <div class="kpi-value" style="font-size:18px">${getCurrentTime()}</div>
+            <div class="kpi-sub">Auto-refresh ${STATE.autoRefresh ? 'on' : 'off'}</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="tiles-grid">
+        ${healthTile('Infrastructure', cs.infra, INFRASTRUCTURE.length + POLLERS.length, STATE.weights.infrastructure, 'infrastructure')}
+        ${healthTile('Use Cases', cs.useCases, USE_CASES.length, STATE.weights.useCases, 'usecases')}
+        ${healthTile('ETL Pipelines', cs.etl, ETL_PIPELINES.length, STATE.weights.etl, 'etl')}
+        ${healthTile('Applications', cs.apps, APPLICATIONS.length, STATE.weights.applications, 'applications')}
+      </div>
+
+      ${searchToolbar()}
+      ${infrastructureSection()}
+      ${pollersSection()}
+      ${softwareStackSection()}
+      ${alertSimulationCard()}
+    `;
+  }
+
+  function simulationBanner(){
+    return `
+      <div class="simulation-banner">
+        <div><strong>Simulation Mode Active</strong> — Showing ${STATE.activeSimulations.length} hypothetical failure scenario(s) overlaid on live data</div>
+        <button class="btn-secondary" onclick="window.__dnExitSim()">Exit Simulation</button>
+      </div>
+    `;
+  }
+
+  function searchToolbar(){
+    return `
+      <div class="section">
+        <div class="chips">
+          <div class="search-wrap" style="width:300px">
+            <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input class="input" placeholder="Search components, KPIs, use cases…" value="${STATE.filters.search}" oninput="window.__dnSearch(this.value)"/>
+          </div>
+          <button class="chip ${STATE.filters.severity === 'all' ? 'active' : ''}" onclick="window.__dnFilter('all')">All</button>
+          <button class="chip ${STATE.filters.severity === 'critical' ? 'active' : ''}" onclick="window.__dnFilter('critical')">Critical</button>
+          <button class="chip ${STATE.filters.severity === 'attention' ? 'active' : ''}" onclick="window.__dnFilter('attention')">Attention</button>
+          <button class="chip ${STATE.filters.severity === 'bau' ? 'active' : ''}" onclick="window.__dnFilter('bau')">BAU</button>
+          <div style="flex:1"></div>
+          <button class="btn-ghost" onclick="window.__dnExport()">Export CSV</button>
+          <button class="btn-secondary" onclick="window.__dnOpenSimModal()">Simulate Failure</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function healthTile(title, health, count, weight, drillId){
+    const color = health >= 85 ? 'var(--success)' : health >= 70 ? 'var(--warning)' : 'var(--danger)';
+    const status = health >= 85 ? 'bau' : health >= 70 ? 'attention' : 'critical';
+    return `
+      <div class="tile" onclick="window.__dnDrill('${drillId}')">
+        <div class="tile-header">
+          <div class="tile-title">${title}</div>
+          ${statusBadge(status)}
+        </div>
+        <div class="tile-health" style="color:${color}">${health}%</div>
+        <div class="tile-bar"><div class="tile-bar-fill" style="width:${health}%;background:${color}"></div></div>
+        <div class="tile-footer">
+          <span>${count} components</span>
+          <span>Weight: ${weight}%</span>
+        </div>
+      </div>
+    `;
+  }
+
+  function filterRow(item){
+    if(STATE.filters.severity !== 'all' && item.status !== STATE.filters.severity) return false;
+    if(STATE.filters.search){
+      const s = STATE.filters.search.toLowerCase();
+      const hay = JSON.stringify(item).toLowerCase();
+      if(!hay.includes(s)) return false;
+    }
+    return true;
+  }
+
+  function infrastructureSection(){
+    const filtered = INFRASTRUCTURE.filter(filterRow);
+    return `
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">
+            <button class="row-expand-btn ${STATE.expanded.infra !== false ? 'expanded' : ''}" onclick="window.__dnToggleSection('infra')">▶</button>
+            Hetzner AX162-R Servers
+            <span style="color:var(--text-muted);font-weight:400;font-size:12px">${filtered.length} hosts</span>
+          </div>
+          <div class="section-actions">
+            <button class="btn-ghost" onclick="window.__dnExpandAll(true)">Expand all</button>
+            <button class="btn-ghost" onclick="window.__dnExpandAll(false)">Collapse all</button>
+          </div>
+        </div>
+        ${STATE.expanded.infra !== false ? infrastructureTable(filtered) : ''}
+      </div>
+    `;
+  }
+
+  function infrastructureTable(items){
+    if(!items.length) return emptyState('No matching infrastructure', 'Adjust the severity filter or search term to see hosts.');
+    return `
+      <table>
+        <thead><tr>
+          <th>Host</th><th class="numeric">CPU %</th><th class="numeric">Mem %</th><th class="numeric">Swap %</th>
+          <th class="numeric">Disk I/O</th><th class="numeric">Storage %</th><th>Trend</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+        ${items.map((s, i) => `
+          <tr onclick="window.__dnOpenPanel('infra','${s.id}')">
+            <td><div class="mono">${s.id}</div><div style="color:var(--text-muted);font-size:11px">${s.host}</div></td>
+            <td class="numeric" style="color:var(--${thresholdClass(s.cpu, KPI_THRESHOLDS.cpu) === 'bau' ? 'text' : thresholdClass(s.cpu, KPI_THRESHOLDS.cpu) === 'attention' ? 'warning' : 'danger'})">${s.cpu}</td>
+            <td class="numeric" style="color:var(--${thresholdClass(s.mem, KPI_THRESHOLDS.memory) === 'bau' ? 'text' : thresholdClass(s.mem, KPI_THRESHOLDS.memory) === 'attention' ? 'warning' : 'danger'})">${s.mem}</td>
+            <td class="numeric" style="color:var(--${thresholdClass(s.swap, KPI_THRESHOLDS.swap) === 'bau' ? 'text' : thresholdClass(s.swap, KPI_THRESHOLDS.swap) === 'attention' ? 'warning' : 'danger'})">${s.swap}</td>
+            <td class="numeric">${s.diskIO}<span style="color:var(--text-subtle)"> MB/s</span></td>
+            <td class="numeric">${s.storage}</td>
+            <td>${sparkline(genSparkData(i+10, i === 3 ? 0.6 : 0), 60, 18)}</td>
+            <td>${statusBadge(s.status)}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function pollersSection(){
+    const filtered = POLLERS.filter(filterRow);
+    return `
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">
+            <button class="row-expand-btn ${STATE.expanded.pollers !== false ? 'expanded' : ''}" onclick="window.__dnToggleSection('pollers')">▶</button>
+            Poller VMs (DIGSPOLSVR)
+            <span style="color:var(--text-muted);font-weight:400;font-size:12px">${filtered.length} VMs</span>
+          </div>
+        </div>
+        ${STATE.expanded.pollers !== false ? pollerTable(filtered) : ''}
+      </div>
+    `;
+  }
+
+  function pollerTable(items){
+    if(!items.length) return emptyState('No matching pollers', 'Adjust the severity filter to view poller VMs.');
+    return `
+      <table>
+        <thead><tr>
+          <th>VM</th><th>NiFi</th><th>ZooKeeper</th><th>Postgres</th>
+          <th class="numeric">Queue Depth</th><th class="numeric">Lag (s)</th><th>Trend</th><th>Status</th>
+        </tr></thead>
+        <tbody>
+        ${items.map((p, i) => `
+          <tr onclick="window.__dnOpenPanel('poller','${p.id}')">
+            <td><div class="mono">${p.id}</div><div style="color:var(--text-muted);font-size:11px">${p.host}</div></td>
+            <td>${pillState(p.nifi)}</td>
+            <td>${pillState(p.zk)}</td>
+            <td>${pillState(p.pg)}</td>
+            <td class="numeric">${p.queueDepth.toLocaleString()}</td>
+            <td class="numeric" style="color:var(--${p.lag > 15 ? 'danger' : p.lag > 5 ? 'warning' : 'text'})">${p.lag}</td>
+            <td>${sparkline(genSparkData(i+30), 60, 18)}</td>
+            <td>${statusBadge(p.status)}</td>
+          </tr>
+        `).join('')}
+        </tbody>
+      </table>
+    `;
+  }
+
+  function pillState(state){
+    const cls = state === 'healthy' ? 'badge-success' : state === 'degraded' ? 'badge-warning' : 'badge-danger';
+    return `<span class="badge ${cls}">${state}</span>`;
+  }
+
+  function softwareStackSection(){
+    const filtered = SOFTWARE_STACK.filter(filterRow);
+    return `
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">
+            <button class="row-expand-btn ${STATE.expanded.stack ? 'expanded' : ''}" onclick="window.__dnToggleSection('stack')">▶</button>
+            Software Stack
+            <span style="color:var(--text-muted);font-weight:400;font-size:12px">${filtered.length} services</span>
+          </div>
+        </div>
+        ${STATE.expanded.stack ? `
+          <table>
+            <thead><tr><th>Service</th><th>Version</th><th class="numeric">Nodes</th><th>Status</th></tr></thead>
+            <tbody>
+            ${filtered.map(s => `
+              <tr><td>${s.name}</td><td class="mono">${s.version}</td><td class="numeric">${s.nodes}</td><td>${statusBadge(s.status)}</td></tr>
+            `).join('')}
+            </tbody>
+          </table>
+        ` : ''}
+      </div>
+    `;
+  }
+
+  function alertSimulationCard(){
+    return `
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Alert & Escalation (RACI L1/L2/L3)</div>
+        </div>
+        <table>
+          <thead><tr><th>Time</th><th>Severity</th><th>Source</th><th>Message</th><th>Tier</th><th>Action</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">${getCurrentTime()}</td><td>${statusBadge('critical')}</td><td>AX162-04</td><td>Memory >91%, CPU >89% sustained 12m</td><td><span class="badge badge-warning">L2</span></td><td>Page on-call</td></tr>
+            <tr><td class="mono">${getRelativeTime(8)}</td><td>${statusBadge('critical')}</td><td>UC04 XDB</td><td>Success rate 91.3% below 95% Attention threshold</td><td><span class="badge badge-warning">L2</span></td><td>Escalated</td></tr>
+            <tr><td class="mono">${getRelativeTime(23)}</td><td>${statusBadge('attention')}</td><td>DIGSPOLSVR-03</td><td>NiFi queue lag 23s (threshold 5s)</td><td><span class="badge badge-info">L1</span></td><td>Auto-remediating</td></tr>
+            <tr><td class="mono">${getRelativeTime(45)}</td><td>${statusBadge('attention')}</td><td>ETL-05</td><td>XDB Wireline ETL last successful 4h ago</td><td><span class="badge badge-info">L1</span></td><td>Investigating</td></tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function viewUseCases(){
+    const cs = getConfidenceScore();
+    const filtered = USE_CASES.filter(filterRow).sort((a,b) => {
+      const sev = { critical: 0, attention: 1, bau: 2 };
+      if(sev[a.status] !== sev[b.status]) return sev[a.status] - sev[b.status];
+      return b.weight - a.weight;
+    });
+    return `
+      ${STATE.simulationMode ? simulationBanner() : ''}
+      <div class="breadcrumb">
+        <button class="breadcrumb-link" onclick="window.__dnGo('operations')">Operations</button>
+        <span class="breadcrumb-sep">/</span>
+        <span>Use Case Flows</span>
+      </div>
+
+      <div class="tiles-grid">
+        <div class="kpi-card"><div class="kpi-label">Use Case Health</div><div class="kpi-value ${cs.useCases >= 85 ? 'success' : cs.useCases >= 70 ? 'warning' : 'critical'}">${cs.useCases}%</div><div class="kpi-sub">Weighted across ${USE_CASES.length} flows</div></div>
+        <div class="kpi-card"><div class="kpi-label">Total Throughput / hr</div><div class="kpi-value">${USE_CASES.reduce((s,u)=>s+u.throughput,0).toLocaleString()}</div><div class="kpi-sub">Events processed</div></div>
+        <div class="kpi-card"><div class="kpi-label">Avg Success Rate</div><div class="kpi-value">${(USE_CASES.reduce((s,u)=>s+u.success,0)/USE_CASES.length).toFixed(1)}%</div><div class="kpi-sub">Target ≥99%</div></div>
+        <div class="kpi-card"><div class="kpi-label">Avg Latency</div><div class="kpi-value">${Math.round(USE_CASES.reduce((s,u)=>s+u.latency,0)/USE_CASES.length)}<span style="font-size:14px;color:var(--text-muted)"> ms</span></div><div class="kpi-sub">Target <200ms</div></div>
+      </div>
+
+      ${searchToolbar()}
+
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">All Use Cases — Sorted by Severity & Weight</div>
+          <div class="section-actions"><button class="btn-ghost" onclick="window.__dnExport()">Export</button></div>
+        </div>
+        ${filtered.length === 0 ? emptyState('No use cases match', 'Try clearing filters.') : `
+        <table>
+          <thead><tr><th>ID</th><th>Use Case</th><th>Tier</th><th class="numeric">Weight</th><th class="numeric">Throughput/hr</th><th class="numeric">Success %</th><th class="numeric">Latency (ms)</th><th>7d Trend</th><th>Status</th></tr></thead>
+          <tbody>
+          ${filtered.map((u,i) => `
+            <tr onclick="window.__dnOpenPanel('usecase','${u.id}')">
+              <td class="mono">${u.id}</td>
+              <td>${u.name}</td>
+              <td><span class="badge badge-neutral">${u.tier}</span></td>
+              <td class="numeric">${u.weight}</td>
+              <td class="numeric">${u.throughput.toLocaleString()}</td>
+              <td class="numeric" style="color:var(--${u.success >= 99 ? 'text' : u.success >= 95 ? 'warning' : 'danger'})">${u.success.toFixed(1)}</td>
+              <td class="numeric" style="color:var(--${u.latency <= 200 ? 'text' : u.latency <= 500 ? 'warning' : 'danger'})">${u.latency}</td>
+              <td>${sparkline(genSparkData(i+50, u.status === 'critical' ? 0.8 : 0), 60, 18)}</td>
+              <td>${statusBadge(u.status)}</td>
+            </tr>
+          `).join('')}
+          </tbody>
+        </table>
+        `}
+      </div>
+    `;
+  }
+
+  function viewETL(){
+    const lastMaximo = '12m ago';
+    const lastMycom = '14m ago';
+    const lastTactics = '2h 12m ago';
+    return `
+      ${STATE.simulationMode ? simulationBanner() : ''}
+      <div class="breadcrumb">
+        <button class="breadcrumb-link" onclick="window.__dnGo('operations')">Operations</button>
+        <span class="breadcrumb-sep">/</span>
+        <span>ETL Pipeline</span>
+      </div>
+
+      <div class="tiles-grid">
+        <div class="kpi-card"><div class="kpi-label">Pipelines Healthy</div><div class="kpi-value">${ETL_PIPELINES.filter(e=>e.status==='bau').length}<span style="font-size:14px;color:var(--text-muted)"> / ${ETL_PIPELINES.length}</span></div><div class="kpi-sub">${ETL_PIPELINES.filter(e=>e.status!=='bau').length} need attention</div></div>
+        <div class="kpi-card"><div class="kpi-label">Rows Processed (24h)</div><div class="kpi-value">${ETL_PIPELINES.reduce((s,e)=>s+e.rowCount,0).toLocaleString()}</div><div class="kpi-sub">Across all pipelines</div></div>
+        <div class="kpi-card"><div class="kpi-label">Last Maximo Receipt</div><div class="kpi-value" style="font-size:18px">${lastMaximo}</div><div class="kpi-sub">Target <30m</div></div>
+        <div class="kpi-card"><div class="kpi-label">Last TACTICS Delivery</div><div class="kpi-value warning" style="font-size:18px">${lastTactics}</div><div class="kpi-sub" style="color:var(--warning)">Above 1h threshold</div></div>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Pipeline Flow</div></div>
+        <div class="flow-diagram">
+          <div class="flow-node success"><div class="flow-node-title">Maximo Input</div><div class="flow-node-value">142,810</div><div class="flow-node-sub">${lastMaximo}</div></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-node success"><div class="flow-node-title">Staging</div><div class="flow-node-value">142,810</div><div class="flow-node-sub">0 rejected</div></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-node"><div class="flow-node-title">Processing</div><div class="flow-node-value">132,452</div><div class="flow-node-sub">93% pass</div></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-node success"><div class="flow-node-title">MYCOM Out</div><div class="flow-node-value">98,412</div><div class="flow-node-sub">${lastMycom}</div></div>
+          <div class="flow-arrow"></div>
+          <div class="flow-node warning"><div class="flow-node-title">TACTICS Out</div><div class="flow-node-value">87,233</div><div class="flow-node-sub">${lastTactics}</div></div>
+        </div>
+      </div>
+
+      ${searchToolbar()}
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Pipeline Detail</div></div>
+        <table>
+          <thead><tr><th>Pipeline</th><th>Name</th><th class="numeric">Rows</th><th>Last Run</th><th>Success</th><th>Status</th></tr></thead>
+          <tbody>
+          ${ETL_PIPELINES.filter(filterRow).map(e => `
+            <tr onclick="window.__dnOpenPanel('etl','${e.id}')">
+              <td class="mono">${e.id}</td>
+              <td>${e.name}</td>
+              <td class="numeric">${e.rowCount.toLocaleString()}</td>
+              <td>${e.lastRun}</td>
+              <td>${e.success ? '<span class="badge badge-success">Success</span>' : '<span class="badge badge-danger">Failed</span>'}</td>
+              <td>${statusBadge(e.status)}</td>
+            </tr>
+          `).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="section">
+        <div class="section-header"><div class="section-title">Applications (Infinity V2/V3)</div></div>
+        <table>
+          <thead><tr><th>Application</th><th class="numeric">Uptime %</th><th class="numeric">Resp Time (ms)</th><th class="numeric">Concurrent</th><th>Status</th></tr></thead>
+          <tbody>
+          ${APPLICATIONS.map(a => `
+            <tr>
+              <td>${a.name}</td>
+              <td class="numeric" style="color:var(--${a.uptime >= 99.9 ? 'text' : a.uptime >= 99.5 ? 'warning' : 'danger'})">${a.uptime.toFixed(2)}</td>
+              <td class="numeric">${a.responseTime}</td>
+              <td class="numeric">${a.concurrent}</td>
+              <td>${statusBadge(a.status)}</td>
+            </tr>
+          `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function viewTrends(){
+    const cs = getConfidenceScore();
+    return `
+      <div class="breadcrumb"><button class="breadcrumb-link" onclick="window.__dnGo('operations')">Operations</button><span class="breadcrumb-sep">/</span><span>Trends</span></div>
+      <div class="tiles-grid">
+        <div class="kpi-card"><div class="kpi-label">Current Confidence</div><div class="kpi-value">${cs.overall}</div><div class="kpi-sub">vs 87 (yesterday)</div></div>
+        <div class="kpi-card"><div class="kpi-label">7-day Average</div><div class="kpi-value">82</div><div class="kpi-sub">−5 vs baseline</div></div>
+        <div class="kpi-card"><div class="kpi-label">Incidents (7d)</div><div class="kpi-value warning">14</div><div class="kpi-sub">3 critical, 11 attention</div></div>
+        <div class="kpi-card"><div class="kpi-label">MTTR</div><div class="kpi-value">42<span style="font-size:14px;color:var(--text-muted)"> min</span></div><div class="kpi-sub">Target <60 min</div></div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Confidence Score — 7 Day</div><div class="section-actions"><button class="btn-ghost">Compare baseline</button></div></div>
+        <div style="padding:24px">
+          ${largeChart(genSparkData(99, -0.3), cs.overall >= 85 ? 'var(--success)' : cs.overall >= 70 ? 'var(--warning)' : 'var(--danger)')}
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Degradation by System</div></div>
+        <table>
+          <thead><tr><th>System</th><th class="numeric">Now</th><th class="numeric">24h ago</th><th class="numeric">7d ago</th><th>Δ 7d</th><th>Trend</th></tr></thead>
+          <tbody>
+            <tr><td>Infrastructure</td><td class="numeric">${cs.infra}</td><td class="numeric">88</td><td class="numeric">92</td><td><span class="badge badge-danger">−${92-cs.infra}</span></td><td>${sparkline(genSparkData(11, -0.4), 80, 20, 'var(--danger)')}</td></tr>
+            <tr><td>Use Cases</td><td class="numeric">${cs.useCases}</td><td class="numeric">90</td><td class="numeric">94</td><td><span class="badge badge-warning">−${94-cs.useCases}</span></td><td>${sparkline(genSparkData(12, -0.2), 80, 20, 'var(--warning)')}</td></tr>
+            <tr><td>ETL</td><td class="numeric">${cs.etl}</td><td class="numeric">82</td><td class="numeric">88</td><td><span class="badge badge-warning">−${88-cs.etl}</span></td><td>${sparkline(genSparkData(13, -0.3), 80, 20, 'var(--warning)')}</td></tr>
+            <tr><td>Applications</td><td class="numeric">${cs.apps}</td><td class="numeric">95</td><td class="numeric">96</td><td><span class="badge badge-success">−${Math.max(0,96-cs.apps)}</span></td><td>${sparkline(genSparkData(14, 0), 80, 20, 'var(--success)')}</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Annotations & Maintenance</div><div class="section-actions"><button class="btn-secondary" onclick="window.__dnAddAnnotation()">Add annotation</button></div></div>
+        ${STATE.annotations.length === 0 ? emptyState('No annotations', 'Mark known maintenance windows on the timeline.') : `
+          <table><thead><tr><th>Time</th><th>System</th><th>Note</th></tr></thead><tbody>
+          ${STATE.annotations.map(a => `<tr><td class="mono">${a.time}</td><td>${a.system}</td><td>${a.text}</td></tr>`).join('')}
+          </tbody></table>
+        `}
+      </div>
+    `;
+  }
+
+  function largeChart(data, color){
+    const w = 800, h = 180, pad = 24;
+    const max = Math.max(...data), min = Math.min(...data);
+    const range = max - min || 1;
+    const step = (w - pad * 2) / (data.length - 1);
+    let path = '', area = '';
+    data.forEach((v, i) => {
+      const x = pad + i * step;
+      const y = h - pad - ((v - min) / range) * (h - pad * 2);
+      path += (i === 0 ? 'M' : 'L') + x.toFixed(1) + ',' + y.toFixed(1) + ' ';
+      if(i === 0) area = 'M' + x + ',' + (h - pad) + ' L' + x + ',' + y;
+      else area += ' L' + x + ',' + y;
+    });
+    area += ' L' + (pad + (data.length-1)*step) + ',' + (h-pad) + ' Z';
+    return `<svg viewBox="0 0 ${w} ${h}" style="width:100%;height:auto;display:block">
+      <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="${color}" stop-opacity="0.15"/><stop offset="100%" stop-color="${color}" stop-opacity="0"/></linearGradient></defs>
+      <line x1="${pad}" y1="${h-pad}" x2="${w-pad}" y2="${h-pad}" stroke="var(--border)"/>
+      <line x1="${pad}" y1="${pad}" x2="${pad}" y2="${h-pad}" stroke="var(--border)"/>
+      <path d="${area}" fill="url(#g)"/>
+      <path d="${path}" fill="none" stroke="${color}" stroke-width="1.5"/>
+    </svg>`;
+  }
+
+  function viewAdmin(){
+    if(STATE.role === 'engineer'){
+      return `<div class="breadcrumb"><span>Admin</span></div>${emptyState('Admin access required', 'Switch role to L2/L3 or Management to configure weights and thresholds.')}`;
+    }
+    return `
+      <div class="breadcrumb"><button class="breadcrumb-link" onclick="window.__dnGo('operations')">Operations</button><span class="breadcrumb-sep">/</span><span>Admin · Weighting</span></div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">System Category Weights</div><div class="section-actions"><button class="btn-secondary" onclick="window.__dnResetWeights()">Reset</button><button class="btn-primary" onclick="window.__dnSaveWeights()">Save</button></div></div>
+        <div style="padding:16px">
+          ${weightSlider('Infrastructure', 'infrastructure', STATE.weights.infrastructure)}
+          ${weightSlider('Use Cases', 'useCases', STATE.weights.useCases)}
+          ${weightSlider('ETL Pipelines', 'etl', STATE.weights.etl)}
+          ${weightSlider('Applications', 'applications', STATE.weights.applications)}
+          <div style="margin-top:12px;padding:10px 12px;background:var(--accent-bg);border-radius:var(--radius-sm);font-size:12px;color:var(--accent)">
+            Live preview: with current weights, confidence score = <strong>${getConfidenceScore().overall}</strong> / 100
+          </div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">KPI Category Weights</div></div>
+        <div style="padding:16px">
+          ${kpiWeightSlider('Availability', 'availability')}
+          ${kpiWeightSlider('Performance', 'performance')}
+          ${kpiWeightSlider('Data Quality', 'dataQuality')}
+          ${kpiWeightSlider('Timeliness', 'timeliness')}
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Threshold Configuration (GLOBE Infinity KPI Annex 2025)</div></div>
+        <table>
+          <thead><tr><th>Metric</th><th class="numeric">BAU ≤</th><th class="numeric">Attention ≤</th><th>Bands</th></tr></thead>
+          <tbody>
+            ${Object.entries(KPI_THRESHOLDS).map(([k,v]) => `
+              <tr><td>${k}</td><td class="numeric">${v.bau}</td><td class="numeric">${v.attention}</td><td><div class="threshold-bar"><div class="threshold-seg-bau" style="flex:${v.bau}"></div><div class="threshold-seg-warn" style="flex:${v.attention - v.bau}"></div><div class="threshold-seg-crit" style="flex:${Math.max(20, 100-v.attention)}"></div></div></td></tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function weightSlider(label, key, value){
+    return `
+      <div class="slider-row">
+        <div style="font-size:13px;font-weight:500">${label}</div>
+        <input type="range" class="slider" min="0" max="100" value="${value}" oninput="window.__dnSetWeight('${key}', this.value)">
+        <div class="slider-value" id="w_${key}">${value}%</div>
+      </div>
+    `;
+  }
+
+  function kpiWeightSlider(label, key){
+    const v = STATE.weights.kpi[key];
+    return `
+      <div class="slider-row">
+        <div style="font-size:13px;font-weight:500">${label}</div>
+        <input type="range" class="slider" min="0" max="100" value="${v}" oninput="window.__dnSetKpiWeight('${key}', this.value)">
+        <div class="slider-value" id="kw_${key}">${v}%</div>
+      </div>
+    `;
+  }
+
+  function viewExecutive(){
+    const cs = getConfidenceScore();
+    const critical = getCriticalCount();
+    const attention = getAttentionCount();
+    return `
+      <div class="breadcrumb"><span>Executive Summary</span></div>
+      <div class="confidence-hero">
+        <div class="hero-card">
+          <div class="hero-label">Overall Confidence</div>
+          <div class="hero-score" style="color:${cs.overall >= 85 ? 'var(--success)' : cs.overall >= 70 ? 'var(--warning)' : 'var(--danger)'}">${cs.overall}<span class="hero-score-suffix">/ 100</span></div>
+          <div style="margin-top:14px;font-size:13px;color:var(--text-muted)">${cs.overall >= 85 ? 'Systems performing within agreed SLAs.' : cs.overall >= 70 ? 'Multiple components require attention. Action recommended.' : 'Critical incidents in progress. Immediate review required.'}</div>
+        </div>
+        <div class="hero-meta-grid">
+          <div class="kpi-card"><div class="kpi-label">Critical</div><div class="kpi-value ${critical > 0 ? 'critical' : ''}">${critical}</div></div>
+          <div class="kpi-card"><div class="kpi-label">Attention</div><div class="kpi-value ${attention > 0 ? 'warning' : ''}">${attention}</div></div>
+          <div class="kpi-card"><div class="kpi-label">Active Users</div><div class="kpi-value">${APPLICATIONS.reduce((s,a)=>s+a.concurrent,0)}</div></div>
+          <div class="kpi-card"><div class="kpi-label">Daily Throughput</div><div class="kpi-value">${(USE_CASES.reduce((s,u)=>s+u.throughput,0) * 24).toLocaleString()}</div></div>
+        </div>
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">Critical Items Requiring Action</div></div>
+        ${critical === 0 && attention === 0 ? emptyState('All clear', 'No critical or attention items at this time.') : `
+          <table>
+            <thead><tr><th>System</th><th>Component</th><th>Issue</th><th>Impact</th><th>Severity</th></tr></thead>
+            <tbody>
+              ${INFRASTRUCTURE.filter(i => i.status !== 'bau').map(i => `<tr><td>Infrastructure</td><td class="mono">${i.id}</td><td>CPU ${i.cpu}%, Mem ${i.mem}%, Swap ${i.swap}%</td><td>Host degradation</td><td>${statusBadge(i.status)}</td></tr>`).join('')}
+              ${POLLERS.filter(i => i.status !== 'bau').map(i => `<tr><td>Pollers</td><td class="mono">${i.id}</td><td>Queue lag ${i.lag}s, depth ${i.queueDepth}</td><td>Polling delays</td><td>${statusBadge(i.status)}</td></tr>`).join('')}
+              ${USE_CASES.filter(i => i.status !== 'bau').map(i => `<tr><td>Use Cases</td><td>${i.name}</td><td>Success ${i.success}%, Latency ${i.latency}ms</td><td>Customer impact</td><td>${statusBadge(i.status)}</td></tr>`).join('')}
+              ${ETL_PIPELINES.filter(i => i.status !== 'bau').map(i => `<tr><td>ETL</td><td class="mono">${i.id}</td><td>Last run ${i.lastRun}, ${i.success ? 'success' : 'failed'}</td><td>Data freshness</td><td>${statusBadge(i.status)}</td></tr>`).join('')}
+            </tbody>
+          </table>
+        `}
+      </div>
+      <div class="section">
+        <div class="section-header"><div class="section-title">System Performance Summary</div></div>
+        <table>
+          <thead><tr><th>Domain</th><th class="numeric">Score</th><th>Weight</th><th>Trend</th><th>Status</th></tr></thead>
+          <tbody>
+            <tr><td>Infrastructure</td><td class="numeric">${cs.infra}%</td><td>${STATE.weights.infrastructure}%</td><td>${sparkline(genSparkData(21,-0.3), 80, 18)}</td><td>${statusBadge(cs.infra >= 85 ? 'bau' : cs.infra >= 70 ? 'attention' : 'critical')}</td></tr>
+            <tr><td>Use Cases</td><td class="numeric">${cs.useCases}%</td><td>${STATE.weights.useCases}%</td><td>${sparkline(genSparkData(22,-0.2), 80, 18)}</td><td>${statusBadge(cs.useCases >= 85 ? 'bau' : cs.useCases >= 70 ? 'attention' : 'critical')}</td></tr>
+            <tr><td>ETL</td><td class="numeric">${cs.etl}%</td><td>${STATE.weights.etl}%</td><td>${sparkline(genSparkData(23,-0.4), 80, 18)}</td><td>${statusBadge(cs.etl >= 85 ? 'bau' : cs.etl >= 70 ? 'attention' : 'critical')}</td></tr>
+            <tr><td>Applications</td><td class="numeric">${cs.apps}%</td><td>${STATE.weights.applications}%</td><td>${sparkline(genSparkData(24,0), 80, 18)}</td><td>${statusBadge(cs.apps >= 85 ? 'bau' : cs.apps >= 70 ? 'attention' : 'critical')}</td></tr>
+          </tbody>
+        </table>
+      </div>
+    `;
+  }
+
+  function emptyState(title, desc, action){
+    return `
+      <div class="empty-state">
+        <svg class="empty-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 3v18"/></svg>
+        <div class="empty-title">${title}</div>
+        <div class="empty-desc">${desc}</div>
+        ${action || ''}
+      </div>
+    `;
+  }
+
+  // ===== SIDE PANEL =====
+  function renderSidePanel(){
+    const c = STATE.selectedComponent;
+    if(!c) return '';
+    let title = '', body = '';
+    if(c.type === 'infra'){
+      const item = INFRASTRUCTURE.find(i => i.id === c.id);
+      if(!item) return '';
+      title = item.id + ' — ' + item.host;
+      body = `
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">CPU</div><div class="detail-value">${item.cpu}%</div></div>
+          <div class="detail-item"><div class="detail-label">Memory</div><div class="detail-value">${item.mem}%</div></div>
+          <div class="detail-item"><div class="detail-label">Swap</div><div class="detail-value">${item.swap}%</div></div>
+          <div class="detail-item"><div class="detail-label">Disk I/O</div><div class="detail-value">${item.diskIO} MB/s</div></div>
+          <div class="detail-item"><div class="detail-label">Storage</div><div class="detail-value">${item.storage}%</div></div>
+          <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(item.status)}</div></div>
+        </div>
+        <div style="margin-top:16px"><div class="detail-label" style="margin-bottom:8px">CPU Trend (1h)</div>${sparkline(genSparkData(item.id.charCodeAt(7)+1), 400, 80, 'var(--accent)')}</div>
+        <div style="margin-top:16px"><div class="detail-label" style="margin-bottom:8px">Recent incidents</div>
+          <table><thead><tr><th>Time</th><th>Event</th></tr></thead><tbody>
+            <tr><td class="mono">${getRelativeTime(12)}</td><td>CPU exceeded 80% threshold</td></tr>
+            <tr><td class="mono">${getRelativeTime(248)}</td><td>Disk I/O sustained >400 MB/s for 8m</td></tr>
+          </tbody></table>
+        </div>
+      `;
+    } else if(c.type === 'poller'){
+      const item = POLLERS.find(i => i.id === c.id);
+      if(!item) return '';
+      title = item.id + ' — ' + item.host;
+      body = `
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">NiFi</div><div class="detail-value">${pillState(item.nifi)}</div></div>
+          <div class="detail-item"><div class="detail-label">ZooKeeper</div><div class="detail-value">${pillState(item.zk)}</div></div>
+          <div class="detail-item"><div class="detail-label">Postgres</div><div class="detail-value">${pillState(item.pg)}</div></div>
+          <div class="detail-item"><div class="detail-label">Queue Depth</div><div class="detail-value">${item.queueDepth.toLocaleString()}</div></div>
+          <div class="detail-item"><div class="detail-label">Lag</div><div class="detail-value">${item.lag}s</div></div>
+          <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(item.status)}</div></div>
+        </div>
+        <div style="margin-top:16px"><div class="detail-label" style="margin-bottom:8px">Queue depth (1h)</div>${sparkline(genSparkData(item.id.charCodeAt(11)+99), 400, 80, 'var(--accent)')}</div>
+      `;
+    } else if(c.type === 'usecase'){
+      const item = USE_CASES.find(i => i.id === c.id);
+      if(!item) return '';
+      title = item.id + ' · ' + item.name;
+      body = `
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Tier</div><div class="detail-value">${item.tier}</div></div>
+          <div class="detail-item"><div class="detail-label">Weight</div><div class="detail-value">${item.weight}</div></div>
+          <div class="detail-item"><div class="detail-label">Throughput</div><div class="detail-value">${item.throughput.toLocaleString()}/hr</div></div>
+          <div class="detail-item"><div class="detail-label">Success rate</div><div class="detail-value">${item.success}%</div></div>
+          <div class="detail-item"><div class="detail-label">Latency</div><div class="detail-value">${item.latency} ms</div></div>
+          <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(item.status)}</div></div>
+        </div>
+        <div style="margin-top:16px"><div class="detail-label" style="margin-bottom:8px">Success rate (7d)</div>${sparkline(genSparkData(item.id.charCodeAt(3)+50), 400, 80, 'var(--accent)')}</div>
+        <div style="margin-top:16px"><div class="detail-label" style="margin-bottom:8px">Dependencies</div>
+          <div style="font-size:13px;color:var(--text-muted);line-height:1.7">→ DIGSPOLSVR-01..04 (Poller VMs)<br>→ Clickhouse cluster<br>→ NiFi flow ${item.id.toLowerCase()}_flow.xml<br>→ Postgres ${item.tier}_db</div>
+        </div>
+      `;
+    } else if(c.type === 'etl'){
+      const item = ETL_PIPELINES.find(i => i.id === c.id);
+      if(!item) return '';
+      title = item.id + ' · ' + item.name;
+      body = `
+        <div class="detail-grid">
+          <div class="detail-item"><div class="detail-label">Rows (24h)</div><div class="detail-value">${item.rowCount.toLocaleString()}</div></div>
+          <div class="detail-item"><div class="detail-label">Last run</div><div class="detail-value">${item.lastRun}</div></div>
+          <div class="detail-item"><div class="detail-label">Last success</div><div class="detail-value">${item.success ? 'Yes' : 'No'}</div></div>
+          <div class="detail-item"><div class="detail-label">Status</div><div class="detail-value">${statusBadge(item.status)}</div></div>
+        </div>
+      `;
+    }
+
+    return `
+      <div class="side-panel-backdrop" onclick="window.__dnClosePanel()"></div>
+      <div class="side-panel">
+        <div class="modal-header">
+          <div class="modal-title">${title}</div>
+          <button class="icon-btn" onclick="window.__dnClosePanel()" aria-label="Close"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18L18 6"/></svg></button>
+        </div>
+        <div class="modal-body">${body}</div>
+        <div class="modal-footer">
+          <button class="btn-ghost" onclick="window.__dnBookmark('${c.id}')">Bookmark</button>
+          <button class="btn-secondary" onclick="window.__dnOpenSimModal('${c.id}')">Simulate failure</button>
+          <button class="btn-primary" onclick="window.__dnClosePanel()">Close</button>
+        </div>
+      </div>
+    `;
+  }
+
+  // ===== SIMULATION MODAL =====
+  function renderSimModal(targetId){
+    return `
+      <div class="modal-backdrop" onclick="if(event.target===this)window.__dnCloseSimModal()">
+        <div class="modal">
+          <div class="modal-header"><div class="modal-title">Incident Simulation</div><button class="icon-btn" onclick="window.__dnCloseSimModal()"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 6l12 12M6 18L18 6"/></svg></button></div>
+          <div class="modal-body">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:12px">Select a failure scenario to overlay on live data. Simulated state is clearly watermarked and never affects actual telemetry.</div>
+            ${FAILURE_SCENARIOS.map(f => `
+              <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:12px">
+                <div>
+                  <div style="font-weight:500;font-size:13px">${f.name}</div>
+                  <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${f.impact}</div>
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-shrink:0">
+                  ${statusBadge(f.severity)}
+                  <button class="btn-secondary" onclick="window.__dnRunSim('${f.id}')">Simulate</button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          <div class="modal-footer"><button class="btn-ghost" onclick="window.__dnCloseSimModal()">Cancel</button></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ===== TIME =====
+  function getCurrentTime(){
+    const d = new Date();
+    return d.toTimeString().slice(0, 8);
+  }
+  function getRelativeTime(min){
+    if(min < 60) return min + 'm ago';
+    return Math.floor(min/60) + 'h ' + (min % 60) + 'm ago';
+  }
+  function updateLastUpdated(){
+    document.getElementById('lastUpdated').textContent = 'Updated ' + getCurrentTime();
+  }
+
+  // ===== RENDER =====
+  function render(){
+    renderNav();
+    renderTimeSelector();
+    const main = document.getElementById('main');
+    let html = '';
+    if(STATE.view === 'operations') html = viewOperations();
+    else if(STATE.view === 'usecases') html = viewUseCases();
+    else if(STATE.view === 'etl') html = viewETL();
+    else if(STATE.view === 'trends') html = viewTrends();
+    else if(STATE.view === 'admin') html = viewAdmin();
+    else if(STATE.view === 'executive') html = viewExecutive();
+    main.innerHTML = html;
+
+    // overlays
+    document.querySelectorAll('.side-panel-backdrop, .side-panel, .modal-backdrop').forEach(el => el.remove());
+    if(STATE.selectedComponent){
+      const overlay = document.createElement('div');
+      overlay.innerHTML = renderSidePanel();
+      while(overlay.firstChild) document.body.appendChild(overlay.firstChild);
+    }
+    if(STATE.simModalOpen){
+      const overlay = document.createElement('div');
+      overlay.innerHTML = renderSimModal(STATE.simModalTarget);
+      while(overlay.firstChild) document.body.appendChild(overlay.firstChild);
+    }
+  }
+
+  // ===== INTERACTION HANDLERS =====
+  window.__dnGo = function(v){ STATE.view = v; STATE.selectedComponent = null; render(); };
+  window.__dnDrill = function(id){
+    if(id === 'infrastructure') { STATE.view = 'operations'; render(); }
+    else if(id === 'usecases') { STATE.view = 'usecases'; render(); }
+    else if(id === 'etl') { STATE.view = 'etl'; render(); }
+    else if(id === 'applications') { STATE.view = 'etl'; render(); }
+  };
+  window.__dnToggleSection = function(key){
+    STATE.expanded[key] = !(STATE.expanded[key] === undefined ? (key === 'stack' ? false : true) : STATE.expanded[key]);
+    render();
+  };
+  window.__dnExpandAll = function(state){
+    STATE.expanded = { infra: state, pollers: state, stack: state };
+    render();
+  };
+  window.__dnFilter = function(sev){ STATE.filters.severity = sev; render(); };
+  window.__dnSearch = function(v){
+    STATE.filters.search = v;
+    // Avoid full re-render on every keystroke; debounce briefly
+    clearTimeout(window.__dnSearchT);
+    window.__dnSearchT = setTimeout(render, 120);
+  };
+  window.__dnOpenPanel = function(type, id){ STATE.selectedComponent = { type, id }; render(); };
+  window.__dnClosePanel = function(){ STATE.selectedComponent = null; render(); };
+  window.__dnOpenSimModal = function(target){
+    STATE.simModalOpen = true;
+    STATE.simModalTarget = target;
+    render();
+  };
+  window.__dnCloseSimModal = function(){ STATE.simModalOpen = false; render(); };
+  window.__dnRunSim = function(fid){
+    const f = FAILURE_SCENARIOS.find(s => s.id === fid);
+    STATE.simulationMode = true;
+    STATE.activeSimulations.push(f);
+    STATE.simModalOpen = false;
+    // Apply simulated effects
+    if(fid === 'fs1'){ INFRASTRUCTURE[3].status = 'critical'; INFRASTRUCTURE[3].cpu = 99; INFRASTRUCTURE[3].mem = 96; }
+    if(fid === 'fs2'){ POLLERS[2].nifi = 'down'; POLLERS[2].status = 'critical'; POLLERS[3].nifi = 'degraded'; }
+    if(fid === 'fs3'){ POLLERS[3].pg = 'degraded'; POLLERS[3].lag = 45; }
+    if(fid === 'fs4'){ ETL_PIPELINES[0].status = 'critical'; ETL_PIPELINES[0].lastRun = '4h 22m ago'; }
+    if(fid === 'fs5'){ USE_CASES[3].status = 'critical'; USE_CASES[3].success = 78.2; }
+    toast('Simulation started: ' + f.name, 'warning');
+    render();
+  };
+  window.__dnExitSim = function(){
+    STATE.simulationMode = false;
+    STATE.activeSimulations = [];
+    // restore: reload by resetting status values to original mock
+    INFRASTRUCTURE[3].cpu = 89; INFRASTRUCTURE[3].mem = 91; INFRASTRUCTURE[3].status = 'critical';
+    POLLERS[2].nifi = 'degraded'; POLLERS[2].status = 'attention';
+    POLLERS[3].pg = 'degraded'; POLLERS[3].lag = 8; POLLERS[3].status = 'attention';
+    ETL_PIPELINES[0].status = 'bau'; ETL_PIPELINES[0].lastRun = '12m ago';
+    USE_CASES[3].status = 'critical'; USE_CASES[3].success = 91.3;
+    toast('Simulation cleared, live data restored', 'success');
+    render();
+  };
+  window.__dnSetWeight = function(key, val){
+    STATE.weights[key] = +val;
+    const el = document.getElementById('w_' + key); if(el) el.textContent = val + '%';
+  };
+  window.__dnSetKpiWeight = function(key, val){
+    STATE.weights.kpi[key] = +val;
+    const el = document.getElementById('kw_' + key); if(el) el.textContent = val + '%';
+  };
+  window.__dnSaveWeights = function(){ toast('Weights saved. Confidence score recalculated.', 'success'); render(); };
+  window.__dnResetWeights = function(){
+    STATE.weights = { infrastructure: 30, useCases: 35, etl: 20, applications: 15, kpi: { availability: 40, performance: 30, dataQuality: 20, timeliness: 10 } };
+    toast('Weights reset to defaults', 'info');
+    render();
+  };
+  window.__dnExport = function(){ toast('Snapshot exported as CSV', 'success'); };
+  window.__dnBookmark = function(id){
+    if(STATE.bookmarks.indexOf(id) === -1){ STATE.bookmarks.push(id); toast('Bookmarked ' + id, 'success'); }
+    else toast(id + ' already bookmarked', 'info');
+  };
+  window.__dnAddAnnotation = function(){
+    STATE.annotations.push({ time: 'just now', text: 'Operator note added', system: 'general' });
+    toast('Annotation added to timeline', 'success');
+    render();
+  };
+
+  // Role selector
+  document.getElementById('roleSelect').addEventListener('change', function(){
+    STATE.role = this.value;
+    toast('Role changed to ' + this.options[this.selectedIndex].text, 'info');
+    render();
+  });
+
+  // Keyboard
+  document.addEventListener('keydown', function(e){
+    if(e.key === 'Escape'){
+      if(STATE.simModalOpen){ STATE.simModalOpen = false; render(); }
+      else if(STATE.selectedComponent){ STATE.selectedComponent = null; render(); }
+    }
+  });
+
+  // Auto-refresh tick
+  setInterval(function(){
+    if(!STATE.autoRefresh) return;
+    updateLastUpdated();
+    // jitter some metrics slightly to feel live
+    INFRASTRUCTURE.forEach(i => {
+      if(!STATE.simulationMode || i.id !== 'AX162-04'){
+        i.cpu = Math.max(5, Math.min(99, i.cpu + Math.round((Math.random() - 0.5) * 4)));
+      }
+    });
+    if(STATE.view === 'operations' && !STATE.selectedComponent && !STATE.simModalOpen){
+      // light refresh: just update timestamp; full re-render is heavy
+    }
+  }, 5000);
+
+  // Initial
+  render();
+  setTimeout(() => toast('Operations Twin ready · ' + (INFRASTRUCTURE.length + POLLERS.length + USE_CASES.length) + ' components monitored', 'success'), 400);
+})();
+</script>
+</body></html>
