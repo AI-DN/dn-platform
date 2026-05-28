@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root {
   --bg: #fafafa;
@@ -17,9 +18,9 @@
   --text-subtle: #a1a1aa;
   --border: rgba(0, 0, 0, 0.08);
   --border-strong: rgba(0, 0, 0, 0.16);
-  --accent: #5e6ad2;
-  --accent-hover: #4f59c4;
-  --accent-bg: rgba(94, 106, 210, 0.08);
+  --accent: #e10600;
+  --accent-hover: #b80500;
+  --accent-bg: rgba(225, 6, 0, 0.08);
   --success: #16a34a;
   --success-bg: rgba(22, 163, 74, 0.08);
   --warning: #d97706;
@@ -42,9 +43,9 @@
   --text-subtle: #71717a;
   --border: rgba(255, 255, 255, 0.08);
   --border-strong: rgba(255, 255, 255, 0.14);
-  --accent: #7b85e3;
-  --accent-hover: #8d96e8;
-  --accent-bg: rgba(123, 133, 227, 0.10);
+  --accent: #ff2e1f;
+  --accent-hover: #ff5547;
+  --accent-bg: rgba(255, 46, 31, 0.12);
   --success: #22c55e;
   --success-bg: rgba(34, 197, 94, 0.10);
   --warning: #f59e0b;
@@ -65,7 +66,7 @@ html, body {
   font-variant-numeric: tabular-nums;
 }
 body { min-height: 100vh; padding-bottom: 80px; }
-.app-container { max-width: 720px; margin: 0 auto; }
+.app-container { max-width: 760px; margin: 0 auto; }
 .app-header {
   position: sticky; top: 0; z-index: 50;
   background: color-mix(in srgb, var(--bg) 92%, transparent);
@@ -76,12 +77,13 @@ body { min-height: 100vh; padding-bottom: 80px; }
 }
 .brand { display: flex; align-items: center; gap: 8px; }
 .brand-mark {
-  width: 24px; height: 24px;
+  width: 28px; height: 28px;
   background: var(--accent); border-radius: var(--radius-sm);
   display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: 700; font-size: 13px; font-family: var(--mono);
+  color: white; font-weight: 700; font-size: 12px; font-family: var(--mono);
+  letter-spacing: -0.02em;
 }
-.brand-name { font-weight: 600; font-size: 15px; letter-spacing: -0.005em; }
+.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
 .header-actions { display: flex; gap: 4px; align-items: center; }
 .bottom-nav {
   position: fixed; bottom: 0; left: 0; right: 0;
@@ -99,6 +101,7 @@ body { min-height: 100vh; padding-bottom: 80px; }
   letter-spacing: 0.02em; text-transform: uppercase;
   border-radius: var(--radius-sm);
   transition: color 150ms ease, background 150ms ease;
+  font-family: inherit;
 }
 .nav-item svg { width: 20px; height: 20px; }
 .nav-item.active { color: var(--accent); }
@@ -109,7 +112,7 @@ body { min-height: 100vh; padding-bottom: 80px; }
 .display { font-size: 28px; font-weight: 600; letter-spacing: -0.01em; line-height: 1.2; }
 .h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.005em; }
 .h2 { font-size: 16px; font-weight: 600; }
-.caption { font-size: 12px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: var(--text-muted); }
+.caption { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
 .muted { color: var(--text-muted); }
 .mono { font-family: var(--mono); font-size: 13px; }
 .btn-primary, .btn-secondary, .btn-ghost {
@@ -117,7 +120,7 @@ body { min-height: 100vh; padding-bottom: 80px; }
   border-radius: var(--radius-sm); cursor: pointer;
   display: inline-flex; align-items: center; justify-content: center; gap: 6px;
   transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
-  padding: 6px 12px;
+  padding: 7px 12px;
 }
 .btn-primary { background: var(--accent); color: white; border: 1px solid var(--accent); }
 .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
@@ -152,12 +155,18 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .badge-info { background: var(--info-bg); color: var(--info); }
 .badge-neutral { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-accent { background: var(--accent-bg); color: var(--accent); }
+.live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); animation: pulse 1.4s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
 .hero-card {
   background: var(--surface); border: 1px solid var(--border);
   border-radius: var(--radius-md); padding: 16px; position: relative; overflow: hidden;
 }
-.hero-eyebrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-.hero-title { font-size: 22px; font-weight: 600; letter-spacing: -0.005em; margin-bottom: 2px; }
+.hero-card::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: var(--accent);
+}
+.hero-eyebrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
+.hero-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 2px; }
 .hero-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
 .countdown { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 16px; }
 .count-cell { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
@@ -174,7 +183,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .session-name { font-weight: 500; font-size: 13px; }
 .session-date { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
 .kpi-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 16px; }
-.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; }
+.kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 12px; position: relative; }
 .kpi-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); font-weight: 500; }
 .kpi-value { font-family: var(--mono); font-size: 22px; font-weight: 600; letter-spacing: -0.02em; margin-top: 4px; }
 .kpi-delta { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
@@ -200,7 +209,7 @@ tbody tr:last-child td { border-bottom: none; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .section-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 200; padding: 16px; animation: fadeIn 150ms ease; }
-.modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 20px; max-width: 520px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 20px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
 .modal-title { font-size: 16px; font-weight: 600; }
 .toast-container { position: fixed; top: 16px; right: 16px; left: 16px; z-index: 300; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -225,7 +234,7 @@ tbody tr:last-child td { border-bottom: none; }
 .cal-meta { font-size: 12px; color: var(--text-muted); }
 .feed-item { padding: 14px 0; border-bottom: 1px solid var(--border); }
 .feed-item:last-child { border-bottom: none; }
-.feed-cat { font-size: 11px; font-weight: 500; color: var(--accent); text-transform: uppercase; letter-spacing: 0.04em; }
+.feed-cat { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
 .feed-title { font-size: 14px; font-weight: 500; margin: 4px 0; line-height: 1.4; }
 .feed-body { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
 .feed-meta { font-size: 11px; color: var(--text-subtle); margin-top: 6px; display: flex; gap: 12px; align-items: center; }
@@ -238,11 +247,58 @@ tbody tr:last-child td { border-bottom: none; }
 .loading-indicator { display: flex; align-items: center; gap: 8px; padding: 12px; color: var(--text-muted); font-size: 13px; }
 .spinner { width: 14px; height: 14px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
+.driver-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 13px; flex-shrink: 0; overflow: hidden; }
+.driver-avatar img { width: 100%; height: 100%; object-fit: cover; }
+.driver-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 100ms ease; }
+.driver-card:hover { background: var(--surface-2); }
+.driver-card:last-child { border-bottom: none; }
+.car-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); }
+.driver-portrait { width: 88px; height: 88px; border-radius: 50%; background: var(--surface-2); border: 3px solid var(--accent); object-fit: cover; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 22px; }
+.driver-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.social-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
+.social-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 500; text-decoration: none; transition: all 150ms ease; }
+.social-btn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
+.social-btn svg { width: 12px; height: 12px; }
+.map-container { height: 380px; width: 100%; border-radius: var(--radius-md); border: 1px solid var(--border); overflow: hidden; background: var(--surface-2); }
+[data-theme="dark"] .leaflet-tile { filter: invert(1) hue-rotate(180deg) brightness(0.9) contrast(0.85); }
+.leaflet-popup-content-wrapper, .leaflet-popup-tip { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); box-shadow: none; }
+.leaflet-popup-content { margin: 10px 12px; font-family: inherit; font-size: 13px; }
+.leaflet-container { background: var(--surface-2); font-family: inherit; }
+.map-pin { background: var(--accent); width: 14px; height: 14px; border-radius: 50%; border: 2px solid white; box-shadow: 0 0 0 1px var(--accent); }
+.map-pin-hq { background: var(--info); width: 12px; height: 12px; border-radius: 2px; border: 2px solid white; box-shadow: 0 0 0 1px var(--info); transform: rotate(45deg); }
+.map-legend { display: flex; gap: 12px; margin-top: 8px; padding: 8px 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-size: 12px; flex-wrap: wrap; }
+.legend-item { display: flex; align-items: center; gap: 6px; color: var(--text-muted); }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; }
+.compare-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+.vs-divider { text-align: center; font-family: var(--mono); font-size: 14px; font-weight: 700; color: var(--accent); padding: 4px 0; }
+.compare-bar { background: var(--surface-2); height: 6px; border-radius: 3px; overflow: hidden; position: relative; display: flex; }
+.compare-bar-l { background: var(--accent); height: 100%; }
+.compare-bar-r { background: var(--info); height: 100%; }
+.trivia-card { background: linear-gradient(180deg, var(--accent-bg) 0%, var(--surface) 60%); border: 1px solid var(--accent); border-radius: var(--radius-md); padding: 16px; }
+.trivia-q { font-size: 15px; font-weight: 600; margin-bottom: 12px; line-height: 1.4; }
+.trivia-opt { display: block; width: 100%; text-align: left; padding: 10px 12px; margin-bottom: 6px; background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-sm); cursor: pointer; font-family: inherit; font-size: 13px; color: var(--text); transition: all 150ms ease; }
+.trivia-opt:hover { background: var(--surface-2); border-color: var(--accent); }
+.trivia-opt.correct { background: var(--success-bg); border-color: var(--success); color: var(--success); font-weight: 500; }
+.trivia-opt.wrong { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
+.trivia-opt:disabled { cursor: not-allowed; }
+.prediction-card { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; background: var(--surface); }
+.prediction-driver { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
+.confidence-bar { flex: 1; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
+.confidence-fill { height: 100%; background: var(--accent); }
+.fact-card { display: flex; gap: 10px; padding: 12px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; }
+.fact-icon { width: 28px; height: 28px; border-radius: var(--radius-sm); background: var(--accent-bg); color: var(--accent); display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700; flex-shrink: 0; }
+.fact-text { font-size: 13px; color: var(--text); line-height: 1.5; }
+.chip-row { display: flex; gap: 6px; flex-wrap: wrap; }
+.chip { padding: 4px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; font-size: 12px; cursor: pointer; transition: all 150ms ease; }
+.chip:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
+.chip.active { background: var(--accent); color: white; border-color: var(--accent); }
+.flag { display: inline-block; width: 18px; height: 13px; vertical-align: middle; margin-right: 6px; border-radius: 2px; font-size: 13px; line-height: 13px; }
 @media (max-width: 480px) {
   .kpi-grid { gap: 8px; }
   .kpi { padding: 10px; }
   .kpi-value { font-size: 18px; }
   .page { padding: 12px; }
+  .map-container { height: 320px; }
 }
 </style>
 </head>
@@ -298,7 +354,8 @@ tbody tr:last-child td { border-bottom: none; }
   <main class="page active" id="page-home"></main>
   <main class="page" id="page-timeline"></main>
   <main class="page" id="page-stats"></main>
-  <main class="page" id="page-feed"></main>
+  <main class="page" id="page-map"></main>
+  <main class="page" id="page-fun"></main>
   <main class="page" id="page-more"></main>
 </div>
 
@@ -309,15 +366,19 @@ tbody tr:last-child td { border-bottom: none; }
   </button>
   <button class="nav-item" data-page="timeline">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
-    Timeline
+    Races
   </button>
   <button class="nav-item" data-page="stats">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg>
     Stats
   </button>
-  <button class="nav-item" data-page="feed">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 11a9 9 0 0 1 9 9M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>
-    Feed
+  <button class="nav-item" data-page="map">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+    Map
+  </button>
+  <button class="nav-item" data-page="fun">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2M9 9h.01M15 9h.01"/></svg>
+    Fun
   </button>
   <button class="nav-item" data-page="more">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/></svg>
@@ -327,33 +388,10 @@ tbody tr:last-child td { border-bottom: none; }
 
 <div id="modal-root"></div>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
 (function(){
 'use strict';
-
-/* ===========================================================
-   DATA SOURCE: Live F1 data fetched at runtime.
-
-   Authoritative source per spec: https://www.formula1.com
-
-   Implementation note: formula1.com does not expose a public
-   JSON endpoint and blocks cross-origin browser requests via
-   CORS. We therefore fetch the canonical open Ergast/Jolpica
-   F1 data mirror which is the standard public API for
-   formula1.com season/results/standings data (used by most
-   third-party F1 apps). It is updated within hours of each
-   session by formula1.com's official feeds.
-
-   Endpoints used (all live, no cached/embedded data):
-     - https://api.jolpi.ca/ergast/f1/current.json
-     - https://api.jolpi.ca/ergast/f1/current/driverStandings.json
-     - https://api.jolpi.ca/ergast/f1/current/constructorStandings.json
-     - https://api.jolpi.ca/ergast/f1/current/last/results.json
-     - https://api.jolpi.ca/ergast/f1/current/last/qualifying.json
-
-   On any fetch failure we display the required error message
-   and DO NOT fall back to embedded data.
-   =========================================================== */
 
 const API_BASE = 'https://api.jolpi.ca/ergast/f1';
 
@@ -361,62 +399,169 @@ const state = {
   theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
   page: 'home',
   statsTab: 'drivers',
+  funTab: 'trivia',
+  mapMode: 'all',
   loading: true,
   error: null,
-  data: null,            // { season, schedule, driverStandings, constructorStandings, lastResults, lastQualifying }
+  data: null,
   lastUpdated: null,
   favDriver: null,
+  favTeam: null,
+  compareA: null,
+  compareB: null,
+  triviaIdx: 0,
+  triviaScore: 0,
+  triviaAnswered: false,
+  mapInstance: null,
 };
 
-const TEAM_COLORS = {
-  'red_bull':       '#3671C6',
-  'mclaren':        '#FF8000',
-  'ferrari':        '#E8002D',
-  'mercedes':       '#27F4D2',
-  'aston_martin':   '#229971',
-  'alpine':         '#FF87BC',
-  'williams':       '#64C4FF',
-  'rb':             '#6692FF',
-  'alphatauri':     '#6692FF',
-  'sauber':         '#52E252',
-  'haas':           '#B6BABD',
+// Team metadata: colors, HQ locations, social links
+const TEAMS = {
+  'red_bull': {
+    color: '#3671C6', name: 'Red Bull Racing', hq: [52.0118, -1.1467], hqCity: 'Milton Keynes, UK',
+    twitter: 'redbullracing', instagram: 'redbullracing', tiktok: '@redbullracing',
+    facebook: 'redbullracing', youtube: 'redbullracing', website: 'redbullracing.com',
+    engine: 'Honda RBPT', founded: 2005,
+  },
+  'mclaren': {
+    color: '#FF8000', name: 'McLaren', hq: [51.3461, -0.5450], hqCity: 'Woking, UK',
+    twitter: 'mclarenf1', instagram: 'mclaren', tiktok: '@mclaren',
+    facebook: 'mclarenracing', youtube: 'mclaren', website: 'mclaren.com',
+    engine: 'Mercedes', founded: 1963,
+  },
+  'ferrari': {
+    color: '#E8002D', name: 'Scuderia Ferrari', hq: [44.5331, 10.8644], hqCity: 'Maranello, Italy',
+    twitter: 'scuderiaferrari', instagram: 'scuderiaferrari', tiktok: '@scuderiaferrari',
+    facebook: 'ScuderiaFerrari', youtube: 'Ferrari', website: 'ferrari.com',
+    engine: 'Ferrari', founded: 1929,
+  },
+  'mercedes': {
+    color: '#27F4D2', name: 'Mercedes-AMG', hq: [52.0758, -1.0260], hqCity: 'Brackley, UK',
+    twitter: 'MercedesAMGF1', instagram: 'mercedesamgf1', tiktok: '@mercedesamgf1',
+    facebook: 'MercedesAMGF1', youtube: 'MercedesAMGF1', website: 'mercedesamgf1.com',
+    engine: 'Mercedes', founded: 2010,
+  },
+  'aston_martin': {
+    color: '#229971', name: 'Aston Martin', hq: [52.0726, -1.0150], hqCity: 'Silverstone, UK',
+    twitter: 'AstonMartinF1', instagram: 'astonmartinf1', tiktok: '@astonmartinf1',
+    facebook: 'AstonMartinF1', youtube: 'AstonMartinF1', website: 'astonmartinf1.com',
+    engine: 'Mercedes', founded: 2021,
+  },
+  'alpine': {
+    color: '#FF87BC', name: 'Alpine', hq: [48.9742, 2.2125], hqCity: 'Enstone, UK',
+    twitter: 'AlpineF1Team', instagram: 'alpinef1team', tiktok: '@alpinef1team',
+    facebook: 'AlpineF1Team', youtube: 'AlpineCars', website: 'alpinecars.com',
+    engine: 'Renault', founded: 2021,
+  },
+  'williams': {
+    color: '#64C4FF', name: 'Williams', hq: [51.6105, -1.4255], hqCity: 'Grove, UK',
+    twitter: 'WilliamsRacing', instagram: 'williamsracing', tiktok: '@williamsracing',
+    facebook: 'WilliamsRacing', youtube: 'WilliamsF1', website: 'williamsf1.com',
+    engine: 'Mercedes', founded: 1977,
+  },
+  'rb': {
+    color: '#6692FF', name: 'RB / Visa Cash App RB', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy',
+    twitter: 'visacashapprb', instagram: 'visacashapprb', tiktok: '@visacashapprb',
+    facebook: 'visacashapprb', youtube: 'visacashapprb', website: 'visacashapprb.com',
+    engine: 'Honda RBPT', founded: 2024,
+  },
+  'alphatauri': {
+    color: '#6692FF', name: 'AlphaTauri', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy',
+    twitter: 'visacashapprb', instagram: 'visacashapprb', tiktok: '@visacashapprb',
+    facebook: 'visacashapprb', youtube: 'visacashapprb', website: 'visacashapprb.com',
+    engine: 'Honda RBPT', founded: 2006,
+  },
+  'sauber': {
+    color: '#52E252', name: 'Kick Sauber', hq: [47.2627, 8.5680], hqCity: 'Hinwil, Switzerland',
+    twitter: 'stakef1team_ks', instagram: 'stakef1team_kicksauber', tiktok: '@stakef1team_kicksauber',
+    facebook: 'stakef1team', youtube: 'stakef1team', website: 'sauber-group.com',
+    engine: 'Ferrari', founded: 1993,
+  },
+  'haas': {
+    color: '#B6BABD', name: 'Haas F1 Team', hq: [35.4836, -80.8520], hqCity: 'Kannapolis, USA',
+    twitter: 'HaasF1Team', instagram: 'haasf1team', tiktok: '@haasf1team',
+    facebook: 'HaasF1Team', youtube: 'HaasF1Team', website: 'haasf1team.com',
+    engine: 'Ferrari', founded: 2016,
+  },
 };
-function teamColor(id){ return TEAM_COLORS[id] || 'var(--text-subtle)'; }
+
+// Driver image slugs (formula1.com URL slugs)
+const DRIVER_INFO = {
+  'max_verstappen': { slug: 'max-verstappen', twitter: 'Max33Verstappen', instagram: 'maxverstappen1' },
+  'norris': { slug: 'lando-norris', twitter: 'LandoNorris', instagram: 'landonorris' },
+  'leclerc': { slug: 'charles-leclerc', twitter: 'Charles_Leclerc', instagram: 'charles_leclerc' },
+  'piastri': { slug: 'oscar-piastri', twitter: 'OscarPiastri', instagram: 'oscarpiastri' },
+  'sainz': { slug: 'carlos-sainz', twitter: 'Carlossainz55', instagram: 'carlossainz55' },
+  'russell': { slug: 'george-russell', twitter: 'GeorgeRussell63', instagram: 'georgerussell63' },
+  'hamilton': { slug: 'lewis-hamilton', twitter: 'LewisHamilton', instagram: 'lewishamilton' },
+  'perez': { slug: 'sergio-perez', twitter: 'SChecoPerez', instagram: 'schecoperez' },
+  'alonso': { slug: 'fernando-alonso', twitter: 'alo_oficial', instagram: 'fernandoalo_oficial' },
+  'stroll': { slug: 'lance-stroll', twitter: 'lance_stroll', instagram: 'lance_stroll' },
+  'gasly': { slug: 'pierre-gasly', twitter: 'PierreGASLY', instagram: 'pierregasly' },
+  'ocon': { slug: 'esteban-ocon', twitter: 'OconEsteban', instagram: 'estebanocon' },
+  'albon': { slug: 'alexander-albon', twitter: 'alex_albon', instagram: 'alex_albon' },
+  'sargeant': { slug: 'logan-sargeant', twitter: 'LoganSargeant', instagram: 'logansargeant' },
+  'colapinto': { slug: 'franco-colapinto', twitter: 'FranColapinto', instagram: 'francolapinto' },
+  'tsunoda': { slug: 'yuki-tsunoda', twitter: 'yukitsunoda07', instagram: 'yukitsunoda0511' },
+  'ricciardo': { slug: 'daniel-ricciardo', twitter: 'danielricciardo', instagram: 'danielricciardo' },
+  'lawson': { slug: 'liam-lawson', twitter: 'LiamLawson30', instagram: 'liamlawson' },
+  'bottas': { slug: 'valtteri-bottas', twitter: 'ValtteriBottas', instagram: 'valtteribottas' },
+  'zhou': { slug: 'guanyu-zhou', twitter: 'ZhouGuanyu24', instagram: 'zhouguanyu24' },
+  'hulkenberg': { slug: 'nico-hulkenberg', twitter: 'HulkHulkenberg', instagram: 'hulkhulkenberg' },
+  'kevin_magnussen': { slug: 'kevin-magnussen', twitter: 'KevinMagnussen', instagram: 'kevinmagnussen' },
+  'bearman': { slug: 'oliver-bearman', twitter: 'OliverBearman', instagram: 'oliverbearman' },
+  'doohan': { slug: 'jack-doohan', twitter: 'JackDoohan', instagram: 'jackdoohan' },
+  'antonelli': { slug: 'andrea-kimi-antonelli', twitter: 'kimi_antonelli', instagram: 'kimi.antonelli' },
+};
+
+function driverInfo(d){
+  return DRIVER_INFO[d.driverId] || { slug: (d.givenName + '-' + d.familyName).toLowerCase().replace(/\s+/g, '-') };
+}
+function driverF1Url(d){ return `https://www.formula1.com/en/drivers/${driverInfo(d).slug}`; }
+function teamData(id){ return TEAMS[id] || { color: 'var(--text-subtle)', name: id }; }
+function teamColor(id){ return (TEAMS[id] && TEAMS[id].color) || 'var(--text-subtle)'; }
+
+const FLAG = {
+  'British': '🇬🇧', 'Dutch': '🇳🇱', 'Monegasque': '🇲🇨', 'Australian': '🇦🇺', 'Spanish': '🇪🇸',
+  'German': '🇩🇪', 'Mexican': '🇲🇽', 'French': '🇫🇷', 'Thai': '🇹🇭', 'American': '🇺🇸',
+  'Canadian': '🇨🇦', 'Japanese': '🇯🇵', 'Finnish': '🇫🇮', 'Chinese': '🇨🇳', 'Danish': '🇩🇰',
+  'Italian': '🇮🇹', 'Argentine': '🇦🇷', 'New Zealander': '🇳🇿',
+  'UK': '🇬🇧', 'Italy': '🇮🇹', 'USA': '🇺🇸', 'Switzerland': '🇨🇭', 'Australia': '🇦🇺',
+  'Bahrain': '🇧🇭', 'Saudi Arabia': '🇸🇦', 'Japan': '🇯🇵', 'China': '🇨🇳', 'Azerbaijan': '🇦🇿',
+  'Monaco': '🇲🇨', 'Canada': '🇨🇦', 'Spain': '🇪🇸', 'Austria': '🇦🇹', 'Hungary': '🇭🇺',
+  'Belgium': '🇧🇪', 'Netherlands': '🇳🇱', 'Singapore': '🇸🇬', 'Mexico': '🇲🇽', 'Brazil': '🇧🇷',
+  'Qatar': '🇶🇦', 'UAE': '🇦🇪', 'United Arab Emirates': '🇦🇪', 'United States': '🇺🇸',
+  'United Kingdom': '🇬🇧', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Portugal': '🇵🇹', 'Russia': '🇷🇺',
+  'Turkey': '🇹🇷', 'South Africa': '🇿🇦', 'Korea': '🇰🇷', 'India': '🇮🇳',
+};
+function flag(s){ return FLAG[s] ? `<span class="flag">${FLAG[s]}</span>` : ''; }
 
 const $ = (s, p) => (p || document).querySelector(s);
 const $$ = (s, p) => Array.from((p || document).querySelectorAll(s));
 
-function fmtDate(date) {
-  return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-}
-function fmtTime(date) {
-  return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-}
-function fmtTz() {
-  const offset = -new Date().getTimezoneOffset() / 60;
-  const sign = offset >= 0 ? '+' : '';
-  return `UTC${sign}${offset}`;
-}
-function relativeTime(date) {
+function fmtDate(d){ return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
+function fmtTime(d){ return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
+function fmtTz(){ const o = -new Date().getTimezoneOffset()/60; return `UTC${o>=0?'+':''}${o}`; }
+function relativeTime(date){
   const diff = date.getTime() - Date.now();
-  const absSec = Math.abs(diff)/1000;
-  if (absSec < 60) return diff > 0 ? 'in <1m' : 'just now';
-  const mins = Math.floor(absSec/60);
-  if (mins < 60) return diff > 0 ? `in ${mins}m` : `${mins}m ago`;
-  const hrs = Math.floor(mins/60);
-  if (hrs < 48) return diff > 0 ? `in ${hrs}h` : `${hrs}h ago`;
-  const days = Math.floor(hrs/24);
-  if (days < 30) return diff > 0 ? `in ${days}d` : `${days}d ago`;
+  const abs = Math.abs(diff)/1000;
+  if (abs < 60) return diff > 0 ? 'in <1m' : 'just now';
+  const m = Math.floor(abs/60); if (m < 60) return diff > 0 ? `in ${m}m` : `${m}m ago`;
+  const h = Math.floor(m/60); if (h < 48) return diff > 0 ? `in ${h}h` : `${h}h ago`;
+  const d = Math.floor(h/24); if (d < 30) return diff > 0 ? `in ${d}d` : `${d}d ago`;
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
-function raceDate(race){
-  const t = race.time || '00:00:00Z';
-  return new Date(race.date + 'T' + (t.endsWith('Z') ? t : t + 'Z'));
-}
-function teamStrip(constructorId) {
-  return `<span class="team-strip" style="background:${teamColor(constructorId)}"></span>`;
-}
+function raceDate(r){ const t = r.time || '00:00:00Z'; return new Date(r.date + 'T' + (t.endsWith('Z') ? t : t + 'Z')); }
+function teamStrip(id){ return `<span class="team-strip" style="background:${teamColor(id)}"></span>`; }
 function posBadge(p){ return `<span class="pos p${p<=3?p:''}">${p}</span>`; }
+function driverInitials(d){ return (d.givenName[0] + d.familyName[0]).toUpperCase(); }
+
+function driverAvatar(d, size){
+  size = size || 44;
+  const info = driverInfo(d);
+  const initials = driverInitials(d);
+  return `<div class="driver-avatar" style="width:${size}px;height:${size}px"><span style="font-size:${size*0.32}px">${initials}</span></div>`;
+}
 
 /* =================== TOASTS =================== */
 function toast(msg, kind){
@@ -438,21 +583,17 @@ function applyTheme(){
   const moon = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
   $('#theme-icon').innerHTML = state.theme === 'dark' ? sun : moon;
 }
-function toggleTheme(){
-  state.theme = state.theme === 'dark' ? 'light' : 'dark';
-  applyTheme();
-  render();
-}
+function toggleTheme(){ state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(); state.mapInstance = null; render(); }
 
 /* =================== ROUTING =================== */
 function navigate(page){
   state.page = page;
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
-  const titles = { home: 'Fan Hub', timeline: 'Timeline', stats: 'Statistics', feed: 'Feed', more: 'More' };
+  const titles = { home: 'Fan Hub', timeline: 'Race Weekends', stats: 'Statistics', map: 'World Map', fun: 'Fan Zone', more: 'More' };
   $('#page-title').textContent = titles[page];
   const seasonLabel = state.data ? `${state.data.season} Season` : 'Loading…';
-  const subs = { home: seasonLabel, timeline: `${state.data ? state.data.season : ''} Calendar & Results`, stats: seasonLabel, feed: 'Trivia & history', more: 'Settings & tools' };
+  const subs = { home: seasonLabel, timeline: `${state.data ? state.data.season : ''} Calendar`, stats: seasonLabel, map: 'Circuits & HQ locations', fun: 'Trivia · Predictions · Compare', more: 'Settings & tools' };
   $('#page-sub').textContent = subs[page];
   render();
 }
@@ -464,24 +605,17 @@ function showModal(html){
   $('#modal-bd').addEventListener('click', (e) => { if (e.target.id === 'modal-bd') closeModal(); });
   document.addEventListener('keydown', escClose);
 }
-function closeModal(){
-  $('#modal-root').innerHTML = '';
-  document.removeEventListener('keydown', escClose);
-}
+function closeModal(){ $('#modal-root').innerHTML = ''; document.removeEventListener('keydown', escClose); }
 function escClose(e){ if (e.key === 'Escape') closeModal(); }
 
 /* =================== DATA FETCH =================== */
 async function fetchJson(path){
-  const url = `${API_BASE}/${path}`;
-  const resp = await fetch(url, { headers: { 'Accept': 'application/json' } });
+  const resp = await fetch(`${API_BASE}/${path}`, { headers: { 'Accept': 'application/json' } });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} on ${path}`);
   return resp.json();
 }
-
 async function loadData(){
-  state.loading = true;
-  state.error = null;
-  render();
+  state.loading = true; state.error = null; render();
   try {
     const [schedule, dStandings, cStandings, lastResults, lastQuali] = await Promise.all([
       fetchJson('current.json'),
@@ -490,93 +624,82 @@ async function loadData(){
       fetchJson('current/last/results.json').catch(()=>null),
       fetchJson('current/last/qualifying.json').catch(()=>null),
     ]);
-
-    const races = (schedule.MRData.RaceTable.Races) || [];
+    const races = schedule.MRData.RaceTable.Races || [];
     const season = schedule.MRData.RaceTable.season;
     const dsList = (dStandings.MRData.StandingsTable.StandingsLists[0] || {}).DriverStandings || [];
     const csList = (cStandings.MRData.StandingsTable.StandingsLists[0] || {}).ConstructorStandings || [];
     const lastRace = lastResults ? lastResults.MRData.RaceTable.Races[0] : null;
     const lastQ = lastQuali ? lastQuali.MRData.RaceTable.Races[0] : null;
-
-    state.data = {
-      season,
-      schedule: races,
-      driverStandings: dsList,
-      constructorStandings: csList,
-      lastRace,
-      lastQualifying: lastQ,
-    };
+    state.data = { season, schedule: races, driverStandings: dsList, constructorStandings: csList, lastRace, lastQualifying: lastQ };
     state.lastUpdated = new Date();
     state.loading = false;
-
-    // Required verification: console.log parsed shape
-    console.log('F1 data loaded:', {
-      season: state.data.season,
-      raceCount: races.length,
-      driverStandingsCount: dsList.length,
-      constructorStandingsCount: csList.length,
-      lastRace: lastRace ? lastRace.raceName : null,
-      timestamp: state.lastUpdated.toISOString(),
-    });
-
-    // Set default favourite to championship leader
+    console.log('F1 data loaded:', { season, raceCount: races.length, drivers: dsList.length, constructors: csList.length });
     if (!state.favDriver && dsList[0]) state.favDriver = dsList[0].Driver.driverId;
-
-    const titles = { home: 'Fan Hub', timeline: 'Timeline', stats: 'Statistics', feed: 'Feed', more: 'More' };
+    if (!state.favTeam && csList[0]) state.favTeam = csList[0].Constructor.constructorId;
+    if (!state.compareA && dsList[0]) state.compareA = dsList[0].Driver.driverId;
+    if (!state.compareB && dsList[1]) state.compareB = dsList[1].Driver.driverId;
+    const titles = { home: 'Fan Hub', timeline: 'Race Weekends', stats: 'Statistics', map: 'World Map', fun: 'Fan Zone', more: 'More' };
     $('#page-title').textContent = titles[state.page];
     $('#page-sub').textContent = `${season} Season`;
-
-    toast(`Loaded ${season} season (${races.length} races)`, 'success');
+    toast(`Loaded ${season} season · ${races.length} races`, 'success');
     render();
   } catch (err) {
     console.error('F1 data fetch failed:', err);
-    state.loading = false;
-    state.error = err.message || 'Network error';
-    render();
+    state.loading = false; state.error = err.message || 'Network error'; render();
   }
 }
 
-/* =================== RENDER HELPERS =================== */
+/* =================== HELPERS =================== */
 function errorBlock(){
-  return `<div class="error-banner">
-    <div>
-      <strong>Could not load current data — please refresh.</strong>
-      <div style="font-size:11px;color:var(--text-muted);margin-top:4px">${state.error || ''}</div>
-    </div>
-    <button class="btn-secondary" id="err-retry">Retry</button>
-  </div>`;
+  return `<div class="error-banner"><div><strong>Could not load current data — please refresh.</strong><div style="font-size:11px;color:var(--text-muted);margin-top:4px">${state.error || ''}</div></div><button class="btn-secondary" id="err-retry">Retry</button></div>`;
 }
-function loadingBlock(label){
-  return `<div class="loading-indicator"><div class="spinner"></div><span>${label || 'Loading current season…'}</span></div>`;
-}
+function loadingBlock(label){ return `<div class="loading-indicator"><div class="spinner"></div><span>${label || 'Loading current season…'}</span></div>`; }
 function skeletonTable(rows){
-  rows = rows || 5;
-  let html = '';
+  rows = rows || 5; let html = '';
   for (let i=0;i<rows;i++) html += `<div class="skel-row"><div class="skeleton" style="height:18px"></div><div class="skeleton"></div><div class="skeleton" style="height:14px"></div></div>`;
   return `<div class="card" style="padding:0;overflow:hidden">${html}</div>`;
 }
 function dataFooter(){
   if (!state.lastUpdated) return '';
-  return `<div class="data-footer">Data updated: ${state.lastUpdated.toLocaleString()} · Live from formula1.com (via Ergast/Jolpica mirror)</div>`;
+  return `<div class="data-footer">Updated ${state.lastUpdated.toLocaleString()} · Live data from formula1.com (via Ergast/Jolpica mirror)</div>`;
 }
 function emptyState(title, desc){
-  return `<div class="empty">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-    <div class="empty-title">${title}</div>
-    <div class="empty-desc">${desc}</div>
-  </div>`;
+  return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div></div>`;
 }
+function nextRace(){ if (!state.data) return null; const now = Date.now(); return state.data.schedule.find(r => raceDate(r).getTime() > now) || null; }
+function lastFinishedRace(){ if (!state.data) return null; const now = Date.now(); const past = state.data.schedule.filter(r => raceDate(r).getTime() <= now); return past.length ? past[past.length-1] : null; }
 
-function nextRace(){
-  if (!state.data) return null;
-  const now = new Date();
-  return state.data.schedule.find(r => raceDate(r).getTime() > now.getTime()) || null;
+/* Social icons */
+const SOCIAL_SVG = {
+  twitter: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
+  instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37a4 4 0 1 1-7.91 1.18A4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
+  tiktok: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 0 1-5.2 1.74 2.89 2.89 0 0 1 2.31-4.64 2.93 2.93 0 0 1 .88.13V9.4a6.84 6.84 0 0 0-1-.05A6.33 6.33 0 0 0 5.8 20.1a6.34 6.34 0 0 0 10.86-4.43V8.69a8.16 8.16 0 0 0 4.77 1.52V6.79a4.85 4.85 0 0 1-1.84-.1z"/></svg>',
+  facebook: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22 12c0-5.523-4.477-10-10-10S2 6.477 2 12c0 4.991 3.657 9.128 8.438 9.878v-6.987h-2.54V12h2.54V9.797c0-2.506 1.492-3.89 3.777-3.89 1.094 0 2.238.195 2.238.195v2.46h-1.26c-1.243 0-1.63.771-1.63 1.562V12h2.773l-.443 2.89h-2.33v6.988C18.343 21.128 22 16.991 22 12"/></svg>',
+  youtube: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>',
+  globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
+  f1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M8 8h8"/></svg>',
+};
+function socialLink(href, type, label){
+  return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" title="${label}">${SOCIAL_SVG[type] || ''} <span>${label}</span></a>`;
 }
-function lastFinishedRace(){
-  if (!state.data) return null;
-  const now = new Date();
-  const past = state.data.schedule.filter(r => raceDate(r).getTime() <= now.getTime());
-  return past.length ? past[past.length - 1] : null;
+function teamSocials(teamId){
+  const t = TEAMS[teamId]; if (!t) return '';
+  const links = [];
+  if (t.website) links.push(socialLink('https://' + t.website, 'globe', 'Site'));
+  if (t.twitter) links.push(socialLink('https://twitter.com/' + t.twitter, 'twitter', 'X'));
+  if (t.instagram) links.push(socialLink('https://instagram.com/' + t.instagram, 'instagram', 'Instagram'));
+  if (t.tiktok) links.push(socialLink('https://tiktok.com/' + t.tiktok, 'tiktok', 'TikTok'));
+  if (t.facebook) links.push(socialLink('https://facebook.com/' + t.facebook, 'facebook', 'Facebook'));
+  if (t.youtube) links.push(socialLink('https://youtube.com/@' + t.youtube, 'youtube', 'YouTube'));
+  return `<div class="social-row">${links.join('')}</div>`;
+}
+function driverSocials(driver){
+  const info = driverInfo(driver);
+  const links = [];
+  links.push(socialLink(driverF1Url(driver), 'f1', 'F1.com'));
+  if (info.twitter) links.push(socialLink('https://twitter.com/' + info.twitter, 'twitter', 'X'));
+  if (info.instagram) links.push(socialLink('https://instagram.com/' + info.instagram, 'instagram', 'Instagram'));
+  return `<div class="social-row">${links.join('')}</div>`;
 }
 
 /* =================== HOME =================== */
@@ -591,138 +714,89 @@ function renderHome(){
   const ds = data.driverStandings;
   const cs = data.constructorStandings;
   const lastRace = data.lastRace;
-
   let html = '';
 
-  // Hero
   if (upcoming) {
     const dt = raceDate(upcoming);
-    const circuitName = upcoming.Circuit.circuitName;
-    const country = upcoming.Circuit.Location.country;
-    html += `
-      <section class="hero-card">
-        <div class="hero-eyebrow">
-          <span class="caption" style="color: var(--accent)">Next Race · Round ${upcoming.round}</span>
-          <span class="badge badge-neutral">${upcoming.Sprint ? 'Sprint Weekend' : 'Standard'}</span>
-        </div>
-        <div class="hero-title">${upcoming.raceName}</div>
-        <div class="hero-sub">${circuitName} · ${country} · ${fmtDate(dt)} · ${fmtTime(dt)} local</div>
-        <div class="countdown" id="countdown"></div>
-        <div class="row" style="gap: 8px;">
-          <button class="btn-primary" data-action="open-race" data-round="${upcoming.round}">Race Weekend</button>
-          <button class="btn-secondary" data-action="open-circuit" data-round="${upcoming.round}">Circuit info</button>
-        </div>
-      </section>
-    `;
-  } else {
     html += `<section class="hero-card">
-      <div class="hero-eyebrow"><span class="caption" style="color:var(--accent)">Season ${data.season}</span></div>
-      <div class="hero-title">Season complete</div>
-      <div class="hero-sub">All ${data.schedule.length} rounds of the ${data.season} season have been run.</div>
+      <div class="hero-eyebrow">
+        <span class="caption" style="color: var(--accent); font-weight:700">🏁 Next Race · Round ${upcoming.round}</span>
+        <span class="badge ${upcoming.Sprint ? 'badge-warning' : 'badge-neutral'}">${upcoming.Sprint ? 'SPRINT WEEKEND' : 'Standard'}</span>
+      </div>
+      <div class="hero-title">${flag(upcoming.Circuit.Location.country)}${upcoming.raceName}</div>
+      <div class="hero-sub">${upcoming.Circuit.circuitName} · ${upcoming.Circuit.Location.locality}, ${upcoming.Circuit.Location.country} · ${fmtDate(dt)} ${fmtTime(dt)}</div>
+      <div class="countdown" id="countdown"></div>
+      <div class="row" style="gap: 8px; flex-wrap:wrap;">
+        <button class="btn-primary" data-action="open-race" data-round="${upcoming.round}">Race Weekend ›</button>
+        <button class="btn-secondary" data-action="goto-map">View on map</button>
+      </div>
     </section>`;
+  } else {
+    html += `<section class="hero-card"><div class="hero-eyebrow"><span class="caption" style="color:var(--accent)">Season ${data.season}</span></div><div class="hero-title">Season complete 🏆</div><div class="hero-sub">All ${data.schedule.length} rounds run. Check Stats for final standings.</div></section>`;
   }
 
-  // KPIs
   if (ds.length >= 2) {
-    const leader = ds[0];
-    const p2 = ds[1];
+    const leader = ds[0]; const p2 = ds[1];
     const gap = parseFloat(leader.points) - parseFloat(p2.points);
     const racesLeft = data.schedule.filter(r => raceDate(r).getTime() > Date.now()).length;
-    const maxPts = racesLeft * 26; // 25 race + 1 fastest lap upper bound
+    const maxPts = racesLeft * 26;
     const favStanding = ds.find(d => d.Driver.driverId === state.favDriver) || ds[0];
     const favIdx = ds.indexOf(favStanding);
     const favGap = parseFloat(leader.points) - parseFloat(favStanding.points);
-
-    html += `
-      <div style="margin-top:16px"></div>
-      <div class="section-header"><h2>Season at a glance</h2></div>
+    html += `<div style="margin-top:16px"></div>
+      <div class="section-header"><h2>Championship pulse</h2></div>
       <div class="kpi-grid">
-        <div class="kpi">
-          <div class="kpi-label">Title gap (P1→P2)</div>
-          <div class="kpi-value">${gap}</div>
-          <div class="kpi-delta">${leader.Driver.familyName} leads ${p2.Driver.familyName}</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Races remaining</div>
-          <div class="kpi-value">${racesLeft}</div>
-          <div class="kpi-delta">Max ~${maxPts} pts available</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Your driver</div>
-          <div class="kpi-value">P${favIdx+1}</div>
-          <div class="kpi-delta">${favStanding.Driver.familyName} · ${favGap === 0 ? 'leads' : '−' + favGap + ' pts'}</div>
-        </div>
-        <div class="kpi">
-          <div class="kpi-label">Leader points</div>
-          <div class="kpi-value">${leader.points}</div>
-          <div class="kpi-delta">${leader.wins} win${leader.wins==='1'?'':'s'} this season</div>
-        </div>
-      </div>
-    `;
+        <div class="kpi"><div class="kpi-label">Title gap</div><div class="kpi-value">${gap}</div><div class="kpi-delta">${leader.Driver.familyName} → ${p2.Driver.familyName}</div></div>
+        <div class="kpi"><div class="kpi-label">Races left</div><div class="kpi-value">${racesLeft}</div><div class="kpi-delta">Up to ${maxPts} pts available</div></div>
+        <div class="kpi"><div class="kpi-label">Your driver</div><div class="kpi-value">P${favIdx+1}</div><div class="kpi-delta">${favStanding.Driver.familyName} · ${favGap === 0 ? 'leads ⭐' : '−' + favGap + ' pts'}</div></div>
+        <div class="kpi"><div class="kpi-label">Leader pts</div><div class="kpi-value">${leader.points}</div><div class="kpi-delta">${leader.wins} win${leader.wins==='1'?'':'s'}</div></div>
+      </div>`;
   }
 
-  // Standings preview
   if (ds.length) {
-    html += `
-      <div class="card">
-        <div class="section-header"><h2>Drivers' standings</h2><a class="btn-ghost" data-action="goto-stats" style="font-size:12px;cursor:pointer">View all →</a></div>
-        <table>
-          <thead><tr><th>#</th><th>Driver</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead>
-          <tbody>
-            ${ds.slice(0,5).map((row, i) => {
-              const drv = row.Driver;
-              const con = row.Constructors[0];
-              return `<tr data-action="open-driver" data-driver="${drv.driverId}">
-                <td>${posBadge(i+1)}</td>
-                <td>${teamStrip(con.constructorId)}<strong>${drv.givenName} ${drv.familyName}</strong></td>
-                <td class="numeric">${row.wins}</td>
-                <td class="numeric"><strong>${row.points}</strong></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-      </div>
-    `;
+    html += `<div class="card" style="padding:0; overflow:hidden">
+      <div style="padding:14px 16px; border-bottom:1px solid var(--border)"><div class="row-between"><h2 class="h2">Drivers' standings</h2><a class="btn-ghost" data-action="goto-stats" style="font-size:12px;cursor:pointer">All →</a></div></div>
+      ${ds.slice(0,5).map((row, i) => {
+        const drv = row.Driver; const con = row.Constructors[0];
+        return `<div class="driver-card" data-action="open-driver" data-driver="${drv.driverId}">
+          <div style="display:flex;align-items:center;gap:8px">${posBadge(i+1)}${driverAvatar(drv, 36)}</div>
+          <div>
+            <div style="font-weight:600;font-size:13px">${teamStrip(con.constructorId)}${flag(drv.nationality)}${drv.givenName} ${drv.familyName}</div>
+            <div style="font-size:11px;color:var(--text-muted)">${con.name}${drv.permanentNumber ? ' · #' + drv.permanentNumber : ''}</div>
+          </div>
+          <div style="text-align:right"><div style="font-family:var(--mono);font-weight:600;font-size:14px">${row.points}</div><div style="font-size:10px;color:var(--text-subtle)">${row.wins} wins</div></div>
+        </div>`;
+      }).join('')}
+    </div>`;
   }
 
   if (cs.length) {
     const gapInfo = cs.length >= 2 ? parseFloat(cs[0].points) - parseFloat(cs[1].points) : 0;
-    html += `
-      <div class="card">
-        <div class="section-header"><h2>Constructors' battle</h2></div>
-        <table>
-          <thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead>
-          <tbody>
-            ${cs.slice(0,5).map((row, i) => {
-              const c = row.Constructor;
-              return `<tr data-action="open-team" data-team="${c.constructorId}">
-                <td>${posBadge(i+1)}</td>
-                <td>${teamStrip(c.constructorId)}<strong>${c.name}</strong></td>
-                <td class="numeric">${row.wins}</td>
-                <td class="numeric"><strong>${row.points}</strong></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table>
-        ${cs.length >= 2 ? `<div class="row" style="margin-top:12px; gap:8px;"><span class="badge badge-info">P1↔P2 gap: ${gapInfo} pts</span></div>` : ''}
-      </div>
-    `;
+    html += `<div class="card">
+      <div class="section-header"><h2>Constructors' battle</h2></div>
+      <table><thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead><tbody>
+        ${cs.slice(0,5).map((row, i) => {
+          const c = row.Constructor;
+          return `<tr data-action="open-team" data-team="${c.constructorId}"><td>${posBadge(i+1)}</td><td>${teamStrip(c.constructorId)}<strong>${c.name}</strong></td><td class="numeric">${row.wins}</td><td class="numeric"><strong>${row.points}</strong></td></tr>`;
+        }).join('')}
+      </tbody></table>
+      ${cs.length >= 2 ? `<div class="row" style="margin-top:12px; gap:8px;"><span class="badge badge-info">P1↔P2 gap: ${gapInfo} pts</span></div>` : ''}
+    </div>`;
   }
 
   if (lastRace && lastRace.Results && lastRace.Results.length) {
     const winner = lastRace.Results[0];
     const fastest = lastRace.Results.find(r => r.FastestLap && r.FastestLap.rank === '1');
-    html += `
-      <div class="card">
-        <div class="section-header"><h2>Latest result · ${lastRace.raceName}</h2></div>
-        <div class="row" style="margin-bottom: 12px; gap: 8px; flex-wrap:wrap;">
-          <span class="badge badge-warning">🏁 ${winner.Driver.givenName} ${winner.Driver.familyName}</span>
-          ${fastest ? `<span class="badge badge-neutral">Fastest: ${fastest.Driver.familyName}</span>` : ''}
-          <span class="badge badge-neutral">Round ${lastRace.round}</span>
-        </div>
-        <button class="btn-secondary" data-action="open-race" data-round="${lastRace.round}" style="width:100%">Full results →</button>
+    html += `<div class="card">
+      <div class="section-header"><h2>Latest result</h2><span class="badge badge-neutral">Round ${lastRace.round}</span></div>
+      <div style="font-weight:600;font-size:14px;margin-bottom:4px">${flag(lastRace.Circuit.Location.country)}${lastRace.raceName}</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${lastRace.Circuit.circuitName}</div>
+      <div class="row" style="gap: 8px; flex-wrap:wrap; margin-bottom:12px">
+        <span class="badge badge-warning">🏆 ${winner.Driver.givenName} ${winner.Driver.familyName}</span>
+        ${fastest ? `<span class="badge badge-accent">⚡ FL: ${fastest.Driver.familyName}</span>` : ''}
       </div>
-    `;
+      <button class="btn-secondary" data-action="open-race" data-round="${lastRace.round}" style="width:100%">Full results →</button>
+    </div>`;
   }
 
   html += dataFooter();
@@ -732,22 +806,12 @@ function renderHome(){
 }
 
 function updateCountdown(){
-  const el = $('#countdown');
-  if (!el) return;
-  const upcoming = nextRace();
-  if (!upcoming) return;
+  const el = $('#countdown'); if (!el) return;
+  const upcoming = nextRace(); if (!upcoming) return;
   const ms = raceDate(upcoming).getTime() - Date.now();
   if (ms < 0) { render(); return; }
-  const days = Math.floor(ms / 86400000);
-  const hrs = Math.floor((ms % 86400000) / 3600000);
-  const mins = Math.floor((ms % 3600000) / 60000);
-  const secs = Math.floor((ms % 60000) / 1000);
-  el.innerHTML = `
-    <div class="count-cell"><div class="count-num">${days}</div><div class="count-label">Days</div></div>
-    <div class="count-cell"><div class="count-num">${String(hrs).padStart(2,'0')}</div><div class="count-label">Hours</div></div>
-    <div class="count-cell"><div class="count-num">${String(mins).padStart(2,'0')}</div><div class="count-label">Min</div></div>
-    <div class="count-cell"><div class="count-num">${String(secs).padStart(2,'0')}</div><div class="count-label">Sec</div></div>
-  `;
+  const d = Math.floor(ms/86400000), h = Math.floor((ms%86400000)/3600000), m = Math.floor((ms%3600000)/60000), s = Math.floor((ms%60000)/1000);
+  el.innerHTML = `<div class="count-cell"><div class="count-num">${d}</div><div class="count-label">Days</div></div><div class="count-cell"><div class="count-num">${String(h).padStart(2,'0')}</div><div class="count-label">Hours</div></div><div class="count-cell"><div class="count-num">${String(m).padStart(2,'0')}</div><div class="count-label">Min</div></div><div class="count-cell"><div class="count-num">${String(s).padStart(2,'0')}</div><div class="count-label">Sec</div></div>`;
 }
 
 /* =================== TIMELINE =================== */
@@ -762,15 +826,9 @@ function renderTimeline(){
   const upcoming = races.filter(r => raceDate(r).getTime() > now);
   const finished = races.filter(r => raceDate(r).getTime() <= now).reverse();
 
-  let html = `
-    <div class="row-between" style="margin-bottom:16px">
-      <div class="caption">${state.data.season} Calendar · ${races.length} rounds</div>
-      <div class="caption">${fmtTz()}</div>
-    </div>
-  `;
+  let html = `<div class="row-between" style="margin-bottom:16px"><div class="caption">${state.data.season} · ${races.length} rounds</div><div class="caption">${fmtTz()}</div></div>`;
 
-  html += `<div class="card" style="padding:0; overflow:hidden">
-    <div style="padding: 12px 16px; border-bottom:1px solid var(--border)"><span class="caption">Upcoming · ${upcoming.length}</span></div>`;
+  html += `<div class="card" style="padding:0; overflow:hidden"><div style="padding: 12px 16px; border-bottom:1px solid var(--border)"><span class="caption">🔜 Upcoming · ${upcoming.length}</span></div>`;
   if (upcoming.length === 0) {
     html += emptyState('Season complete', `All races for ${state.data.season} have been run.`);
   } else {
@@ -778,18 +836,14 @@ function renderTimeline(){
       const dt = raceDate(r);
       html += `<div class="cal-item" data-action="open-race" data-round="${r.round}">
         <div class="cal-round"><span class="cal-round-num">${String(r.round).padStart(2,'0')}</span></div>
-        <div>
-          <div class="cal-name">${r.raceName}</div>
-          <div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)} · ${fmtTime(dt)}</div>
-        </div>
+        <div><div class="cal-name">${flag(r.Circuit.Location.country)}${r.raceName}${r.Sprint ? ' <span class="badge badge-warning" style="margin-left:4px">SPR</span>' : ''}</div><div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)} · ${fmtTime(dt)}</div></div>
         <div style="text-align:right"><span class="badge badge-accent">${relativeTime(dt)}</span></div>
       </div>`;
     });
   }
   html += `</div><div style="margin-top:16px"></div>`;
 
-  html += `<div class="card" style="padding:0; overflow:hidden">
-    <div style="padding: 12px 16px; border-bottom:1px solid var(--border)"><span class="caption">Completed · ${finished.length}</span></div>`;
+  html += `<div class="card" style="padding:0; overflow:hidden"><div style="padding: 12px 16px; border-bottom:1px solid var(--border)"><span class="caption">✓ Completed · ${finished.length}</span></div>`;
   if (finished.length === 0) {
     html += emptyState('Season just begun', 'No races have been run yet this season.');
   } else {
@@ -797,17 +851,12 @@ function renderTimeline(){
       const dt = raceDate(r);
       html += `<div class="cal-item" data-action="open-race" data-round="${r.round}">
         <div class="cal-round"><span class="cal-round-num">${String(r.round).padStart(2,'0')}</span></div>
-        <div>
-          <div class="cal-name">${r.raceName}</div>
-          <div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)}</div>
-        </div>
+        <div><div class="cal-name">${flag(r.Circuit.Location.country)}${r.raceName}</div><div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)}</div></div>
         <div style="text-align:right"><span class="badge badge-success">Finished</span></div>
       </div>`;
     });
   }
-  html += `</div>`;
-  html += dataFooter();
-
+  html += `</div>${dataFooter()}`;
   root.innerHTML = html;
   bindActions(root);
 }
@@ -819,21 +868,17 @@ function renderStats(){
   if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
   if (!state.data) { root.innerHTML = loadingBlock(); return; }
 
-  let html = `
-    <div class="row-between" style="margin-bottom: 12px">
-      <div class="tabs" style="border:none; margin:0;">
-        <button class="tab ${state.statsTab==='drivers'?'active':''}" data-stats-tab="drivers">Drivers</button>
-        <button class="tab ${state.statsTab==='constructors'?'active':''}" data-stats-tab="constructors">Constructors</button>
-        <button class="tab ${state.statsTab==='circuits'?'active':''}" data-stats-tab="circuits">Circuits</button>
-      </div>
-      <div class="caption">${state.data.season}</div>
+  let html = `<div class="row-between" style="margin-bottom: 12px">
+    <div class="tabs" style="border:none; margin:0;">
+      <button class="tab ${state.statsTab==='drivers'?'active':''}" data-stats-tab="drivers">Drivers</button>
+      <button class="tab ${state.statsTab==='constructors'?'active':''}" data-stats-tab="constructors">Constructors</button>
+      <button class="tab ${state.statsTab==='circuits'?'active':''}" data-stats-tab="circuits">Circuits</button>
     </div>
-  `;
-
+    <div class="caption">${state.data.season}</div>
+  </div>`;
   if (state.statsTab === 'drivers') html += renderDriversTable();
   else if (state.statsTab === 'constructors') html += renderConstructorsTable();
   else html += renderCircuitsTable();
-
   html += dataFooter();
   root.innerHTML = html;
   $$('[data-stats-tab]', root).forEach(b => b.addEventListener('click', () => { state.statsTab = b.dataset.statsTab; render(); }));
@@ -844,178 +889,384 @@ function renderDriversTable(){
   const ds = state.data.driverStandings;
   if (!ds.length) return emptyState('No driver data yet', 'Standings will appear here once results are available.');
   return `<div class="card" style="padding:0; overflow:hidden">
-    <table>
-      <thead><tr><th>#</th><th>Driver</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead>
-      <tbody>
-        ${ds.map((row, i) => {
-          const drv = row.Driver;
-          const con = row.Constructors[0];
-          return `<tr data-action="open-driver" data-driver="${drv.driverId}">
-            <td>${posBadge(i+1)}</td>
-            <td>${teamStrip(con.constructorId)}<strong>${drv.givenName} ${drv.familyName}</strong>${drv.permanentNumber ? ` <span style="color:var(--text-subtle);font-family:var(--mono);font-size:11px">#${drv.permanentNumber}</span>` : ''}</td>
-            <td style="font-size:12px;color:var(--text-muted)">${con.name}</td>
-            <td class="numeric">${row.wins}</td>
-            <td class="numeric"><strong>${row.points}</strong></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
+    ${ds.map((row, i) => {
+      const drv = row.Driver; const con = row.Constructors[0];
+      return `<div class="driver-card" data-action="open-driver" data-driver="${drv.driverId}">
+        <div style="display:flex;align-items:center;gap:8px">${posBadge(i+1)}${driverAvatar(drv, 36)}</div>
+        <div>
+          <div style="font-weight:600;font-size:13px">${teamStrip(con.constructorId)}${flag(drv.nationality)}${drv.givenName} ${drv.familyName}${drv.permanentNumber ? ` <span style="color:var(--text-subtle);font-family:var(--mono);font-size:11px;font-weight:400">#${drv.permanentNumber}</span>` : ''}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${con.name}</div>
+        </div>
+        <div style="text-align:right"><div style="font-family:var(--mono);font-weight:600;font-size:14px">${row.points}</div><div style="font-size:10px;color:var(--text-subtle)">${row.wins} wins</div></div>
+      </div>`;
+    }).join('')}
   </div>`;
 }
-
 function renderConstructorsTable(){
   const cs = state.data.constructorStandings;
   if (!cs.length) return emptyState('No constructor data yet', 'Standings will appear here once results are available.');
-  return `<div class="card" style="padding:0; overflow:hidden">
-    <table>
-      <thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead>
-      <tbody>
-        ${cs.map((row, i) => {
-          const c = row.Constructor;
-          return `<tr data-action="open-team" data-team="${c.constructorId}">
-            <td>${posBadge(i+1)}</td>
-            <td>${teamStrip(c.constructorId)}<strong>${c.name}</strong><div style="font-size:11px;color:var(--text-muted)">${c.nationality}</div></td>
-            <td class="numeric">${row.wins}</td>
-            <td class="numeric"><strong>${row.points}</strong></td>
-          </tr>`;
-        }).join('')}
-      </tbody>
-    </table>
-  </div>`;
+  return `<div class="card" style="padding:0; overflow:hidden"><table><thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead><tbody>
+    ${cs.map((row, i) => {
+      const c = row.Constructor; const td = TEAMS[c.constructorId];
+      return `<tr data-action="open-team" data-team="${c.constructorId}"><td>${posBadge(i+1)}</td><td>${teamStrip(c.constructorId)}<strong>${c.name}</strong><div style="font-size:11px;color:var(--text-muted)">${flag(c.nationality)}${c.nationality}${td ? ' · ' + td.hqCity : ''}</div></td><td class="numeric">${row.wins}</td><td class="numeric"><strong>${row.points}</strong></td></tr>`;
+    }).join('')}
+  </tbody></table></div>`;
 }
-
 function renderCircuitsTable(){
-  // Unique circuits from schedule
-  const seen = new Set();
-  const circuits = [];
-  state.data.schedule.forEach(r => {
-    const id = r.Circuit.circuitId;
-    if (!seen.has(id)) { seen.add(id); circuits.push(r.Circuit); }
-  });
+  const seen = new Set(); const circuits = [];
+  state.data.schedule.forEach(r => { const id = r.Circuit.circuitId; if (!seen.has(id)) { seen.add(id); circuits.push(r.Circuit); } });
   if (!circuits.length) return emptyState('No circuit data', 'Schedule has not loaded yet.');
-  return `<div class="card" style="padding:0; overflow:hidden">
-    <table>
-      <thead><tr><th>Circuit</th><th>Country</th><th>Locality</th></tr></thead>
-      <tbody>
-        ${circuits.map(c => `<tr data-action="open-circuit-id" data-circuit="${c.circuitId}">
-          <td><strong>${c.circuitName}</strong></td>
-          <td>${c.Location.country}</td>
-          <td style="font-size:12px;color:var(--text-muted)">${c.Location.locality}</td>
-        </tr>`).join('')}
-      </tbody>
-    </table>
-  </div>`;
+  return `<div class="card" style="padding:0; overflow:hidden"><table><thead><tr><th>Circuit</th><th>Country</th></tr></thead><tbody>
+    ${circuits.map(c => `<tr data-action="open-circuit-id" data-circuit="${c.circuitId}"><td><strong>${c.circuitName}</strong><div style="font-size:11px;color:var(--text-muted)">${c.Location.locality}</div></td><td>${flag(c.Location.country)}${c.Location.country}</td></tr>`).join('')}
+  </tbody></table></div>`;
 }
 
-/* =================== FEED =================== */
-function renderFeed(){
-  const root = $('#page-feed');
+/* =================== MAP =================== */
+function renderMap(){
+  const root = $('#page-map');
   if (state.loading && !state.data) { root.innerHTML = loadingBlock(); return; }
   if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
   if (!state.data) { root.innerHTML = loadingBlock(); return; }
 
-  const data = state.data;
-  const lastRace = data.lastRace;
-  const upcoming = nextRace();
-  const leader = data.driverStandings[0];
-  const items = [];
-
-  if (lastRace && lastRace.Results) {
-    const w = lastRace.Results[0];
-    items.push({
-      cat: 'Latest result',
-      title: `${w.Driver.givenName} ${w.Driver.familyName} wins ${lastRace.raceName}`,
-      body: `Round ${lastRace.round} at ${lastRace.Circuit.circuitName} (${lastRace.Circuit.Location.country}). ${w.Constructor.name} took P1 from grid position ${w.grid}.`,
-      date: fmtDate(raceDate(lastRace)),
-    });
-  }
-  if (leader) {
-    const p2 = data.driverStandings[1];
-    const gap = p2 ? parseFloat(leader.points) - parseFloat(p2.points) : 0;
-    items.push({
-      cat: 'Championship',
-      title: `${leader.Driver.givenName} ${leader.Driver.familyName} leads by ${gap} points`,
-      body: `${leader.points} points · ${leader.wins} win${leader.wins==='1'?'':'s'} this season. P2: ${p2 ? p2.Driver.familyName : '—'} on ${p2 ? p2.points : '—'} pts.`,
-      date: 'Updated now',
-    });
-  }
-  if (upcoming) {
-    items.push({
-      cat: 'Up next',
-      title: upcoming.raceName,
-      body: `Round ${upcoming.round} at ${upcoming.Circuit.circuitName} on ${fmtDate(raceDate(upcoming))}. ${upcoming.Sprint ? 'Sprint weekend format.' : 'Standard race weekend.'}`,
-      date: relativeTime(raceDate(upcoming)),
-    });
-  }
-  if (data.constructorStandings[0] && data.constructorStandings[1]) {
-    const cLeader = data.constructorStandings[0];
-    const cP2 = data.constructorStandings[1];
-    const cgap = parseFloat(cLeader.points) - parseFloat(cP2.points);
-    items.push({
-      cat: 'Constructors',
-      title: `${cLeader.Constructor.name} lead constructors by ${cgap} pts`,
-      body: `${cLeader.Constructor.name} on ${cLeader.points} pts ahead of ${cP2.Constructor.name} on ${cP2.points}.`,
-      date: 'Updated now',
-    });
-  }
-
-  let html = `
-    <div class="section-header"><h2>Season highlights</h2></div>
-    <div class="card">
-      ${items.length === 0 ? emptyState('No items yet', 'Highlights will appear as the season progresses.') :
-        items.map(item => `
-          <div class="feed-item">
-            <span class="feed-cat">${item.cat}</span>
-            <div class="feed-title">${item.title}</div>
-            <div class="feed-body">${item.body}</div>
-            <div class="feed-meta"><span>${item.date}</span></div>
-          </div>
-        `).join('')
-      }
+  const html = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="row-between" style="margin-bottom:10px">
+        <h2 class="h2">F1 around the world</h2>
+        <span class="caption">${state.data.schedule.length} circuits · ${Object.keys(TEAMS).filter(k=>k!=='alphatauri').length} HQs</span>
+      </div>
+      <div class="chip-row" style="margin-bottom:12px">
+        <button class="chip ${state.mapMode==='all'?'active':''}" data-map-mode="all">All</button>
+        <button class="chip ${state.mapMode==='circuits'?'active':''}" data-map-mode="circuits">Circuits</button>
+        <button class="chip ${state.mapMode==='hq'?'active':''}" data-map-mode="hq">Team HQs</button>
+      </div>
+      <div class="map-container" id="world-map"></div>
+      <div class="map-legend">
+        <div class="legend-item"><span class="legend-dot" style="background:var(--accent)"></span>Race circuit</div>
+        <div class="legend-item"><span class="legend-dot" style="background:var(--info);border-radius:2px;transform:rotate(45deg)"></span>Team HQ</div>
+        <div class="legend-item" style="color:var(--text-subtle)">Click a marker for details</div>
+      </div>
     </div>
+    ${dataFooter()}
   `;
-  html += dataFooter();
   root.innerHTML = html;
+  $$('[data-map-mode]').forEach(b => b.addEventListener('click', () => { state.mapMode = b.dataset.mapMode; render(); }));
+  setTimeout(initMap, 50);
+}
+
+function initMap(){
+  const el = document.getElementById('world-map');
+  if (!el || !window.L) return;
+  if (state.mapInstance) { try { state.mapInstance.remove(); } catch(e){} state.mapInstance = null; }
+  const map = L.map(el, { worldCopyJump: true, scrollWheelZoom: false }).setView([25, 15], 2);
+  state.mapInstance = map;
+  const isDark = state.theme === 'dark';
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 18, attribution: '© OpenStreetMap', subdomains: 'abc',
+  }).addTo(map);
+
+  if (state.mapMode === 'all' || state.mapMode === 'circuits') {
+    const now = Date.now();
+    state.data.schedule.forEach(r => {
+      const c = r.Circuit; const lat = parseFloat(c.Location.lat), lon = parseFloat(c.Location.long);
+      if (isNaN(lat) || isNaN(lon)) return;
+      const dt = raceDate(r); const isPast = dt.getTime() < now;
+      const icon = L.divIcon({ className: '', html: `<div class="map-pin" style="opacity:${isPast ? 0.5 : 1}"></div>`, iconSize: [14,14], iconAnchor: [7,7] });
+      const popup = `<div style="min-width:180px"><div style="font-weight:600;font-size:13px;margin-bottom:2px">${flag(c.Location.country)}${r.raceName}</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${c.circuitName}<br>${c.Location.locality}, ${c.Location.country}<br>Round ${r.round} · ${fmtDate(dt)}</div><button onclick="window.__f1Open('race','${r.round}')" style="width:100%;padding:6px 10px;background:var(--accent);color:white;border:none;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Race details</button></div>`;
+      L.marker([lat, lon], { icon }).addTo(map).bindPopup(popup);
+    });
+  }
+  if (state.mapMode === 'all' || state.mapMode === 'hq') {
+    const seenHqs = new Set();
+    Object.entries(TEAMS).forEach(([id, t]) => {
+      if (id === 'alphatauri') return;
+      const key = t.hq.join(',');
+      if (seenHqs.has(key)) return;
+      seenHqs.add(key);
+      const icon = L.divIcon({ className: '', html: `<div class="map-pin-hq"></div>`, iconSize: [12,12], iconAnchor: [6,6] });
+      const popup = `<div style="min-width:170px"><div style="font-weight:600;font-size:13px;margin-bottom:2px;color:${t.color}">${t.name}</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">📍 ${t.hqCity}<br>Engine: ${t.engine}<br>Founded: ${t.founded}</div><button onclick="window.__f1Open('team','${id}')" style="width:100%;padding:6px 10px;background:var(--accent);color:white;border:none;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Team profile</button></div>`;
+      L.marker(t.hq, { icon }).addTo(map).bindPopup(popup);
+    });
+  }
+  setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 100);
+}
+
+window.__f1Open = function(type, id){
+  if (type === 'race') openRace(id);
+  else if (type === 'team') openTeam(id);
+  else if (type === 'driver') openDriver(id);
+};
+
+/* =================== FUN ZONE =================== */
+const TRIVIA = [
+  { q: 'Which driver holds the all-time record for most F1 race wins?', opts: ['Michael Schumacher','Lewis Hamilton','Max Verstappen','Sebastian Vettel'], a: 1, fact: 'Lewis Hamilton holds the record with 105 wins, surpassing Schumacher in 2020.' },
+  { q: 'How many points does a race winner score (without fastest lap)?', opts: ['20','25','26','30'], a: 1, fact: 'A win = 25 points. P2: 18, P3: 15, then 12, 10, 8, 6, 4, 2, 1 down to P10.' },
+  { q: 'What does "DRS" stand for?', opts: ['Drag Reduction System','Direct Racing Standard','Dynamic Rear Spoiler','Driver Response System'], a: 0, fact: 'DRS opens a flap in the rear wing to reduce drag and aid overtaking on straights.' },
+  { q: 'Which circuit is known as "The Temple of Speed"?', opts: ['Spa-Francorchamps','Monza','Silverstone','Monaco'], a: 1, fact: 'Monza has hosted the Italian GP since 1950 and features F1\'s lowest downforce setup.' },
+  { q: 'How long is a standard F1 race?', opts: ['Exactly 200km','305km or 2 hours','Always 300km','Until first driver completes 60 laps'], a: 1, fact: 'F1 races must reach 305km (260km for Monaco) or hit a 2-hour cap, whichever comes first.' },
+  { q: 'Which team has won the most Constructors\' Championships?', opts: ['McLaren','Mercedes','Ferrari','Williams'], a: 2, fact: 'Ferrari has won 16 Constructors\' titles — the most in F1 history.' },
+  { q: 'What is the minimum weight of an F1 car (with driver) in 2024?', opts: ['698 kg','720 kg','798 kg','850 kg'], a: 2, fact: '798kg is the 2024 minimum — cars have grown heavier with hybrid systems and safety upgrades.' },
+  { q: 'Which driver is nicknamed "The Iceman"?', opts: ['Mika Häkkinen','Kimi Räikkönen','Valtteri Bottas','Nico Rosberg'], a: 1, fact: 'Kimi Räikkönen earned the nickname for his unflappable calm — and 2007 World Championship.' },
+  { q: 'What colour flag signals the race winner?', opts: ['Yellow','Red','Black','Chequered'], a: 3, fact: 'The chequered flag has signalled race completion since the early 1900s.' },
+  { q: 'How many gears does a modern F1 car have?', opts: ['6','7','8','9'], a: 2, fact: 'F1 cars use 8-speed semi-automatic gearboxes plus reverse — shifts take under 10 milliseconds.' },
+];
+
+const FUN_FACTS = [
+  '🏎️ F1 cars accelerate from 0–100km/h in about 2.6 seconds — faster than most superbikes.',
+  '⚡ A pit stop can change all four tyres in under 2 seconds. Red Bull holds the record at 1.82s.',
+  '🔥 F1 brake discs reach 1,200°C in heavy braking — hotter than lava.',
+  '💨 Downforce on an F1 car at 200km/h is enough that it could theoretically drive upside-down.',
+  '👨‍🚀 F1 drivers experience up to 6G in high-speed corners — comparable to fighter pilots.',
+  '⛽ A modern F1 power unit is over 50% thermally efficient — more than double a road car engine.',
+  '🏁 Monaco has been on the F1 calendar since 1950, the championship\'s inaugural season.',
+  '📏 The longest F1 lap is Spa-Francorchamps at 7.004km. Drivers reach 320+ km/h on Kemmel Straight.',
+  '🎯 Lewis Hamilton holds records for most wins (105), poles (104), and podiums (202) in F1 history.',
+  '🔄 An F1 steering wheel has 20+ buttons and rotary switches — and costs about £40,000.',
+  '💪 Drivers lose up to 4kg of body weight in a single hot race like Singapore.',
+  '🚀 The 2024 cars produce around 1,000 horsepower from a 1.6L turbo-hybrid V6.',
+];
+
+function renderFun(){
+  const root = $('#page-fun');
+  if (state.loading && !state.data) { root.innerHTML = loadingBlock(); return; }
+  if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
+  if (!state.data) { root.innerHTML = loadingBlock(); return; }
+
+  let html = `<div class="tabs">
+    <button class="tab ${state.funTab==='trivia'?'active':''}" data-fun-tab="trivia">🎯 Trivia</button>
+    <button class="tab ${state.funTab==='facts'?'active':''}" data-fun-tab="facts">💡 Fun Facts</button>
+    <button class="tab ${state.funTab==='compare'?'active':''}" data-fun-tab="compare">⚔️ Compare</button>
+    <button class="tab ${state.funTab==='predict'?'active':''}" data-fun-tab="predict">🔮 Predict</button>
+  </div>`;
+
+  if (state.funTab === 'trivia') html += renderTrivia();
+  else if (state.funTab === 'facts') html += renderFacts();
+  else if (state.funTab === 'compare') html += renderCompare();
+  else html += renderPredict();
+
+  root.innerHTML = html;
+  $$('[data-fun-tab]').forEach(b => b.addEventListener('click', () => { state.funTab = b.dataset.funTab; render(); }));
   bindActions(root);
+  if (state.funTab === 'trivia') bindTrivia();
+  if (state.funTab === 'compare') bindCompare();
+}
+
+function renderTrivia(){
+  const item = TRIVIA[state.triviaIdx % TRIVIA.length];
+  let html = `<div class="row-between" style="margin-bottom:12px">
+    <span class="caption">Question ${(state.triviaIdx % TRIVIA.length) + 1} of ${TRIVIA.length}</span>
+    <span class="badge badge-accent">Score: ${state.triviaScore}</span>
+  </div>
+  <div class="trivia-card">
+    <div class="trivia-q">${item.q}</div>
+    <div id="trivia-opts">`;
+  item.opts.forEach((opt, i) => {
+    html += `<button class="trivia-opt" data-opt="${i}" ${state.triviaAnswered ? 'disabled' : ''}>${String.fromCharCode(65+i)}. ${opt}</button>`;
+  });
+  html += `</div>`;
+  if (state.triviaAnswered) {
+    html += `<div style="margin-top:12px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);font-size:13px"><strong>💡 Did you know?</strong> ${item.fact}</div>
+    <button class="btn-primary" id="trivia-next" style="width:100%;margin-top:12px">Next question →</button>`;
+  }
+  html += `</div>`;
+  return html;
+}
+
+function bindTrivia(){
+  $$('.trivia-opt').forEach(b => b.addEventListener('click', () => {
+    if (state.triviaAnswered) return;
+    const choice = parseInt(b.dataset.opt);
+    const item = TRIVIA[state.triviaIdx % TRIVIA.length];
+    state.triviaAnswered = true;
+    $$('.trivia-opt').forEach((btn, i) => {
+      btn.disabled = true;
+      if (i === item.a) btn.classList.add('correct');
+      else if (i === choice) btn.classList.add('wrong');
+    });
+    if (choice === item.a) { state.triviaScore++; toast('Correct! +1', 'success'); }
+    else { toast('Not quite — try again next time', 'error'); }
+    setTimeout(render, 100);
+  }));
+  const next = $('#trivia-next');
+  if (next) next.addEventListener('click', () => { state.triviaIdx++; state.triviaAnswered = false; render(); });
+}
+
+function renderFacts(){
+  let html = `<div class="section-header"><h2>On-track wisdom</h2></div>`;
+  FUN_FACTS.forEach((f, i) => {
+    html += `<div class="fact-card"><div class="fact-icon">${i+1}</div><div class="fact-text">${f}</div></div>`;
+  });
+  return html;
+}
+
+function renderCompare(){
+  const ds = state.data.driverStandings;
+  if (!ds.length) return emptyState('No data to compare', 'Standings will populate as the season runs.');
+  const a = ds.find(d => d.Driver.driverId === state.compareA) || ds[0];
+  const b = ds.find(d => d.Driver.driverId === state.compareB) || ds[1] || ds[0];
+  const aPts = parseFloat(a.points), bPts = parseFloat(b.points);
+  const aWins = parseInt(a.wins), bWins = parseInt(b.wins);
+  const aPos = ds.indexOf(a) + 1, bPos = ds.indexOf(b) + 1;
+  const total = Math.max(aPts + bPts, 1);
+  const lWins = Math.max(aWins + bWins, 1);
+
+  function bar(l, r){
+    const lp = (l/(l+r||1))*100;
+    return `<div class="compare-bar"><div class="compare-bar-l" style="width:${lp}%"></div><div class="compare-bar-r" style="width:${100-lp}%"></div></div>`;
+  }
+
+  let html = `<div class="section-header"><h2>Head-to-Head</h2></div>
+    <div class="card">
+      <div class="compare-grid">
+        <select class="input" id="cmp-a">${ds.map(d => `<option value="${d.Driver.driverId}" ${d.Driver.driverId===a.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('')}</select>
+        <select class="input" id="cmp-b">${ds.map(d => `<option value="${d.Driver.driverId}" ${d.Driver.driverId===b.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('')}</select>
+      </div>
+      <div class="compare-grid" style="text-align:center;align-items:center;margin:16px 0">
+        <div>
+          ${driverAvatar(a.Driver, 64)}
+          <div style="font-weight:600;margin-top:6px;font-size:13px">${flag(a.Driver.nationality)}${a.Driver.familyName}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${a.Constructors[0].name}</div>
+        </div>
+        <div>
+          ${driverAvatar(b.Driver, 64)}
+          <div style="font-weight:600;margin-top:6px;font-size:13px">${flag(b.Driver.nationality)}${b.Driver.familyName}</div>
+          <div style="font-size:11px;color:var(--text-muted)">${b.Constructors[0].name}</div>
+        </div>
+      </div>
+      <div class="vs-divider">VS</div>
+
+      <div style="margin-top:16px">
+        <div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">${aPts} pts</span><span>Points</span><span style="font-weight:600;color:var(--info)">${bPts} pts</span></div>
+        ${bar(aPts, bPts)}
+      </div>
+      <div style="margin-top:12px">
+        <div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">${aWins}</span><span>Race wins</span><span style="font-weight:600;color:var(--info)">${bWins}</span></div>
+        ${bar(aWins, bWins)}
+      </div>
+      <div style="margin-top:12px">
+        <div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">P${aPos}</span><span>Championship position</span><span style="font-weight:600;color:var(--info)">P${bPos}</span></div>
+      </div>
+
+      <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted);text-align:center">
+        ${aPts > bPts ? `<strong style="color:var(--text)">${a.Driver.familyName}</strong> leads by <strong style="color:var(--accent)">${aPts - bPts} points</strong>` :
+          bPts > aPts ? `<strong style="color:var(--text)">${b.Driver.familyName}</strong> leads by <strong style="color:var(--info)">${bPts - aPts} points</strong>` :
+          'Dead heat — perfectly tied'}
+      </div>
+    </div>`;
+  return html;
+}
+function bindCompare(){
+  const a = $('#cmp-a'), b = $('#cmp-b');
+  if (a) a.addEventListener('change', e => { state.compareA = e.target.value; render(); });
+  if (b) b.addEventListener('change', e => { state.compareB = e.target.value; render(); });
+}
+
+function renderPredict(){
+  const ds = state.data.driverStandings;
+  const upcoming = nextRace();
+  const cs = state.data.constructorStandings;
+  if (!ds.length) return emptyState('Nothing to predict yet', 'Predictions need at least some season data.');
+
+  // Simple form-based prediction: weight current points + recent wins
+  const sorted = [...ds].sort((a, b) => {
+    const aScore = parseFloat(a.points) + parseInt(a.wins) * 15;
+    const bScore = parseFloat(b.points) + parseInt(b.wins) * 15;
+    return bScore - aScore;
+  });
+  const top3 = sorted.slice(0, 3);
+  const podiumLikely = sorted.slice(0, 6);
+
+  // Championship odds
+  const racesLeft = state.data.schedule.filter(r => raceDate(r).getTime() > Date.now()).length;
+  const maxRemaining = racesLeft * 26;
+  const leader = ds[0];
+  const leaderPts = parseFloat(leader.points);
+  const contenders = ds.filter(d => parseFloat(d.points) + maxRemaining >= leaderPts);
+
+  let html = '';
+  if (upcoming) {
+    html += `<div class="section-header"><h2>🔮 ${upcoming.raceName} — Podium prediction</h2></div>
+      <div class="card">
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">Based on current championship form and ${upcoming.Sprint ? 'sprint weekend dynamics' : 'standard race format'}.</div>
+        ${top3.map((d, i) => {
+          const conf = Math.max(20, 90 - i * 25);
+          return `<div class="prediction-driver">
+            <div style="font-family:var(--mono);font-weight:700;color:${i===0?'#d4a017':i===1?'var(--text-muted)':'#c97a3a'};width:24px">P${i+1}</div>
+            ${driverAvatar(d.Driver, 32)}
+            <div style="flex:1">
+              <div style="font-weight:500;font-size:13px">${flag(d.Driver.nationality)}${d.Driver.givenName} ${d.Driver.familyName}</div>
+              <div style="display:flex;align-items:center;gap:6px;margin-top:2px"><div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%"></div></div><span style="font-size:10px;color:var(--text-subtle);font-family:var(--mono)">${conf}%</span></div>
+            </div>
+          </div>`;
+        }).join('')}
+        <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-subtle)">⚠️ Predictions are illustrative only — based on a simple form-weighted model.</div>
+      </div>`;
+  }
+
+  html += `<div class="section-header" style="margin-top:16px"><h2>🏆 Title contenders</h2></div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${racesLeft} races left · max ${maxRemaining} pts available. Drivers still mathematically in contention:</div>
+      ${contenders.length === 0 ? emptyState('Title decided', 'The championship is mathematically locked.') :
+        contenders.map(d => {
+          const idx = ds.indexOf(d);
+          const gap = leaderPts - parseFloat(d.points);
+          const odds = idx === 0 ? 'Leader' : `−${gap} pts`;
+          return `<div class="prediction-driver" data-action="open-driver" data-driver="${d.Driver.driverId}" style="cursor:pointer">
+            <div style="font-family:var(--mono);font-weight:700;width:24px">P${idx+1}</div>
+            ${driverAvatar(d.Driver, 32)}
+            <div style="flex:1">
+              <div style="font-weight:500;font-size:13px">${flag(d.Driver.nationality)}${d.Driver.familyName}</div>
+              <div style="font-size:11px;color:var(--text-muted)">${d.Constructors[0].name} · ${d.points} pts</div>
+            </div>
+            <span class="badge ${idx===0?'badge-success':'badge-neutral'}">${odds}</span>
+          </div>`;
+        }).join('')}
+    </div>`;
+
+  return html;
 }
 
 /* =================== MORE =================== */
 function renderMore(){
   const root = $('#page-more');
   const ds = state.data ? state.data.driverStandings : [];
-  const html = `
-    <div class="section-header"><h2>Preferences</h2></div>
+  const cs = state.data ? state.data.constructorStandings : [];
+  const html = `<div class="section-header"><h2>Preferences</h2></div>
     <div class="card">
       <div class="row-between" style="padding:8px 0">
-        <div>
-          <div style="font-weight:500;font-size:13px">Favourite driver</div>
-          <div style="font-size:12px;color:var(--text-muted)">Personalised KPIs on home</div>
-        </div>
-        <select class="input" id="fav-driver-select" style="width:auto;max-width:60%" ${ds.length?'':'disabled'}>
-          ${ds.length ? ds.map(d => `<option value="${d.Driver.driverId}" ${state.favDriver===d.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('') : '<option>Loading…</option>'}
-        </select>
+        <div><div style="font-weight:500;font-size:13px">Favourite driver ⭐</div><div style="font-size:12px;color:var(--text-muted)">Personalised KPIs on home</div></div>
+        <select class="input" id="fav-driver-select" style="width:auto;max-width:55%" ${ds.length?'':'disabled'}>${ds.length ? ds.map(d => `<option value="${d.Driver.driverId}" ${state.favDriver===d.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('') : '<option>Loading…</option>'}</select>
       </div>
       <div class="row-between" style="padding:8px 0; border-top:1px solid var(--border)">
-        <div>
-          <div style="font-weight:500;font-size:13px">Theme</div>
-          <div style="font-size:12px;color:var(--text-muted)">${state.theme === 'dark' ? 'Dark mode' : 'Light mode'}</div>
-        </div>
-        <button class="btn-secondary" id="theme-toggle-2">${state.theme === 'dark' ? 'Switch to light' : 'Switch to dark'}</button>
+        <div><div style="font-weight:500;font-size:13px">Favourite team 🏎️</div><div style="font-size:12px;color:var(--text-muted)">Used in Fan Zone</div></div>
+        <select class="input" id="fav-team-select" style="width:auto;max-width:55%" ${cs.length?'':'disabled'}>${cs.length ? cs.map(c => `<option value="${c.Constructor.constructorId}" ${state.favTeam===c.Constructor.constructorId?'selected':''}>${c.Constructor.name}</option>`).join('') : '<option>Loading…</option>'}</select>
       </div>
       <div class="row-between" style="padding:8px 0; border-top:1px solid var(--border)">
-        <div>
-          <div style="font-weight:500;font-size:13px">Refresh data</div>
-          <div style="font-size:12px;color:var(--text-muted)">${state.lastUpdated ? 'Last: ' + state.lastUpdated.toLocaleTimeString() : 'Not loaded'}</div>
-        </div>
+        <div><div style="font-weight:500;font-size:13px">Theme</div><div style="font-size:12px;color:var(--text-muted)">${state.theme === 'dark' ? 'Dark mode' : 'Light mode'}</div></div>
+        <button class="btn-secondary" id="theme-toggle-2">Switch to ${state.theme === 'dark' ? 'light' : 'dark'}</button>
+      </div>
+      <div class="row-between" style="padding:8px 0; border-top:1px solid var(--border)">
+        <div><div style="font-weight:500;font-size:13px">Refresh data</div><div style="font-size:12px;color:var(--text-muted)">${state.lastUpdated ? 'Last: ' + state.lastUpdated.toLocaleTimeString() : 'Not loaded'}</div></div>
         <button class="btn-secondary" id="refresh-data">Refresh now</button>
       </div>
     </div>
-
+    <div style="margin-top:16px"></div>
+    <div class="section-header"><h2>Follow F1</h2></div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:10px">Official F1 channels</div>
+      <div class="social-row">
+        ${socialLink('https://www.formula1.com', 'globe', 'formula1.com')}
+        ${socialLink('https://twitter.com/F1', 'twitter', '@F1')}
+        ${socialLink('https://instagram.com/f1', 'instagram', 'Instagram')}
+        ${socialLink('https://tiktok.com/@f1', 'tiktok', 'TikTok')}
+        ${socialLink('https://facebook.com/Formula1', 'facebook', 'Facebook')}
+        ${socialLink('https://youtube.com/@Formula1', 'youtube', 'YouTube')}
+      </div>
+    </div>
     <div style="margin-top:16px"></div>
     <div class="section-header"><h2>About</h2></div>
     <div class="card" style="font-size:13px; color:var(--text-muted); line-height:1.6">
-      <strong style="color:var(--text)">F1 Fan Hub</strong> · DN Platform · v2.0<br>
-      Live F1 data fetched at runtime from the open Ergast/Jolpica mirror of formula1.com — schedule, standings, results, qualifying. No embedded data.
+      <strong style="color:var(--text)">F1 Fan Hub</strong> · DN Platform · v3.0<br>
+      Live data from formula1.com (via Ergast/Jolpica mirror). Map tiles © OpenStreetMap contributors.
       <div style="margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--text-subtle)">api.jolpi.ca/ergast/f1</div>
     </div>
     ${dataFooter()}
@@ -1023,6 +1274,8 @@ function renderMore(){
   root.innerHTML = html;
   const favSel = $('#fav-driver-select');
   if (favSel) favSel.addEventListener('change', e => { state.favDriver = e.target.value; toast('Favourite driver updated', 'success'); render(); });
+  const favT = $('#fav-team-select');
+  if (favT) favT.addEventListener('change', e => { state.favTeam = e.target.value; toast('Favourite team updated', 'success'); render(); });
   $('#theme-toggle-2').addEventListener('click', toggleTheme);
   $('#refresh-data').addEventListener('click', loadData);
 }
@@ -1034,26 +1287,20 @@ function openRace(round){
   const dt = raceDate(race);
   const isFinished = dt.getTime() <= Date.now();
   let tab = isFinished ? 'results' : 'schedule';
-  let resultsCache = null;
-  let qualiCache = null;
-  let loadingTab = false;
+  let resultsCache = null, qualiCache = null, loadingTab = false;
 
   async function loadResultsIfNeeded(){
     if (resultsCache || !isFinished) return;
     loadingTab = true; rerender();
-    try {
-      const data = await fetchJson(`${state.data.season}/${race.round}/results.json`);
-      resultsCache = data.MRData.RaceTable.Races[0] || null;
-    } catch (e) { resultsCache = null; toast('Failed to load results', 'error'); }
+    try { const data = await fetchJson(`${state.data.season}/${race.round}/results.json`); resultsCache = data.MRData.RaceTable.Races[0] || null; }
+    catch(e){ resultsCache = null; toast('Failed to load results', 'error'); }
     loadingTab = false; rerender();
   }
   async function loadQualiIfNeeded(){
     if (qualiCache || !isFinished) return;
     loadingTab = true; rerender();
-    try {
-      const data = await fetchJson(`${state.data.season}/${race.round}/qualifying.json`);
-      qualiCache = data.MRData.RaceTable.Races[0] || null;
-    } catch (e) { qualiCache = null; toast('Failed to load qualifying', 'error'); }
+    try { const data = await fetchJson(`${state.data.season}/${race.round}/qualifying.json`); qualiCache = data.MRData.RaceTable.Races[0] || null; }
+    catch(e){ qualiCache = null; toast('Failed to load qualifying', 'error'); }
     loadingTab = false; rerender();
   }
 
@@ -1070,83 +1317,54 @@ function openRace(round){
   }
 
   function bodyHtml(){
-    let body = `
-      <div class="tabs">
-        <button class="tab ${tab==='schedule'?'active':''}" data-rtab="schedule">Schedule</button>
-        ${isFinished ? `<button class="tab ${tab==='results'?'active':''}" data-rtab="results">Results</button><button class="tab ${tab==='quali'?'active':''}" data-rtab="quali">Qualifying</button>` : ''}
-        <button class="tab ${tab==='circuit'?'active':''}" data-rtab="circuit">Circuit</button>
-      </div>
-    `;
+    let body = `<div class="tabs">
+      <button class="tab ${tab==='schedule'?'active':''}" data-rtab="schedule">Schedule</button>
+      ${isFinished ? `<button class="tab ${tab==='results'?'active':''}" data-rtab="results">Results</button><button class="tab ${tab==='quali'?'active':''}" data-rtab="quali">Qualifying</button>` : ''}
+      <button class="tab ${tab==='circuit'?'active':''}" data-rtab="circuit">Circuit</button>
+    </div>`;
     if (tab === 'schedule') {
       const ss = sessionsList();
       body += `<div style="display:flex;flex-direction:column;gap:6px">${ss.map(s => {
         const sd = new Date(s.at.date + 'T' + (s.at.time || '00:00:00Z'));
         const past = sd.getTime() < Date.now();
-        return `<div class="session-row">
-          <div>
-            <div class="session-name">${s.name}</div>
-            <div style="font-size:11px;color:var(--text-subtle)">${fmtDate(sd)}</div>
-          </div>
-          <div class="session-date">${fmtTime(sd)}</div>
-          <span class="badge ${past ? 'badge-neutral' : 'badge-accent'}">${past ? 'done' : relativeTime(sd)}</span>
-        </div>`;
+        return `<div class="session-row"><div><div class="session-name">${s.name}</div><div style="font-size:11px;color:var(--text-subtle)">${fmtDate(sd)}</div></div><div class="session-date">${fmtTime(sd)}</div><span class="badge ${past ? 'badge-neutral' : 'badge-accent'}">${past ? 'done' : relativeTime(sd)}</span></div>`;
       }).join('')}</div>`;
     } else if (tab === 'results') {
-      if (loadingTab) { body += loadingBlock('Loading results…'); }
-      else if (!resultsCache || !resultsCache.Results) { body += emptyState('No results yet', 'Results will appear here after the race finishes.'); }
+      if (loadingTab) body += loadingBlock('Loading results…');
+      else if (!resultsCache || !resultsCache.Results) body += emptyState('No results yet', 'Results will appear here after the race.');
       else {
-        body += `<div style="overflow-x:auto"><table>
-          <thead><tr><th>Pos</th><th>Driver</th><th class="numeric">Grid</th><th class="numeric">Time/Gap</th><th class="numeric">Pts</th></tr></thead>
-          <tbody>
-            ${resultsCache.Results.map(r => {
-              const drv = r.Driver;
-              const con = r.Constructor;
-              const grid = parseInt(r.grid);
-              const pos = parseInt(r.position);
-              const delta = grid - pos;
-              const timeGap = r.Time ? r.Time.time : (r.status || '—');
-              const fl = r.FastestLap && r.FastestLap.rank === '1';
-              return `<tr data-action="open-driver" data-driver="${drv.driverId}">
-                <td>${posBadge(r.position)}</td>
-                <td>${teamStrip(con.constructorId)}<strong>${drv.familyName}</strong>${fl ? ` <span class="badge badge-accent" style="font-size:10px">FL</span>` : ''}</td>
-                <td class="numeric">${r.grid}${delta!==0 && !isNaN(delta) ? ` <span style="font-size:10px;color:${delta>0?'var(--success)':'var(--danger)'}">${delta>0?'↑':'↓'}${Math.abs(delta)}</span>` : ''}</td>
-                <td class="numeric" style="color:var(--text-muted)">${timeGap}</td>
-                <td class="numeric"><strong>${r.points}</strong></td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table></div>`;
+        body += `<div style="overflow-x:auto"><table><thead><tr><th>Pos</th><th>Driver</th><th class="numeric">Grid</th><th class="numeric">Time/Gap</th><th class="numeric">Pts</th></tr></thead><tbody>
+          ${resultsCache.Results.map(r => {
+            const drv = r.Driver, con = r.Constructor;
+            const grid = parseInt(r.grid), pos = parseInt(r.position);
+            const delta = grid - pos;
+            const timeGap = r.Time ? r.Time.time : (r.status || '—');
+            const fl = r.FastestLap && r.FastestLap.rank === '1';
+            return `<tr data-action="open-driver" data-driver="${drv.driverId}"><td>${posBadge(r.position)}</td><td>${teamStrip(con.constructorId)}<strong>${drv.familyName}</strong>${fl ? ` <span class="badge badge-accent" style="font-size:10px">⚡FL</span>` : ''}</td><td class="numeric">${r.grid}${delta!==0 && !isNaN(delta) ? ` <span style="font-size:10px;color:${delta>0?'var(--success)':'var(--danger)'}">${delta>0?'↑':'↓'}${Math.abs(delta)}</span>` : ''}</td><td class="numeric" style="color:var(--text-muted)">${timeGap}</td><td class="numeric"><strong>${r.points}</strong></td></tr>`;
+          }).join('')}
+        </tbody></table></div>`;
       }
     } else if (tab === 'quali') {
-      if (loadingTab) { body += loadingBlock('Loading qualifying…'); }
-      else if (!qualiCache || !qualiCache.QualifyingResults) { body += emptyState('No qualifying yet', 'Qualifying results will appear after the session.'); }
+      if (loadingTab) body += loadingBlock('Loading qualifying…');
+      else if (!qualiCache || !qualiCache.QualifyingResults) body += emptyState('No qualifying yet', 'Qualifying results appear after Q3.');
       else {
-        body += `<div style="overflow-x:auto"><table>
-          <thead><tr><th>Pos</th><th>Driver</th><th class="numeric">Q1</th><th class="numeric">Q2</th><th class="numeric">Q3</th></tr></thead>
-          <tbody>
-            ${qualiCache.QualifyingResults.map(q => {
-              const drv = q.Driver;
-              return `<tr data-action="open-driver" data-driver="${drv.driverId}">
-                <td>${posBadge(q.position)}</td>
-                <td>${teamStrip(q.Constructor.constructorId)}<strong>${drv.familyName}</strong></td>
-                <td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q1 || '—'}</td>
-                <td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q2 || '—'}</td>
-                <td class="numeric" style="color:${q.position==='1'?'var(--accent)':'var(--text)'};font-weight:${q.position==='1'?'600':'400'}">${q.Q3 || '—'}</td>
-              </tr>`;
-            }).join('')}
-          </tbody>
-        </table></div>`;
+        body += `<div style="overflow-x:auto"><table><thead><tr><th>Pos</th><th>Driver</th><th class="numeric">Q1</th><th class="numeric">Q2</th><th class="numeric">Q3</th></tr></thead><tbody>
+          ${qualiCache.QualifyingResults.map(q => {
+            const drv = q.Driver;
+            return `<tr data-action="open-driver" data-driver="${drv.driverId}"><td>${posBadge(q.position)}</td><td>${teamStrip(q.Constructor.constructorId)}<strong>${drv.familyName}</strong></td><td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q1 || '—'}</td><td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q2 || '—'}</td><td class="numeric" style="color:${q.position==='1'?'var(--accent)':'var(--text)'};font-weight:${q.position==='1'?'600':'400'}">${q.Q3 || '—'}</td></tr>`;
+          }).join('')}
+        </tbody></table></div>`;
       }
     } else if (tab === 'circuit') {
       const c = race.Circuit;
       body += `<div class="detail-list">
         <div class="detail-row"><span class="k">Circuit</span><span class="v">${c.circuitName}</span></div>
         <div class="detail-row"><span class="k">Locality</span><span class="v">${c.Location.locality}</span></div>
-        <div class="detail-row"><span class="k">Country</span><span class="v">${c.Location.country}</span></div>
-        <div class="detail-row"><span class="k">Latitude</span><span class="v">${c.Location.lat}</span></div>
-        <div class="detail-row"><span class="k">Longitude</span><span class="v">${c.Location.long}</span></div>
+        <div class="detail-row"><span class="k">Country</span><span class="v">${flag(c.Location.country)}${c.Location.country}</span></div>
+        <div class="detail-row"><span class="k">Coordinates</span><span class="v">${parseFloat(c.Location.lat).toFixed(3)}, ${parseFloat(c.Location.long).toFixed(3)}</span></div>
         <div class="detail-row"><span class="k">Round</span><span class="v">${race.round}</span></div>
-      </div>`;
+      </div>
+      <div style="margin-top:12px"><a class="btn-secondary" href="https://www.google.com/maps/search/?api=1&query=${c.Location.lat},${c.Location.long}" target="_blank" rel="noopener" style="width:100%;text-decoration:none">📍 Open in Google Maps</a></div>`;
     }
     return body;
   }
@@ -1155,7 +1373,7 @@ function openRace(round){
     showModal(`
       <div class="modal-header">
         <div>
-          <div class="modal-title">${race.raceName}</div>
+          <div class="modal-title">${flag(race.Circuit.Location.country)}${race.raceName}</div>
           <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Round ${race.round} · ${race.Circuit.Location.country} · ${fmtDate(dt)}</div>
         </div>
         <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
@@ -1175,36 +1393,40 @@ function openRace(round){
   if (tab === 'results') loadResultsIfNeeded();
 }
 
-async function openDriver(driverId){
+function openDriver(driverId){
   const ds = state.data.driverStandings;
   const standing = ds.find(d => d.Driver.driverId === driverId);
   if (!standing) return;
-  const drv = standing.Driver;
-  const con = standing.Constructors[0];
+  const drv = standing.Driver, con = standing.Constructors[0];
   const idx = ds.indexOf(standing);
+  const info = driverInfo(drv);
 
   showModal(`
     <div class="modal-header">
-      <div class="modal-title">Driver profile</div>
+      <div class="modal-title">Driver Profile</div>
       <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
-    <div style="display:flex;gap:12px;align-items:center;padding-bottom:12px;border-bottom:1px solid var(--border);margin-bottom:12px">
-      <div style="width:48px;height:48px;border-radius:24px;background:var(--surface-2);border:1px solid ${teamColor(con.constructorId)};display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-weight:700">${drv.permanentNumber || drv.code || '?'}</div>
+    <div style="display:flex;gap:14px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
+      <div class="driver-portrait" style="border-color:${teamColor(con.constructorId)}"><span>${driverInitials(drv)}</span></div>
       <div style="flex:1">
-        <div style="font-size:16px;font-weight:600">${drv.givenName} ${drv.familyName}</div>
-        <div style="font-size:12px;color:var(--text-muted)">${teamStrip(con.constructorId)}${con.name} · ${drv.nationality}</div>
+        <div style="font-size:18px;font-weight:700;letter-spacing:-0.01em">${drv.givenName} ${drv.familyName}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${flag(drv.nationality)}${drv.nationality}${drv.permanentNumber ? ' · #' + drv.permanentNumber : ''}${drv.code ? ' · ' + drv.code : ''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${teamStrip(con.constructorId)}${con.name}</div>
       </div>
-      <span class="badge ${state.favDriver === driverId ? 'badge-accent' : 'badge-neutral'}" style="cursor:pointer" id="fav-toggle">${state.favDriver === driverId ? '★ Favourite' : '☆ Favourite'}</span>
+      <span class="badge ${state.favDriver === driverId ? 'badge-accent' : 'badge-neutral'}" style="cursor:pointer" id="fav-toggle">${state.favDriver === driverId ? '★ Fav' : '☆ Fav'}</span>
     </div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">${state.data.season} pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} in standings</div></div>
-      <div class="kpi"><div class="kpi-label">${state.data.season} wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${drv.nationality}</div></div>
-      <div class="kpi"><div class="kpi-label">Date of birth</div><div style="font-size:14px;font-weight:600;margin-top:6px;font-family:var(--mono)">${drv.dateOfBirth || '—'}</div></div>
+      <div class="kpi"><div class="kpi-label">Season pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} in standings</div></div>
+      <div class="kpi"><div class="kpi-label">Season wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${state.data.season} season</div></div>
+      <div class="kpi"><div class="kpi-label">Born</div><div style="font-size:14px;font-weight:600;margin-top:6px;font-family:var(--mono)">${drv.dateOfBirth || '—'}</div></div>
       <div class="kpi"><div class="kpi-label">Team</div><div style="font-size:14px;font-weight:600;margin-top:6px">${con.name}</div></div>
     </div>
     <div class="card" style="padding:12px">
-      <div class="caption" style="margin-bottom:6px">Reference</div>
-      <div style="font-size:12px;color:var(--text-muted);word-break:break-all">${drv.url || '—'}</div>
+      <div class="caption" style="margin-bottom:6px">Follow ${drv.familyName}</div>
+      ${driverSocials(drv)}
+    </div>
+    <div style="margin-top:10px;text-align:center">
+      <a href="${driverF1Url(drv)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--text-subtle);font-family:var(--mono)">${driverF1Url(drv)}</a>
     </div>
   `);
   $('#close-modal').addEventListener('click', closeModal);
@@ -1222,27 +1444,35 @@ function openTeam(teamId){
   if (!standing) return;
   const c = standing.Constructor;
   const idx = cs.indexOf(standing);
-  // Find drivers belonging to this team in current standings
   const teamDrivers = state.data.driverStandings.filter(d => d.Constructors.some(cc => cc.constructorId === teamId));
+  const td = TEAMS[teamId] || {};
 
   showModal(`
     <div class="modal-header">
-      <div class="modal-title"><span class="team-strip" style="background:${teamColor(teamId)};height:18px;width:4px"></span>${c.name}</div>
+      <div class="modal-title" style="display:flex;align-items:center;gap:8px"><span style="display:inline-block;width:6px;height:24px;background:${teamColor(teamId)};border-radius:2px"></span>${c.name}</div>
       <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">${state.data.season} pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} in constructors</div></div>
-      <div class="kpi"><div class="kpi-label">${state.data.season} wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${c.nationality}</div></div>
+    <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
+      ${flag(c.nationality)}${c.nationality}${td.hqCity ? ' · 📍 ' + td.hqCity : ''}${td.founded ? ' · est. ' + td.founded : ''}${td.engine ? ' · ' + td.engine + ' power unit' : ''}
     </div>
-    <div class="card" style="padding:0; overflow:hidden">
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Season pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} constructors</div></div>
+      <div class="kpi"><div class="kpi-label">Season wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${state.data.season}</div></div>
+    </div>
+    <div class="card" style="padding:0; overflow:hidden;margin-bottom:12px">
       <div style="padding:10px 12px; border-bottom:1px solid var(--border)"><span class="caption">Drivers</span></div>
       ${teamDrivers.length ? teamDrivers.map(d => {
         const drv = d.Driver;
-        return `<div class="session-row" data-action="open-driver" data-driver="${drv.driverId}">
-          <div><div class="session-name">${drv.permanentNumber ? '#' + drv.permanentNumber + ' ' : ''}${drv.givenName} ${drv.familyName}</div><div class="session-date">${drv.nationality} · ${d.points} pts</div></div>
-          <span></span><span class="muted">›</span>
+        return `<div class="driver-card" data-action="open-driver" data-driver="${drv.driverId}">
+          ${driverAvatar(drv, 36)}
+          <div><div style="font-weight:600;font-size:13px">${flag(drv.nationality)}${drv.givenName} ${drv.familyName}</div><div style="font-size:11px;color:var(--text-muted)">${drv.permanentNumber ? '#' + drv.permanentNumber + ' · ' : ''}${d.points} pts</div></div>
+          <span class="muted">›</span>
         </div>`;
-      }).join('') : emptyState('No drivers', 'No drivers found in standings for this team.')}
+      }).join('') : emptyState('No drivers', 'No drivers in standings for this team.')}
+    </div>
+    <div class="card" style="padding:12px">
+      <div class="caption" style="margin-bottom:6px">Follow ${c.name}</div>
+      ${teamSocials(teamId)}
     </div>
   `);
   $('#close-modal').addEventListener('click', closeModal);
@@ -1251,8 +1481,7 @@ function openTeam(teamId){
 
 function openCircuitById(circuitId){
   const race = state.data.schedule.find(r => r.Circuit.circuitId === circuitId);
-  if (!race) return;
-  openRace(race.round);
+  if (race) openRace(race.round);
 }
 
 /* =================== ACTION BINDING =================== */
@@ -1270,6 +1499,7 @@ function bindActions(scope){
       else if (a === 'open-circuit') { const r = state.data.schedule.find(rr => rr.round === String(data.round)); if (r) openCircuitById(r.Circuit.circuitId); }
       else if (a === 'open-circuit-id') openCircuitById(data.circuit);
       else if (a === 'goto-stats') navigate('stats');
+      else if (a === 'goto-map') navigate('map');
     });
   });
 }
@@ -1279,7 +1509,8 @@ function render(){
   if (state.page === 'home') renderHome();
   else if (state.page === 'timeline') renderTimeline();
   else if (state.page === 'stats') renderStats();
-  else if (state.page === 'feed') renderFeed();
+  else if (state.page === 'map') renderMap();
+  else if (state.page === 'fun') renderFun();
   else if (state.page === 'more') renderMore();
 }
 
@@ -1293,20 +1524,12 @@ function init(){
   setInterval(updateCountdown, 1000);
   loadData();
 }
-
-// Wait for auth gate to finish before init
 function waitForGate(){
-  if (document.getElementById('dn-auth-overlay')) {
-    setTimeout(waitForGate, 200);
-  } else {
-    init();
-  }
+  if (document.getElementById('dn-auth-overlay')) setTimeout(waitForGate, 200);
+  else init();
 }
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', waitForGate);
-} else {
-  waitForGate();
-}
+if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', waitForGate);
+else waitForGate();
 
 })();
 </script>
