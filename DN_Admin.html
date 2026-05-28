@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.15 #22</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.16 #23</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4306,6 +4306,34 @@ async function syncArtifactFromLive(reqId, silent) {
   }
 }
 
+// v1.2.16 #23 — Returns true if the most recent state-changing event for this row
+// was a qa_send_back / build_failed / build_validation_failed within the last 2 hours,
+// meaning the stored-vs-live divergence is expected and self-inflicted (not external).
+// buildRequest uses this to silently auto-sync instead of prompting the admin.
+async function isDivergenceFromRecentSendBack(reqId) {
+  try {
+    const supaUrl = localStorage.getItem('dn_supa_url');
+    const supaKey = localStorage.getItem('dn_supa_key');
+    if (!supaUrl || !supaKey) return false;
+    const jwt = (typeof getJwt === 'function') ? getJwt(supaKey) : supaKey;
+    const cutoff = new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString();
+    const params =
+      'request_id=eq.' + encodeURIComponent(reqId) +
+      '&action=in.(qa_send_back,build_failed,build_validation_failed)' +
+      '&created_at=gte.' + encodeURIComponent(cutoff) +
+      '&order=created_at.desc&limit=1';
+    const resp = await fetch(supaUrl + '/rest/v1/activity_log?' + params, {
+      headers: { 'apikey': supaKey, 'Authorization': 'Bearer ' + jwt }
+    });
+    if (!resp.ok) return false;
+    const rows = await resp.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (e) {
+    console.warn('isDivergenceFromRecentSendBack failed (falling back to dialog):', e);
+    return false;  // fail safe — show the dialog if we can't determine
+  }
+}
+
 async function buildRequest(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
@@ -4324,6 +4352,16 @@ async function buildRequest(reqId) {
   // wiped out 2 days of Deck Generator work.
   const drift = await checkArtifactDrift(req);
   if (!drift.ok) {
+    // v1.2.16 #23 — Suppress dialog when divergence is from a recent send-back.
+    const _selfInflicted_v1216 = await isDivergenceFromRecentSendBack(reqId);
+    if (_selfInflicted_v1216) {
+      const _syncedSilently_v1216 = await syncArtifactFromLive(reqId, true);
+      if (!_syncedSilently_v1216) {
+        alert('Auto-sync from live failed. Please retry the rebuild or use the "Sync from live" button manually.');
+        return;
+      }
+      // skip the dialog branch entirely
+    } else {
     const storedKB = Math.round(drift.storedLen / 1024);
     const liveKB = Math.round(drift.liveLen / 1024);
     const sign = drift.liveLen > drift.storedLen ? '+' : '\u2212';
@@ -4347,6 +4385,7 @@ async function buildRequest(reqId) {
     if (!synced) {
       alert('Sync failed. Aborting rebuild — please try again or contact the admin.');
       return;
+    }
     }
   }
 
