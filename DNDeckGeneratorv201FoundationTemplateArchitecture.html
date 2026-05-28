@@ -686,7 +686,7 @@ tbody tr:hover { background: var(--surface-2); }
     <div class="brand">
       <div class="brand-mark">DN</div>
       <div class="brand-name">Deck Generator</div>
-      <div class="brand-version">v2.23.3 #107</div>
+      <div class="brand-version">v2.23.3 #108</div>
     </div>
     <nav class="nav" id="nav">
       <button class="nav-btn active" data-view="compose">Compose</button>
@@ -1284,9 +1284,38 @@ function polishedToSlides(polished) {
   });
 }
 
+function brandingReservationBlock() {
+  // Build #108 — auto-inject branding quiet-zone reservations into every skill prompt
+  // so slide images always leave clean space for top-left, top-right, and bottom branding
+  // regardless of whether the skill itself specifies it.
+  try { ensureDeckBranding(); } catch (e) { return ''; }
+  if (!state.deckBranding) return '';
+  const tl = state.deckBranding.topLeft  && state.deckBranding.topLeft.type  && state.deckBranding.topLeft.type  !== 'none';
+  const tr = state.deckBranding.topRight && state.deckBranding.topRight.type && state.deckBranding.topRight.type !== 'none';
+  const bm = state.deckBranding.bottom   && state.deckBranding.bottom.type   && state.deckBranding.bottom.type   !== 'none';
+  if (!tl && !tr && !bm) return '';
+  const zones = [];
+  if (tl) zones.push('  \u2022 TOP-LEFT corner: a rectangular zone approximately 18% of slide width by 12% of slide height, anchored to the top-left corner with a small inset (roughly from 1% to 19% horizontally, and from 1% to 13% vertically). A branding logo or label will be overlaid here after the image is generated.');
+  if (tr) zones.push('  \u2022 TOP-RIGHT corner: a rectangular zone approximately 18% of slide width by 12% of slide height, anchored to the top-right corner with a small inset (roughly from 81% to 99% horizontally, and from 1% to 13% vertically). A branding logo or label will be overlaid here after the image is generated.');
+  if (bm) zones.push('  \u2022 BOTTOM strip: a horizontal band approximately 96% of slide width by 5% of slide height, anchored to the bottom center (roughly from 2% to 98% horizontally, and from 93% to 98% vertically). A copyright or footer label will be overlaid here after the image is generated.');
+  return '=== BRANDING QUIET ZONES \u2014 MUST BE HONORED ===\n' +
+    'The following zones on this 16:9 slide are reserved for branding elements that will be overlaid AFTER the image is generated. The image generator MUST leave these zones visually quiet \u2014 they must contain only the slide\u2019s background, with no text, no logos, no icons, no shapes, no borders, no decorative elements.\n\n' +
+    zones.join('\n') + '\n\n' +
+    'RULES for each branding zone:\n' +
+    '\u2022 The slide\u2019s base background (color, gradient, texture, or pattern) must continue seamlessly through the zone \u2014 the zone must be visually indistinguishable from the surrounding background.\n' +
+    '\u2022 NO titles, headlines, subheads, body text, numbers, dates, watermarks, slide numbers, or any other text anywhere inside the zone.\n' +
+    '\u2022 NO logos, brand marks, badges, wordmarks, or icons inside the zone.\n' +
+    '\u2022 NO charts, photographs, illustrations, vector shapes, or decorative motifs inside the zone.\n' +
+    '\u2022 NO visible borders, outlines, frames, panels, drop shadows, or glow effects marking the zone boundary.\n' +
+    '\u2022 All slide content (headlines, body, visuals, charts) must keep clear margin from the zone edges \u2014 no element touches or crosses any zone boundary. If your composition would naturally place content into a zone, shrink or reposition that content to stay clear.\n' +
+    '\u2022 If the skill prompt below also describes corner quiet zones or logo placements, treat those as compatible with these rules \u2014 honor BOTH sets of constraints (whichever is stricter wins).\n' +
+    '=== END BRANDING QUIET ZONES ===\n\n';
+}
+
 function composeSkillPrompt(skill, slide) {
+  const brandingBlock = brandingReservationBlock();
   const base = (skill && skill.prompt) ? skill.prompt : MASTER_PROMPT_FALLBACK;
-  if (!slide) return base;
+  if (!slide) return brandingBlock + base;
   // Build #66 — describe reserved zones with strong, repeated constraints
   const reservedBlocks = (slide.layoutBlocks || []).filter(b => b.reserve);
   function describeBlocks(verb) {
@@ -1338,7 +1367,7 @@ function composeSkillPrompt(skill, slide) {
       honorChecklist + '\n\n' +
       'If ANY zone fails the checklist \u2014 if even one has a stray text element, an icon overlapping its edge, a slightly different background, or any visible border \u2014 redo the composition. Honoring only some zones is a failure. Honoring all zones is success.\n=== END FINAL CHECK ===';
   }
-  let prompt = preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock;
+  let prompt = brandingBlock + preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock;
   return prompt;
 }
 function composeSkillPromptPreview(skill) { return composeSkillPrompt(skill, null); }
@@ -6819,7 +6848,7 @@ function renderSettings() {
 
     <div class="section"><div class="section-header"><div class="h1">Google Gemini</div></div><div class="card"><div class="field"><label class="field-label">API key</label><div class="api-key-row"><input class="input" id="geminiKey" type="password" placeholder="AIza..." value="${escapeHtml(state.apiKeys.gemini)}"><button class="btn-secondary" id="saveGemBtn">Save</button>${state.apiKeys.gemini ? '<button class="btn-ghost" id="clearGemBtn">Clear</button>' : ''}</div><div class="field-hint">${state.apiKeys.gemini ? '<span class="mono">' + escapeHtml(gem) + '</span>' : 'Not set.'}</div></div></div></div>
 
-    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.3</span> (build #107 — per-slide skill override dropdown in image-to-image refine panel)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
+    <div class="section"><div class="section-header"><div class="h1">Runtime</div></div><div class="card"><dl class="kv"><dt>Version</dt><dd><span class="mono">2.23.3</span> (build #108 — auto-inject branding quiet-zones into every skill prompt so logos/footer always have clean space)</dd><dt>Owner</dt><dd><span class="mono">${escapeHtml(OWNER_ID)}</span></dd><dt>Admin</dt><dd>${state.adminMode ? '<span class="badge badge-success">On</span>' : '<span class="badge badge-neutral">Off</span>'}</dd></dl></div></div>
 
     <div class="section"><div class="section-header"><div class="h1" style="color:var(--text-muted)">Reset</div></div><div class="card"><div class="muted body-sm" style="margin-bottom:10px">Clears API keys, preferences, and logo locally AND from your synced account.</div><button class="btn-danger" id="resetAllBtn">Reset all settings</button></div></div>
   `;
