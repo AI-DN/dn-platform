@@ -167,7 +167,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
 .kanban-header { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 18px; }
 .kanban-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 20px; color: var(--text); letter-spacing: 0.02em; }
 .kanban-summary { font-size: 12px; color: var(--text3); }
-.kanban-grid { display: grid; grid-template-columns: repeat(6, minmax(180px, 1fr)); gap: 12px; align-items: start; min-width: 0; }
+.kanban-grid { display: grid; grid-template-columns: repeat(7, minmax(175px, 1fr)); gap: 12px; align-items: start; min-width: 0; }
 .kc-col { background: var(--navy3); border: 1px solid var(--border2); border-radius: 10px; min-height: 200px; display: flex; flex-direction: column; }
 .kc-col-header { padding: 12px 14px 10px; border-bottom: 1px solid var(--border2); }
 .kc-col-title-row { display: flex; align-items: center; gap: 8px; }
@@ -308,12 +308,12 @@ body.chat-open .board-wrap { padding-right: 420px; }
 .spec-card.spec-redrafting { border-color: rgba(61,214,245,0.4); background: linear-gradient(180deg, rgba(61,214,245,0.06), var(--navy3)); }
 .spec-card.spec-redrafting .spec-tag { background: rgba(61,214,245,0.18); color: var(--cyan); border-color: rgba(61,214,245,0.4); }
 
-/* Responsive: narrower screens collapse columns. v1.2.12 #19 — tightened breakpoints + horizontal scroll fallback (parent .kanban-view scrolls). */
-@media (max-width: 1500px) {
-  .kanban-grid { grid-template-columns: repeat(6, minmax(170px, 1fr)); gap: 10px; }
+/* Responsive: narrower screens collapse columns. v1.2.15 #22 — 7 columns at default; horizontal scroll fallback (parent .kanban-view scrolls). */
+@media (max-width: 1600px) {
+  .kanban-grid { grid-template-columns: repeat(7, minmax(165px, 1fr)); gap: 10px; }
 }
-@media (max-width: 1180px) {
-  .kanban-grid { grid-template-columns: repeat(3, minmax(220px, 1fr)); }
+@media (max-width: 1280px) {
+  .kanban-grid { grid-template-columns: repeat(4, minmax(200px, 1fr)); }
 }
 @media (max-width: 900px) {
   .kanban-grid { grid-template-columns: 1fr; }
@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.14 #21</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.15 #22</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -3709,12 +3709,13 @@ function statusDotColor(qaStatus) {
 // Each request appears as one card in exactly one column.
 
 const KANBAN_COLUMNS = [
-  { id: 'inbox',         title: 'Inbox',          desc: 'New, never built',          color: '#3DD6F5' },
-  { id: 'needs_input',   title: 'Needs input',    desc: 'Waiting on clarification',  color: '#f59e0b' },
-  { id: 'in_progress',   title: 'In progress',    desc: 'Building or rebuild pending', color: '#8b7ff5' },
-  { id: 'ready_qa',      title: 'Ready for QA',   desc: 'Build complete, review',    color: '#3DD6F5' },
-  { id: 'qa_passed',     title: 'QA passed',      desc: 'Approved, ready to ship',   color: '#22c55e' },
-  { id: 'shipped',       title: 'Shipped',        desc: 'Live in production',        color: '#a78bfa' }
+  { id: 'inbox',                 title: 'Inbox',                desc: 'New, never built',                       color: '#3DD6F5' },
+  { id: 'improvement_requested', title: 'Improvement requested', desc: 'Shipped — new capability waiting on rebuild', color: '#fb923c' },
+  { id: 'needs_input',           title: 'Needs input',          desc: 'Waiting on clarification',               color: '#f59e0b' },
+  { id: 'in_progress',           title: 'In progress',          desc: 'Building or rebuild pending',            color: '#8b7ff5' },
+  { id: 'ready_qa',              title: 'Ready for QA',         desc: 'Build complete, review',                 color: '#3DD6F5' },
+  { id: 'qa_passed',             title: 'QA passed',            desc: 'Approved, ready to ship',                color: '#22c55e' },
+  { id: 'shipped',               title: 'Shipped',              desc: 'Live in production',                     color: '#a78bfa' }
 ];
 
 function getKanbanColumn(req) {
@@ -3726,7 +3727,10 @@ function getKanbanColumn(req) {
   const hasArtifact = !!(req.artifact_html && req.artifact_html.length > 0);
   if (status === 'building') return 'in_progress';
   if (status === 'build_failed') return 'in_progress';  // surface back in admin's queue, not Ready for QA
-  if (status === 'not_built') return hasArtifact ? 'in_progress' : 'inbox';
+  // v1.2.15 #22 — Split not_built routing: brand-new rows go to Inbox; rows that have
+  // shipped before and now have pending capabilities go to a dedicated "Improvement requested"
+  // column so admins see at-a-glance that a user has asked for new work.
+  if (status === 'not_built') return hasArtifact ? 'improvement_requested' : 'inbox';
   if (status === 'ready_for_qa') return 'ready_qa';
   if (status === 'qa_passed') return 'qa_passed';
   if (status === 'shipped') return 'shipped';
