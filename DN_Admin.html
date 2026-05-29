@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.22 #29</span>
+  <span class="topbar-version" title="DN_Admin build">v1.3.0 #30</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1156,10 +1156,11 @@ body.chat-open .board-wrap { padding-right: 420px; }
 
     <div class="settings-panel-section">AI</div>
     <div class="sfield"><label>Anthropic API key</label><input type="password" id="inp-claude" placeholder="sk-ant-..."></div>
-    <div class="sfield"><label>Build agent model <span style="opacity:0.6;font-size:11px;">(auto-falls back on 529 overload)</span></label><select id="inp-build-model" style="width:100%;padding:8px;background:rgba(7,9,26,0.7);border:1px solid var(--border);color:var(--text);border-radius:6px;font:inherit;">
-      <option value="">Auto — Opus 4.7 → Sonnet 4.6 → Sonnet 4.5 (default)</option>
-      <option value="claude-opus-4-7">Force Opus 4.7 (no fallback below this)</option>
+    <div class="sfield"><label>Default build model <span style="opacity:0.6;font-size:11px;">(per-build advisor can override; auto-falls back on 529 overload)</span></label><select id="inp-build-model" style="width:100%;padding:8px;background:rgba(7,9,26,0.7);border:1px solid var(--border);color:var(--text);border-radius:6px;font:inherit;">
+      <option value="">Auto — Opus 4.8 → Sonnet 4.6 → Sonnet 4.5 (default)</option>
+      <option value="claude-opus-4-8">Force Opus 4.8 (no fallback below this)</option>
       <option value="claude-sonnet-4-6">Force Sonnet 4.6 (skip Opus entirely)</option>
+      <option value="claude-haiku-4-5-20251001">Force Haiku 4.5 (cheapest; simple edits only)</option>
       <option value="claude-sonnet-4-5-20250929">Force Sonnet 4.5</option>
     </select></div>
 
@@ -4465,6 +4466,204 @@ async function isDivergenceFromRecentSendBack(reqId) {
   }
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// BUILD ADVISOR (v1.3.0 #30) — per-session model + intensity picker with a
+// heuristic cost estimate and a quick AI complexity note. Opens before each
+// build; the recommended model/effort is pre-selected and admin confirms or
+// overrides. The choice is consumed once per build (see buildRequest gate).
+// ════════════════════════════════════════════════════════════════════════
+const _buildModelChoice = {};
+
+const DN_MODEL_PRICING = {
+  'claude-opus-4-8':           { label: 'Opus 4.8',   in: 5, out: 25, effort: true },
+  'claude-sonnet-4-6':         { label: 'Sonnet 4.6', in: 3, out: 15, effort: true },
+  'claude-haiku-4-5-20251001': { label: 'Haiku 4.5',  in: 1, out: 5,  effort: false }
+};
+const DN_ADVISOR_MODELS = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'];
+const DN_EFFORT_LEVELS = ['low', 'medium', 'high', 'xhigh'];
+// Rough output-token multiplier per effort level (higher effort => more thinking tokens).
+const DN_EFFORT_OUT_MULT = { low: 1.0, medium: 1.4, high: 2.0, xhigh: 3.0, max: 4.0, '': 1.0 };
+
+function dnModelSupportsEffort(model) {
+  const m = DN_MODEL_PRICING[model];
+  return !!(m && m.effort);
+}
+function dnEstCost(model, effort, inTok, baseOutTok) {
+  const p = DN_MODEL_PRICING[model]; if (!p) return 0;
+  const mult = dnModelSupportsEffort(model) ? (DN_EFFORT_OUT_MULT[effort] || 1) : 1;
+  const outTok = baseOutTok * mult;
+  return (inTok * p.in + outTok * p.out) / 1e6;
+}
+function dnActualCost(model, u) {
+  const p = DN_MODEL_PRICING[model]; if (!p || !u) return 0;
+  const inTok = (u.input_tokens || 0), outTok = (u.output_tokens || 0);
+  const cr = (u.cache_read_input_tokens || 0), cw = (u.cache_creation_input_tokens || 0);
+  return (inTok * p.in + outTok * p.out + cr * p.in * 0.1 + cw * p.in * 1.25) / 1e6;
+}
+function dnFmtCost(n) { return '$' + (n < 1 ? n.toFixed(3) : n.toFixed(2)); }
+
+function dnEstimateBuildTokens(req, caps, previousHtml, qaNotes, attachments) {
+  let promptChars = 0;
+  try { promptChars = (buildMonolithicPrompt(req, caps, previousHtml, qaNotes) || '').length; }
+  catch (_) { promptChars = (previousHtml || '').length + 8000; }
+  (attachments || []).forEach(function(a) { if (a && a.kind === 'text' && a.text) promptChars += a.text.length; });
+  const CHARS_PER_TOK = 3.7; // Opus 4.7+ tokenizer is denser than the ~4.0 rule of thumb
+  const inTok = Math.round(promptChars / CHARS_PER_TOK);
+  const isRebuild = (previousHtml || '').length > 0;
+  // Rough expected output: a fresh build emits the whole file; a rebuild emits patches.
+  let baseOutTok = isRebuild ? 9000 : 22000;
+  baseOutTok += Math.min((caps || []).length, 12) * 600;
+  if (isRebuild) baseOutTok += Math.round(Math.min((previousHtml || '').length, 60000) / 3.7 * 0.15);
+  const score = inTok + baseOutTok * 2 + (caps || []).length * 1500;
+  let complexity = 'medium';
+  if (score < 30000) complexity = 'low';
+  else if (score > 90000) complexity = 'high';
+  return { inTok: inTok, baseOutTok: baseOutTok, isRebuild: isRebuild, complexity: complexity, capCount: (caps || []).length };
+}
+function dnHeuristicRecommend(est) {
+  if (est.complexity === 'low') return { model: 'claude-sonnet-4-6', effort: 'medium' };
+  if (est.complexity === 'high') return { model: 'claude-opus-4-8', effort: 'xhigh' };
+  return { model: 'claude-opus-4-8', effort: 'medium' };
+}
+async function dnGetBuildAdvice(req, caps, est) {
+  const apiKey = localStorage.getItem('dn_claude'); if (!apiKey) return null;
+  const capList = (caps || []).map(function(c) {
+    return (c && (c.title || c.name || c.label)) || (typeof c === 'string' ? c : '');
+  }).filter(Boolean).slice(0, 20).join('; ');
+  const prompt = 'You are triaging a build job for a single-file HTML app builder. Reply with STRICT JSON only: ' +
+    '{"complexity":"low|medium|high","model":"opus|sonnet|haiku","effort":"low|medium|high|xhigh","note":"one sentence (max 25 words) of advice"}. ' +
+    'Guidance: opus for complex/novel logic or large new builds; sonnet for moderate work; haiku only for trivial edits. Higher effort = deeper reasoning and more cost.\n\n' +
+    'Title: ' + (req.title || 'Untitled') + '\n' +
+    'Mode: ' + (est.isRebuild ? 'rebuild (patches expected)' : 'new build') + '\n' +
+    'Capabilities (' + est.capCount + '): ' + (capList || 'none') + '\n' +
+    'Est input tokens: ~' + est.inTok + ', est output tokens: ~' + est.baseOutTok + '\n' +
+    (req.qa_notes ? ('QA/change notes: ' + String(req.qa_notes).slice(0, 600) + '\n') : '');
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' },
+      body: JSON.stringify({ model: 'claude-haiku-4-5-20251001', max_tokens: 300, messages: [{ role: 'user', content: prompt }] })
+    });
+    if (!r.ok) return null;
+    const d = await r.json();
+    const txt = (d.content || []).filter(function(b) { return b.type === 'text'; }).map(function(b) { return b.text || ''; }).join('');
+    const m = txt.match(/\{[\s\S]*\}/); if (!m) return null;
+    const j = JSON.parse(m[0]);
+    const modelMap = { opus: 'claude-opus-4-8', sonnet: 'claude-sonnet-4-6', haiku: 'claude-haiku-4-5-20251001' };
+    const model = modelMap[(j.model || '').toLowerCase()] || null;
+    const effort = (DN_EFFORT_OUT_MULT[j.effort] != null && j.effort) ? j.effort : 'medium';
+    return { model: model, effort: effort, note: j.note || '', complexity: j.complexity || est.complexity };
+  } catch (_) { return null; }
+}
+
+async function openBuildAdvisor(reqId) {
+  const req = allReqs.find(function(r) { return r.id === reqId; });
+  if (!req) return;
+  const caps = getCapabilities(req);
+  const previousHtml = req.artifact_html || '';
+  const qaNotes = req.qa_notes || '';
+  const attachments = Array.isArray(req.qa_attachments) ? req.qa_attachments : [];
+  const est = dnEstimateBuildTokens(req, caps, previousHtml, qaNotes, attachments);
+  const rec = dnHeuristicRecommend(est);
+  let sel = { model: rec.model, effort: dnModelSupportsEffort(rec.model) ? rec.effort : '' };
+  let recommended = { model: rec.model, effort: sel.effort };
+
+  const prior = document.getElementById('dn-advisor-overlay'); if (prior) prior.remove();
+  const o = document.createElement('div');
+  o.id = 'dn-advisor-overlay';
+  o.style.cssText = 'position:fixed;inset:0;background:rgba(4,6,16,0.80);backdrop-filter:blur(3px);display:flex;align-items:center;justify-content:center;z-index:99998;padding:24px;font-family:inherit;';
+  o.innerHTML =
+    '<div style="max-width:620px;width:100%;background:#0c1024;border:1px solid rgba(255,255,255,0.10);border-radius:14px;box-shadow:0 12px 48px rgba(0,0,0,0.6);overflow:hidden;">' +
+      '<div style="padding:20px 24px 14px;border-bottom:1px solid rgba(255,255,255,0.07);">' +
+        '<div style="font-weight:700;font-size:16px;color:#e8eaf0;">Build advisor</div>' +
+        '<div style="font-size:12px;color:#7a8099;margin-top:3px;">Pick the model and intensity for this build. Estimates are rough — actual cost is logged after the build.</div>' +
+      '</div>' +
+      '<div style="padding:16px 24px;">' +
+        '<div id="dn-adv-note" style="font-size:12.5px;color:#cdd3e6;line-height:1.55;background:rgba(94,106,210,0.10);border:1px solid rgba(94,106,210,0.30);border-radius:8px;padding:10px 12px;margin-bottom:14px;">' +
+          '<span style="opacity:0.7;">Sizing the request…</span></div>' +
+        '<div style="display:flex;gap:16px;font-size:11.5px;color:#8089a3;margin-bottom:12px;">' +
+          '<span>Mode: <b style="color:#cdd3e6;">' + (est.isRebuild ? 'rebuild' : 'new build') + '</b></span>' +
+          '<span>Capabilities: <b style="color:#cdd3e6;">' + est.capCount + '</b></span>' +
+          '<span>Est. input: <b style="color:#cdd3e6;">~' + est.inTok.toLocaleString() + ' tok</b></span>' +
+          '<span>Est. output: <b style="color:#cdd3e6;">~' + est.baseOutTok.toLocaleString() + ' tok</b></span>' +
+        '</div>' +
+        '<div id="dn-adv-matrix"></div>' +
+        '<div style="font-size:11px;color:#6b7290;margin-top:10px;">Effort applies to Opus and Sonnet only (adaptive thinking). Haiku has no effort tiers.</div>' +
+      '</div>' +
+      '<div style="padding:14px 24px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid rgba(255,255,255,0.07);">' +
+        '<button id="dn-adv-cancel" style="background:transparent;color:#9aa1bd;border:1px solid rgba(255,255,255,0.15);padding:9px 16px;border-radius:7px;font:inherit;font-size:13px;cursor:pointer;">Cancel</button>' +
+        '<button id="dn-adv-build" style="background:#47D1FF;color:#07091a;border:0;padding:9px 18px;border-radius:7px;font:inherit;font-weight:700;font-size:13px;cursor:pointer;">Build →</button>' +
+      '</div>' +
+    '</div>';
+  document.body.appendChild(o);
+
+  function renderMatrix() {
+    const mx = document.getElementById('dn-adv-matrix'); if (!mx) return;
+    let html = '<div style="display:grid;grid-template-columns:96px repeat(4,1fr);gap:6px;align-items:stretch;">';
+    html += '<div></div>' + DN_EFFORT_LEVELS.map(function(lv) {
+      return '<div style="text-align:center;font-size:10.5px;text-transform:uppercase;letter-spacing:0.05em;color:#6b7290;padding:2px 0;">' + lv + '</div>';
+    }).join('');
+    DN_ADVISOR_MODELS.forEach(function(model) {
+      const p = DN_MODEL_PRICING[model];
+      const isRec = recommended.model === model;
+      html += '<div style="display:flex;align-items:center;font-size:12px;font-weight:600;color:#cdd3e6;">' + p.label +
+        (isRec ? '<span style="font-size:9px;color:#47D1FF;margin-left:5px;border:1px solid rgba(71,209,255,0.4);border-radius:4px;padding:1px 4px;">REC</span>' : '') + '</div>';
+      if (dnModelSupportsEffort(model)) {
+        DN_EFFORT_LEVELS.forEach(function(lv) {
+          const cost = dnEstCost(model, lv, est.inTok, est.baseOutTok);
+          const active = sel.model === model && sel.effort === lv;
+          html += '<button class="dn-adv-cell" data-model="' + model + '" data-effort="' + lv + '" ' +
+            'style="cursor:pointer;border-radius:7px;padding:9px 4px;font:inherit;font-size:12px;font-weight:600;text-align:center;' +
+            'border:1px solid ' + (active ? '#47D1FF' : 'rgba(255,255,255,0.10)') + ';' +
+            'background:' + (active ? 'rgba(71,209,255,0.16)' : 'rgba(255,255,255,0.03)') + ';' +
+            'color:' + (active ? '#cfefff' : '#aeb4cc') + ';">' + dnFmtCost(cost) + '</button>';
+        });
+      } else {
+        const cost = dnEstCost(model, '', est.inTok, est.baseOutTok);
+        const active = sel.model === model;
+        html += '<button class="dn-adv-cell" data-model="' + model + '" data-effort="" ' +
+          'style="grid-column:span 4;cursor:pointer;border-radius:7px;padding:9px 4px;font:inherit;font-size:12px;font-weight:600;text-align:center;' +
+          'border:1px solid ' + (active ? '#47D1FF' : 'rgba(255,255,255,0.10)') + ';' +
+          'background:' + (active ? 'rgba(71,209,255,0.16)' : 'rgba(255,255,255,0.03)') + ';' +
+          'color:' + (active ? '#cfefff' : '#aeb4cc') + ';">' + dnFmtCost(cost) + '  ·  no effort tiers</button>';
+      }
+    });
+    html += '</div>';
+    mx.innerHTML = html;
+    Array.prototype.forEach.call(mx.querySelectorAll('.dn-adv-cell'), function(btn) {
+      btn.addEventListener('click', function() {
+        sel = { model: btn.getAttribute('data-model'), effort: btn.getAttribute('data-effort') || '' };
+        renderMatrix();
+      });
+    });
+  }
+  renderMatrix();
+
+  dnGetBuildAdvice(req, caps, est).then(function(adv) {
+    const noteEl = document.getElementById('dn-adv-note'); if (!noteEl) return;
+    if (adv && adv.note) {
+      noteEl.innerHTML = '<b style="color:#9fd2ff;">Builder:</b> ' + adv.note.replace(/</g, '&lt;');
+      if (adv.model) {
+        recommended = { model: adv.model, effort: dnModelSupportsEffort(adv.model) ? (adv.effort || 'medium') : '' };
+        sel = { model: recommended.model, effort: recommended.effort };
+        renderMatrix();
+      }
+    } else {
+      const recLabel = DN_MODEL_PRICING[rec.model].label + (sel.effort ? ' · ' + sel.effort : '');
+      noteEl.innerHTML = '<b style="color:#9fd2ff;">Builder:</b> ' + est.complexity + '-complexity ' +
+        (est.isRebuild ? 'rebuild' : 'new build') + ' — recommend ' + recLabel + '. (heuristic; AI note unavailable)';
+    }
+  });
+
+  document.getElementById('dn-adv-cancel').addEventListener('click', function() { o.remove(); });
+  document.getElementById('dn-adv-build').addEventListener('click', function() {
+    const effort = dnModelSupportsEffort(sel.model) ? (sel.effort || 'medium') : '';
+    _buildModelChoice[reqId] = { model: sel.model, effort: effort };
+    o.remove();
+    buildRequest(reqId);
+  });
+}
+
 async function buildRequest(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
@@ -4532,6 +4731,17 @@ async function buildRequest(reqId) {
     return;  // openDesignConsultation will re-call buildRequest after admin approves
   }
 
+  // Build advisor gate (v1.3.0 #30) — per-session model + intensity choice with a
+  // cost estimate. Opens once; on confirm it stores the choice and re-calls buildRequest.
+  if (!_buildModelChoice[reqId]) {
+    await openBuildAdvisor(reqId);
+    return;  // openBuildAdvisor re-calls buildRequest after admin confirms
+  }
+  // Consume the choice once so the next build re-prompts.
+  const buildChoice = _buildModelChoice[reqId];
+  delete _buildModelChoice[reqId];
+  const buildEffort = (buildChoice && dnModelSupportsEffort(buildChoice.model)) ? (buildChoice.effort || '') : '';
+
   // Mark building
   req.qa_status = 'building';
   window._buildInFlightReqId = reqId;
@@ -4596,10 +4806,13 @@ async function buildRequest(reqId) {
     // User can override the primary model via Settings → "Build agent model".
     // Note: fallback models have weaker patch-fidelity discipline, so this
     // is a last-resort path. Auto-fallback fires only on 529/503/502.
+    // Primary model: per-session advisor choice wins, then the global Settings
+    // override, then the default. Fallbacks below handle 529/503/502 overloads.
     const userBuildModelOverride = localStorage.getItem('dn_build_model_override') || '';
-    const defaultBuildChain = ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-sonnet-4-5-20250929'];
-    const buildChain = userBuildModelOverride
-      ? [userBuildModelOverride].concat(defaultBuildChain.filter(function(m) { return m !== userBuildModelOverride; }))
+    const primaryModel = (buildChoice && buildChoice.model) || userBuildModelOverride || '';
+    const defaultBuildChain = ['claude-opus-4-8', 'claude-sonnet-4-6', 'claude-sonnet-4-5-20250929'];
+    const buildChain = primaryModel
+      ? [primaryModel].concat(defaultBuildChain.filter(function(m) { return m !== primaryModel; }))
       : defaultBuildChain.slice();
 
     // v1.2.18 #26 / task #22 — Tool-use loop wrapping model fallback.
@@ -4625,6 +4838,8 @@ async function buildRequest(reqId) {
     let lastBuildErrText = '';
     let finalData = null;
     let totalToolCalls = 0;
+    // v1.3.0 #30 — accumulate token usage across all round-trips for actual-cost logging.
+    const buildUsageTotal = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
 
     for (let mi = 0; mi < buildChain.length; mi++) {
       const tryModel = buildChain[mi];
@@ -4648,6 +4863,18 @@ async function buildRequest(reqId) {
         }, HEARTBEAT_EVERY_MS);
 
         let iterResp;
+        // v1.3.0 #30 — apply the chosen intensity via adaptive thinking + effort.
+        // Only Opus/Sonnet support effort; for other models it is omitted.
+        const _reqBody = {
+          model: tryModel,
+          max_tokens: 128000,
+          messages: messages,
+          tools: BUILD_AGENT_TOOLS
+        };
+        if (buildEffort && dnModelSupportsEffort(tryModel)) {
+          _reqBody.thinking = { type: 'adaptive' };
+          _reqBody.effort = buildEffort;
+        }
         try {
           iterResp = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
@@ -4657,12 +4884,7 @@ async function buildRequest(reqId) {
               'anthropic-dangerous-direct-browser-access': 'true',
               'content-type': 'application/json'
             },
-            body: JSON.stringify({
-              model: tryModel,
-              max_tokens: 128000,
-              messages: messages,
-              tools: BUILD_AGENT_TOOLS
-            }),
+            body: JSON.stringify(_reqBody),
             signal: controller.signal
           });
         } catch (fetchErr) {
@@ -4691,6 +4913,13 @@ async function buildRequest(reqId) {
 
         const data = await iterResp.json();
         messages.push({ role: 'assistant', content: data.content });
+        // v1.3.0 #30 — accumulate usage across round-trips.
+        if (data.usage) {
+          buildUsageTotal.input_tokens += (data.usage.input_tokens || 0);
+          buildUsageTotal.output_tokens += (data.usage.output_tokens || 0);
+          buildUsageTotal.cache_read_input_tokens += (data.usage.cache_read_input_tokens || 0);
+          buildUsageTotal.cache_creation_input_tokens += (data.usage.cache_creation_input_tokens || 0);
+        }
 
         // v1.2.21 #28 — Per-round timing telemetry so we can see which round-trip
         // burns the most time. Useful when a build approaches the 15-min cap.
@@ -4877,12 +5106,18 @@ async function buildRequest(reqId) {
     await patchRequest(reqId, update);
     Object.assign(req, update);
 
+    // v1.3.0 #30 — actual cost from accumulated usage, for estimate calibration.
+    const _actualCost = dnActualCost(usedBuildModel, buildUsageTotal);
+    const _modelLabel = (DN_MODEL_PRICING[usedBuildModel] && DN_MODEL_PRICING[usedBuildModel].label) || usedBuildModel;
+    const _costStr = ' · ' + _modelLabel + (buildEffort ? '/' + buildEffort : '') +
+      ' · in=' + buildUsageTotal.input_tokens.toLocaleString() + ' out=' + buildUsageTotal.output_tokens.toLocaleString() +
+      ' · ~' + dnFmtCost(_actualCost);
     await logActivity({
       request_id: reqId,
       actor: 'admin',
       actor_name: 'admin',
       action: isRebuild ? 'rebuild_complete' : 'build_complete',
-      description: (isRebuild ? 'Rebuild' : 'Build') + ' v' + newVersion + ' complete (' + Math.round(html.length / 1024) + ' KB)'
+      description: (isRebuild ? 'Rebuild' : 'Build') + ' v' + newVersion + ' complete (' + Math.round(html.length / 1024) + ' KB)' + _costStr
     });
 
     renderMonolithicView(req);
