@@ -1470,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.12 #28</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.13 #29</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -1857,26 +1857,25 @@ async function answerPendingQuestion(pq, answer) {
     try {
       const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
       // Fetch current conversation
-      const r = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId + '&select=conversation', { headers });
-      if (!r.ok) return false;
-      const rows = await r.json();
-      if (!rows.length) return false;
-      let conv = [];
-      try { conv = JSON.parse(rows[0].conversation || '[]'); } catch(e) { conv = []; }
-      if (!Array.isArray(conv)) conv = [];
-      conv.push({
+      // v1.4.12 #29 / task #20 — Use SECURITY DEFINER RPC; raw PATCH was silently dropped
+      // by RLS for users who weren't the request creator.
+      const turn = {
         role: 'user',
         content: 'Re: needs-input — ' + answer,
         ts: new Date().toISOString(),
         kind: 'needs_input_answer'
-      });
-
-      const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
-      const p = await fetch(url + '/rest/v1/requests?id=eq.' + pq.reqId, {
-        method: 'PATCH', headers: patchHeaders,
-        body: JSON.stringify({ conversation: JSON.stringify(conv) })
+      };
+      const rpcHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json' });
+      const p = await fetch(url + '/rest/v1/rpc/append_to_request_conversation', {
+        method: 'POST', headers: rpcHeaders,
+        body: JSON.stringify({ p_request_id: pq.reqId, p_turn: turn })
       });
       if (!p.ok) return false;
+      const pResult = await p.json().catch(function(){ return null; });
+      if (!pResult || pResult.ok !== true) {
+        console.warn('needs-input answer RPC returned no confirmation:', pResult);
+        return false;
+      }
 
       await logActivity({
         request_id: pq.reqId,
@@ -3128,24 +3127,32 @@ async function logTurn(reqId, type, role, content) {
   const safe = (typeof content === 'string') ? content.slice(0, 20000) : JSON.stringify(content).slice(0, 20000);
   const turn = { t: type, role: role, content: safe, at: new Date().toISOString() };
 
-  // Serialise per-request to avoid lost updates
+  // v1.4.12 #29 / task #20 — Use SECURITY DEFINER RPC instead of read-modify-write PATCH.
+  // The previous code silently dropped turns for non-admin users on rows they didn't own
+  // (PostgREST returned 204 for 0-row UPDATEs under requests_update_creator_or_admin).
+  // RPC validates can_access_intent in-function and returns a turn_count so silent drops
+  // become real errors. We keep the per-request serialisation queue to prevent races.
   const prev = _convQueue[reqId] || Promise.resolve();
   const next = prev.then(async function() {
     try {
-      const headers = { 'apikey': key, 'Authorization': 'Bearer ' + getJwt(key) };
-      const r = await fetch(url + '/rest/v1/requests?id=eq.' + reqId + '&select=conversation', { headers });
-      if (!r.ok) return;
-      const rows = await r.json();
-      if (!rows.length) return;
-      let arr = [];
-      try { arr = rows[0].conversation ? JSON.parse(rows[0].conversation) : []; } catch(e) { arr = []; }
-      if (!Array.isArray(arr)) arr = [];
-      arr.push(turn);
-      const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
-      await fetch(url + '/rest/v1/requests?id=eq.' + reqId, {
-        method: 'PATCH', headers: patchHeaders,
-        body: JSON.stringify({ conversation: JSON.stringify(arr) })
+      const headers = {
+        'apikey': key,
+        'Authorization': 'Bearer ' + getJwt(key),
+        'Content-Type': 'application/json'
+      };
+      const r = await fetch(url + '/rest/v1/rpc/append_to_request_conversation', {
+        method: 'POST', headers: headers,
+        body: JSON.stringify({ p_request_id: reqId, p_turn: turn })
       });
+      if (!r.ok) {
+        const t = await r.text().catch(function(){ return ''; });
+        console.warn('logTurn RPC HTTP ' + r.status + ':', t.slice(0, 200));
+        return;
+      }
+      const result = await r.json().catch(function(){ return null; });
+      if (!result || result.ok !== true) {
+        console.warn('logTurn RPC returned no confirmation:', result);
+      }
     } catch(e) { console.warn('logTurn failed:', e); }
   });
   _convQueue[reqId] = next;
