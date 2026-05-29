@@ -4,105 +4,49 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>F1 Fan Hub</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>FF</text></svg>">
+<meta name="theme-color" content="#07091a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <style>
 :root {
-  --bg: #fafafa;
-  --surface: #ffffff;
-  --surface-2: #f5f5f5;
-  --text: #18181b;
-  --text-muted: #52525b;
-  --text-subtle: #a1a1aa;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.16);
-  --accent: #e10600;
-  --accent-hover: #b80500;
-  --accent-bg: rgba(225, 6, 0, 0.08);
-  --success: #16a34a;
-  --success-bg: rgba(22, 163, 74, 0.08);
-  --warning: #d97706;
-  --warning-bg: rgba(217, 119, 6, 0.08);
-  --danger: #dc2626;
-  --danger-bg: rgba(220, 38, 38, 0.08);
-  --info: #0284c7;
-  --info-bg: rgba(2, 132, 199, 0.08);
-  --radius-sm: 4px;
-  --radius-md: 6px;
-  --radius-lg: 8px;
+  --bg: #fafafa; --surface: #ffffff; --surface-2: #f5f5f5;
+  --text: #18181b; --text-muted: #52525b; --text-subtle: #a1a1aa;
+  --border: rgba(0,0,0,0.08); --border-strong: rgba(0,0,0,0.16);
+  --accent: #e10600; --accent-hover: #b80500; --accent-bg: rgba(225,6,0,0.08);
+  --success: #16a34a; --success-bg: rgba(22,163,74,0.08);
+  --warning: #d97706; --warning-bg: rgba(217,119,6,0.08);
+  --danger: #dc2626; --danger-bg: rgba(220,38,38,0.08);
+  --info: #0284c7; --info-bg: rgba(2,132,199,0.08);
+  --radius-sm: 4px; --radius-md: 6px; --radius-lg: 8px;
   --mono: ui-monospace, 'SF Mono', Menlo, monospace;
 }
 [data-theme="dark"] {
-  --bg: #09090b;
-  --surface: #131316;
-  --surface-2: #1c1c20;
-  --text: #fafafa;
-  --text-muted: #a1a1aa;
-  --text-subtle: #71717a;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --accent: #ff2e1f;
-  --accent-hover: #ff5547;
-  --accent-bg: rgba(255, 46, 31, 0.12);
-  --success: #22c55e;
-  --success-bg: rgba(34, 197, 94, 0.10);
-  --warning: #f59e0b;
-  --warning-bg: rgba(245, 158, 11, 0.10);
-  --danger: #ef4444;
-  --danger-bg: rgba(239, 68, 68, 0.10);
-  --info: #38bdf8;
-  --info-bg: rgba(56, 189, 248, 0.10);
+  --bg: #09090b; --surface: #131316; --surface-2: #1c1c20;
+  --text: #fafafa; --text-muted: #a1a1aa; --text-subtle: #71717a;
+  --border: rgba(255,255,255,0.08); --border-strong: rgba(255,255,255,0.14);
+  --accent: #ff2e1f; --accent-hover: #ff5547; --accent-bg: rgba(255,46,31,0.12);
+  --success: #22c55e; --success-bg: rgba(34,197,94,0.10);
+  --warning: #f59e0b; --warning-bg: rgba(245,158,11,0.10);
+  --danger: #ef4444; --danger-bg: rgba(239,68,68,0.10);
+  --info: #38bdf8; --info-bg: rgba(56,189,248,0.10);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.5;
-  background: var(--bg);
-  color: var(--text);
-  -webkit-font-smoothing: antialiased;
-  font-variant-numeric: tabular-nums;
-}
+html, body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; font-size: 14px; line-height: 1.5; background: var(--bg); color: var(--text); -webkit-font-smoothing: antialiased; font-variant-numeric: tabular-nums; }
 body { min-height: 100vh; padding-bottom: 80px; }
 .app-container { max-width: 760px; margin: 0 auto; }
-.app-header {
-  position: sticky; top: 0; z-index: 50;
-  background: color-mix(in srgb, var(--bg) 92%, transparent);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border);
-  padding: 12px 16px;
-  display: flex; align-items: center; justify-content: space-between; gap: 12px;
-}
-.brand { display: flex; align-items: center; gap: 8px; }
-.brand-mark {
-  width: 28px; height: 28px;
-  background: var(--accent); border-radius: var(--radius-sm);
-  display: flex; align-items: center; justify-content: center;
-  color: white; font-weight: 700; font-size: 12px; font-family: var(--mono);
-  letter-spacing: -0.02em;
-}
-.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; }
-.header-actions { display: flex; gap: 4px; align-items: center; }
-.bottom-nav {
-  position: fixed; bottom: 0; left: 0; right: 0;
-  background: color-mix(in srgb, var(--surface) 96%, transparent);
-  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-  border-top: 1px solid var(--border);
-  display: flex; justify-content: space-around; z-index: 40;
-  padding: 6px 4px calc(6px + env(safe-area-inset-bottom));
-}
-.nav-item {
-  flex: 1; background: none; border: none;
-  display: flex; flex-direction: column; align-items: center; gap: 2px;
-  padding: 6px 4px; cursor: pointer;
-  color: var(--text-subtle); font-size: 10px; font-weight: 500;
-  letter-spacing: 0.02em; text-transform: uppercase;
-  border-radius: var(--radius-sm);
-  transition: color 150ms ease, background 150ms ease;
-  font-family: inherit;
-}
+.app-header { position: sticky; top: 0; z-index: 50; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-bottom: 1px solid var(--border); padding: 10px 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.brand { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.brand-mark { width: 28px; height: 28px; background: var(--accent); border-radius: var(--radius-sm); display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 12px; font-family: var(--mono); letter-spacing: -0.02em; flex-shrink: 0; }
+.brand-name { font-weight: 700; font-size: 15px; letter-spacing: -0.01em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.brand-sub { font-size: 11px; color: var(--text-subtle); letter-spacing: 0.02em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.header-actions { display: flex; gap: 4px; align-items: center; flex-shrink: 0; }
+.season-picker { background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text); padding: 5px 8px; border-radius: var(--radius-sm); font-size: 12px; font-family: var(--mono); font-weight: 600; cursor: pointer; }
+.season-picker:focus { outline: none; border-color: var(--accent); }
+.bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: color-mix(in srgb, var(--surface) 96%, transparent); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-top: 1px solid var(--border); display: flex; justify-content: space-around; z-index: 40; padding: 6px 4px calc(6px + env(safe-area-inset-bottom)); }
+.nav-item { flex: 1; background: none; border: none; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 4px; cursor: pointer; color: var(--text-subtle); font-size: 10px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; border-radius: var(--radius-sm); transition: color 150ms ease, background 150ms ease; font-family: inherit; }
 .nav-item svg { width: 20px; height: 20px; }
 .nav-item.active { color: var(--accent); }
 .nav-item:hover { color: var(--text); }
@@ -115,13 +59,7 @@ body { min-height: 100vh; padding-bottom: 80px; }
 .caption { font-size: 12px; font-weight: 500; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
 .muted { color: var(--text-muted); }
 .mono { font-family: var(--mono); font-size: 13px; }
-.btn-primary, .btn-secondary, .btn-ghost {
-  font-family: inherit; font-size: 13px; font-weight: 500;
-  border-radius: var(--radius-sm); cursor: pointer;
-  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
-  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
-  padding: 7px 12px;
-}
+.btn-primary, .btn-secondary, .btn-ghost { font-family: inherit; font-size: 13px; font-weight: 500; border-radius: var(--radius-sm); cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; transition: background 150ms ease, border-color 150ms ease, color 150ms ease; padding: 7px 12px; }
 .btn-primary { background: var(--accent); color: white; border: 1px solid var(--accent); }
 .btn-primary:hover { background: var(--accent-hover); border-color: var(--accent-hover); }
 .btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border-strong); }
@@ -132,21 +70,9 @@ body { min-height: 100vh; padding-bottom: 80px; }
 .btn-icon svg { width: 16px; height: 16px; }
 button:disabled { opacity: 0.5; cursor: not-allowed; }
 button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-.input, select.input {
-  background: var(--surface-2);
-  border: 1px solid var(--border-strong);
-  color: var(--text);
-  padding: 7px 10px;
-  border-radius: var(--radius-sm);
-  font-size: 13px; font-family: inherit; width: 100%;
-}
+.input, select.input { background: var(--surface-2); border: 1px solid var(--border-strong); color: var(--text); padding: 7px 10px; border-radius: var(--radius-sm); font-size: 13px; font-family: inherit; width: 100%; }
 .input:focus { outline: none; border-color: var(--accent); background: var(--surface); }
-.card {
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-md);
-  padding: 16px;
-}
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; }
 .card + .card { margin-top: 12px; }
 .badge { display: inline-flex; align-items: center; gap: 4px; padding: 2px 8px; border-radius: 10px; font-size: 11px; font-weight: 500; }
 .badge-success { background: var(--success-bg); color: var(--success); }
@@ -155,16 +81,9 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .badge-info { background: var(--info-bg); color: var(--info); }
 .badge-neutral { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
 .badge-accent { background: var(--accent-bg); color: var(--accent); }
-.live-dot { display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: var(--danger); animation: pulse 1.4s ease-in-out infinite; }
-@keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.8); } }
-.hero-card {
-  background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius-md); padding: 16px; position: relative; overflow: hidden;
-}
-.hero-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-  background: var(--accent);
-}
+.season-chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 10px; border-radius: 12px; font-size: 11px; font-weight: 600; background: var(--accent-bg); color: var(--accent); border: 1px solid var(--accent); font-family: var(--mono); }
+.hero-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; position: relative; overflow: hidden; }
+.hero-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--accent); }
 .hero-eyebrow { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; flex-wrap: wrap; gap: 6px; }
 .hero-title { font-size: 22px; font-weight: 700; letter-spacing: -0.01em; margin-bottom: 2px; }
 .hero-sub { font-size: 13px; color: var(--text-muted); margin-bottom: 16px; }
@@ -172,13 +91,7 @@ button:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .count-cell { background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); padding: 10px 8px; text-align: center; }
 .count-num { font-family: var(--mono); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; }
 .count-label { font-size: 10px; text-transform: uppercase; color: var(--text-subtle); letter-spacing: 0.06em; margin-top: 2px; }
-.session-row {
-  display: grid; grid-template-columns: 1fr auto auto;
-  align-items: center; gap: 12px;
-  padding: 10px 12px; border: 1px solid var(--border);
-  border-radius: var(--radius-sm); background: var(--surface);
-  cursor: pointer; transition: background 150ms ease;
-}
+.session-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 12px; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); cursor: pointer; transition: background 150ms ease; }
 .session-row:hover { background: var(--surface-2); }
 .session-name { font-weight: 500; font-size: 13px; }
 .session-date { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
@@ -195,9 +108,9 @@ tbody tr:hover { background: var(--surface-2); }
 tbody tr:last-child td { border-bottom: none; }
 .numeric { text-align: right; font-family: var(--mono); }
 .pos { display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--radius-sm); font-family: var(--mono); font-size: 12px; font-weight: 600; }
-.pos.p1 { background: rgba(234, 179, 8, 0.12); color: #d4a017; border-color: rgba(234, 179, 8, 0.3); }
-.pos.p2 { background: rgba(161, 161, 170, 0.18); color: var(--text); }
-.pos.p3 { background: rgba(180, 100, 50, 0.15); color: #c97a3a; border-color: rgba(180, 100, 50, 0.3); }
+.pos.p1 { background: rgba(234,179,8,0.12); color: #d4a017; border-color: rgba(234,179,8,0.3); }
+.pos.p2 { background: rgba(161,161,170,0.18); color: var(--text); }
+.pos.p3 { background: rgba(180,100,50,0.15); color: #c97a3a; border-color: rgba(180,100,50,0.3); }
 .team-strip { display: inline-block; width: 3px; height: 14px; border-radius: 1px; margin-right: 8px; vertical-align: middle; background: var(--text-subtle); }
 .tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--border); margin-bottom: 16px; overflow-x: auto; scrollbar-width: none; }
 .tabs::-webkit-scrollbar { display: none; }
@@ -209,7 +122,7 @@ tbody tr:last-child td { border-bottom: none; }
 .section-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
 .section-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); }
 .modal-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 10000; padding: 16px; animation: fadeIn 150ms ease; }
-.modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 20px; max-width: 560px; width: 100%; max-height: 90vh; overflow-y: auto; }
+.modal { background: var(--surface); border: 1px solid var(--border-strong); border-radius: var(--radius-md); padding: 20px; max-width: 600px; width: 100%; max-height: 90vh; overflow-y: auto; }
 .modal-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 12px; }
 .modal-title { font-size: 16px; font-weight: 600; }
 .toast-container { position: fixed; top: 16px; right: 16px; left: 16px; z-index: 10100; display: flex; flex-direction: column; gap: 8px; pointer-events: none; }
@@ -237,7 +150,6 @@ tbody tr:last-child td { border-bottom: none; }
 .feed-cat { font-size: 11px; font-weight: 600; color: var(--accent); text-transform: uppercase; letter-spacing: 0.06em; }
 .feed-title { font-size: 14px; font-weight: 500; margin: 4px 0; line-height: 1.4; }
 .feed-body { font-size: 13px; color: var(--text-muted); line-height: 1.5; }
-.feed-meta { font-size: 11px; color: var(--text-subtle); margin-top: 6px; display: flex; gap: 12px; align-items: center; }
 .detail-list { display: flex; flex-direction: column; gap: 8px; }
 .detail-row { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
 .detail-row .k { color: var(--text-muted); }
@@ -248,13 +160,10 @@ tbody tr:last-child td { border-bottom: none; }
 .spinner { width: 14px; height: 14px; border: 2px solid var(--border-strong); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.8s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 .driver-avatar { width: 44px; height: 44px; border-radius: 50%; background: var(--surface-2); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 13px; flex-shrink: 0; overflow: hidden; }
-.driver-avatar img { width: 100%; height: 100%; object-fit: cover; }
 .driver-card { display: grid; grid-template-columns: 56px 1fr auto; gap: 12px; align-items: center; padding: 12px; border-bottom: 1px solid var(--border); cursor: pointer; transition: background 100ms ease; }
 .driver-card:hover { background: var(--surface-2); }
 .driver-card:last-child { border-bottom: none; }
-.car-img { width: 100%; aspect-ratio: 16/9; object-fit: cover; border-radius: var(--radius-sm); background: var(--surface-2); border: 1px solid var(--border); }
-.driver-portrait { width: 88px; height: 88px; border-radius: 50%; background: var(--surface-2); border: 3px solid var(--accent); object-fit: cover; flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 22px; }
-.driver-portrait img { width: 100%; height: 100%; object-fit: cover; }
+.driver-portrait { width: 88px; height: 88px; border-radius: 50%; background: var(--surface-2); border: 3px solid var(--accent); flex-shrink: 0; overflow: hidden; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-weight: 700; font-size: 22px; }
 .social-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; }
 .social-btn { display: inline-flex; align-items: center; gap: 4px; padding: 4px 8px; border-radius: var(--radius-sm); border: 1px solid var(--border); background: var(--surface-2); color: var(--text-muted); font-size: 11px; font-weight: 500; text-decoration: none; transition: all 150ms ease; }
 .social-btn:hover { background: var(--accent-bg); color: var(--accent); border-color: var(--accent); }
@@ -281,7 +190,6 @@ tbody tr:last-child td { border-bottom: none; }
 .trivia-opt.correct { background: var(--success-bg); border-color: var(--success); color: var(--success); font-weight: 500; }
 .trivia-opt.wrong { background: var(--danger-bg); border-color: var(--danger); color: var(--danger); }
 .trivia-opt:disabled { cursor: not-allowed; }
-.prediction-card { padding: 12px; border: 1px solid var(--border); border-radius: var(--radius-sm); margin-bottom: 8px; background: var(--surface); }
 .prediction-driver { display: flex; align-items: center; gap: 8px; padding: 6px 0; }
 .confidence-bar { flex: 1; height: 4px; background: var(--surface-2); border-radius: 2px; overflow: hidden; }
 .confidence-fill { height: 100%; background: var(--accent); }
@@ -292,13 +200,29 @@ tbody tr:last-child td { border-bottom: none; }
 .chip { padding: 4px 10px; background: var(--surface-2); border: 1px solid var(--border); border-radius: 12px; font-size: 12px; cursor: pointer; transition: all 150ms ease; }
 .chip:hover { background: var(--accent-bg); border-color: var(--accent); color: var(--accent); }
 .chip.active { background: var(--accent); color: white; border-color: var(--accent); }
-.flag { display: inline-block; width: 18px; height: 13px; vertical-align: middle; margin-right: 6px; border-radius: 2px; font-size: 13px; line-height: 13px; }
+.flag { display: inline-block; vertical-align: middle; margin-right: 6px; font-size: 13px; line-height: 1; }
+.career-chart { display: grid; gap: 2px; padding: 12px 0; }
+.career-row { display: grid; grid-template-columns: 52px 1fr 60px 40px; gap: 8px; align-items: center; font-size: 12px; padding: 4px 0; cursor: pointer; }
+.career-row:hover { background: var(--surface-2); }
+.career-year { font-family: var(--mono); font-weight: 600; color: var(--text-muted); }
+.career-bar-track { background: var(--surface-2); height: 14px; border-radius: 2px; position: relative; overflow: hidden; }
+.career-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width 300ms ease; }
+.career-bar-fill.champ { background: linear-gradient(90deg, #d4a017, #f5c042); }
+.career-pos { font-family: var(--mono); font-weight: 600; text-align: right; font-size: 12px; }
+.career-pts { font-family: var(--mono); font-size: 11px; color: var(--text-muted); text-align: right; }
+.timeline-spark { display: flex; gap: 2px; align-items: flex-end; height: 36px; padding: 4px 0; }
+.spark-bar { flex: 1; background: var(--accent); border-radius: 1px 1px 0 0; min-height: 2px; position: relative; opacity: 0.7; transition: opacity 150ms ease; }
+.spark-bar:hover { opacity: 1; }
+.spark-bar.champ { background: #d4a017; }
+.legend-bar { display: flex; gap: 12px; font-size: 11px; color: var(--text-muted); padding-top: 6px; flex-wrap: wrap; }
+.legend-bar .lg-sw { display: inline-block; width: 10px; height: 10px; border-radius: 2px; margin-right: 4px; vertical-align: middle; }
 @media (max-width: 480px) {
   .kpi-grid { gap: 8px; }
   .kpi { padding: 10px; }
   .kpi-value { font-size: 18px; }
   .page { padding: 12px; }
   .map-container { height: 320px; }
+  .brand-name { font-size: 14px; }
 }
 </style>
 </head>
@@ -336,12 +260,13 @@ tbody tr:last-child td { border-bottom: none; }
   <header class="app-header">
     <div class="brand">
       <div class="brand-mark">F1</div>
-      <div>
+      <div style="min-width:0">
         <div class="brand-name" id="page-title">Fan Hub</div>
-        <div style="font-size: 11px; color: var(--text-subtle); letter-spacing: 0.02em;" id="page-sub">Loading…</div>
+        <div class="brand-sub" id="page-sub">Loading…</div>
       </div>
     </div>
     <div class="header-actions">
+      <select class="season-picker" id="season-picker" title="Select season" aria-label="Season"><option>…</option></select>
       <button class="btn-ghost btn-icon" id="refresh-btn" title="Refresh data" aria-label="Refresh">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-3-6.7L21 8M21 3v5h-5"/></svg>
       </button>
@@ -354,6 +279,7 @@ tbody tr:last-child td { border-bottom: none; }
   <main class="page active" id="page-home"></main>
   <main class="page" id="page-timeline"></main>
   <main class="page" id="page-stats"></main>
+  <main class="page" id="page-history"></main>
   <main class="page" id="page-map"></main>
   <main class="page" id="page-fun"></main>
   <main class="page" id="page-more"></main>
@@ -371,6 +297,10 @@ tbody tr:last-child td { border-bottom: none; }
   <button class="nav-item" data-page="stats">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg>
     Stats
+  </button>
+  <button class="nav-item" data-page="history">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 2M3.05 11a9 9 0 1 1 .5 4M3 4v5h5"/></svg>
+    History
   </button>
   <button class="nav-item" data-page="map">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
@@ -400,92 +330,67 @@ const state = {
   page: 'home',
   statsTab: 'drivers',
   funTab: 'trivia',
+  historyTab: 'drivers',
   mapMode: 'all',
   loading: true,
   error: null,
-  data: null,
+  currentSeason: null,
+  selectedSeason: null,
+  availableSeasons: [],
+  seasons: {},
   lastUpdated: null,
   favDriver: null,
   favTeam: null,
   compareA: null,
   compareB: null,
+  compareMode: 'season',
+  compareTeamA: null,
+  compareTeamB: null,
+  historyDriverA: null,
+  historyDriverB: null,
+  historyTeamA: null,
+  historyTeamB: null,
   triviaIdx: 0,
   triviaScore: 0,
   triviaAnswered: false,
   mapInstance: null,
+  careerCache: {},
+  teamHistoryCache: {},
 };
 
-// Team metadata: colors, HQ locations, social links
+function currentSeasonData(){ return state.seasons[state.selectedSeason] || null; }
+function isCurrentSeasonSelected(){ return state.selectedSeason === state.currentSeason; }
+
 const TEAMS = {
-  'red_bull': {
-    color: '#3671C6', name: 'Red Bull Racing', hq: [52.0118, -1.1467], hqCity: 'Milton Keynes, UK',
-    twitter: 'redbullracing', instagram: 'redbullracing', tiktok: '@redbullracing',
-    facebook: 'redbullracing', youtube: 'redbullracing', website: 'redbullracing.com',
-    engine: 'Honda RBPT', founded: 2005,
-  },
-  'mclaren': {
-    color: '#FF8000', name: 'McLaren', hq: [51.3461, -0.5450], hqCity: 'Woking, UK',
-    twitter: 'mclarenf1', instagram: 'mclaren', tiktok: '@mclaren',
-    facebook: 'mclarenracing', youtube: 'mclaren', website: 'mclaren.com',
-    engine: 'Mercedes', founded: 1963,
-  },
-  'ferrari': {
-    color: '#E8002D', name: 'Scuderia Ferrari', hq: [44.5331, 10.8644], hqCity: 'Maranello, Italy',
-    twitter: 'scuderiaferrari', instagram: 'scuderiaferrari', tiktok: '@scuderiaferrari',
-    facebook: 'ScuderiaFerrari', youtube: 'Ferrari', website: 'ferrari.com',
-    engine: 'Ferrari', founded: 1929,
-  },
-  'mercedes': {
-    color: '#27F4D2', name: 'Mercedes-AMG', hq: [52.0758, -1.0260], hqCity: 'Brackley, UK',
-    twitter: 'MercedesAMGF1', instagram: 'mercedesamgf1', tiktok: '@mercedesamgf1',
-    facebook: 'MercedesAMGF1', youtube: 'MercedesAMGF1', website: 'mercedesamgf1.com',
-    engine: 'Mercedes', founded: 2010,
-  },
-  'aston_martin': {
-    color: '#229971', name: 'Aston Martin', hq: [52.0726, -1.0150], hqCity: 'Silverstone, UK',
-    twitter: 'AstonMartinF1', instagram: 'astonmartinf1', tiktok: '@astonmartinf1',
-    facebook: 'AstonMartinF1', youtube: 'AstonMartinF1', website: 'astonmartinf1.com',
-    engine: 'Mercedes', founded: 2021,
-  },
-  'alpine': {
-    color: '#FF87BC', name: 'Alpine', hq: [48.9742, 2.2125], hqCity: 'Enstone, UK',
-    twitter: 'AlpineF1Team', instagram: 'alpinef1team', tiktok: '@alpinef1team',
-    facebook: 'AlpineF1Team', youtube: 'AlpineCars', website: 'alpinecars.com',
-    engine: 'Renault', founded: 2021,
-  },
-  'williams': {
-    color: '#64C4FF', name: 'Williams', hq: [51.6105, -1.4255], hqCity: 'Grove, UK',
-    twitter: 'WilliamsRacing', instagram: 'williamsracing', tiktok: '@williamsracing',
-    facebook: 'WilliamsRacing', youtube: 'WilliamsF1', website: 'williamsf1.com',
-    engine: 'Mercedes', founded: 1977,
-  },
-  'rb': {
-    color: '#6692FF', name: 'RB / Visa Cash App RB', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy',
-    twitter: 'visacashapprb', instagram: 'visacashapprb', tiktok: '@visacashapprb',
-    facebook: 'visacashapprb', youtube: 'visacashapprb', website: 'visacashapprb.com',
-    engine: 'Honda RBPT', founded: 2024,
-  },
-  'alphatauri': {
-    color: '#6692FF', name: 'AlphaTauri', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy',
-    twitter: 'visacashapprb', instagram: 'visacashapprb', tiktok: '@visacashapprb',
-    facebook: 'visacashapprb', youtube: 'visacashapprb', website: 'visacashapprb.com',
-    engine: 'Honda RBPT', founded: 2006,
-  },
-  'sauber': {
-    color: '#52E252', name: 'Kick Sauber', hq: [47.2627, 8.5680], hqCity: 'Hinwil, Switzerland',
-    twitter: 'stakef1team_ks', instagram: 'stakef1team_kicksauber', tiktok: '@stakef1team_kicksauber',
-    facebook: 'stakef1team', youtube: 'stakef1team', website: 'sauber-group.com',
-    engine: 'Ferrari', founded: 1993,
-  },
-  'haas': {
-    color: '#B6BABD', name: 'Haas F1 Team', hq: [35.4836, -80.8520], hqCity: 'Kannapolis, USA',
-    twitter: 'HaasF1Team', instagram: 'haasf1team', tiktok: '@haasf1team',
-    facebook: 'HaasF1Team', youtube: 'HaasF1Team', website: 'haasf1team.com',
-    engine: 'Ferrari', founded: 2016,
-  },
+  'red_bull': { color: '#3671C6', name: 'Red Bull Racing', hq: [52.0118, -1.1467], hqCity: 'Milton Keynes, UK', twitter: 'redbullracing', instagram: 'redbullracing', tiktok: '@redbullracing', facebook: 'redbullracing', youtube: 'redbullracing', website: 'redbullracing.com', engine: 'Honda RBPT', founded: 2005 },
+  'mclaren': { color: '#FF8000', name: 'McLaren', hq: [51.3461, -0.5450], hqCity: 'Woking, UK', twitter: 'mclarenf1', instagram: 'mclaren', tiktok: '@mclaren', facebook: 'mclarenracing', youtube: 'mclaren', website: 'mclaren.com', engine: 'Mercedes', founded: 1963 },
+  'ferrari': { color: '#E8002D', name: 'Scuderia Ferrari', hq: [44.5331, 10.8644], hqCity: 'Maranello, Italy', twitter: 'scuderiaferrari', instagram: 'scuderiaferrari', tiktok: '@scuderiaferrari', facebook: 'ScuderiaFerrari', youtube: 'Ferrari', website: 'ferrari.com', engine: 'Ferrari', founded: 1929 },
+  'mercedes': { color: '#27F4D2', name: 'Mercedes-AMG', hq: [52.0758, -1.0260], hqCity: 'Brackley, UK', twitter: 'MercedesAMGF1', instagram: 'mercedesamgf1', tiktok: '@mercedesamgf1', facebook: 'MercedesAMGF1', youtube: 'MercedesAMGF1', website: 'mercedesamgf1.com', engine: 'Mercedes', founded: 2010 },
+  'aston_martin': { color: '#229971', name: 'Aston Martin', hq: [52.0726, -1.0150], hqCity: 'Silverstone, UK', twitter: 'AstonMartinF1', instagram: 'astonmartinf1', tiktok: '@astonmartinf1', facebook: 'AstonMartinF1', youtube: 'AstonMartinF1', website: 'astonmartinf1.com', engine: 'Mercedes', founded: 2021 },
+  'alpine': { color: '#FF87BC', name: 'Alpine', hq: [48.9742, 2.2125], hqCity: 'Enstone, UK', twitter: 'AlpineF1Team', instagram: 'alpinef1team', tiktok: '@alpinef1team', facebook: 'AlpineF1Team', youtube: 'AlpineCars', website: 'alpinecars.com', engine: 'Renault', founded: 2021 },
+  'williams': { color: '#64C4FF', name: 'Williams', hq: [51.6105, -1.4255], hqCity: 'Grove, UK', twitter: 'WilliamsRacing', instagram: 'williamsracing', tiktok: '@williamsracing', facebook: 'WilliamsRacing', youtube: 'WilliamsF1', website: 'williamsf1.com', engine: 'Mercedes', founded: 1977 },
+  'rb': { color: '#6692FF', name: 'RB / Visa Cash App RB', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy', twitter: 'visacashapprb', instagram: 'visacashapprb', tiktok: '@visacashapprb', facebook: 'visacashapprb', youtube: 'visacashapprb', website: 'visacashapprb.com', engine: 'Honda RBPT', founded: 2024 },
+  'alphatauri': { color: '#6692FF', name: 'AlphaTauri', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy', twitter: 'visacashapprb', instagram: 'visacashapprb', tiktok: '@visacashapprb', facebook: 'visacashapprb', youtube: 'visacashapprb', website: 'visacashapprb.com', engine: 'Honda RBPT', founded: 2006 },
+  'toro_rosso': { color: '#6692FF', name: 'Toro Rosso', hq: [45.6147, 11.5478], hqCity: 'Faenza, Italy', engine: 'Honda', founded: 2006 },
+  'sauber': { color: '#52E252', name: 'Kick Sauber', hq: [47.2627, 8.5680], hqCity: 'Hinwil, Switzerland', twitter: 'stakef1team_ks', instagram: 'stakef1team_kicksauber', tiktok: '@stakef1team_kicksauber', facebook: 'stakef1team', youtube: 'stakef1team', website: 'sauber-group.com', engine: 'Ferrari', founded: 1993 },
+  'alfa': { color: '#900000', name: 'Alfa Romeo', hq: [47.2627, 8.5680], hqCity: 'Hinwil, Switzerland', engine: 'Ferrari', founded: 2019 },
+  'haas': { color: '#B6BABD', name: 'Haas F1 Team', hq: [35.4836, -80.8520], hqCity: 'Kannapolis, USA', twitter: 'HaasF1Team', instagram: 'haasf1team', tiktok: '@haasf1team', facebook: 'HaasF1Team', youtube: 'HaasF1Team', website: 'haasf1team.com', engine: 'Ferrari', founded: 2016 },
+  'renault': { color: '#FFF500', name: 'Renault', hq: [48.9742, 2.2125], hqCity: 'Enstone, UK', engine: 'Renault', founded: 1977 },
+  'force_india': { color: '#F596C8', name: 'Force India', hq: [52.0762, -1.0263], hqCity: 'Silverstone, UK', engine: 'Mercedes', founded: 2008 },
+  'racing_point': { color: '#F596C8', name: 'Racing Point', hq: [52.0762, -1.0263], hqCity: 'Silverstone, UK', engine: 'Mercedes', founded: 2018 },
+  'lotus_f1': { color: '#FFB800', name: 'Lotus F1', engine: 'Renault', founded: 2012 },
+  'brawn': { color: '#B8FB3C', name: 'Brawn GP', engine: 'Mercedes', founded: 2009 },
+  'honda': { color: '#FFFFFF', name: 'Honda', engine: 'Honda', founded: 1964 },
+  'bmw_sauber': { color: '#293A8C', name: 'BMW Sauber', engine: 'BMW', founded: 2006 },
+  'toyota': { color: '#CC0000', name: 'Toyota', engine: 'Toyota', founded: 2002 },
+  'jaguar': { color: '#0B5C36', name: 'Jaguar', engine: 'Ford', founded: 2000 },
+  'jordan': { color: '#FFE500', name: 'Jordan', engine: 'Various', founded: 1991 },
+  'benetton': { color: '#00B65F', name: 'Benetton', engine: 'Various', founded: 1986 },
+  'tyrrell': { color: '#0090D0', name: 'Tyrrell', engine: 'Various', founded: 1970 },
+  'lotus-racing': { color: '#FFB800', name: 'Lotus Racing', engine: 'Various', founded: 1958 },
+  'team_lotus': { color: '#FFB800', name: 'Team Lotus', engine: 'Various', founded: 1958 },
 };
 
-// Driver image slugs (formula1.com URL slugs)
 const DRIVER_INFO = {
   'max_verstappen': { slug: 'max-verstappen', twitter: 'Max33Verstappen', instagram: 'maxverstappen1' },
   'norris': { slug: 'lando-norris', twitter: 'LandoNorris', instagram: 'landonorris' },
@@ -500,8 +405,6 @@ const DRIVER_INFO = {
   'gasly': { slug: 'pierre-gasly', twitter: 'PierreGASLY', instagram: 'pierregasly' },
   'ocon': { slug: 'esteban-ocon', twitter: 'OconEsteban', instagram: 'estebanocon' },
   'albon': { slug: 'alexander-albon', twitter: 'alex_albon', instagram: 'alex_albon' },
-  'sargeant': { slug: 'logan-sargeant', twitter: 'LoganSargeant', instagram: 'logansargeant' },
-  'colapinto': { slug: 'franco-colapinto', twitter: 'FranColapinto', instagram: 'francolapinto' },
   'tsunoda': { slug: 'yuki-tsunoda', twitter: 'yukitsunoda07', instagram: 'yukitsunoda0511' },
   'ricciardo': { slug: 'daniel-ricciardo', twitter: 'danielricciardo', instagram: 'danielricciardo' },
   'lawson': { slug: 'liam-lawson', twitter: 'LiamLawson30', instagram: 'liamlawson' },
@@ -512,58 +415,35 @@ const DRIVER_INFO = {
   'bearman': { slug: 'oliver-bearman', twitter: 'OliverBearman', instagram: 'oliverbearman' },
   'doohan': { slug: 'jack-doohan', twitter: 'JackDoohan', instagram: 'jackdoohan' },
   'antonelli': { slug: 'andrea-kimi-antonelli', twitter: 'kimi_antonelli', instagram: 'kimi.antonelli' },
+  'colapinto': { slug: 'franco-colapinto', twitter: 'FranColapinto', instagram: 'francolapinto' },
+  'sargeant': { slug: 'logan-sargeant', twitter: 'LoganSargeant', instagram: 'logansargeant' },
 };
 
-function driverInfo(d){
-  return DRIVER_INFO[d.driverId] || { slug: (d.givenName + '-' + d.familyName).toLowerCase().replace(/\s+/g, '-') };
-}
+function driverInfo(d){ return DRIVER_INFO[d.driverId] || { slug: ((d.givenName||'')+'-'+(d.familyName||'')).toLowerCase().replace(/\s+/g,'-') }; }
 function driverF1Url(d){ return `https://www.formula1.com/en/drivers/${driverInfo(d).slug}`; }
 function teamData(id){ return TEAMS[id] || { color: 'var(--text-subtle)', name: id }; }
-function teamColor(id){ return (TEAMS[id] && TEAMS[id].color) || 'var(--text-subtle)'; }
+function teamColor(id){ return (TEAMS[id] && TEAMS[id].color) || '#999'; }
 
 const FLAG = {
-  'British': '🇬🇧', 'Dutch': '🇳🇱', 'Monegasque': '🇲🇨', 'Australian': '🇦🇺', 'Spanish': '🇪🇸',
-  'German': '🇩🇪', 'Mexican': '🇲🇽', 'French': '🇫🇷', 'Thai': '🇹🇭', 'American': '🇺🇸',
-  'Canadian': '🇨🇦', 'Japanese': '🇯🇵', 'Finnish': '🇫🇮', 'Chinese': '🇨🇳', 'Danish': '🇩🇰',
-  'Italian': '🇮🇹', 'Argentine': '🇦🇷', 'New Zealander': '🇳🇿',
-  'UK': '🇬🇧', 'Italy': '🇮🇹', 'USA': '🇺🇸', 'Switzerland': '🇨🇭', 'Australia': '🇦🇺',
-  'Bahrain': '🇧🇭', 'Saudi Arabia': '🇸🇦', 'Japan': '🇯🇵', 'China': '🇨🇳', 'Azerbaijan': '🇦🇿',
-  'Monaco': '🇲🇨', 'Canada': '🇨🇦', 'Spain': '🇪🇸', 'Austria': '🇦🇹', 'Hungary': '🇭🇺',
-  'Belgium': '🇧🇪', 'Netherlands': '🇳🇱', 'Singapore': '🇸🇬', 'Mexico': '🇲🇽', 'Brazil': '🇧🇷',
-  'Qatar': '🇶🇦', 'UAE': '🇦🇪', 'United Arab Emirates': '🇦🇪', 'United States': '🇺🇸',
-  'United Kingdom': '🇬🇧', 'France': '🇫🇷', 'Germany': '🇩🇪', 'Portugal': '🇵🇹', 'Russia': '🇷🇺',
-  'Turkey': '🇹🇷', 'South Africa': '🇿🇦', 'Korea': '🇰🇷', 'India': '🇮🇳',
+  'British':'🇬🇧','Dutch':'🇳🇱','Monegasque':'🇲🇨','Australian':'🇦🇺','Spanish':'🇪🇸','German':'🇩🇪','Mexican':'🇲🇽','French':'🇫🇷','Thai':'🇹🇭','American':'🇺🇸','Canadian':'🇨🇦','Japanese':'🇯🇵','Finnish':'🇫🇮','Chinese':'🇨🇳','Danish':'🇩🇰','Italian':'🇮🇹','Argentine':'🇦🇷','New Zealander':'🇳🇿','Austrian':'🇦🇹','Brazilian':'🇧🇷','Belgian':'🇧🇪','Swedish':'🇸🇪','Polish':'🇵🇱','Russian':'🇷🇺','Swiss':'🇨🇭','Colombian':'🇨🇴','Venezuelan':'🇻🇪','Indian':'🇮🇳','Indonesian':'🇮🇩','South African':'🇿🇦','Portuguese':'🇵🇹','Hungarian':'🇭🇺','Czech':'🇨🇿','Liechtensteiner':'🇱🇮','Irish':'🇮🇪','Argentinian':'🇦🇷',
+  'UK':'🇬🇧','Italy':'🇮🇹','USA':'🇺🇸','Switzerland':'🇨🇭','Australia':'🇦🇺','Bahrain':'🇧🇭','Saudi Arabia':'🇸🇦','Japan':'🇯🇵','China':'🇨🇳','Azerbaijan':'🇦🇿','Monaco':'🇲🇨','Canada':'🇨🇦','Spain':'🇪🇸','Austria':'🇦🇹','Hungary':'🇭🇺','Belgium':'🇧🇪','Netherlands':'🇳🇱','Singapore':'🇸🇬','Mexico':'🇲🇽','Brazil':'🇧🇷','Qatar':'🇶🇦','UAE':'🇦🇪','United Arab Emirates':'🇦🇪','United States':'🇺🇸','United Kingdom':'🇬🇧','France':'🇫🇷','Germany':'🇩🇪','Portugal':'🇵🇹','Russia':'🇷🇺','Turkey':'🇹🇷','South Africa':'🇿🇦','Korea':'🇰🇷','India':'🇮🇳','Malaysia':'🇲🇾','Argentina':'🇦🇷','Sweden':'🇸🇪','Morocco':'🇲🇦',
 };
 function flag(s){ return FLAG[s] ? `<span class="flag">${FLAG[s]}</span>` : ''; }
 
-const $ = (s, p) => (p || document).querySelector(s);
-const $$ = (s, p) => Array.from((p || document).querySelectorAll(s));
+const $ = (s,p)=>(p||document).querySelector(s);
+const $$ = (s,p)=>Array.from((p||document).querySelectorAll(s));
 
-function fmtDate(d){ return d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }); }
-function fmtTime(d){ return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }); }
-function fmtTz(){ const o = -new Date().getTimezoneOffset()/60; return `UTC${o>=0?'+':''}${o}`; }
-function relativeTime(date){
-  const diff = date.getTime() - Date.now();
-  const abs = Math.abs(diff)/1000;
-  if (abs < 60) return diff > 0 ? 'in <1m' : 'just now';
-  const m = Math.floor(abs/60); if (m < 60) return diff > 0 ? `in ${m}m` : `${m}m ago`;
-  const h = Math.floor(m/60); if (h < 48) return diff > 0 ? `in ${h}h` : `${h}h ago`;
-  const d = Math.floor(h/24); if (d < 30) return diff > 0 ? `in ${d}d` : `${d}d ago`;
-  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-}
-function raceDate(r){ const t = r.time || '00:00:00Z'; return new Date(r.date + 'T' + (t.endsWith('Z') ? t : t + 'Z')); }
+function fmtDate(d){ return d.toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+function fmtTime(d){ return d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'}); }
+function fmtTz(){ const o=-new Date().getTimezoneOffset()/60; return `UTC${o>=0?'+':''}${o}`; }
+function relativeTime(date){ const diff=date.getTime()-Date.now(); const abs=Math.abs(diff)/1000; if(abs<60)return diff>0?'in <1m':'just now'; const m=Math.floor(abs/60); if(m<60)return diff>0?`in ${m}m`:`${m}m ago`; const h=Math.floor(m/60); if(h<48)return diff>0?`in ${h}h`:`${h}h ago`; const d=Math.floor(h/24); if(d<30)return diff>0?`in ${d}d`:`${d}d ago`; return date.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function raceDate(r){ const t=r.time||'00:00:00Z'; return new Date(r.date+'T'+(t.endsWith('Z')?t:t+'Z')); }
 function teamStrip(id){ return `<span class="team-strip" style="background:${teamColor(id)}"></span>`; }
-function posBadge(p){ return `<span class="pos p${p<=3?p:''}">${p}</span>`; }
-function driverInitials(d){ return (d.givenName[0] + d.familyName[0]).toUpperCase(); }
+function posBadge(p){ const n=parseInt(p); return `<span class="pos p${n<=3?n:''}">${p}</span>`; }
+function driverInitials(d){ return ((d.givenName||'?')[0]+(d.familyName||'?')[0]).toUpperCase(); }
+function driverAvatar(d,size){ size=size||44; const initials=driverInitials(d); return `<div class="driver-avatar" style="width:${size}px;height:${size}px"><span style="font-size:${Math.round(size*0.32)}px">${initials}</span></div>`; }
 
-function driverAvatar(d, size){
-  size = size || 44;
-  const info = driverInfo(d);
-  const initials = driverInitials(d);
-  return `<div class="driver-avatar" style="width:${size}px;height:${size}px"><span style="font-size:${size*0.32}px">${initials}</span></div>`;
-}
-
-/* =================== TOASTS =================== */
+/* TOASTS */
 function toast(msg, kind){
   kind = kind || 'info';
   const container = $('#toasts');
@@ -571,12 +451,12 @@ function toast(msg, kind){
   el.className = 'toast ' + kind;
   const icon = kind === 'success' ? '✓' : kind === 'error' ? '!' : 'i';
   const col = kind === 'success' ? 'success' : kind === 'error' ? 'danger' : 'info';
-  el.innerHTML = `<span style="font-family:var(--mono); font-weight:600; color: var(--${col})">${icon}</span> <span>${msg}</span>`;
+  el.innerHTML = `<span style="font-family:var(--mono);font-weight:600;color:var(--${col})">${icon}</span> <span>${msg}</span>`;
   container.appendChild(el);
-  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(-4px)'; el.style.transition='all 200ms ease'; setTimeout(()=>el.remove(), 220); }, 4000);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(-4px)'; el.style.transition='all 200ms ease'; setTimeout(()=>el.remove(),220); }, 4000);
 }
 
-/* =================== THEME =================== */
+/* THEME */
 function applyTheme(){
   document.documentElement.dataset.theme = state.theme;
   const sun = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>';
@@ -585,20 +465,33 @@ function applyTheme(){
 }
 function toggleTheme(){ state.theme = state.theme === 'dark' ? 'light' : 'dark'; applyTheme(); state.mapInstance = null; render(); }
 
-/* =================== ROUTING =================== */
+/* ROUTING */
 function navigate(page){
   state.page = page;
   $$('.nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
   $$('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
-  const titles = { home: 'Fan Hub', timeline: 'Race Weekends', stats: 'Statistics', map: 'World Map', fun: 'Fan Zone', more: 'More' };
-  $('#page-title').textContent = titles[page];
-  const seasonLabel = state.data ? `${state.data.season} Season` : 'Loading…';
-  const subs = { home: seasonLabel, timeline: `${state.data ? state.data.season : ''} Calendar`, stats: seasonLabel, map: 'Circuits & HQ locations', fun: 'Trivia · Predictions · Compare', more: 'Settings & tools' };
-  $('#page-sub').textContent = subs[page];
+  updateTitleBar();
   render();
 }
 
-/* =================== MODAL =================== */
+function updateTitleBar(){
+  const titles = { home: 'Fan Hub', timeline: 'Race Weekends', stats: 'Statistics', history: 'History', map: 'World Map', fun: 'Fan Zone', more: 'More' };
+  $('#page-title').textContent = titles[state.page] || 'Fan Hub';
+  const s = state.selectedSeason || '…';
+  const isLive = isCurrentSeasonSelected();
+  const subs = {
+    home: `${s} Season${isLive ? ' · Live' : ' · Archive'}`,
+    timeline: `${s} Calendar`,
+    stats: `${s} Standings`,
+    history: 'All-time · 1950–present',
+    map: 'Circuits & HQ locations',
+    fun: 'Trivia · Predictions · Compare',
+    more: 'Settings & tools',
+  };
+  $('#page-sub').textContent = subs[state.page] || '';
+}
+
+/* MODAL */
 function showModal(html){
   const root = $('#modal-root');
   root.innerHTML = `<div class="modal-backdrop" id="modal-bd"><div class="modal" role="dialog" aria-modal="true">${html}</div></div>`;
@@ -608,52 +501,107 @@ function showModal(html){
 function closeModal(){ $('#modal-root').innerHTML = ''; document.removeEventListener('keydown', escClose); }
 function escClose(e){ if (e.key === 'Escape') closeModal(); }
 
-/* =================== DATA FETCH =================== */
+/* DATA FETCH */
 async function fetchJson(path){
   const resp = await fetch(`${API_BASE}/${path}`, { headers: { 'Accept': 'application/json' } });
   if (!resp.ok) throw new Error(`HTTP ${resp.status} on ${path}`);
   return resp.json();
 }
-async function loadData(){
-  state.loading = true; state.error = null; render();
+
+async function loadSeasonsList(){
   try {
-    const [schedule, dStandings, cStandings, lastResults, lastQuali] = await Promise.all([
-      fetchJson('current.json'),
-      fetchJson('current/driverStandings.json'),
-      fetchJson('current/constructorStandings.json'),
-      fetchJson('current/last/results.json').catch(()=>null),
-      fetchJson('current/last/qualifying.json').catch(()=>null),
-    ]);
-    const races = schedule.MRData.RaceTable.Races || [];
-    const season = schedule.MRData.RaceTable.season;
-    const dsList = (dStandings.MRData.StandingsTable.StandingsLists[0] || {}).DriverStandings || [];
-    const csList = (cStandings.MRData.StandingsTable.StandingsLists[0] || {}).ConstructorStandings || [];
-    const lastRace = lastResults ? lastResults.MRData.RaceTable.Races[0] : null;
-    const lastQ = lastQuali ? lastQuali.MRData.RaceTable.Races[0] : null;
-    state.data = { season, schedule: races, driverStandings: dsList, constructorStandings: csList, lastRace, lastQualifying: lastQ };
-    state.lastUpdated = new Date();
-    state.loading = false;
-    console.log('F1 data loaded:', { season, raceCount: races.length, drivers: dsList.length, constructors: csList.length });
-    if (!state.favDriver && dsList[0]) state.favDriver = dsList[0].Driver.driverId;
-    if (!state.favTeam && csList[0]) state.favTeam = csList[0].Constructor.constructorId;
-    if (!state.compareA && dsList[0]) state.compareA = dsList[0].Driver.driverId;
-    if (!state.compareB && dsList[1]) state.compareB = dsList[1].Driver.driverId;
-    const titles = { home: 'Fan Hub', timeline: 'Race Weekends', stats: 'Statistics', map: 'World Map', fun: 'Fan Zone', more: 'More' };
-    $('#page-title').textContent = titles[state.page];
-    $('#page-sub').textContent = `${season} Season`;
-    toast(`Loaded ${season} season · ${races.length} races`, 'success');
-    render();
-  } catch (err) {
-    console.error('F1 data fetch failed:', err);
-    state.loading = false; state.error = err.message || 'Network error'; render();
+    const data = await fetchJson('seasons.json?limit=100');
+    const list = (data.MRData.SeasonTable.Seasons || []).map(s => s.season);
+    state.availableSeasons = list.sort((a,b) => parseInt(b) - parseInt(a));
+    populateSeasonPicker();
+  } catch(e) {
+    console.warn('Could not load seasons list', e);
   }
 }
 
-/* =================== HELPERS =================== */
-function errorBlock(){
-  return `<div class="error-banner"><div><strong>Could not load current data — please refresh.</strong><div style="font-size:11px;color:var(--text-muted);margin-top:4px">${state.error || ''}</div></div><button class="btn-secondary" id="err-retry">Retry</button></div>`;
+function populateSeasonPicker(){
+  const sel = $('#season-picker');
+  if (!sel || !state.availableSeasons.length) return;
+  sel.innerHTML = state.availableSeasons.map(s => {
+    const label = s === state.currentSeason ? `${s} · Current` : s;
+    return `<option value="${s}" ${s === state.selectedSeason ? 'selected' : ''}>${label}</option>`;
+  }).join('');
 }
-function loadingBlock(label){ return `<div class="loading-indicator"><div class="spinner"></div><span>${label || 'Loading current season…'}</span></div>`; }
+
+async function loadSeason(seasonId, opts){
+  opts = opts || {};
+  const isCurrent = !seasonId || seasonId === 'current';
+  const cacheKey = seasonId;
+  if (state.seasons[cacheKey] && !opts.force) {
+    state.selectedSeason = state.seasons[cacheKey].season;
+    state.loading = false;
+    state.error = null;
+    finalizeDefaults();
+    updateTitleBar();
+    populateSeasonPicker();
+    render();
+    return;
+  }
+  state.loading = true; state.error = null; render();
+  try {
+    const seasonPath = isCurrent ? 'current' : seasonId;
+    const [schedule, dStandings, cStandings, lastResults, lastQuali] = await Promise.all([
+      fetchJson(`${seasonPath}.json`),
+      fetchJson(`${seasonPath}/driverStandings.json`).catch(()=>null),
+      fetchJson(`${seasonPath}/constructorStandings.json`).catch(()=>null),
+      isCurrent ? fetchJson(`${seasonPath}/last/results.json`).catch(()=>null) : null,
+      isCurrent ? fetchJson(`${seasonPath}/last/qualifying.json`).catch(()=>null) : null,
+    ]);
+    const races = schedule.MRData.RaceTable.Races || [];
+    const season = schedule.MRData.RaceTable.season;
+    const dsList = dStandings ? ((dStandings.MRData.StandingsTable.StandingsLists[0] || {}).DriverStandings || []) : [];
+    const csList = cStandings ? ((cStandings.MRData.StandingsTable.StandingsLists[0] || {}).ConstructorStandings || []) : [];
+    let lastRace = null, lastQ = null;
+    if (isCurrent) {
+      lastRace = lastResults ? lastResults.MRData.RaceTable.Races[0] : null;
+      lastQ = lastQuali ? lastQuali.MRData.RaceTable.Races[0] : null;
+    } else {
+      lastRace = races.length ? races[races.length - 1] : null;
+    }
+    const bundle = { season, schedule: races, driverStandings: dsList, constructorStandings: csList, lastRace, lastQualifying: lastQ, isHistorical: !isCurrent };
+    state.seasons[cacheKey] = bundle;
+    state.seasons[season] = bundle;
+    if (isCurrent) state.currentSeason = season;
+    state.selectedSeason = season;
+    state.lastUpdated = new Date();
+    state.loading = false;
+    finalizeDefaults();
+    populateSeasonPicker();
+    updateTitleBar();
+    const label = isCurrent ? `${season} season (live)` : `${season} season archive`;
+    toast(`Loaded ${label} · ${races.length} races`, 'success');
+    render();
+  } catch(err) {
+    console.error('F1 data fetch failed:', err);
+    state.loading = false;
+    state.error = err.message || 'Network error';
+    render();
+  }
+}
+
+function finalizeDefaults(){
+  const data = currentSeasonData();
+  if (!data) return;
+  if (!state.favDriver && data.driverStandings[0]) state.favDriver = data.driverStandings[0].Driver.driverId;
+  if (!state.favTeam && data.constructorStandings[0]) state.favTeam = data.constructorStandings[0].Constructor.constructorId;
+  if (!state.compareA && data.driverStandings[0]) state.compareA = data.driverStandings[0].Driver.driverId;
+  if (!state.compareB && data.driverStandings[1]) state.compareB = data.driverStandings[1].Driver.driverId;
+  if (!state.compareTeamA && data.constructorStandings[0]) state.compareTeamA = data.constructorStandings[0].Constructor.constructorId;
+  if (!state.compareTeamB && data.constructorStandings[1]) state.compareTeamB = data.constructorStandings[1].Constructor.constructorId;
+  if (!state.historyDriverA) state.historyDriverA = 'hamilton';
+  if (!state.historyDriverB) state.historyDriverB = 'max_verstappen';
+  if (!state.historyTeamA) state.historyTeamA = 'ferrari';
+  if (!state.historyTeamB) state.historyTeamB = 'mercedes';
+}
+
+/* HELPERS */
+function errorBlock(){ return `<div class="error-banner"><div><strong>Could not load data — please refresh.</strong><div style="font-size:11px;color:var(--text-muted);margin-top:4px">${state.error || ''}</div></div><button class="btn-secondary" id="err-retry">Retry</button></div>`; }
+function loadingBlock(label){ return `<div class="loading-indicator"><div class="spinner"></div><span>${label || 'Loading…'}</span></div>`; }
 function skeletonTable(rows){
   rows = rows || 5; let html = '';
   for (let i=0;i<rows;i++) html += `<div class="skel-row"><div class="skeleton" style="height:18px"></div><div class="skeleton"></div><div class="skeleton" style="height:14px"></div></div>`;
@@ -661,15 +609,14 @@ function skeletonTable(rows){
 }
 function dataFooter(){
   if (!state.lastUpdated) return '';
-  return `<div class="data-footer">Updated ${state.lastUpdated.toLocaleString()} · Live data from formula1.com (via Ergast/Jolpica mirror)</div>`;
+  const seasonNote = state.selectedSeason ? ` · Viewing ${state.selectedSeason}` : '';
+  return `<div class="data-footer">Updated ${state.lastUpdated.toLocaleString()}${seasonNote} · Data from Ergast/Jolpica F1 API</div>`;
 }
-function emptyState(title, desc){
-  return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div></div>`;
-}
-function nextRace(){ if (!state.data) return null; const now = Date.now(); return state.data.schedule.find(r => raceDate(r).getTime() > now) || null; }
-function lastFinishedRace(){ if (!state.data) return null; const now = Date.now(); const past = state.data.schedule.filter(r => raceDate(r).getTime() <= now); return past.length ? past[past.length-1] : null; }
+function emptyState(title, desc){ return `<div class="empty"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg><div class="empty-title">${title}</div><div class="empty-desc">${desc}</div></div>`; }
+function nextRace(){ const data = currentSeasonData(); if (!data) return null; if (!isCurrentSeasonSelected()) return null; const now=Date.now(); return data.schedule.find(r => raceDate(r).getTime() > now) || null; }
+function seasonChip(){ const data = currentSeasonData(); if (!data) return ''; const live = isCurrentSeasonSelected(); return `<span class="season-chip">${live ? '● LIVE' : '⏳'} ${data.season}</span>`; }
 
-/* Social icons */
+/* SOCIAL ICONS */
 const SOCIAL_SVG = {
   twitter: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>',
   instagram: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="2" width="20" height="20" rx="5"/><path d="M16 11.37a4 4 0 1 1-7.91 1.18A4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>',
@@ -678,10 +625,9 @@ const SOCIAL_SVG = {
   youtube: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/></svg>',
   globe: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>',
   f1: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 12h8M8 8h8"/></svg>',
+  wiki: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7l3 12 3-9 3 9 3-9 3 9 3-12"/></svg>',
 };
-function socialLink(href, type, label){
-  return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" title="${label}">${SOCIAL_SVG[type] || ''} <span>${label}</span></a>`;
-}
+function socialLink(href, type, label){ return `<a class="social-btn" href="${href}" target="_blank" rel="noopener" title="${label}">${SOCIAL_SVG[type] || ''} <span>${label}</span></a>`; }
 function teamSocials(teamId){
   const t = TEAMS[teamId]; if (!t) return '';
   const links = [];
@@ -691,32 +637,41 @@ function teamSocials(teamId){
   if (t.tiktok) links.push(socialLink('https://tiktok.com/' + t.tiktok, 'tiktok', 'TikTok'));
   if (t.facebook) links.push(socialLink('https://facebook.com/' + t.facebook, 'facebook', 'Facebook'));
   if (t.youtube) links.push(socialLink('https://youtube.com/@' + t.youtube, 'youtube', 'YouTube'));
-  return `<div class="social-row">${links.join('')}</div>`;
+  return links.length ? `<div class="social-row">${links.join('')}</div>` : '';
 }
 function driverSocials(driver){
   const info = driverInfo(driver);
   const links = [];
   links.push(socialLink(driverF1Url(driver), 'f1', 'F1.com'));
+  if (driver.url) links.push(socialLink(driver.url, 'wiki', 'Wikipedia'));
   if (info.twitter) links.push(socialLink('https://twitter.com/' + info.twitter, 'twitter', 'X'));
   if (info.instagram) links.push(socialLink('https://instagram.com/' + info.instagram, 'instagram', 'Instagram'));
   return `<div class="social-row">${links.join('')}</div>`;
 }
 
-/* =================== HOME =================== */
+/* HOME */
 function renderHome(){
   const root = $('#page-home');
-  if (state.loading && !state.data) { root.innerHTML = loadingBlock('Loading current season…') + skeletonTable(6); return; }
-  if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
-  if (!state.data) { root.innerHTML = loadingBlock(); return; }
+  if (state.loading && !currentSeasonData()) { root.innerHTML = loadingBlock(`Loading ${state.selectedSeason || ''} season…`) + skeletonTable(6); return; }
+  if (state.error && !currentSeasonData()) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true })); return; }
+  const data = currentSeasonData();
+  if (!data) { root.innerHTML = loadingBlock(); return; }
 
-  const data = state.data;
   const upcoming = nextRace();
   const ds = data.driverStandings;
   const cs = data.constructorStandings;
   const lastRace = data.lastRace;
+  const live = isCurrentSeasonSelected();
   let html = '';
 
-  if (upcoming) {
+  if (!live) {
+    html += `<div class="card" style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;border-left:3px solid var(--accent)">
+      <div><div style="font-weight:600;font-size:14px">📚 Viewing ${data.season} archive</div><div style="font-size:12px;color:var(--text-muted);margin-top:2px">Historical season — final standings shown</div></div>
+      <button class="btn-secondary" id="back-to-current" style="flex-shrink:0">Back to current →</button>
+    </div>`;
+  }
+
+  if (live && upcoming) {
     const dt = raceDate(upcoming);
     html += `<section class="hero-card">
       <div class="hero-eyebrow">
@@ -726,36 +681,46 @@ function renderHome(){
       <div class="hero-title">${flag(upcoming.Circuit.Location.country)}${upcoming.raceName}</div>
       <div class="hero-sub">${upcoming.Circuit.circuitName} · ${upcoming.Circuit.Location.locality}, ${upcoming.Circuit.Location.country} · ${fmtDate(dt)} ${fmtTime(dt)}</div>
       <div class="countdown" id="countdown"></div>
-      <div class="row" style="gap: 8px; flex-wrap:wrap;">
+      <div class="row" style="gap:8px;flex-wrap:wrap">
         <button class="btn-primary" data-action="open-race" data-round="${upcoming.round}">Race Weekend ›</button>
         <button class="btn-secondary" data-action="goto-map">View on map</button>
       </div>
     </section>`;
   } else {
-    html += `<section class="hero-card"><div class="hero-eyebrow"><span class="caption" style="color:var(--accent)">Season ${data.season}</span></div><div class="hero-title">Season complete 🏆</div><div class="hero-sub">All ${data.schedule.length} rounds run. Check Stats for final standings.</div></section>`;
+    const champ = ds[0];
+    const champTeam = cs[0];
+    html += `<section class="hero-card">
+      <div class="hero-eyebrow"><span class="caption" style="color:var(--accent);font-weight:700">🏆 ${data.season} Season ${live ? 'in progress' : 'final'}</span>${seasonChip()}</div>
+      <div class="hero-title">${champ ? `${flag(champ.Driver.nationality)}${champ.Driver.givenName} ${champ.Driver.familyName}` : 'Champion'}</div>
+      <div class="hero-sub">${champ ? `${champ.Constructors[0].name} · ${champ.points} pts · ${champ.wins} wins` : '—'} ${champTeam ? `· Constructors: ${champTeam.Constructor.name}` : ''}</div>
+      <div class="row" style="gap:8px;flex-wrap:wrap">
+        <button class="btn-primary" data-action="goto-stats">Full standings ›</button>
+        <button class="btn-secondary" data-action="goto-timeline">Race-by-race</button>
+      </div>
+    </section>`;
   }
 
   if (ds.length >= 2) {
     const leader = ds[0]; const p2 = ds[1];
     const gap = parseFloat(leader.points) - parseFloat(p2.points);
-    const racesLeft = data.schedule.filter(r => raceDate(r).getTime() > Date.now()).length;
+    const racesLeft = live ? data.schedule.filter(r => raceDate(r).getTime() > Date.now()).length : 0;
     const maxPts = racesLeft * 26;
     const favStanding = ds.find(d => d.Driver.driverId === state.favDriver) || ds[0];
     const favIdx = ds.indexOf(favStanding);
     const favGap = parseFloat(leader.points) - parseFloat(favStanding.points);
     html += `<div style="margin-top:16px"></div>
-      <div class="section-header"><h2>Championship pulse</h2></div>
+      <div class="section-header"><h2>Championship pulse · ${data.season}</h2></div>
       <div class="kpi-grid">
         <div class="kpi"><div class="kpi-label">Title gap</div><div class="kpi-value">${gap}</div><div class="kpi-delta">${leader.Driver.familyName} → ${p2.Driver.familyName}</div></div>
-        <div class="kpi"><div class="kpi-label">Races left</div><div class="kpi-value">${racesLeft}</div><div class="kpi-delta">Up to ${maxPts} pts available</div></div>
+        <div class="kpi"><div class="kpi-label">${live ? 'Races left' : 'Rounds run'}</div><div class="kpi-value">${live ? racesLeft : data.schedule.length}</div><div class="kpi-delta">${live ? `Up to ${maxPts} pts available` : 'Season complete'}</div></div>
         <div class="kpi"><div class="kpi-label">Your driver</div><div class="kpi-value">P${favIdx+1}</div><div class="kpi-delta">${favStanding.Driver.familyName} · ${favGap === 0 ? 'leads ⭐' : '−' + favGap + ' pts'}</div></div>
         <div class="kpi"><div class="kpi-label">Leader pts</div><div class="kpi-value">${leader.points}</div><div class="kpi-delta">${leader.wins} win${leader.wins==='1'?'':'s'}</div></div>
       </div>`;
   }
 
   if (ds.length) {
-    html += `<div class="card" style="padding:0; overflow:hidden">
-      <div style="padding:14px 16px; border-bottom:1px solid var(--border)"><div class="row-between"><h2 class="h2">Drivers' standings</h2><a class="btn-ghost" data-action="goto-stats" style="font-size:12px;cursor:pointer">All →</a></div></div>
+    html += `<div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:14px 16px;border-bottom:1px solid var(--border)"><div class="row-between"><h2 class="h2">Drivers' standings</h2><button class="btn-ghost" data-action="goto-stats" style="font-size:12px">All →</button></div></div>
       ${ds.slice(0,5).map((row, i) => {
         const drv = row.Driver; const con = row.Constructors[0];
         return `<div class="driver-card" data-action="open-driver" data-driver="${drv.driverId}">
@@ -773,14 +738,14 @@ function renderHome(){
   if (cs.length) {
     const gapInfo = cs.length >= 2 ? parseFloat(cs[0].points) - parseFloat(cs[1].points) : 0;
     html += `<div class="card">
-      <div class="section-header"><h2>Constructors' battle</h2></div>
+      <div class="section-header"><h2>Constructors' battle · ${data.season}</h2></div>
       <table><thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead><tbody>
         ${cs.slice(0,5).map((row, i) => {
           const c = row.Constructor;
           return `<tr data-action="open-team" data-team="${c.constructorId}"><td>${posBadge(i+1)}</td><td>${teamStrip(c.constructorId)}<strong>${c.name}</strong></td><td class="numeric">${row.wins}</td><td class="numeric"><strong>${row.points}</strong></td></tr>`;
         }).join('')}
       </tbody></table>
-      ${cs.length >= 2 ? `<div class="row" style="margin-top:12px; gap:8px;"><span class="badge badge-info">P1↔P2 gap: ${gapInfo} pts</span></div>` : ''}
+      ${cs.length >= 2 ? `<div class="row" style="margin-top:12px;gap:8px"><span class="badge badge-info">P1↔P2 gap: ${gapInfo} pts</span></div>` : ''}
     </div>`;
   }
 
@@ -788,10 +753,10 @@ function renderHome(){
     const winner = lastRace.Results[0];
     const fastest = lastRace.Results.find(r => r.FastestLap && r.FastestLap.rank === '1');
     html += `<div class="card">
-      <div class="section-header"><h2>Latest result</h2><span class="badge badge-neutral">Round ${lastRace.round}</span></div>
+      <div class="section-header"><h2>${live ? 'Latest result' : 'Season finale'}</h2><span class="badge badge-neutral">Round ${lastRace.round}</span></div>
       <div style="font-weight:600;font-size:14px;margin-bottom:4px">${flag(lastRace.Circuit.Location.country)}${lastRace.raceName}</div>
       <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${lastRace.Circuit.circuitName}</div>
-      <div class="row" style="gap: 8px; flex-wrap:wrap; margin-bottom:12px">
+      <div class="row" style="gap:8px;flex-wrap:wrap;margin-bottom:12px">
         <span class="badge badge-warning">🏆 ${winner.Driver.givenName} ${winner.Driver.familyName}</span>
         ${fastest ? `<span class="badge badge-accent">⚡ FL: ${fastest.Driver.familyName}</span>` : ''}
       </div>
@@ -803,6 +768,8 @@ function renderHome(){
   root.innerHTML = html;
   updateCountdown();
   bindActions(root);
+  const backBtn = $('#back-to-current');
+  if (backBtn) backBtn.addEventListener('click', () => switchSeason('current'));
 }
 
 function updateCountdown(){
@@ -814,45 +781,52 @@ function updateCountdown(){
   el.innerHTML = `<div class="count-cell"><div class="count-num">${d}</div><div class="count-label">Days</div></div><div class="count-cell"><div class="count-num">${String(h).padStart(2,'0')}</div><div class="count-label">Hours</div></div><div class="count-cell"><div class="count-num">${String(m).padStart(2,'0')}</div><div class="count-label">Min</div></div><div class="count-cell"><div class="count-num">${String(s).padStart(2,'0')}</div><div class="count-label">Sec</div></div>`;
 }
 
-/* =================== TIMELINE =================== */
+/* TIMELINE */
 function renderTimeline(){
   const root = $('#page-timeline');
-  if (state.loading && !state.data) { root.innerHTML = loadingBlock() + skeletonTable(8); return; }
-  if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
-  if (!state.data) { root.innerHTML = loadingBlock(); return; }
+  const data = currentSeasonData();
+  if (state.loading && !data) { root.innerHTML = loadingBlock() + skeletonTable(8); return; }
+  if (state.error && !data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true })); return; }
+  if (!data) { root.innerHTML = loadingBlock(); return; }
 
-  const races = state.data.schedule;
+  const races = data.schedule;
+  const live = isCurrentSeasonSelected();
   const now = Date.now();
-  const upcoming = races.filter(r => raceDate(r).getTime() > now);
-  const finished = races.filter(r => raceDate(r).getTime() <= now).reverse();
+  const upcoming = live ? races.filter(r => raceDate(r).getTime() > now) : [];
+  const finished = live ? races.filter(r => raceDate(r).getTime() <= now).reverse() : [...races].reverse();
 
-  let html = `<div class="row-between" style="margin-bottom:16px"><div class="caption">${state.data.season} · ${races.length} rounds</div><div class="caption">${fmtTz()}</div></div>`;
+  let html = `<div class="row-between" style="margin-bottom:16px;flex-wrap:wrap;gap:8px">
+    <div class="caption">${data.season} · ${races.length} rounds</div>
+    <div class="row" style="gap:6px">${seasonChip()}<span class="caption">${fmtTz()}</span></div>
+  </div>`;
 
-  html += `<div class="card" style="padding:0; overflow:hidden"><div style="padding: 12px 16px; border-bottom:1px solid var(--border)"><span class="caption">🔜 Upcoming · ${upcoming.length}</span></div>`;
-  if (upcoming.length === 0) {
-    html += emptyState('Season complete', `All races for ${state.data.season} have been run.`);
-  } else {
-    upcoming.forEach(r => {
-      const dt = raceDate(r);
-      html += `<div class="cal-item" data-action="open-race" data-round="${r.round}">
-        <div class="cal-round"><span class="cal-round-num">${String(r.round).padStart(2,'0')}</span></div>
-        <div><div class="cal-name">${flag(r.Circuit.Location.country)}${r.raceName}${r.Sprint ? ' <span class="badge badge-warning" style="margin-left:4px">SPR</span>' : ''}</div><div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)} · ${fmtTime(dt)}</div></div>
-        <div style="text-align:right"><span class="badge badge-accent">${relativeTime(dt)}</span></div>
-      </div>`;
-    });
+  if (live) {
+    html += `<div class="card" style="padding:0;overflow:hidden"><div style="padding:12px 16px;border-bottom:1px solid var(--border)"><span class="caption">🔜 Upcoming · ${upcoming.length}</span></div>`;
+    if (upcoming.length === 0) {
+      html += emptyState('Season complete', `All races for ${data.season} have been run.`);
+    } else {
+      upcoming.forEach(r => {
+        const dt = raceDate(r);
+        html += `<div class="cal-item" data-action="open-race" data-round="${r.round}">
+          <div class="cal-round"><span class="cal-round-num">${String(r.round).padStart(2,'0')}</span></div>
+          <div><div class="cal-name">${flag(r.Circuit.Location.country)}${r.raceName}${r.Sprint ? ' <span class="badge badge-warning" style="margin-left:4px">SPR</span>' : ''}</div><div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)} · ${fmtTime(dt)}</div></div>
+          <div style="text-align:right"><span class="badge badge-accent">${relativeTime(dt)}</span></div>
+        </div>`;
+      });
+    }
+    html += `</div><div style="margin-top:16px"></div>`;
   }
-  html += `</div><div style="margin-top:16px"></div>`;
 
-  html += `<div class="card" style="padding:0; overflow:hidden"><div style="padding: 12px 16px; border-bottom:1px solid var(--border)"><span class="caption">✓ Completed · ${finished.length}</span></div>`;
+  html += `<div class="card" style="padding:0;overflow:hidden"><div style="padding:12px 16px;border-bottom:1px solid var(--border)"><span class="caption">${live ? '✓ Completed' : '📜 All rounds'} · ${finished.length}</span></div>`;
   if (finished.length === 0) {
-    html += emptyState('Season just begun', 'No races have been run yet this season.');
+    html += emptyState('Season just begun', 'No races have been run yet.');
   } else {
     finished.forEach(r => {
       const dt = raceDate(r);
       html += `<div class="cal-item" data-action="open-race" data-round="${r.round}">
         <div class="cal-round"><span class="cal-round-num">${String(r.round).padStart(2,'0')}</span></div>
         <div><div class="cal-name">${flag(r.Circuit.Location.country)}${r.raceName}</div><div class="cal-meta">${r.Circuit.Location.country} · ${fmtDate(dt)}</div></div>
-        <div style="text-align:right"><span class="badge badge-success">Finished</span></div>
+        <div style="text-align:right"><span class="badge ${live ? 'badge-success' : 'badge-neutral'}">${live ? 'Finished' : 'Archived'}</span></div>
       </div>`;
     });
   }
@@ -861,20 +835,21 @@ function renderTimeline(){
   bindActions(root);
 }
 
-/* =================== STATS =================== */
+/* STATS */
 function renderStats(){
   const root = $('#page-stats');
-  if (state.loading && !state.data) { root.innerHTML = loadingBlock() + skeletonTable(10); return; }
-  if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
-  if (!state.data) { root.innerHTML = loadingBlock(); return; }
+  const data = currentSeasonData();
+  if (state.loading && !data) { root.innerHTML = loadingBlock() + skeletonTable(10); return; }
+  if (state.error && !data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true })); return; }
+  if (!data) { root.innerHTML = loadingBlock(); return; }
 
-  let html = `<div class="row-between" style="margin-bottom: 12px">
-    <div class="tabs" style="border:none; margin:0;">
+  let html = `<div class="row-between" style="margin-bottom:12px">
+    <div class="tabs" style="border:none;margin:0">
       <button class="tab ${state.statsTab==='drivers'?'active':''}" data-stats-tab="drivers">Drivers</button>
       <button class="tab ${state.statsTab==='constructors'?'active':''}" data-stats-tab="constructors">Constructors</button>
       <button class="tab ${state.statsTab==='circuits'?'active':''}" data-stats-tab="circuits">Circuits</button>
     </div>
-    <div class="caption">${state.data.season}</div>
+    ${seasonChip()}
   </div>`;
   if (state.statsTab === 'drivers') html += renderDriversTable();
   else if (state.statsTab === 'constructors') html += renderConstructorsTable();
@@ -886,9 +861,9 @@ function renderStats(){
 }
 
 function renderDriversTable(){
-  const ds = state.data.driverStandings;
-  if (!ds.length) return emptyState('No driver data yet', 'Standings will appear here once results are available.');
-  return `<div class="card" style="padding:0; overflow:hidden">
+  const ds = currentSeasonData().driverStandings;
+  if (!ds.length) return emptyState('No driver data', 'Standings not available for this season.');
+  return `<div class="card" style="padding:0;overflow:hidden">
     ${ds.map((row, i) => {
       const drv = row.Driver; const con = row.Constructors[0];
       return `<div class="driver-card" data-action="open-driver" data-driver="${drv.driverId}">
@@ -903,36 +878,307 @@ function renderDriversTable(){
   </div>`;
 }
 function renderConstructorsTable(){
-  const cs = state.data.constructorStandings;
-  if (!cs.length) return emptyState('No constructor data yet', 'Standings will appear here once results are available.');
-  return `<div class="card" style="padding:0; overflow:hidden"><table><thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead><tbody>
+  const cs = currentSeasonData().constructorStandings;
+  if (!cs.length) return emptyState('No constructor data', 'Standings not available for this season.');
+  return `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>#</th><th>Team</th><th class="numeric">Wins</th><th class="numeric">Pts</th></tr></thead><tbody>
     ${cs.map((row, i) => {
       const c = row.Constructor; const td = TEAMS[c.constructorId];
-      return `<tr data-action="open-team" data-team="${c.constructorId}"><td>${posBadge(i+1)}</td><td>${teamStrip(c.constructorId)}<strong>${c.name}</strong><div style="font-size:11px;color:var(--text-muted)">${flag(c.nationality)}${c.nationality}${td ? ' · ' + td.hqCity : ''}</div></td><td class="numeric">${row.wins}</td><td class="numeric"><strong>${row.points}</strong></td></tr>`;
+      return `<tr data-action="open-team" data-team="${c.constructorId}"><td>${posBadge(i+1)}</td><td>${teamStrip(c.constructorId)}<strong>${c.name}</strong><div style="font-size:11px;color:var(--text-muted)">${flag(c.nationality)}${c.nationality}${td && td.hqCity ? ' · ' + td.hqCity : ''}</div></td><td class="numeric">${row.wins}</td><td class="numeric"><strong>${row.points}</strong></td></tr>`;
     }).join('')}
   </tbody></table></div>`;
 }
 function renderCircuitsTable(){
   const seen = new Set(); const circuits = [];
-  state.data.schedule.forEach(r => { const id = r.Circuit.circuitId; if (!seen.has(id)) { seen.add(id); circuits.push(r.Circuit); } });
+  currentSeasonData().schedule.forEach(r => { const id = r.Circuit.circuitId; if (!seen.has(id)) { seen.add(id); circuits.push(r.Circuit); } });
   if (!circuits.length) return emptyState('No circuit data', 'Schedule has not loaded yet.');
-  return `<div class="card" style="padding:0; overflow:hidden"><table><thead><tr><th>Circuit</th><th>Country</th></tr></thead><tbody>
+  return `<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Circuit</th><th>Country</th></tr></thead><tbody>
     ${circuits.map(c => `<tr data-action="open-circuit-id" data-circuit="${c.circuitId}"><td><strong>${c.circuitName}</strong><div style="font-size:11px;color:var(--text-muted)">${c.Location.locality}</div></td><td>${flag(c.Location.country)}${c.Location.country}</td></tr>`).join('')}
   </tbody></table></div>`;
 }
 
-/* =================== MAP =================== */
+/* HISTORY PAGE — career timelines and multi-season compare */
+async function loadDriverCareer(driverId){
+  if (state.careerCache[driverId]) return state.careerCache[driverId];
+  state.careerCache[driverId] = { loading: true };
+  render();
+  try {
+    const seasonsResp = await fetchJson(`drivers/${driverId}/seasons.json?limit=100`);
+    const seasons = (seasonsResp.MRData.SeasonTable.Seasons || []).map(s => s.season);
+    const standings = await Promise.all(seasons.map(async (yr) => {
+      try {
+        const d = await fetchJson(`${yr}/drivers/${driverId}/driverStandings.json`);
+        const list = d.MRData.StandingsTable.StandingsLists[0];
+        if (!list || !list.DriverStandings || !list.DriverStandings[0]) return null;
+        const e = list.DriverStandings[0];
+        return { season: yr, position: parseInt(e.position), points: parseFloat(e.points), wins: parseInt(e.wins), team: e.Constructors[0], driver: e.Driver };
+      } catch(_) { return null; }
+    }));
+    const result = { loading: false, seasons: standings.filter(Boolean).sort((a,b) => parseInt(a.season) - parseInt(b.season)) };
+    state.careerCache[driverId] = result;
+    return result;
+  } catch(e) {
+    console.error('Career load failed', e);
+    state.careerCache[driverId] = { loading: false, error: e.message, seasons: [] };
+    return state.careerCache[driverId];
+  }
+}
+
+async function loadTeamHistory(teamId){
+  if (state.teamHistoryCache[teamId]) return state.teamHistoryCache[teamId];
+  state.teamHistoryCache[teamId] = { loading: true };
+  render();
+  try {
+    const seasonsResp = await fetchJson(`constructors/${teamId}/seasons.json?limit=100`);
+    const seasons = (seasonsResp.MRData.SeasonTable.Seasons || []).map(s => s.season);
+    const standings = await Promise.all(seasons.map(async (yr) => {
+      try {
+        const d = await fetchJson(`${yr}/constructors/${teamId}/constructorStandings.json`);
+        const list = d.MRData.StandingsTable.StandingsLists[0];
+        if (!list || !list.ConstructorStandings || !list.ConstructorStandings[0]) return null;
+        const e = list.ConstructorStandings[0];
+        return { season: yr, position: parseInt(e.position), points: parseFloat(e.points), wins: parseInt(e.wins), team: e.Constructor };
+      } catch(_) { return null; }
+    }));
+    const result = { loading: false, seasons: standings.filter(Boolean).sort((a,b) => parseInt(a.season) - parseInt(b.season)) };
+    state.teamHistoryCache[teamId] = result;
+    return result;
+  } catch(e) {
+    console.error('Team history load failed', e);
+    state.teamHistoryCache[teamId] = { loading: false, error: e.message, seasons: [] };
+    return state.teamHistoryCache[teamId];
+  }
+}
+
+function renderHistory(){
+  const root = $('#page-history');
+  let html = `<div class="card" style="margin-bottom:12px">
+    <div style="font-weight:600;font-size:14px;margin-bottom:4px">📜 F1 History · 1950 → present</div>
+    <div style="font-size:12px;color:var(--text-muted)">Track any driver or team across every season of their career. Compare two careers side-by-side to settle the GOAT debate with data.</div>
+  </div>
+  <div class="tabs">
+    <button class="tab ${state.historyTab==='drivers'?'active':''}" data-htab="drivers">Driver careers</button>
+    <button class="tab ${state.historyTab==='teams'?'active':''}" data-htab="teams">Team histories</button>
+    <button class="tab ${state.historyTab==='browse'?'active':''}" data-htab="browse">Browse seasons</button>
+  </div>`;
+
+  if (state.historyTab === 'drivers') html += renderDriverCareerCompare();
+  else if (state.historyTab === 'teams') html += renderTeamHistoryCompare();
+  else html += renderSeasonBrowser();
+
+  html += dataFooter();
+  root.innerHTML = html;
+  $$('[data-htab]', root).forEach(b => b.addEventListener('click', () => { state.historyTab = b.dataset.htab; render(); }));
+  bindHistoryControls(root);
+  bindActions(root);
+}
+
+function driverIdCatalog(){
+  // collect known drivers from any loaded season
+  const map = new Map();
+  Object.values(state.seasons).forEach(s => {
+    s.driverStandings.forEach(d => {
+      const drv = d.Driver;
+      if (!map.has(drv.driverId)) map.set(drv.driverId, drv);
+    });
+  });
+  // ensure popular drivers
+  ['hamilton','max_verstappen','alonso','vettel','schumacher','michael_schumacher','senna','prost','rosberg','raikkonen','button','webber','massa','leclerc','norris','piastri','russell','perez','sainz','ricciardo','bottas','hulkenberg','stroll','gasly','ocon','albon','tsunoda','zhou','kevin_magnussen','antonelli','bearman','lawson','colapinto','hadjar'].forEach(id => {
+    if (!map.has(id)) map.set(id, { driverId: id, givenName: '', familyName: id.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) });
+  });
+  return Array.from(map.values()).sort((a,b) => (a.familyName||'').localeCompare(b.familyName||''));
+}
+
+function teamIdCatalog(){
+  const map = new Map();
+  Object.values(state.seasons).forEach(s => {
+    s.constructorStandings.forEach(c => {
+      if (!map.has(c.Constructor.constructorId)) map.set(c.Constructor.constructorId, c.Constructor);
+    });
+  });
+  Object.keys(TEAMS).forEach(id => {
+    if (!map.has(id)) map.set(id, { constructorId: id, name: TEAMS[id].name });
+  });
+  ['ferrari','mclaren','williams','mercedes','red_bull','renault','benetton','lotus_f1','brawn','jordan','tyrrell','bmw_sauber','toyota','jaguar'].forEach(id => {
+    if (!map.has(id)) map.set(id, { constructorId: id, name: id.replace(/_/g,' ').replace(/\b\w/g, c => c.toUpperCase()) });
+  });
+  return Array.from(map.values()).sort((a,b) => (a.name||'').localeCompare(b.name||''));
+}
+
+function careerBar(career, useColor){
+  if (career.loading) return loadingBlock('Loading career…');
+  if (career.error) return `<div class="error-banner">${career.error}</div>`;
+  if (!career.seasons || !career.seasons.length) return emptyState('No career data', 'No standings found for this driver.');
+  const maxPts = Math.max(...career.seasons.map(s => s.points), 1);
+  const totalWins = career.seasons.reduce((a,s) => a + s.wins, 0);
+  const totalPts = career.seasons.reduce((a,s) => a + s.points, 0);
+  const titles = career.seasons.filter(s => s.position === 1).length;
+  const podStat = career.seasons.filter(s => s.position <= 3).length;
+  let html = `<div class="kpi-grid">
+    <div class="kpi"><div class="kpi-label">Seasons</div><div class="kpi-value">${career.seasons.length}</div><div class="kpi-delta">${career.seasons[0].season}–${career.seasons[career.seasons.length-1].season}</div></div>
+    <div class="kpi"><div class="kpi-label">Titles</div><div class="kpi-value">${titles}</div><div class="kpi-delta">${podStat} top-3 finishes</div></div>
+    <div class="kpi"><div class="kpi-label">Career wins</div><div class="kpi-value">${totalWins}</div><div class="kpi-delta">all seasons</div></div>
+    <div class="kpi"><div class="kpi-label">Career pts</div><div class="kpi-value">${totalPts.toFixed(0)}</div><div class="kpi-delta">scoring systems vary</div></div>
+  </div>
+  <div class="card" style="padding:12px">
+    <div class="caption" style="margin-bottom:8px">Season-by-season — bar length = points, gold = champion</div>
+    <div class="career-chart">`;
+  career.seasons.forEach(s => {
+    const pct = (s.points / maxPts) * 100;
+    const isChamp = s.position === 1;
+    html += `<div class="career-row" data-action="switch-season" data-season="${s.season}">
+      <div class="career-year">${s.season}</div>
+      <div class="career-bar-track" title="${s.points} pts · ${s.wins} wins"><div class="career-bar-fill ${isChamp ? 'champ' : ''}" style="width:${Math.max(pct,2)}%;${!isChamp && useColor ? 'background:'+useColor : ''}"></div></div>
+      <div class="career-pts">${s.points.toFixed(0)} · ${s.wins}W</div>
+      <div class="career-pos" style="color:${isChamp ? '#d4a017' : 'var(--text)'}">P${s.position}</div>
+    </div>`;
+  });
+  html += `</div><div class="legend-bar"><span><span class="lg-sw" style="background:#d4a017"></span>World Champion</span><span><span class="lg-sw" style="background:${useColor || 'var(--accent)'}"></span>Points</span><span style="color:var(--text-subtle)">Tap a year to view that season</span></div></div>`;
+  return html;
+}
+
+function renderDriverCareerCompare(){
+  const catalog = driverIdCatalog();
+  const a = state.historyDriverA;
+  const b = state.historyDriverB;
+  const careerA = state.careerCache[a];
+  const careerB = state.careerCache[b];
+  if (!careerA) { loadDriverCareer(a); }
+  if (!careerB) { loadDriverCareer(b); }
+  const findInfo = (id) => catalog.find(d => d.driverId === id) || { driverId: id, givenName: '', familyName: id };
+  const infoA = findInfo(a), infoB = findInfo(b);
+  const optsA = catalog.map(d => `<option value="${d.driverId}" ${d.driverId===a?'selected':''}>${d.givenName ? d.givenName + ' ' : ''}${d.familyName}</option>`).join('');
+  const optsB = catalog.map(d => `<option value="${d.driverId}" ${d.driverId===b?'selected':''}>${d.givenName ? d.givenName + ' ' : ''}${d.familyName}</option>`).join('');
+
+  let html = `<div class="card" style="margin-bottom:12px">
+    <div class="compare-grid">
+      <div><div class="caption" style="margin-bottom:4px;color:var(--accent)">Driver A</div><select class="input" id="hist-driver-a">${optsA}</select></div>
+      <div><div class="caption" style="margin-bottom:4px;color:var(--info)">Driver B</div><select class="input" id="hist-driver-b">${optsB}</select></div>
+    </div>
+  </div>`;
+
+  // Head-to-head summary if both loaded
+  if (careerA && !careerA.loading && careerB && !careerB.loading && careerA.seasons && careerB.seasons) {
+    const sumA = { wins: careerA.seasons.reduce((s,x)=>s+x.wins,0), titles: careerA.seasons.filter(s=>s.position===1).length, pts: careerA.seasons.reduce((s,x)=>s+x.points,0), seasons: careerA.seasons.length };
+    const sumB = { wins: careerB.seasons.reduce((s,x)=>s+x.wins,0), titles: careerB.seasons.filter(s=>s.position===1).length, pts: careerB.seasons.reduce((s,x)=>s+x.points,0), seasons: careerB.seasons.length };
+    function bar(l, r){ const lp=(l/(l+r||1))*100; return `<div class="compare-bar"><div class="compare-bar-l" style="width:${lp}%"></div><div class="compare-bar-r" style="width:${100-lp}%"></div></div>`; }
+    html += `<div class="card" style="margin-bottom:12px">
+      <div class="section-header"><h2>Career head-to-head</h2></div>
+      <div style="margin-top:6px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:var(--accent);font-weight:600">${sumA.titles}</span><span>World titles</span><span style="color:var(--info);font-weight:600">${sumB.titles}</span></div>${bar(sumA.titles, sumB.titles)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:var(--accent);font-weight:600">${sumA.wins}</span><span>Race wins</span><span style="color:var(--info);font-weight:600">${sumB.wins}</span></div>${bar(sumA.wins, sumB.wins)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:var(--accent);font-weight:600">${sumA.pts.toFixed(0)}</span><span>Career points</span><span style="color:var(--info);font-weight:600">${sumB.pts.toFixed(0)}</span></div>${bar(sumA.pts, sumB.pts)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:var(--accent);font-weight:600">${sumA.seasons}</span><span>Seasons</span><span style="color:var(--info);font-weight:600">${sumB.seasons}</span></div>${bar(sumA.seasons, sumB.seasons)}</div>
+      <div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--border);font-size:12px;color:var(--text-muted);text-align:center">⚠️ Era comparison caveat: scoring systems and race counts have changed since 1950.</div>
+    </div>`;
+  }
+
+  // Each driver chart
+  const labelA = careerA && careerA.seasons && careerA.seasons[0] ? careerA.seasons[careerA.seasons.length-1].driver : infoA;
+  const labelB = careerB && careerB.seasons && careerB.seasons[0] ? careerB.seasons[careerB.seasons.length-1].driver : infoB;
+  html += `<div class="card" style="margin-bottom:12px">
+    <div class="section-header"><h2 style="color:var(--accent)">${labelA.givenName || ''} ${labelA.familyName || infoA.driverId}</h2><button class="btn-ghost" data-action="open-driver-any" data-driver="${a}" style="font-size:11px">Profile →</button></div>
+    ${careerA ? careerBar(careerA, 'var(--accent)') : loadingBlock('Loading career…')}
+  </div>
+  <div class="card">
+    <div class="section-header"><h2 style="color:var(--info)">${labelB.givenName || ''} ${labelB.familyName || infoB.driverId}</h2><button class="btn-ghost" data-action="open-driver-any" data-driver="${b}" style="font-size:11px">Profile →</button></div>
+    ${careerB ? careerBar(careerB, 'var(--info)') : loadingBlock('Loading career…')}
+  </div>`;
+  return html;
+}
+
+function renderTeamHistoryCompare(){
+  const catalog = teamIdCatalog();
+  const a = state.historyTeamA;
+  const b = state.historyTeamB;
+  const histA = state.teamHistoryCache[a];
+  const histB = state.teamHistoryCache[b];
+  if (!histA) loadTeamHistory(a);
+  if (!histB) loadTeamHistory(b);
+  const findT = (id) => catalog.find(c => c.constructorId === id) || { constructorId: id, name: id };
+  const tA = findT(a), tB = findT(b);
+  const optsA = catalog.map(c => `<option value="${c.constructorId}" ${c.constructorId===a?'selected':''}>${c.name}</option>`).join('');
+  const optsB = catalog.map(c => `<option value="${c.constructorId}" ${c.constructorId===b?'selected':''}>${c.name}</option>`).join('');
+
+  let html = `<div class="card" style="margin-bottom:12px">
+    <div class="compare-grid">
+      <div><div class="caption" style="margin-bottom:4px;color:${teamColor(a)}">Team A</div><select class="input" id="hist-team-a">${optsA}</select></div>
+      <div><div class="caption" style="margin-bottom:4px;color:${teamColor(b)}">Team B</div><select class="input" id="hist-team-b">${optsB}</select></div>
+    </div>
+  </div>`;
+
+  if (histA && !histA.loading && histB && !histB.loading && histA.seasons && histB.seasons) {
+    const sumA = { wins: histA.seasons.reduce((s,x)=>s+x.wins,0), titles: histA.seasons.filter(s=>s.position===1).length, pts: histA.seasons.reduce((s,x)=>s+x.points,0), seasons: histA.seasons.length };
+    const sumB = { wins: histB.seasons.reduce((s,x)=>s+x.wins,0), titles: histB.seasons.filter(s=>s.position===1).length, pts: histB.seasons.reduce((s,x)=>s+x.points,0), seasons: histB.seasons.length };
+    function bar(l, r){ const lp=(l/(l+r||1))*100; return `<div class="compare-bar"><div class="compare-bar-l" style="width:${lp}%;background:${teamColor(a)}"></div><div class="compare-bar-r" style="width:${100-lp}%;background:${teamColor(b)}"></div></div>`; }
+    html += `<div class="card" style="margin-bottom:12px">
+      <div class="section-header"><h2>Team head-to-head · all-time</h2></div>
+      <div><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:${teamColor(a)};font-weight:600">${sumA.titles}</span><span>Constructors' titles</span><span style="color:${teamColor(b)};font-weight:600">${sumB.titles}</span></div>${bar(sumA.titles, sumB.titles)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:${teamColor(a)};font-weight:600">${sumA.wins}</span><span>Race wins</span><span style="color:${teamColor(b)};font-weight:600">${sumB.wins}</span></div>${bar(sumA.wins, sumB.wins)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="color:${teamColor(a)};font-weight:600">${sumA.seasons}</span><span>Seasons</span><span style="color:${teamColor(b)};font-weight:600">${sumB.seasons}</span></div>${bar(sumA.seasons, sumB.seasons)}</div>
+    </div>`;
+  }
+
+  html += `<div class="card" style="margin-bottom:12px">
+    <div class="section-header"><h2 style="color:${teamColor(a)}">${tA.name}</h2></div>
+    ${histA ? careerBar(histA, teamColor(a)) : loadingBlock('Loading team history…')}
+  </div>
+  <div class="card">
+    <div class="section-header"><h2 style="color:${teamColor(b)}">${tB.name}</h2></div>
+    ${histB ? careerBar(histB, teamColor(b)) : loadingBlock('Loading team history…')}
+  </div>`;
+  return html;
+}
+
+function renderSeasonBrowser(){
+  if (!state.availableSeasons.length) return loadingBlock('Loading season list…');
+  const groups = {};
+  state.availableSeasons.forEach(s => {
+    const decade = Math.floor(parseInt(s) / 10) * 10;
+    if (!groups[decade]) groups[decade] = [];
+    groups[decade].push(s);
+  });
+  const decades = Object.keys(groups).sort((a,b) => parseInt(b) - parseInt(a));
+  let html = `<div class="card" style="margin-bottom:12px">
+    <div style="font-size:13px;color:var(--text-muted)">Pick any season from <strong style="color:var(--text)">${state.availableSeasons[state.availableSeasons.length-1]}</strong> to <strong style="color:var(--text)">${state.availableSeasons[0]}</strong>. Tap a year to load full standings, calendar, and race results.</div>
+  </div>`;
+  decades.forEach(dec => {
+    html += `<div class="card" style="margin-bottom:12px">
+      <div class="caption" style="margin-bottom:10px">${dec}s</div>
+      <div class="chip-row">${groups[dec].map(s => `<button class="chip ${s===state.selectedSeason?'active':''}" data-action="switch-season" data-season="${s}">${s}${s===state.currentSeason?' ●':''}</button>`).join('')}</div>
+    </div>`;
+  });
+  return html;
+}
+
+function bindHistoryControls(root){
+  const dA = $('#hist-driver-a', root);
+  const dB = $('#hist-driver-b', root);
+  const tA = $('#hist-team-a', root);
+  const tB = $('#hist-team-b', root);
+  if (dA) dA.addEventListener('change', e => { state.historyDriverA = e.target.value; loadDriverCareer(e.target.value).then(render); render(); });
+  if (dB) dB.addEventListener('change', e => { state.historyDriverB = e.target.value; loadDriverCareer(e.target.value).then(render); render(); });
+  if (tA) tA.addEventListener('change', e => { state.historyTeamA = e.target.value; loadTeamHistory(e.target.value).then(render); render(); });
+  if (tB) tB.addEventListener('change', e => { state.historyTeamB = e.target.value; loadTeamHistory(e.target.value).then(render); render(); });
+}
+
+function switchSeason(seasonId){
+  toast(`Switching to ${seasonId === 'current' ? 'current season' : seasonId}…`, 'info');
+  loadSeason(seasonId);
+  navigate('home');
+}
+
+/* MAP */
 function renderMap(){
   const root = $('#page-map');
-  if (state.loading && !state.data) { root.innerHTML = loadingBlock(); return; }
-  if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
-  if (!state.data) { root.innerHTML = loadingBlock(); return; }
+  const data = currentSeasonData();
+  if (state.loading && !data) { root.innerHTML = loadingBlock(); return; }
+  if (state.error && !data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true })); return; }
+  if (!data) { root.innerHTML = loadingBlock(); return; }
 
   const html = `
     <div class="card" style="margin-bottom:12px">
       <div class="row-between" style="margin-bottom:10px">
-        <h2 class="h2">F1 around the world</h2>
-        <span class="caption">${state.data.schedule.length} circuits · ${Object.keys(TEAMS).filter(k=>k!=='alphatauri').length} HQs</span>
+        <h2 class="h2">F1 around the world · ${data.season}</h2>
+        <span class="caption">${data.schedule.length} circuits</span>
       </div>
       <div class="chip-row" style="margin-bottom:12px">
         <button class="chip ${state.mapMode==='all'?'active':''}" data-map-mode="all">All</button>
@@ -959,18 +1205,16 @@ function initMap(){
   if (state.mapInstance) { try { state.mapInstance.remove(); } catch(e){} state.mapInstance = null; }
   const map = L.map(el, { worldCopyJump: true, scrollWheelZoom: true }).setView([25, 15], 2);
   state.mapInstance = map;
-  const isDark = state.theme === 'dark';
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    maxZoom: 18, attribution: '© OpenStreetMap', subdomains: 'abc',
-  }).addTo(map);
-
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18, attribution: '© OpenStreetMap', subdomains: 'abc' }).addTo(map);
+  const data = currentSeasonData();
+  if (!data) return;
   if (state.mapMode === 'all' || state.mapMode === 'circuits') {
     const now = Date.now();
-    state.data.schedule.forEach(r => {
+    data.schedule.forEach(r => {
       const c = r.Circuit; const lat = parseFloat(c.Location.lat), lon = parseFloat(c.Location.long);
       if (isNaN(lat) || isNaN(lon)) return;
       const dt = raceDate(r); const isPast = dt.getTime() < now;
-      const icon = L.divIcon({ className: '', html: `<div class="map-pin" style="opacity:${isPast ? 0.5 : 1}"></div>`, iconSize: [14,14], iconAnchor: [7,7] });
+      const icon = L.divIcon({ className: '', html: `<div class="map-pin" style="opacity:${isPast ? 0.55 : 1}"></div>`, iconSize: [14,14], iconAnchor: [7,7] });
       const popup = `<div style="min-width:180px"><div style="font-weight:600;font-size:13px;margin-bottom:2px">${flag(c.Location.country)}${r.raceName}</div><div style="font-size:11px;color:var(--text-muted);margin-bottom:6px">${c.circuitName}<br>${c.Location.locality}, ${c.Location.country}<br>Round ${r.round} · ${fmtDate(dt)}</div><button onclick="window.__f1Open('race','${r.round}')" style="width:100%;padding:6px 10px;background:var(--accent);color:white;border:none;border-radius:4px;font-size:12px;font-weight:500;cursor:pointer;font-family:inherit">Race details</button></div>`;
       L.marker([lat, lon], { icon }).addTo(map).bindPopup(popup);
     });
@@ -978,7 +1222,8 @@ function initMap(){
   if (state.mapMode === 'all' || state.mapMode === 'hq') {
     const seenHqs = new Set();
     Object.entries(TEAMS).forEach(([id, t]) => {
-      if (id === 'alphatauri') return;
+      if (!t.hq) return;
+      if (id === 'alphatauri' || id === 'toro_rosso' || id === 'alfa' || id === 'racing_point' || id === 'force_india') return;
       const key = t.hq.join(',');
       if (seenHqs.has(key)) return;
       seenHqs.add(key);
@@ -990,13 +1235,9 @@ function initMap(){
   setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 100);
 }
 
-window.__f1Open = function(type, id){
-  if (type === 'race') openRace(id);
-  else if (type === 'team') openTeam(id);
-  else if (type === 'driver') openDriver(id);
-};
+window.__f1Open = function(type, id){ if (type === 'race') openRace(id); else if (type === 'team') openTeam(id); else if (type === 'driver') openDriver(id); };
 
-/* =================== FUN ZONE =================== */
+/* FUN ZONE */
 const TRIVIA = [
   { q: 'Which driver holds the all-time record for most F1 race wins?', opts: ['Michael Schumacher','Lewis Hamilton','Max Verstappen','Sebastian Vettel'], a: 1, fact: 'Lewis Hamilton holds the record with 105 wins, surpassing Schumacher in 2020.' },
   { q: 'How many points does a race winner score (without fastest lap)?', opts: ['20','25','26','30'], a: 1, fact: 'A win = 25 points. P2: 18, P3: 15, then 12, 10, 8, 6, 4, 2, 1 down to P10.' },
@@ -1004,12 +1245,11 @@ const TRIVIA = [
   { q: 'Which circuit is known as "The Temple of Speed"?', opts: ['Spa-Francorchamps','Monza','Silverstone','Monaco'], a: 1, fact: 'Monza has hosted the Italian GP since 1950 and features F1\'s lowest downforce setup.' },
   { q: 'How long is a standard F1 race?', opts: ['Exactly 200km','305km or 2 hours','Always 300km','Until first driver completes 60 laps'], a: 1, fact: 'F1 races must reach 305km (260km for Monaco) or hit a 2-hour cap, whichever comes first.' },
   { q: 'Which team has won the most Constructors\' Championships?', opts: ['McLaren','Mercedes','Ferrari','Williams'], a: 2, fact: 'Ferrari has won 16 Constructors\' titles — the most in F1 history.' },
-  { q: 'What is the minimum weight of an F1 car (with driver) in 2024?', opts: ['698 kg','720 kg','798 kg','850 kg'], a: 2, fact: '798kg is the 2024 minimum — cars have grown heavier with hybrid systems and safety upgrades.' },
+  { q: 'What is the minimum weight of a modern F1 car (with driver)?', opts: ['698 kg','720 kg','798 kg','850 kg'], a: 2, fact: '~798kg minimum — cars have grown heavier with hybrid systems and safety upgrades.' },
   { q: 'Which driver is nicknamed "The Iceman"?', opts: ['Mika Häkkinen','Kimi Räikkönen','Valtteri Bottas','Nico Rosberg'], a: 1, fact: 'Kimi Räikkönen earned the nickname for his unflappable calm — and 2007 World Championship.' },
   { q: 'What colour flag signals the race winner?', opts: ['Yellow','Red','Black','Chequered'], a: 3, fact: 'The chequered flag has signalled race completion since the early 1900s.' },
   { q: 'How many gears does a modern F1 car have?', opts: ['6','7','8','9'], a: 2, fact: 'F1 cars use 8-speed semi-automatic gearboxes plus reverse — shifts take under 10 milliseconds.' },
 ];
-
 const FUN_FACTS = [
   '🏎️ F1 cars accelerate from 0–100km/h in about 2.6 seconds — faster than most superbikes.',
   '⚡ A pit stop can change all four tyres in under 2 seconds. Red Bull holds the record at 1.82s.',
@@ -1019,21 +1259,22 @@ const FUN_FACTS = [
   '⛽ A modern F1 power unit is over 50% thermally efficient — more than double a road car engine.',
   '🏁 Monaco has been on the F1 calendar since 1950, the championship\'s inaugural season.',
   '📏 The longest F1 lap is Spa-Francorchamps at 7.004km. Drivers reach 320+ km/h on Kemmel Straight.',
-  '🎯 Lewis Hamilton holds records for most wins (105), poles (104), and podiums (202) in F1 history.',
+  '🎯 Lewis Hamilton holds records for most wins, poles, and podiums in F1 history.',
   '🔄 An F1 steering wheel has 20+ buttons and rotary switches — and costs about £40,000.',
   '💪 Drivers lose up to 4kg of body weight in a single hot race like Singapore.',
-  '🚀 The 2024 cars produce around 1,000 horsepower from a 1.6L turbo-hybrid V6.',
+  '🚀 Modern cars produce around 1,000 horsepower from a 1.6L turbo-hybrid V6.',
 ];
 
 function renderFun(){
   const root = $('#page-fun');
-  if (state.loading && !state.data) { root.innerHTML = loadingBlock(); return; }
-  if (state.error && !state.data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', loadData); return; }
-  if (!state.data) { root.innerHTML = loadingBlock(); return; }
+  const data = currentSeasonData();
+  if (state.loading && !data) { root.innerHTML = loadingBlock(); return; }
+  if (state.error && !data) { root.innerHTML = errorBlock(); $('#err-retry').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true })); return; }
+  if (!data) { root.innerHTML = loadingBlock(); return; }
 
   let html = `<div class="tabs">
     <button class="tab ${state.funTab==='trivia'?'active':''}" data-fun-tab="trivia">🎯 Trivia</button>
-    <button class="tab ${state.funTab==='facts'?'active':''}" data-fun-tab="facts">💡 Fun Facts</button>
+    <button class="tab ${state.funTab==='facts'?'active':''}" data-fun-tab="facts">💡 Facts</button>
     <button class="tab ${state.funTab==='compare'?'active':''}" data-fun-tab="compare">⚔️ Compare</button>
     <button class="tab ${state.funTab==='predict'?'active':''}" data-fun-tab="predict">🔮 Predict</button>
   </div>`;
@@ -1070,86 +1311,52 @@ function renderTrivia(){
   html += `</div>`;
   return html;
 }
-
 function bindTrivia(){
   $$('.trivia-opt').forEach(b => b.addEventListener('click', () => {
     if (state.triviaAnswered) return;
     const choice = parseInt(b.dataset.opt);
     const item = TRIVIA[state.triviaIdx % TRIVIA.length];
     state.triviaAnswered = true;
-    $$('.trivia-opt').forEach((btn, i) => {
-      btn.disabled = true;
-      if (i === item.a) btn.classList.add('correct');
-      else if (i === choice) btn.classList.add('wrong');
-    });
-    if (choice === item.a) { state.triviaScore++; toast('Correct! +1', 'success'); }
-    else { toast('Not quite — try again next time', 'error'); }
+    $$('.trivia-opt').forEach((btn, i) => { btn.disabled = true; if (i === item.a) btn.classList.add('correct'); else if (i === choice) btn.classList.add('wrong'); });
+    if (choice === item.a) { state.triviaScore++; toast('Correct! +1', 'success'); } else { toast('Not quite — try again next time', 'error'); }
     setTimeout(render, 100);
   }));
   const next = $('#trivia-next');
   if (next) next.addEventListener('click', () => { state.triviaIdx++; state.triviaAnswered = false; render(); });
 }
-
 function renderFacts(){
   let html = `<div class="section-header"><h2>On-track wisdom</h2></div>`;
-  FUN_FACTS.forEach((f, i) => {
-    html += `<div class="fact-card"><div class="fact-icon">${i+1}</div><div class="fact-text">${f}</div></div>`;
-  });
+  FUN_FACTS.forEach((f, i) => { html += `<div class="fact-card"><div class="fact-icon">${i+1}</div><div class="fact-text">${f}</div></div>`; });
   return html;
 }
 
 function renderCompare(){
-  const ds = state.data.driverStandings;
+  const data = currentSeasonData();
+  const ds = data.driverStandings;
   if (!ds.length) return emptyState('No data to compare', 'Standings will populate as the season runs.');
   const a = ds.find(d => d.Driver.driverId === state.compareA) || ds[0];
   const b = ds.find(d => d.Driver.driverId === state.compareB) || ds[1] || ds[0];
   const aPts = parseFloat(a.points), bPts = parseFloat(b.points);
   const aWins = parseInt(a.wins), bWins = parseInt(b.wins);
   const aPos = ds.indexOf(a) + 1, bPos = ds.indexOf(b) + 1;
-  const total = Math.max(aPts + bPts, 1);
-  const lWins = Math.max(aWins + bWins, 1);
+  function bar(l, r){ const lp = (l/(l+r||1))*100; return `<div class="compare-bar"><div class="compare-bar-l" style="width:${lp}%"></div><div class="compare-bar-r" style="width:${100-lp}%"></div></div>`; }
 
-  function bar(l, r){
-    const lp = (l/(l+r||1))*100;
-    return `<div class="compare-bar"><div class="compare-bar-l" style="width:${lp}%"></div><div class="compare-bar-r" style="width:${100-lp}%"></div></div>`;
-  }
-
-  let html = `<div class="section-header"><h2>Head-to-Head</h2></div>
+  let html = `<div class="section-header"><h2>Head-to-Head · ${data.season}</h2><button class="btn-ghost" data-action="goto-history" style="font-size:11px">All-time compare →</button></div>
     <div class="card">
       <div class="compare-grid">
         <select class="input" id="cmp-a">${ds.map(d => `<option value="${d.Driver.driverId}" ${d.Driver.driverId===a.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('')}</select>
         <select class="input" id="cmp-b">${ds.map(d => `<option value="${d.Driver.driverId}" ${d.Driver.driverId===b.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('')}</select>
       </div>
       <div class="compare-grid" style="text-align:center;align-items:center;margin:16px 0">
-        <div>
-          ${driverAvatar(a.Driver, 64)}
-          <div style="font-weight:600;margin-top:6px;font-size:13px">${flag(a.Driver.nationality)}${a.Driver.familyName}</div>
-          <div style="font-size:11px;color:var(--text-muted)">${a.Constructors[0].name}</div>
-        </div>
-        <div>
-          ${driverAvatar(b.Driver, 64)}
-          <div style="font-weight:600;margin-top:6px;font-size:13px">${flag(b.Driver.nationality)}${b.Driver.familyName}</div>
-          <div style="font-size:11px;color:var(--text-muted)">${b.Constructors[0].name}</div>
-        </div>
+        <div>${driverAvatar(a.Driver, 64)}<div style="font-weight:600;margin-top:6px;font-size:13px">${flag(a.Driver.nationality)}${a.Driver.familyName}</div><div style="font-size:11px;color:var(--text-muted)">${a.Constructors[0].name}</div></div>
+        <div>${driverAvatar(b.Driver, 64)}<div style="font-weight:600;margin-top:6px;font-size:13px">${flag(b.Driver.nationality)}${b.Driver.familyName}</div><div style="font-size:11px;color:var(--text-muted)">${b.Constructors[0].name}</div></div>
       </div>
       <div class="vs-divider">VS</div>
-
-      <div style="margin-top:16px">
-        <div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">${aPts} pts</span><span>Points</span><span style="font-weight:600;color:var(--info)">${bPts} pts</span></div>
-        ${bar(aPts, bPts)}
-      </div>
-      <div style="margin-top:12px">
-        <div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">${aWins}</span><span>Race wins</span><span style="font-weight:600;color:var(--info)">${bWins}</span></div>
-        ${bar(aWins, bWins)}
-      </div>
-      <div style="margin-top:12px">
-        <div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">P${aPos}</span><span>Championship position</span><span style="font-weight:600;color:var(--info)">P${bPos}</span></div>
-      </div>
-
+      <div style="margin-top:16px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">${aPts} pts</span><span>Points</span><span style="font-weight:600;color:var(--info)">${bPts} pts</span></div>${bar(aPts, bPts)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">${aWins}</span><span>Race wins</span><span style="font-weight:600;color:var(--info)">${bWins}</span></div>${bar(aWins, bWins)}</div>
+      <div style="margin-top:12px"><div class="row-between" style="font-size:12px;color:var(--text-muted);margin-bottom:4px"><span style="font-weight:600;color:var(--accent)">P${aPos}</span><span>Championship position</span><span style="font-weight:600;color:var(--info)">P${bPos}</span></div></div>
       <div style="margin-top:16px;padding-top:12px;border-top:1px solid var(--border);font-size:13px;color:var(--text-muted);text-align:center">
-        ${aPts > bPts ? `<strong style="color:var(--text)">${a.Driver.familyName}</strong> leads by <strong style="color:var(--accent)">${aPts - bPts} points</strong>` :
-          bPts > aPts ? `<strong style="color:var(--text)">${b.Driver.familyName}</strong> leads by <strong style="color:var(--info)">${bPts - aPts} points</strong>` :
-          'Dead heat — perfectly tied'}
+        ${aPts > bPts ? `<strong style="color:var(--text)">${a.Driver.familyName}</strong> leads by <strong style="color:var(--accent)">${aPts - bPts} points</strong>` : bPts > aPts ? `<strong style="color:var(--text)">${b.Driver.familyName}</strong> leads by <strong style="color:var(--info)">${bPts - aPts} points</strong>` : 'Dead heat — perfectly tied'}
       </div>
     </div>`;
   return html;
@@ -1161,22 +1368,17 @@ function bindCompare(){
 }
 
 function renderPredict(){
-  const ds = state.data.driverStandings;
+  const data = currentSeasonData();
+  const ds = data.driverStandings;
   const upcoming = nextRace();
-  const cs = state.data.constructorStandings;
   if (!ds.length) return emptyState('Nothing to predict yet', 'Predictions need at least some season data.');
-
-  // Simple form-based prediction: weight current points + recent wins
   const sorted = [...ds].sort((a, b) => {
     const aScore = parseFloat(a.points) + parseInt(a.wins) * 15;
     const bScore = parseFloat(b.points) + parseInt(b.wins) * 15;
     return bScore - aScore;
   });
   const top3 = sorted.slice(0, 3);
-  const podiumLikely = sorted.slice(0, 6);
-
-  // Championship odds
-  const racesLeft = state.data.schedule.filter(r => raceDate(r).getTime() > Date.now()).length;
+  const racesLeft = isCurrentSeasonSelected() ? data.schedule.filter(r => raceDate(r).getTime() > Date.now()).length : 0;
   const maxRemaining = racesLeft * 26;
   const leader = ds[0];
   const leaderPts = parseFloat(leader.points);
@@ -1192,19 +1394,18 @@ function renderPredict(){
           return `<div class="prediction-driver">
             <div style="font-family:var(--mono);font-weight:700;color:${i===0?'#d4a017':i===1?'var(--text-muted)':'#c97a3a'};width:24px">P${i+1}</div>
             ${driverAvatar(d.Driver, 32)}
-            <div style="flex:1">
-              <div style="font-weight:500;font-size:13px">${flag(d.Driver.nationality)}${d.Driver.givenName} ${d.Driver.familyName}</div>
-              <div style="display:flex;align-items:center;gap:6px;margin-top:2px"><div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%"></div></div><span style="font-size:10px;color:var(--text-subtle);font-family:var(--mono)">${conf}%</span></div>
-            </div>
+            <div style="flex:1"><div style="font-weight:500;font-size:13px">${flag(d.Driver.nationality)}${d.Driver.givenName} ${d.Driver.familyName}</div><div style="display:flex;align-items:center;gap:6px;margin-top:2px"><div class="confidence-bar"><div class="confidence-fill" style="width:${conf}%"></div></div><span style="font-size:10px;color:var(--text-subtle);font-family:var(--mono)">${conf}%</span></div></div>
           </div>`;
         }).join('')}
         <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text-subtle)">⚠️ Predictions are illustrative only — based on a simple form-weighted model.</div>
       </div>`;
+  } else if (!isCurrentSeasonSelected()) {
+    html += `<div class="card" style="margin-bottom:12px"><div style="font-size:13px;color:var(--text-muted)">Viewing historical season — no upcoming races. Switch to the current season for live predictions.</div></div>`;
   }
 
   html += `<div class="section-header" style="margin-top:16px"><h2>🏆 Title contenders</h2></div>
     <div class="card">
-      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${racesLeft} races left · max ${maxRemaining} pts available. Drivers still mathematically in contention:</div>
+      <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${isCurrentSeasonSelected() ? `${racesLeft} races left · max ${maxRemaining} pts available.` : `${data.season} final standings.`} Drivers still mathematically in contention:</div>
       ${contenders.length === 0 ? emptyState('Title decided', 'The championship is mathematically locked.') :
         contenders.map(d => {
           const idx = ds.indexOf(d);
@@ -1213,38 +1414,47 @@ function renderPredict(){
           return `<div class="prediction-driver" data-action="open-driver" data-driver="${d.Driver.driverId}" style="cursor:pointer">
             <div style="font-family:var(--mono);font-weight:700;width:24px">P${idx+1}</div>
             ${driverAvatar(d.Driver, 32)}
-            <div style="flex:1">
-              <div style="font-weight:500;font-size:13px">${flag(d.Driver.nationality)}${d.Driver.familyName}</div>
-              <div style="font-size:11px;color:var(--text-muted)">${d.Constructors[0].name} · ${d.points} pts</div>
-            </div>
+            <div style="flex:1"><div style="font-weight:500;font-size:13px">${flag(d.Driver.nationality)}${d.Driver.familyName}</div><div style="font-size:11px;color:var(--text-muted)">${d.Constructors[0].name} · ${d.points} pts</div></div>
             <span class="badge ${idx===0?'badge-success':'badge-neutral'}">${odds}</span>
           </div>`;
         }).join('')}
     </div>`;
-
   return html;
 }
 
-/* =================== MORE =================== */
+/* MORE */
 function renderMore(){
   const root = $('#page-more');
-  const ds = state.data ? state.data.driverStandings : [];
-  const cs = state.data ? state.data.constructorStandings : [];
-  const html = `<div class="section-header"><h2>Preferences</h2></div>
+  const data = currentSeasonData();
+  const ds = data ? data.driverStandings : [];
+  const cs = data ? data.constructorStandings : [];
+  const html = `<div class="section-header"><h2>Season</h2></div>
+    <div class="card">
+      <div class="row-between" style="padding:8px 0">
+        <div><div style="font-weight:500;font-size:13px">Active season</div><div style="font-size:12px;color:var(--text-muted)">${isCurrentSeasonSelected() ? 'Live data · auto-refreshes' : 'Historical archive · read-only'}</div></div>
+        <select class="input" id="more-season" style="width:auto;max-width:55%">${state.availableSeasons.map(s => `<option value="${s}" ${s===state.selectedSeason?'selected':''}>${s}${s===state.currentSeason?' · Current':''}</option>`).join('')}</select>
+      </div>
+      <div class="row-between" style="padding:8px 0;border-top:1px solid var(--border)">
+        <div><div style="font-weight:500;font-size:13px">Jump to current</div><div style="font-size:12px;color:var(--text-muted)">Restore live season view</div></div>
+        <button class="btn-secondary" id="jump-current" ${isCurrentSeasonSelected()?'disabled':''}>Current</button>
+      </div>
+    </div>
+    <div style="margin-top:16px"></div>
+    <div class="section-header"><h2>Preferences</h2></div>
     <div class="card">
       <div class="row-between" style="padding:8px 0">
         <div><div style="font-weight:500;font-size:13px">Favourite driver ⭐</div><div style="font-size:12px;color:var(--text-muted)">Personalised KPIs on home</div></div>
         <select class="input" id="fav-driver-select" style="width:auto;max-width:55%" ${ds.length?'':'disabled'}>${ds.length ? ds.map(d => `<option value="${d.Driver.driverId}" ${state.favDriver===d.Driver.driverId?'selected':''}>${d.Driver.givenName} ${d.Driver.familyName}</option>`).join('') : '<option>Loading…</option>'}</select>
       </div>
-      <div class="row-between" style="padding:8px 0; border-top:1px solid var(--border)">
+      <div class="row-between" style="padding:8px 0;border-top:1px solid var(--border)">
         <div><div style="font-weight:500;font-size:13px">Favourite team 🏎️</div><div style="font-size:12px;color:var(--text-muted)">Used in Fan Zone</div></div>
         <select class="input" id="fav-team-select" style="width:auto;max-width:55%" ${cs.length?'':'disabled'}>${cs.length ? cs.map(c => `<option value="${c.Constructor.constructorId}" ${state.favTeam===c.Constructor.constructorId?'selected':''}>${c.Constructor.name}</option>`).join('') : '<option>Loading…</option>'}</select>
       </div>
-      <div class="row-between" style="padding:8px 0; border-top:1px solid var(--border)">
+      <div class="row-between" style="padding:8px 0;border-top:1px solid var(--border)">
         <div><div style="font-weight:500;font-size:13px">Theme</div><div style="font-size:12px;color:var(--text-muted)">${state.theme === 'dark' ? 'Dark mode' : 'Light mode'}</div></div>
         <button class="btn-secondary" id="theme-toggle-2">Switch to ${state.theme === 'dark' ? 'light' : 'dark'}</button>
       </div>
-      <div class="row-between" style="padding:8px 0; border-top:1px solid var(--border)">
+      <div class="row-between" style="padding:8px 0;border-top:1px solid var(--border)">
         <div><div style="font-weight:500;font-size:13px">Refresh data</div><div style="font-size:12px;color:var(--text-muted)">${state.lastUpdated ? 'Last: ' + state.lastUpdated.toLocaleTimeString() : 'Not loaded'}</div></div>
         <button class="btn-secondary" id="refresh-data">Refresh now</button>
       </div>
@@ -1264,42 +1474,47 @@ function renderMore(){
     </div>
     <div style="margin-top:16px"></div>
     <div class="section-header"><h2>About</h2></div>
-    <div class="card" style="font-size:13px; color:var(--text-muted); line-height:1.6">
-      <strong style="color:var(--text)">F1 Fan Hub</strong> · DN Platform · v3.0<br>
-      Live data from formula1.com (via Ergast/Jolpica mirror). Map tiles © OpenStreetMap contributors.
+    <div class="card" style="font-size:13px;color:var(--text-muted);line-height:1.6">
+      <strong style="color:var(--text)">F1 Fan Hub</strong> · DN Platform · v4.0<br>
+      Live + historical data from the Ergast/Jolpica F1 API. Map tiles © OpenStreetMap contributors.
       <div style="margin-top:8px;font-family:var(--mono);font-size:11px;color:var(--text-subtle)">api.jolpi.ca/ergast/f1</div>
     </div>
     ${dataFooter()}
   `;
   root.innerHTML = html;
+  const moreS = $('#more-season');
+  if (moreS) moreS.addEventListener('change', e => switchSeason(e.target.value));
+  const jump = $('#jump-current'); if (jump) jump.addEventListener('click', () => switchSeason('current'));
   const favSel = $('#fav-driver-select');
   if (favSel) favSel.addEventListener('change', e => { state.favDriver = e.target.value; toast('Favourite driver updated', 'success'); render(); });
   const favT = $('#fav-team-select');
   if (favT) favT.addEventListener('change', e => { state.favTeam = e.target.value; toast('Favourite team updated', 'success'); render(); });
   $('#theme-toggle-2').addEventListener('click', toggleTheme);
-  $('#refresh-data').addEventListener('click', loadData);
+  $('#refresh-data').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true }));
 }
 
-/* =================== MODALS =================== */
+/* MODALS */
 function openRace(round){
-  const race = state.data.schedule.find(r => r.round === String(round));
+  const data = currentSeasonData(); if (!data) return;
+  const race = data.schedule.find(r => r.round === String(round));
   if (!race) return;
   const dt = raceDate(race);
-  const isFinished = dt.getTime() <= Date.now();
+  const isFinished = dt.getTime() <= Date.now() || !isCurrentSeasonSelected();
   let tab = isFinished ? 'results' : 'schedule';
   let resultsCache = null, qualiCache = null, loadingTab = false;
+  const seasonForRace = data.season;
 
   async function loadResultsIfNeeded(){
     if (resultsCache || !isFinished) return;
     loadingTab = true; rerender();
-    try { const data = await fetchJson(`${state.data.season}/${race.round}/results.json`); resultsCache = data.MRData.RaceTable.Races[0] || null; }
+    try { const dd = await fetchJson(`${seasonForRace}/${race.round}/results.json`); resultsCache = dd.MRData.RaceTable.Races[0] || null; }
     catch(e){ resultsCache = null; toast('Failed to load results', 'error'); }
     loadingTab = false; rerender();
   }
   async function loadQualiIfNeeded(){
     if (qualiCache || !isFinished) return;
     loadingTab = true; rerender();
-    try { const data = await fetchJson(`${state.data.season}/${race.round}/qualifying.json`); qualiCache = data.MRData.RaceTable.Races[0] || null; }
+    try { const dd = await fetchJson(`${seasonForRace}/${race.round}/qualifying.json`); qualiCache = dd.MRData.RaceTable.Races[0] || null; }
     catch(e){ qualiCache = null; toast('Failed to load qualifying', 'error'); }
     loadingTab = false; rerender();
   }
@@ -1318,8 +1533,9 @@ function openRace(round){
 
   function bodyHtml(){
     let body = `<div class="tabs">
-      <button class="tab ${tab==='schedule'?'active':''}" data-rtab="schedule">Schedule</button>
-      ${isFinished ? '<button class="tab ' + (tab==='results'?'active':'') + '" data-rtab="results">Results</button><button class="tab ' + (tab==='quali'?'active':'') + '" data-rtab="quali">Qualifying</button>' : ''}
+      ${isCurrentSeasonSelected() ? `<button class="tab ${tab==='schedule'?'active':''}" data-rtab="schedule">Schedule</button>` : ''}
+      <button class="tab ${tab==='results'?'active':''}" data-rtab="results">Results</button>
+      <button class="tab ${tab==='quali'?'active':''}" data-rtab="quali">Qualifying</button>
       <button class="tab ${tab==='circuit'?'active':''}" data-rtab="circuit">Circuit</button>
     </div>`;
     if (tab === 'schedule') {
@@ -1340,7 +1556,7 @@ function openRace(round){
             const delta = grid - pos;
             const timeGap = r.Time ? r.Time.time : (r.status || '—');
             const fl = r.FastestLap && r.FastestLap.rank === '1';
-            return `<tr data-action="open-driver" data-driver="${drv.driverId}"><td>${posBadge(r.position)}</td><td>${teamStrip(con.constructorId)}<strong>${drv.familyName}</strong>${fl ? ` <span class="badge badge-accent" style="font-size:10px">⚡FL</span>` : ''}</td><td class="numeric">${r.grid}${delta!==0 && !isNaN(delta) ? ` <span style="font-size:10px;color:${delta>0?'var(--success)':'var(--danger)'}">${delta>0?'↑':'↓'}${Math.abs(delta)}</span>` : ''}</td><td class="numeric" style="color:var(--text-muted)">${timeGap}</td><td class="numeric"><strong>${r.points}</strong></td></tr>`;
+            return `<tr data-action="open-driver-any" data-driver="${drv.driverId}"><td>${posBadge(r.position)}</td><td>${teamStrip(con.constructorId)}<strong>${drv.familyName}</strong>${fl ? ` <span class="badge badge-accent" style="font-size:10px">⚡FL</span>` : ''}</td><td class="numeric">${r.grid}${delta!==0 && !isNaN(delta) ? ` <span style="font-size:10px;color:${delta>0?'var(--success)':'var(--danger)'}">${delta>0?'↑':'↓'}${Math.abs(delta)}</span>` : ''}</td><td class="numeric" style="color:var(--text-muted)">${timeGap}</td><td class="numeric"><strong>${r.points}</strong></td></tr>`;
           }).join('')}
         </tbody></table></div>`;
       }
@@ -1351,7 +1567,7 @@ function openRace(round){
         body += `<div style="overflow-x:auto"><table><thead><tr><th>Pos</th><th>Driver</th><th class="numeric">Q1</th><th class="numeric">Q2</th><th class="numeric">Q3</th></tr></thead><tbody>
           ${qualiCache.QualifyingResults.map(q => {
             const drv = q.Driver;
-            return `<tr data-action="open-driver" data-driver="${drv.driverId}"><td>${posBadge(q.position)}</td><td>${teamStrip(q.Constructor.constructorId)}<strong>${drv.familyName}</strong></td><td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q1 || '—'}</td><td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q2 || '—'}</td><td class="numeric" style="color:${q.position==='1'?'var(--accent)':'var(--text)'};font-weight:${q.position==='1'?'600':'400'}">${q.Q3 || '—'}</td></tr>`;
+            return `<tr data-action="open-driver-any" data-driver="${drv.driverId}"><td>${posBadge(q.position)}</td><td>${teamStrip(q.Constructor.constructorId)}<strong>${drv.familyName}</strong></td><td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q1 || '—'}</td><td class="numeric" style="color:${q.Q3?'var(--text-subtle)':'var(--text)'}">${q.Q2 || '—'}</td><td class="numeric" style="color:${q.position==='1'?'var(--accent)':'var(--text)'};font-weight:${q.position==='1'?'600':'400'}">${q.Q3 || '—'}</td></tr>`;
           }).join('')}
         </tbody></table></div>`;
       }
@@ -1363,6 +1579,7 @@ function openRace(round){
         <div class="detail-row"><span class="k">Country</span><span class="v">${flag(c.Location.country)}${c.Location.country}</span></div>
         <div class="detail-row"><span class="k">Coordinates</span><span class="v">${parseFloat(c.Location.lat).toFixed(3)}, ${parseFloat(c.Location.long).toFixed(3)}</span></div>
         <div class="detail-row"><span class="k">Round</span><span class="v">${race.round}</span></div>
+        <div class="detail-row"><span class="k">Season</span><span class="v">${seasonForRace}</span></div>
       </div>
       <div style="margin-top:12px"><a class="btn-secondary" href="https://www.google.com/maps/search/?api=1&query=${c.Location.lat},${c.Location.long}" target="_blank" rel="noopener" style="width:100%;text-decoration:none">📍 Open in Google Maps</a></div>`;
     }
@@ -1374,7 +1591,7 @@ function openRace(round){
       <div class="modal-header">
         <div>
           <div class="modal-title">${flag(race.Circuit.Location.country)}${race.raceName}</div>
-          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">Round ${race.round} · ${race.Circuit.Location.country} · ${fmtDate(dt)}</div>
+          <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${seasonForRace} · Round ${race.round} · ${race.Circuit.Location.country} · ${fmtDate(dt)}</div>
         </div>
         <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
       </div>
@@ -1393,13 +1610,67 @@ function openRace(round){
   if (tab === 'results') loadResultsIfNeeded();
 }
 
+async function openDriverAny(driverId){
+  // Try current season first; else fetch career and use latest entry
+  const data = currentSeasonData();
+  const inSeason = data && data.driverStandings.find(d => d.Driver.driverId === driverId);
+  if (inSeason) { openDriver(driverId); return; }
+  const career = await loadDriverCareer(driverId);
+  if (!career.seasons.length) { toast('No data for this driver', 'error'); return; }
+  const latest = career.seasons[career.seasons.length - 1];
+  openDriverCareer(driverId, latest.driver, career);
+}
+
+function openDriverCareer(driverId, driverObj, career){
+  const titles = career.seasons.filter(s => s.position === 1).length;
+  const totalWins = career.seasons.reduce((a,s) => a + s.wins, 0);
+  const firstSeason = career.seasons[0].season;
+  const lastSeason = career.seasons[career.seasons.length - 1].season;
+  const lastTeam = career.seasons[career.seasons.length - 1].team;
+  showModal(`
+    <div class="modal-header">
+      <div class="modal-title">Driver Profile · Career</div>
+      <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
+    </div>
+    <div style="display:flex;gap:14px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
+      <div class="driver-portrait" style="border-color:${teamColor(lastTeam.constructorId)}"><span>${driverInitials(driverObj)}</span></div>
+      <div style="flex:1">
+        <div style="font-size:18px;font-weight:700;letter-spacing:-0.01em">${driverObj.givenName} ${driverObj.familyName}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${flag(driverObj.nationality)}${driverObj.nationality || '—'}${driverObj.dateOfBirth ? ' · b.' + driverObj.dateOfBirth : ''}</div>
+        <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${teamStrip(lastTeam.constructorId)}Last: ${lastTeam.name}</div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Career titles</div><div class="kpi-value">${titles}</div><div class="kpi-delta">${firstSeason}–${lastSeason}</div></div>
+      <div class="kpi"><div class="kpi-label">Career wins</div><div class="kpi-value">${totalWins}</div><div class="kpi-delta">${career.seasons.length} seasons</div></div>
+    </div>
+    <div class="card" style="padding:12px;margin-bottom:12px">
+      <div class="caption" style="margin-bottom:8px">Career timeline</div>
+      ${careerBar(career, 'var(--accent)')}
+    </div>
+    <div class="card" style="padding:12px">
+      <div class="caption" style="margin-bottom:6px">Follow ${driverObj.familyName}</div>
+      ${driverSocials(driverObj)}
+    </div>
+  `);
+  $('#close-modal').addEventListener('click', closeModal);
+  bindActions($('.modal'));
+}
+
 function openDriver(driverId){
-  const ds = state.data.driverStandings;
-  const standing = ds.find(d => d.Driver.driverId === driverId);
-  if (!standing) return;
+  const data = currentSeasonData(); if (!data) return;
+  const standing = data.driverStandings.find(d => d.Driver.driverId === driverId);
+  if (!standing) { openDriverAny(driverId); return; }
   const drv = standing.Driver, con = standing.Constructors[0];
-  const idx = ds.indexOf(standing);
-  const info = driverInfo(drv);
+  const idx = data.driverStandings.indexOf(standing);
+  const career = state.careerCache[driverId];
+  if (!career) loadDriverCareer(driverId);
+  const careerSection = career && career.seasons ? 
+    `<div class="card" style="padding:12px;margin-bottom:12px">
+      <div class="caption" style="margin-bottom:6px">Career timeline · ${career.seasons[0].season}–${career.seasons[career.seasons.length-1].season}</div>
+      ${careerBar(career, teamColor(con.constructorId))}
+    </div>` :
+    `<div class="card" style="margin-bottom:12px">${loadingBlock('Loading career history…')}</div>`;
 
   showModal(`
     <div class="modal-header">
@@ -1416,36 +1687,42 @@ function openDriver(driverId){
       <span class="badge ${state.favDriver === driverId ? 'badge-accent' : 'badge-neutral'}" style="cursor:pointer" id="fav-toggle">${state.favDriver === driverId ? '★ Fav' : '☆ Fav'}</span>
     </div>
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Season pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} in standings</div></div>
-      <div class="kpi"><div class="kpi-label">Season wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${state.data.season} season</div></div>
+      <div class="kpi"><div class="kpi-label">${data.season} pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} in standings</div></div>
+      <div class="kpi"><div class="kpi-label">${data.season} wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${data.season} season</div></div>
       <div class="kpi"><div class="kpi-label">Born</div><div style="font-size:14px;font-weight:600;margin-top:6px;font-family:var(--mono)">${drv.dateOfBirth || '—'}</div></div>
       <div class="kpi"><div class="kpi-label">Team</div><div style="font-size:14px;font-weight:600;margin-top:6px">${con.name}</div></div>
     </div>
+    ${careerSection}
     <div class="card" style="padding:12px">
       <div class="caption" style="margin-bottom:6px">Follow ${drv.familyName}</div>
       ${driverSocials(drv)}
     </div>
     <div style="margin-top:10px;text-align:center">
-      <a href="${driverF1Url(drv)}" target="_blank" rel="noopener" style="font-size:11px;color:var(--text-subtle);font-family:var(--mono)">${driverF1Url(drv)}</a>
+      <button class="btn-secondary" id="add-to-compare" style="font-size:12px">Compare in History →</button>
     </div>
   `);
   $('#close-modal').addEventListener('click', closeModal);
-  $('#fav-toggle').addEventListener('click', () => {
-    state.favDriver = driverId;
-    toast(`${drv.givenName} ${drv.familyName} set as favourite`, 'success');
-    closeModal();
-    render();
-  });
+  $('#fav-toggle').addEventListener('click', () => { state.favDriver = driverId; toast(`${drv.givenName} ${drv.familyName} set as favourite`, 'success'); closeModal(); render(); });
+  $('#add-to-compare').addEventListener('click', () => { state.historyDriverA = driverId; state.historyTab = 'drivers'; closeModal(); navigate('history'); });
+  bindActions($('.modal'));
 }
 
 function openTeam(teamId){
-  const cs = state.data.constructorStandings;
-  const standing = cs.find(c => c.Constructor.constructorId === teamId);
-  if (!standing) return;
-  const c = standing.Constructor;
-  const idx = cs.indexOf(standing);
-  const teamDrivers = state.data.driverStandings.filter(d => d.Constructors.some(cc => cc.constructorId === teamId));
+  const data = currentSeasonData(); if (!data) return;
+  const standing = data.constructorStandings.find(c => c.Constructor.constructorId === teamId);
   const td = TEAMS[teamId] || {};
+  const teamHistory = state.teamHistoryCache[teamId];
+  if (!teamHistory) loadTeamHistory(teamId);
+  const c = standing ? standing.Constructor : { name: td.name || teamId, constructorId: teamId, nationality: '' };
+  const idx = standing ? data.constructorStandings.indexOf(standing) : -1;
+  const teamDrivers = data.driverStandings.filter(d => d.Constructors.some(cc => cc.constructorId === teamId));
+
+  const histSection = teamHistory && teamHistory.seasons ?
+    `<div class="card" style="padding:12px;margin-bottom:12px">
+      <div class="caption" style="margin-bottom:6px">Team history · ${teamHistory.seasons[0].season}–${teamHistory.seasons[teamHistory.seasons.length-1].season}</div>
+      ${careerBar(teamHistory, teamColor(teamId))}
+    </div>` :
+    `<div class="card" style="margin-bottom:12px">${loadingBlock('Loading team history…')}</div>`;
 
   showModal(`
     <div class="modal-header">
@@ -1453,38 +1730,42 @@ function openTeam(teamId){
       <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
-      ${flag(c.nationality)}${c.nationality}${td.hqCity ? ' · 📍 ' + td.hqCity : ''}${td.founded ? ' · est. ' + td.founded : ''}${td.engine ? ' · ' + td.engine + ' power unit' : ''}
+      ${flag(c.nationality)}${c.nationality || ''}${td.hqCity ? ' · 📍 ' + td.hqCity : ''}${td.founded ? ' · est. ' + td.founded : ''}${td.engine ? ' · ' + td.engine + ' power unit' : ''}
     </div>
-    <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Season pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} constructors</div></div>
-      <div class="kpi"><div class="kpi-label">Season wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${state.data.season}</div></div>
-    </div>
-    <div class="card" style="padding:0; overflow:hidden;margin-bottom:12px">
-      <div style="padding:10px 12px; border-bottom:1px solid var(--border)"><span class="caption">Drivers</span></div>
-      ${teamDrivers.length ? teamDrivers.map(d => {
+    ${standing ? `<div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">${data.season} pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} constructors</div></div>
+      <div class="kpi"><div class="kpi-label">${data.season} wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${data.season}</div></div>
+    </div>` : ''}
+    ${histSection}
+    ${teamDrivers.length ? `<div class="card" style="padding:0;overflow:hidden;margin-bottom:12px">
+      <div style="padding:10px 12px;border-bottom:1px solid var(--border)"><span class="caption">${data.season} drivers</span></div>
+      ${teamDrivers.map(d => {
         const drv = d.Driver;
         return `<div class="driver-card" data-action="open-driver" data-driver="${drv.driverId}">
           ${driverAvatar(drv, 36)}
           <div><div style="font-weight:600;font-size:13px">${flag(drv.nationality)}${drv.givenName} ${drv.familyName}</div><div style="font-size:11px;color:var(--text-muted)">${drv.permanentNumber ? '#' + drv.permanentNumber + ' · ' : ''}${d.points} pts</div></div>
           <span class="muted">›</span>
         </div>`;
-      }).join('') : emptyState('No drivers', 'No drivers in standings for this team.')}
-    </div>
-    <div class="card" style="padding:12px">
+      }).join('')}
+    </div>` : ''}
+    <div class="card" style="padding:12px;margin-bottom:12px">
       <div class="caption" style="margin-bottom:6px">Follow ${c.name}</div>
-      ${teamSocials(teamId)}
+      ${teamSocials(teamId) || '<div style="font-size:12px;color:var(--text-subtle)">No social links on file.</div>'}
     </div>
+    <div style="text-align:center"><button class="btn-secondary" id="team-compare-btn" style="font-size:12px">Compare team in History →</button></div>
   `);
   $('#close-modal').addEventListener('click', closeModal);
+  $('#team-compare-btn').addEventListener('click', () => { state.historyTeamA = teamId; state.historyTab = 'teams'; closeModal(); navigate('history'); });
   bindActions($('.modal'));
 }
 
 function openCircuitById(circuitId){
-  const race = state.data.schedule.find(r => r.Circuit.circuitId === circuitId);
+  const data = currentSeasonData(); if (!data) return;
+  const race = data.schedule.find(r => r.Circuit.circuitId === circuitId);
   if (race) openRace(race.round);
 }
 
-/* =================== ACTION BINDING =================== */
+/* ACTION BINDING */
 function bindActions(scope){
   $$('[data-action]', scope).forEach(el => {
     if (el._bound) return;
@@ -1492,37 +1773,43 @@ function bindActions(scope){
     el.addEventListener('click', (e) => {
       e.stopPropagation();
       const a = el.dataset.action;
-      const data = el.dataset;
-      if (a === 'open-race') openRace(data.round);
-      else if (a === 'open-driver') openDriver(data.driver);
-      else if (a === 'open-team') openTeam(data.team);
-      else if (a === 'open-circuit') { const r = state.data.schedule.find(rr => rr.round === String(data.round)); if (r) openCircuitById(r.Circuit.circuitId); }
-      else if (a === 'open-circuit-id') openCircuitById(data.circuit);
+      const d = el.dataset;
+      if (a === 'open-race') openRace(d.round);
+      else if (a === 'open-driver') openDriver(d.driver);
+      else if (a === 'open-driver-any') openDriverAny(d.driver);
+      else if (a === 'open-team') openTeam(d.team);
+      else if (a === 'open-circuit-id') openCircuitById(d.circuit);
       else if (a === 'goto-stats') navigate('stats');
       else if (a === 'goto-map') navigate('map');
+      else if (a === 'goto-timeline') navigate('timeline');
+      else if (a === 'goto-history') navigate('history');
+      else if (a === 'switch-season') switchSeason(d.season);
     });
   });
 }
 
-/* =================== RENDER ROUTING =================== */
+/* RENDER ROUTING */
 function render(){
   if (state.page === 'home') renderHome();
   else if (state.page === 'timeline') renderTimeline();
   else if (state.page === 'stats') renderStats();
+  else if (state.page === 'history') renderHistory();
   else if (state.page === 'map') renderMap();
   else if (state.page === 'fun') renderFun();
   else if (state.page === 'more') renderMore();
 }
 
-/* =================== INIT =================== */
+/* INIT */
 function init(){
   applyTheme();
   $('#theme-toggle').addEventListener('click', toggleTheme);
-  $('#refresh-btn').addEventListener('click', loadData);
+  $('#refresh-btn').addEventListener('click', () => loadSeason(state.selectedSeason || 'current', { force: true }));
   $$('.nav-item').forEach(b => b.addEventListener('click', () => navigate(b.dataset.page)));
+  $('#season-picker').addEventListener('change', e => switchSeason(e.target.value));
   render();
   setInterval(updateCountdown, 1000);
-  loadData();
+  loadSeasonsList();
+  loadSeason('current');
 }
 function waitForGate(){
   if (document.getElementById('dn-auth-overlay')) setTimeout(waitForGate, 200);
