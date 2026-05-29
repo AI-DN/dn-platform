@@ -1,0 +1,2640 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Casa — Property Management</title>
+<!-- ===== DN Platform Favicon v1.0 ===== -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>CA</text></svg>">
+<meta name="theme-color" content="#07091a">
+<link rel="preconnect" href="https://rsms.me/">
+<link rel="stylesheet" href="https://rsms.me/inter/inter.css">
+<style>
+:root {
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-2: #f5f5f5;
+  --text: #18181b;
+  --text-muted: #52525b;
+  --text-subtle: #a1a1aa;
+  --border: rgba(0, 0, 0, 0.08);
+  --border-strong: rgba(0, 0, 0, 0.16);
+  --accent: #5e6ad2;
+  --accent-hover: #4f59c4;
+  --accent-bg: rgba(94, 106, 210, 0.08);
+  --success: #16a34a;
+  --success-bg: rgba(22, 163, 74, 0.08);
+  --warning: #d97706;
+  --warning-bg: rgba(217, 119, 6, 0.08);
+  --danger: #dc2626;
+  --danger-bg: rgba(220, 38, 38, 0.08);
+  --info: #0284c7;
+  --info-bg: rgba(2, 132, 199, 0.08);
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+}
+[data-theme="dark"] {
+  --bg: #09090b;
+  --surface: #131316;
+  --surface-2: #1c1c20;
+  --text: #fafafa;
+  --text-muted: #a1a1aa;
+  --text-subtle: #71717a;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --accent: #7b85e3;
+  --accent-hover: #8d96e8;
+  --accent-bg: rgba(123, 133, 227, 0.10);
+  --success: #22c55e;
+  --success-bg: rgba(34, 197, 94, 0.10);
+  --warning: #f59e0b;
+  --warning-bg: rgba(245, 158, 11, 0.10);
+  --danger: #ef4444;
+  --danger-bg: rgba(239, 68, 68, 0.10);
+  --info: #38bdf8;
+  --info-bg: rgba(56, 189, 248, 0.10);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  font-feature-settings: 'cv11', 'ss01';
+}
+.tabular { font-variant-numeric: tabular-nums; }
+.mono { font-family: ui-monospace, 'SF Mono', Menlo, monospace; font-size: 13px; }
+
+/* Layout */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+.header {
+  display: flex; align-items: center; gap: 16px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border);
+  background: var(--surface);
+  position: sticky; top: 0; z-index: 50;
+}
+.logo {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 600; font-size: 15px;
+  letter-spacing: -0.01em;
+}
+.logo-mark {
+  width: 22px; height: 22px;
+  border-radius: var(--radius-sm);
+  background: var(--accent);
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-size: 12px; font-weight: 700;
+}
+.nav { display: flex; gap: 2px; margin-left: 16px; }
+.nav-item {
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  font-family: inherit;
+  transition: background 150ms ease, color 150ms ease;
+}
+.nav-item:hover { background: var(--surface-2); color: var(--text); }
+.nav-item.active { background: var(--surface-2); color: var(--text); }
+.spacer { flex: 1; }
+.header-actions { display: flex; align-items: center; gap: 8px; }
+
+/* Property selector */
+.prop-selector {
+  position: relative;
+}
+.prop-selector-btn {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 6px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  cursor: pointer;
+  min-width: 200px;
+  transition: border-color 150ms ease;
+}
+.prop-selector-btn:hover { border-color: var(--text-subtle); }
+.prop-selector-menu {
+  position: absolute; top: calc(100% + 4px); left: 0;
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  min-width: 240px;
+  z-index: 100;
+  padding: 4px;
+  max-height: 320px; overflow-y: auto;
+}
+.prop-selector-item {
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex; justify-content: space-between; align-items: center;
+}
+.prop-selector-item:hover { background: var(--surface-2); }
+.prop-selector-item.selected { background: var(--accent-bg); color: var(--accent); }
+.prop-selector-item .meta { font-size: 11px; color: var(--text-subtle); }
+
+/* Buttons */
+.btn-primary {
+  background: var(--accent); color: white;
+  border: 1px solid var(--accent);
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: background 150ms ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-primary:hover { background: var(--accent-hover); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-secondary {
+  background: var(--surface); color: var(--text);
+  border: 1px solid var(--border-strong);
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+  transition: background 150ms ease, border-color 150ms ease;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-secondary:hover { background: var(--surface-2); border-color: var(--text-subtle); }
+.btn-ghost {
+  background: transparent; color: var(--text-muted);
+  border: 1px solid transparent;
+  padding: 6px 10px; border-radius: var(--radius-sm);
+  font-size: 13px; cursor: pointer; font-family: inherit;
+  display: inline-flex; align-items: center; gap: 6px;
+}
+.btn-ghost:hover { background: var(--surface-2); color: var(--text); }
+.btn-icon {
+  width: 30px; height: 30px; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+
+/* Inputs */
+.input, .select, textarea.input {
+  background: var(--surface-2);
+  border: 1px solid var(--border-strong);
+  color: var(--text);
+  padding: 7px 10px;
+  border-radius: var(--radius-sm);
+  font-size: 13px;
+  font-family: inherit;
+  transition: border-color 150ms ease, background 150ms ease;
+  width: 100%;
+}
+.input:focus, .select:focus, textarea.input:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+.input::placeholder { color: var(--text-subtle); }
+label { display: block; font-size: 12px; color: var(--text-muted); margin-bottom: 4px; font-weight: 500; }
+
+/* Main content */
+.main { padding: 24px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.page-header { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 24px; gap: 16px; flex-wrap: wrap; }
+.page-title { font-size: 20px; font-weight: 600; letter-spacing: -0.005em; margin: 0 0 4px 0; }
+.page-subtitle { font-size: 13px; color: var(--text-muted); margin: 0; }
+.toolbar { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+
+/* KPI Grid */
+.kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.kpi-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+  cursor: pointer;
+  transition: border-color 150ms ease;
+}
+.kpi-card:hover { border-color: var(--border-strong); }
+.kpi-label {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 4px;
+}
+.kpi-delta {
+  font-size: 12px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+  display: flex; align-items: center; gap: 4px;
+}
+.delta-up { color: var(--success); }
+.delta-down { color: var(--danger); }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  padding: 16px;
+}
+.card-header {
+  display: flex; align-items: center; justify-content: space-between;
+  margin-bottom: 12px;
+}
+.card-title { font-size: 16px; font-weight: 600; margin: 0; }
+.section-title {
+  font-size: 12px; font-weight: 500; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--text-muted);
+  margin: 0 0 12px 0;
+}
+
+/* Property cards */
+.property-list { display: grid; gap: 12px; }
+.property-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  transition: border-color 150ms ease;
+}
+.property-card:hover { border-color: var(--border-strong); }
+.property-row {
+  display: grid;
+  grid-template-columns: 56px 1.5fr 1fr 1fr 1fr 1fr auto;
+  gap: 16px;
+  align-items: center;
+  padding: 14px 16px;
+  cursor: pointer;
+}
+.property-thumb {
+  width: 56px; height: 56px;
+  border-radius: var(--radius-sm);
+  background: var(--surface-2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 18px; font-weight: 600; color: var(--text-muted);
+  border: 1px solid var(--border);
+}
+.property-name { font-weight: 600; font-size: 14px; margin-bottom: 2px; }
+.property-addr { font-size: 12px; color: var(--text-muted); }
+.prop-metric-label { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.02em; margin-bottom: 2px; }
+.prop-metric-value { font-size: 14px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.property-expand {
+  border-top: 1px solid var(--border);
+  padding: 16px;
+  background: var(--surface-2);
+}
+
+/* Tables */
+table { width: 100%; border-collapse: collapse; font-size: 13px; font-variant-numeric: tabular-nums; }
+thead th {
+  text-align: left;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text);
+}
+tbody tr { cursor: pointer; }
+tbody tr:hover { background: var(--surface-2); }
+tbody tr:last-child td { border-bottom: none; }
+.numeric { text-align: right; font-family: ui-monospace, 'SF Mono', Menlo, monospace; }
+.table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); overflow: hidden; }
+
+/* Badges */
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.badge-success { background: var(--success-bg); color: var(--success); }
+.badge-warning { background: var(--warning-bg); color: var(--warning); }
+.badge-danger { background: var(--danger-bg); color: var(--danger); }
+.badge-info { background: var(--info-bg); color: var(--info); }
+.badge-neutral { background: var(--surface-2); color: var(--text-muted); border: 1px solid var(--border); }
+.dot { width: 6px; height: 6px; border-radius: 50%; display: inline-block; }
+
+/* Calendar */
+.calendar-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-md); padding: 16px; }
+.cal-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; gap: 8px; flex-wrap: wrap; }
+.cal-title { font-size: 16px; font-weight: 600; min-width: 180px; }
+.cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+.cal-day-name {
+  background: var(--surface-2);
+  padding: 8px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  text-align: center;
+}
+.cal-day {
+  background: var(--surface);
+  min-height: 84px;
+  padding: 6px;
+  font-size: 12px;
+  position: relative;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+.cal-day:hover { background: var(--surface-2); }
+.cal-day.other-month { background: var(--surface-2); color: var(--text-subtle); }
+.cal-day.today .cal-day-num { color: var(--accent); font-weight: 700; }
+.cal-day-num { font-size: 12px; font-weight: 500; margin-bottom: 4px; font-variant-numeric: tabular-nums; }
+.cal-event {
+  font-size: 10px;
+  padding: 2px 5px;
+  border-radius: 3px;
+  margin-bottom: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  border-left: 2px solid;
+}
+.cal-event.confirmed { background: var(--info-bg); color: var(--info); border-left-color: var(--info); }
+.cal-event.checkedin { background: var(--success-bg); color: var(--success); border-left-color: var(--success); }
+.cal-event.completed { background: var(--surface-2); color: var(--text-muted); border-left-color: var(--text-subtle); }
+.cal-event.blocked { background: var(--danger-bg); color: var(--danger); border-left-color: var(--danger); }
+
+/* Slide-over */
+.slideover-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.4);
+  z-index: 90;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 200ms ease;
+}
+.slideover-backdrop.open { opacity: 1; pointer-events: auto; }
+.slideover {
+  position: fixed; top: 0; right: 0; bottom: 0;
+  width: 480px; max-width: 100vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border-strong);
+  z-index: 100;
+  transform: translateX(100%);
+  transition: transform 200ms ease;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.slideover.open { transform: translateX(0); }
+.slideover-header {
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.slideover-body { padding: 24px; overflow-y: auto; flex: 1; }
+.slideover-footer {
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end;
+}
+
+/* Modal */
+.modal-backdrop {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 110;
+}
+.modal {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 24px;
+  max-width: 560px;
+  width: 92vw;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-title { font-size: 18px; font-weight: 600; margin: 0 0 16px 0; }
+
+/* Toasts */
+.toast-host {
+  position: fixed; bottom: 16px; right: 16px;
+  display: flex; flex-direction: column; gap: 8px;
+  z-index: 200;
+}
+.toast {
+  background: var(--surface);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-md);
+  padding: 10px 14px;
+  font-size: 13px;
+  display: flex; align-items: center; gap: 8px;
+  min-width: 240px; max-width: 400px;
+  animation: toastIn 200ms ease;
+}
+.toast.success { border-left: 3px solid var(--success); }
+.toast.error { border-left: 3px solid var(--danger); }
+.toast.info { border-left: 3px solid var(--info); }
+@keyframes toastIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 2px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+.tab {
+  padding: 8px 14px;
+  font-size: 13px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  font-family: inherit;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  transition: color 150ms ease, border-color 150ms ease;
+}
+.tab:hover { color: var(--text); }
+.tab.active { color: var(--text); border-bottom-color: var(--accent); font-weight: 500; }
+
+/* Empty state */
+.empty {
+  padding: 48px 24px;
+  text-align: center;
+  color: var(--text-muted);
+}
+.empty-icon { opacity: 0.16; margin-bottom: 12px; }
+.empty-title { font-size: 15px; font-weight: 500; color: var(--text); margin: 0 0 4px 0; }
+.empty-desc { font-size: 13px; margin: 0 0 16px 0; }
+
+/* Misc */
+.row { display: flex; gap: 12px; align-items: center; }
+.col { display: flex; flex-direction: column; gap: 4px; }
+.divider { height: 1px; background: var(--border); margin: 16px 0; }
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+.kv { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; border-bottom: 1px solid var(--border); }
+.kv:last-child { border-bottom: none; }
+.kv-key { color: var(--text-muted); }
+.kv-val { font-weight: 500; font-variant-numeric: tabular-nums; }
+
+/* Loading */
+.spinner {
+  width: 16px; height: 16px;
+  border: 2px solid var(--border-strong);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 600ms linear infinite;
+  display: inline-block;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.skeleton {
+  background: linear-gradient(90deg, var(--surface-2) 25%, var(--border) 50%, var(--surface-2) 75%);
+  background-size: 200% 100%;
+  animation: skel 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+  height: 14px;
+}
+@keyframes skel { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+/* Search */
+.search-wrap { position: relative; }
+.search-input { padding-left: 30px; min-width: 240px; }
+.search-icon {
+  position: absolute; left: 9px; top: 50%; transform: translateY(-50%);
+  color: var(--text-subtle);
+  pointer-events: none;
+}
+
+/* Inline edit */
+.inline-edit {
+  background: transparent;
+  border: 1px solid transparent;
+  padding: 4px 6px;
+  border-radius: var(--radius-sm);
+  font: inherit;
+  color: inherit;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+}
+.inline-edit:hover { background: var(--surface-2); }
+.inline-edit:focus {
+  outline: none;
+  border-color: var(--accent);
+  background: var(--surface);
+}
+
+/* Notification dot */
+.notif-btn { position: relative; }
+.notif-dot {
+  position: absolute; top: 4px; right: 4px;
+  width: 7px; height: 7px;
+  background: var(--danger);
+  border-radius: 50%;
+  border: 2px solid var(--surface);
+}
+
+/* Filters */
+.chip-group { display: flex; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: var(--radius-sm); }
+.chip {
+  padding: 4px 10px;
+  font-size: 12px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-family: inherit;
+  transition: background 150ms ease, color 150ms ease;
+}
+.chip:hover { color: var(--text); }
+.chip.active { background: var(--surface); color: var(--text); font-weight: 500; }
+
+@media (max-width: 800px) {
+  .header { padding: 12px; flex-wrap: wrap; }
+  .nav { order: 10; width: 100%; margin-left: 0; overflow-x: auto; }
+  .main { padding: 16px; }
+  .property-row { grid-template-columns: 48px 1fr auto; gap: 12px; }
+  .property-row > :nth-child(n+4) { display: none; }
+  .slideover { width: 100vw; }
+}
+</style>
+</head>
+<body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = '154de9bd-9408-4dad-9629-72fb3eb6b0a9';
+  var APP_TITLE = "Comprehensive Airbnb Property Management System with Multi-Property Support";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
+
+<div class="app">
+  <header class="header">
+    <div class="logo">
+      <div class="logo-mark">C</div>
+      <span>Casa</span>
+    </div>
+    <nav class="nav" id="nav">
+      <button class="nav-item active" data-view="dashboard">Dashboard</button>
+      <button class="nav-item" data-view="calendar">Calendar</button>
+      <button class="nav-item" data-view="bookings">Bookings</button>
+      <button class="nav-item" data-view="financials">Financials</button>
+      <button class="nav-item" data-view="maintenance">Maintenance</button>
+      <button class="nav-item" data-view="analytics">Analytics</button>
+    </nav>
+    <div class="spacer"></div>
+    <div class="header-actions">
+      <div class="search-wrap">
+        <svg class="search-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input class="input search-input" id="globalSearch" placeholder="Search bookings, guests…" type="search">
+      </div>
+      <div class="prop-selector">
+        <button class="prop-selector-btn" id="propSelectorBtn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>
+          <span id="propSelectorLabel">All Properties</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-left:auto"><path d="m6 9 6 6 6-6"/></svg>
+        </button>
+        <div class="prop-selector-menu" id="propSelectorMenu" style="display:none"></div>
+      </div>
+      <button class="btn-ghost btn-icon notif-btn" id="notifBtn" title="Notifications" aria-label="Notifications">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="notif-dot" id="notifDot" style="display:none"></span>
+      </button>
+      <button class="btn-ghost btn-icon" id="themeBtn" title="Toggle theme" aria-label="Toggle theme">
+        <svg id="themeIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+      </button>
+      <button class="btn-primary" id="newBookingBtn">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+        New booking
+      </button>
+    </div>
+  </header>
+
+  <main class="main" id="main"></main>
+</div>
+
+<div class="slideover-backdrop" id="slideBackdrop"></div>
+<div class="slideover" id="slideover" role="dialog" aria-modal="true"></div>
+<div id="modalHost"></div>
+<div class="toast-host" id="toastHost"></div>
+
+<script>
+(function(){
+  'use strict';
+
+  // ============ STATE ============
+  const state = {
+    theme: window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light',
+    view: 'dashboard',
+    selectedPropertyId: 'all',
+    dateRange: 'last30',
+    customRange: null,
+    propertyDetailId: null,
+    propertyDetailTab: 'calendar',
+    calendarMonth: new Date(),
+    calendarView: 'month',
+    expandedProperty: null,
+    expandedBooking: null,
+    searchQuery: '',
+    properties: [],
+    bookings: [],
+    expenses: [],
+    maintenance: [],
+    documents: [],
+    messages: {},
+    notifications: []
+  };
+
+  // ============ SEED DATA ============
+  function seed(){
+    state.properties = [
+      { id:'p1', name:'Ocean Breeze Cottage', address:'12 Shoreline Dr, Half Moon Bay, CA', beds:2, baths:1, nightly:285, color:'#5e6ad2', cleaning:120, image:'OB' },
+      { id:'p2', name:'Downtown Loft', address:'448 Market St #7B, San Francisco, CA', beds:1, baths:1, nightly:215, color:'#16a34a', cleaning:90, image:'DL' },
+      { id:'p3', name:'Mountain Pine Cabin', address:'88 Ridge Rd, South Lake Tahoe, CA', beds:3, baths:2, nightly:340, color:'#d97706', cleaning:150, image:'MP' },
+      { id:'p4', name:'Garden Studio', address:'15 Linden Ave, Berkeley, CA', beds:1, baths:1, nightly:135, color:'#0284c7', cleaning:75, image:'GS' }
+    ];
+
+    const today = new Date(); today.setHours(0,0,0,0);
+    const addDays = (d,n) => { const x=new Date(d); x.setDate(x.getDate()+n); return x; };
+    const iso = d => d.toISOString().slice(0,10);
+
+    const guestNames = ['Amelia Chen','Marcus Reed','Sophia Patel','James Okafor','Isabella Rossi','Noah Kim','Olivia Brooks','Liam Garcia','Mia Tanaka','Ethan Walsh','Ava Nguyen','Lucas Müller','Harper Singh','Mason Cole','Emma Dubois','Logan Reeves','Charlotte Vega','Daniel Park','Zoe Hartman','Owen Bishop'];
+
+    const bookings = [];
+    let bid = 1000;
+    for (let i=0; i<28; i++){
+      const propIdx = i % 4;
+      const prop = state.properties[propIdx];
+      const offset = -45 + Math.floor(Math.random()*150);
+      const checkin = addDays(today, offset);
+      const nights = 2 + Math.floor(Math.random()*7);
+      const checkout = addDays(checkin, nights);
+      const guestName = guestNames[i % guestNames.length];
+      let status;
+      if (checkout < today) status = 'completed';
+      else if (checkin <= today && checkout > today) status = 'checkedin';
+      else if (Math.random() < 0.08) status = 'cancelled';
+      else status = 'confirmed';
+      const revenue = prop.nightly * nights;
+      const cleaning = prop.cleaning;
+      const commission = Math.round(revenue * 0.14);
+      bookings.push({
+        id: 'b' + (++bid),
+        propertyId: prop.id,
+        guestName,
+        guestEmail: guestName.toLowerCase().replace(/\s/g,'.') + '@email.com',
+        guestPhone: '+1 (555) ' + (100+i).toString().padStart(3,'0') + '-' + (1000+i*7).toString().slice(-4),
+        confirmation: 'HMX' + (bid+i).toString(36).toUpperCase(),
+        checkin: iso(checkin),
+        checkout: iso(checkout),
+        nights,
+        guests: 1 + Math.floor(Math.random()*4),
+        status,
+        revenue,
+        cleaning,
+        commission,
+        net: revenue - commission,
+        specialRequests: i%3===0 ? 'Late check-in around 9pm. Allergic to feathers.' : (i%4===0 ? 'Bringing small dog.' : ''),
+        source: ['Airbnb','VRBO','Direct'][i%3]
+      });
+    }
+    state.bookings = bookings.sort((a,b)=> new Date(b.checkin) - new Date(a.checkin));
+
+    // Expenses
+    const expCats = [
+      {cat:'Cleaning', items:['Turnover cleaning','Deep clean','Carpet wash']},
+      {cat:'Utilities', items:['Electricity','Water','Internet','Gas']},
+      {cat:'Maintenance', items:['HVAC service','Plumbing repair','Door lock fix','Paint touch-up']},
+      {cat:'Supplies', items:['Linens restock','Toiletries','Coffee pods','Light bulbs']},
+      {cat:'Marketing', items:['Photo refresh','Listing boost']},
+      {cat:'Management', items:['Property tax','Insurance','HOA dues','Mortgage interest']}
+    ];
+    const expenses = [];
+    let eid = 5000;
+    for (let i=0; i<40; i++){
+      const cat = expCats[i % expCats.length];
+      const prop = state.properties[i % 4];
+      const desc = cat.items[i % cat.items.length];
+      const amt = Math.round(30 + Math.random()*400);
+      const date = addDays(today, -Math.floor(Math.random()*180));
+      expenses.push({
+        id: 'e' + (++eid),
+        date: iso(date),
+        category: cat.cat,
+        description: desc,
+        propertyId: prop.id,
+        amount: amt,
+        receipt: i%3===0
+      });
+    }
+    state.expenses = expenses.sort((a,b)=> new Date(b.date) - new Date(a.date));
+
+    // Maintenance
+    const tasks = [
+      {title:'Quarterly HVAC filter change', recurring:'quarterly'},
+      {title:'Smoke detector battery check', recurring:'biannual'},
+      {title:'Deep clean carpets', recurring:'biannual'},
+      {title:'Pressure wash deck', recurring:'annual'},
+      {title:'Replace front door batteries', recurring:'monthly'},
+      {title:'Gutter cleaning', recurring:'biannual'},
+      {title:'Refill propane tank', recurring:'monthly'},
+      {title:'Inspect water heater', recurring:'annual'}
+    ];
+    const maint = [];
+    let mid = 7000;
+    for (let i=0; i<14; i++){
+      const t = tasks[i % tasks.length];
+      const prop = state.properties[i % 4];
+      const due = addDays(today, -10 + Math.floor(Math.random()*40));
+      const completed = due < today && Math.random() < 0.4;
+      maint.push({
+        id: 'm' + (++mid),
+        title: t.title,
+        propertyId: prop.id,
+        due: iso(due),
+        recurring: t.recurring,
+        vendor: ['Bay Area Mechanical','Hometown Handy','SF Cleaning Co','Self'][i%4],
+        status: completed ? 'completed' : (due < today ? 'overdue' : 'pending'),
+        cost: 50 + Math.floor(Math.random()*200)
+      });
+    }
+    state.maintenance = maint;
+
+    // Notifications
+    const upcoming = state.bookings.filter(b => {
+      const ci = new Date(b.checkin);
+      const diff = (ci - today) / 86400000;
+      return diff >= 0 && diff <= 7 && b.status === 'confirmed';
+    });
+    state.notifications = upcoming.slice(0,5).map(b => ({
+      id: 'n_' + b.id,
+      type: 'checkin',
+      title: 'Check-in: ' + b.guestName,
+      detail: propName(b.propertyId) + ' · ' + formatDate(b.checkin),
+      bookingId: b.id
+    }));
+    state.maintenance.filter(m => m.status === 'overdue').slice(0,3).forEach(m => {
+      state.notifications.push({
+        id: 'n_' + m.id, type:'maint', title: 'Overdue: ' + m.title, detail: propName(m.propertyId)
+      });
+    });
+  }
+
+  // ============ HELPERS ============
+  const fmtUSD = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD', maximumFractionDigits:0 });
+  const fmtUSDc = new Intl.NumberFormat('en-US', { style:'currency', currency:'USD' });
+  const fmtNum = new Intl.NumberFormat('en-US');
+  const fmtPct = (n, decimals=1) => (n>=0?'+':'') + n.toFixed(decimals) + '%';
+
+  function formatDate(s){
+    const d = new Date(s);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'numeric' });
+  }
+  function formatDateShort(s){
+    const d = new Date(s);
+    return d.toLocaleDateString('en-US', { month:'short', day:'numeric' });
+  }
+  function daysBetween(a,b){ return Math.round((new Date(b) - new Date(a)) / 86400000); }
+  function propById(id){ return state.properties.find(p => p.id === id); }
+  function propName(id){ const p = propById(id); return p ? p.name : '—'; }
+
+  function getDateRange(){
+    const today = new Date(); today.setHours(0,0,0,0);
+    const end = new Date(today);
+    let start;
+    switch(state.dateRange){
+      case 'last30': start = new Date(today); start.setDate(start.getDate()-30); break;
+      case 'quarter': start = new Date(today.getFullYear(), Math.floor(today.getMonth()/3)*3, 1); break;
+      case 'year': start = new Date(today.getFullYear(), 0, 1); break;
+      case 'ytd': start = new Date(today.getFullYear(), 0, 1); break;
+      case 'custom':
+        if (state.customRange) { start = new Date(state.customRange.start); end.setTime(new Date(state.customRange.end).getTime()); }
+        else { start = new Date(today); start.setDate(start.getDate()-30); }
+        break;
+      default: start = new Date(today); start.setDate(start.getDate()-30);
+    }
+    return { start, end };
+  }
+
+  function filteredBookings(){
+    let list = state.bookings.slice();
+    if (state.selectedPropertyId !== 'all') list = list.filter(b => b.propertyId === state.selectedPropertyId);
+    if (state.searchQuery){
+      const q = state.searchQuery.toLowerCase();
+      list = list.filter(b =>
+        b.guestName.toLowerCase().includes(q) ||
+        b.confirmation.toLowerCase().includes(q) ||
+        b.checkin.includes(q) || b.checkout.includes(q)
+      );
+    }
+    return list;
+  }
+
+  function bookingsInRange(){
+    const { start, end } = getDateRange();
+    return state.bookings.filter(b => {
+      if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return false;
+      const ci = new Date(b.checkin);
+      const co = new Date(b.checkout);
+      return co >= start && ci <= end && b.status !== 'cancelled';
+    });
+  }
+
+  function expensesInRange(){
+    const { start, end } = getDateRange();
+    return state.expenses.filter(e => {
+      if (state.selectedPropertyId !== 'all' && e.propertyId !== state.selectedPropertyId) return false;
+      const d = new Date(e.date);
+      return d >= start && d <= end;
+    });
+  }
+
+  function computeKPIs(){
+    const { start, end } = getDateRange();
+    const days = Math.max(1, Math.round((end - start)/86400000) + 1);
+    const numProps = state.selectedPropertyId === 'all' ? state.properties.length : 1;
+    const totalNightsAvail = numProps * days;
+
+    const bks = bookingsInRange();
+    let nightsBooked = 0, revenue = 0;
+    bks.forEach(b => {
+      const ci = new Date(Math.max(new Date(b.checkin), start));
+      const co = new Date(Math.min(new Date(b.checkout), end));
+      const n = Math.max(0, Math.round((co-ci)/86400000));
+      nightsBooked += n;
+      revenue += (b.revenue / b.nights) * n;
+    });
+
+    const expenses = expensesInRange().reduce((s,e)=> s+e.amount, 0);
+    const commission = bks.reduce((s,b)=> s+b.commission, 0);
+    const netProfit = revenue - expenses - commission;
+    const occupancy = totalNightsAvail > 0 ? (nightsBooked/totalNightsAvail)*100 : 0;
+    const adr = nightsBooked > 0 ? revenue / nightsBooked : 0;
+    const revpar = totalNightsAvail > 0 ? revenue / totalNightsAvail : 0;
+
+    // Upcoming checkins (next 7 days)
+    const today = new Date(); today.setHours(0,0,0,0);
+    const in7 = new Date(today); in7.setDate(in7.getDate()+7);
+    const upcoming = state.bookings.filter(b => {
+      if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return false;
+      const ci = new Date(b.checkin);
+      return ci >= today && ci <= in7 && b.status === 'confirmed';
+    }).length;
+
+    const overdueMaint = state.maintenance.filter(m => {
+      if (state.selectedPropertyId !== 'all' && m.propertyId !== state.selectedPropertyId) return false;
+      return m.status === 'overdue';
+    }).length;
+
+    return { revenue, expenses, commission, netProfit, occupancy, adr, revpar, upcoming, overdueMaint, nightsBooked, totalNightsAvail };
+  }
+
+  // ============ THEME ============
+  function applyTheme(){
+    document.documentElement.dataset.theme = state.theme;
+    const icon = document.getElementById('themeIcon');
+    if (state.theme === 'dark'){
+      icon.innerHTML = '<path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>';
+    } else {
+      icon.innerHTML = '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>';
+    }
+  }
+
+  // ============ TOAST ============
+  function toast(msg, type='success'){
+    const host = document.getElementById('toastHost');
+    const el = document.createElement('div');
+    el.className = 'toast ' + type;
+    const icons = {
+      success: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--success)"><path d="M20 6 9 17l-5-5"/></svg>',
+      error: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color:var(--danger)"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+      info: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--info)"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>'
+    };
+    el.innerHTML = (icons[type]||'') + '<span>' + escapeHTML(msg) + '</span>';
+    host.appendChild(el);
+    setTimeout(() => {
+      el.style.opacity = '0';
+      el.style.transition = 'opacity 200ms';
+      setTimeout(()=> el.remove(), 200);
+    }, 4000);
+  }
+
+  function escapeHTML(s){
+    return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;' })[c]);
+  }
+
+  // ============ RENDER: HEADER WIDGETS ============
+  function renderPropertySelector(){
+    const label = document.getElementById('propSelectorLabel');
+    if (state.selectedPropertyId === 'all'){
+      label.textContent = 'All Properties';
+    } else {
+      const p = propById(state.selectedPropertyId);
+      label.textContent = p ? p.name : 'All Properties';
+    }
+    const menu = document.getElementById('propSelectorMenu');
+    let html = '<div class="prop-selector-item ' + (state.selectedPropertyId==='all'?'selected':'') + '" data-pid="all"><div><div>All Properties</div><div class="meta">' + state.properties.length + ' properties</div></div></div>';
+    state.properties.forEach(p => {
+      html += '<div class="prop-selector-item ' + (state.selectedPropertyId===p.id?'selected':'') + '" data-pid="' + p.id + '"><div><div>' + escapeHTML(p.name) + '</div><div class="meta">' + p.beds + ' bed · ' + p.baths + ' bath</div></div></div>';
+    });
+    menu.innerHTML = html;
+    menu.querySelectorAll('.prop-selector-item').forEach(el => {
+      el.addEventListener('click', () => {
+        state.selectedPropertyId = el.dataset.pid;
+        menu.style.display = 'none';
+        renderPropertySelector();
+        render();
+      });
+    });
+  }
+
+  // ============ ROUTER ============
+  function render(){
+    const main = document.getElementById('main');
+    switch(state.view){
+      case 'dashboard': renderDashboard(main); break;
+      case 'calendar': renderCalendar(main); break;
+      case 'bookings': renderBookings(main); break;
+      case 'financials': renderFinancials(main); break;
+      case 'maintenance': renderMaintenance(main); break;
+      case 'analytics': renderAnalytics(main); break;
+      case 'propertyDetail': renderPropertyDetail(main); break;
+      default: renderDashboard(main);
+    }
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.classList.toggle('active', el.dataset.view === state.view);
+    });
+  }
+
+  function dateRangePicker(){
+    const opts = [
+      ['last30','Last 30 days'],
+      ['quarter','This quarter'],
+      ['ytd','Year to date'],
+      ['year','This year']
+    ];
+    return '<div class="chip-group">' + opts.map(o =>
+      '<button class="chip ' + (state.dateRange===o[0]?'active':'') + '" data-range="' + o[0] + '">' + o[1] + '</button>'
+    ).join('') + '</div>';
+  }
+
+  function bindDateRange(scope){
+    scope.querySelectorAll('[data-range]').forEach(el => {
+      el.addEventListener('click', () => {
+        state.dateRange = el.dataset.range;
+        render();
+      });
+    });
+  }
+
+  // ============ DASHBOARD ============
+  function renderDashboard(root){
+    const kpis = computeKPIs();
+    const prevKpis = computePrevKPIs();
+    const revDelta = prevKpis.revenue > 0 ? ((kpis.revenue - prevKpis.revenue)/prevKpis.revenue)*100 : 0;
+    const occDelta = prevKpis.occupancy > 0 ? kpis.occupancy - prevKpis.occupancy : 0;
+    const profitDelta = prevKpis.netProfit !== 0 ? ((kpis.netProfit - prevKpis.netProfit)/Math.abs(prevKpis.netProfit))*100 : 0;
+    const adrDelta = prevKpis.adr > 0 ? ((kpis.adr - prevKpis.adr)/prevKpis.adr)*100 : 0;
+
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Portfolio overview</h1>
+          <p class="page-subtitle">${state.selectedPropertyId==='all' ? state.properties.length + ' properties' : propName(state.selectedPropertyId)} · ${rangeLabel()}</p>
+        </div>
+        <div class="toolbar">${dateRangePicker()}</div>
+      </div>
+
+      <div class="kpi-grid">
+        ${kpiCard('Revenue', fmtUSD.format(kpis.revenue), revDelta, 'pct', 'kpi-revenue')}
+        ${kpiCard('Net profit', fmtUSD.format(kpis.netProfit), profitDelta, 'pct', 'kpi-profit')}
+        ${kpiCard('Occupancy', kpis.occupancy.toFixed(1) + '%', occDelta, 'pp', 'kpi-occupancy')}
+        ${kpiCard('Avg daily rate', fmtUSD.format(kpis.adr), adrDelta, 'pct', 'kpi-adr')}
+        ${kpiCard('Upcoming check-ins', String(kpis.upcoming), null, null, 'kpi-upcoming', 'Next 7 days')}
+        ${kpiCard('Open maintenance', String(kpis.overdueMaint), null, null, 'kpi-maint', kpis.overdueMaint>0?'Overdue':'All clear', kpis.overdueMaint>0?'warning':'success')}
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px" class="dash-grid">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Properties</h2>
+            <button class="btn-ghost" id="compareBtn">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="18"/><rect x="14" y="3" width="7" height="10"/></svg>
+              Compare
+            </button>
+          </div>
+          <div class="property-list" id="propList"></div>
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:16px">
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Upcoming check-ins</h2>
+              <button class="btn-ghost" data-goto="bookings">View all</button>
+            </div>
+            <div id="upcomingList"></div>
+          </div>
+          <div class="card">
+            <div class="card-header">
+              <h2 class="card-title">Pricing suggestions</h2>
+            </div>
+            <div id="pricingList"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Recent bookings</h2>
+          <button class="btn-ghost" data-goto="bookings">View all →</button>
+        </div>
+        <div id="recentBookings"></div>
+      </div>
+    `;
+
+    bindDateRange(root);
+    renderPropertyList(document.getElementById('propList'));
+    renderUpcomingList(document.getElementById('upcomingList'));
+    renderPricingList(document.getElementById('pricingList'));
+    renderRecentBookings(document.getElementById('recentBookings'));
+
+    root.querySelectorAll('[data-goto]').forEach(el => {
+      el.addEventListener('click', () => { state.view = el.dataset.goto; render(); });
+    });
+    const compareBtn = document.getElementById('compareBtn');
+    if (compareBtn) compareBtn.addEventListener('click', openCompareModal);
+
+    // Make KPI cards clickable
+    root.querySelector('.kpi-revenue').addEventListener('click', ()=>{ state.view='financials'; render(); });
+    root.querySelector('.kpi-profit').addEventListener('click', ()=>{ state.view='financials'; render(); });
+    root.querySelector('.kpi-occupancy').addEventListener('click', ()=>{ state.view='analytics'; render(); });
+    root.querySelector('.kpi-adr').addEventListener('click', ()=>{ state.view='analytics'; render(); });
+    root.querySelector('.kpi-upcoming').addEventListener('click', ()=>{ state.view='bookings'; render(); });
+    root.querySelector('.kpi-maint').addEventListener('click', ()=>{ state.view='maintenance'; render(); });
+  }
+
+  function computePrevKPIs(){
+    // Same logic but shifted range back
+    const { start, end } = getDateRange();
+    const span = end - start;
+    const prevEnd = new Date(start.getTime() - 86400000);
+    const prevStart = new Date(prevEnd.getTime() - span);
+    const days = Math.max(1, Math.round((prevEnd - prevStart)/86400000) + 1);
+    const numProps = state.selectedPropertyId === 'all' ? state.properties.length : 1;
+    const totalNightsAvail = numProps * days;
+
+    let nightsBooked = 0, revenue = 0;
+    state.bookings.forEach(b => {
+      if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return;
+      if (b.status === 'cancelled') return;
+      const ci = new Date(b.checkin), co = new Date(b.checkout);
+      if (co < prevStart || ci > prevEnd) return;
+      const s = new Date(Math.max(ci, prevStart));
+      const e = new Date(Math.min(co, prevEnd));
+      const n = Math.max(0, Math.round((e-s)/86400000));
+      nightsBooked += n;
+      revenue += (b.revenue / b.nights) * n;
+    });
+    const expenses = state.expenses.filter(e => {
+      if (state.selectedPropertyId !== 'all' && e.propertyId !== state.selectedPropertyId) return false;
+      const d = new Date(e.date);
+      return d >= prevStart && d <= prevEnd;
+    }).reduce((s,e)=>s+e.amount,0);
+    const occupancy = totalNightsAvail > 0 ? (nightsBooked/totalNightsAvail)*100 : 0;
+    const adr = nightsBooked > 0 ? revenue / nightsBooked : 0;
+    return { revenue, expenses, netProfit: revenue - expenses, occupancy, adr };
+  }
+
+  function rangeLabel(){
+    const { start, end } = getDateRange();
+    return formatDateShort(start) + ' – ' + formatDateShort(end);
+  }
+
+  function kpiCard(label, value, delta, deltaType, cls, hint, hintType){
+    let deltaHTML = '';
+    if (delta !== null && delta !== undefined){
+      const positive = delta >= 0;
+      const arrow = positive ? '↑' : '↓';
+      const str = deltaType === 'pp' ? fmtPct(delta) + 'pp' : fmtPct(delta);
+      deltaHTML = '<div class="kpi-delta ' + (positive?'delta-up':'delta-down') + '">' + arrow + ' ' + str + ' vs prior period</div>';
+    } else if (hint){
+      let color = 'var(--text-muted)';
+      if (hintType === 'warning') color = 'var(--warning)';
+      if (hintType === 'success') color = 'var(--success)';
+      deltaHTML = '<div class="kpi-delta" style="color:' + color + '">' + escapeHTML(hint) + '</div>';
+    }
+    return '<div class="kpi-card ' + (cls||'') + '"><div class="kpi-label">' + escapeHTML(label) + '</div><div class="kpi-value">' + value + '</div>' + deltaHTML + '</div>';
+  }
+
+  function renderPropertyList(root){
+    const props = state.selectedPropertyId === 'all' ? state.properties : state.properties.filter(p => p.id === state.selectedPropertyId);
+    if (props.length === 0){
+      root.innerHTML = emptyState('No properties yet', 'Add your first property to start tracking bookings.', 'Add property', 'addProperty');
+      return;
+    }
+    let html = '';
+    props.forEach(p => {
+      const stats = propertyStats(p.id);
+      const expanded = state.expandedProperty === p.id;
+      html += `
+        <div class="property-card">
+          <div class="property-row" data-pid="${p.id}">
+            <div class="property-thumb" style="background:${p.color}22;color:${p.color};border-color:${p.color}33">${p.image}</div>
+            <div>
+              <div class="property-name">${escapeHTML(p.name)}</div>
+              <div class="property-addr">${escapeHTML(p.address)}</div>
+            </div>
+            <div>
+              <div class="prop-metric-label">Occupancy</div>
+              <div class="prop-metric-value">${stats.occupancy.toFixed(0)}%</div>
+            </div>
+            <div>
+              <div class="prop-metric-label">Revenue</div>
+              <div class="prop-metric-value">${fmtUSD.format(stats.revenue)}</div>
+            </div>
+            <div>
+              <div class="prop-metric-label">ADR</div>
+              <div class="prop-metric-value">${fmtUSD.format(stats.adr)}</div>
+            </div>
+            <div>
+              <div class="prop-metric-label">Next check-in</div>
+              <div class="prop-metric-value" style="font-size:12px">${stats.nextCheckin || '—'}</div>
+            </div>
+            <button class="btn-ghost btn-icon" data-expand="${p.id}" title="Expand">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="transform:${expanded?'rotate(180deg)':'rotate(0)'};transition:transform 150ms"><path d="m6 9 6 6 6-6"/></svg>
+            </button>
+          </div>
+          ${expanded ? `
+            <div class="property-expand">
+              <div class="grid-3" style="margin-bottom:12px">
+                <div class="kv"><span class="kv-key">Bedrooms</span><span class="kv-val">${p.beds}</span></div>
+                <div class="kv"><span class="kv-key">Bathrooms</span><span class="kv-val">${p.baths}</span></div>
+                <div class="kv"><span class="kv-key">Base rate</span><span class="kv-val">${fmtUSD.format(p.nightly)}</span></div>
+                <div class="kv"><span class="kv-key">Cleaning fee</span><span class="kv-val">${fmtUSD.format(p.cleaning)}</span></div>
+                <div class="kv"><span class="kv-key">Bookings (range)</span><span class="kv-val">${stats.bookings}</span></div>
+                <div class="kv"><span class="kv-key">RevPAR</span><span class="kv-val">${fmtUSD.format(stats.revpar)}</span></div>
+              </div>
+              <div style="display:flex;gap:8px">
+                <button class="btn-secondary" data-open="${p.id}">Open property</button>
+                <button class="btn-ghost" data-cal="${p.id}">View calendar</button>
+              </div>
+            </div>
+          ` : ''}
+        </div>
+      `;
+    });
+    root.innerHTML = html;
+    root.querySelectorAll('[data-expand]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        state.expandedProperty = state.expandedProperty === el.dataset.expand ? null : el.dataset.expand;
+        renderPropertyList(root);
+      });
+    });
+    root.querySelectorAll('.property-row').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('[data-expand]')) return;
+        state.propertyDetailId = el.dataset.pid;
+        state.view = 'propertyDetail';
+        state.propertyDetailTab = 'calendar';
+        render();
+      });
+    });
+    root.querySelectorAll('[data-open]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        state.propertyDetailId = el.dataset.open;
+        state.view = 'propertyDetail';
+        render();
+      });
+    });
+    root.querySelectorAll('[data-cal]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        state.selectedPropertyId = el.dataset.cal;
+        state.view = 'calendar';
+        renderPropertySelector();
+        render();
+      });
+    });
+  }
+
+  function propertyStats(pid){
+    const { start, end } = getDateRange();
+    const days = Math.max(1, Math.round((end-start)/86400000)+1);
+    let nights=0, revenue=0, bookings=0;
+    state.bookings.forEach(b => {
+      if (b.propertyId !== pid || b.status === 'cancelled') return;
+      const ci=new Date(b.checkin), co=new Date(b.checkout);
+      if (co < start || ci > end) return;
+      const s = new Date(Math.max(ci,start));
+      const e = new Date(Math.min(co,end));
+      const n = Math.max(0, Math.round((e-s)/86400000));
+      if (n > 0) { nights += n; revenue += (b.revenue/b.nights)*n; bookings++; }
+    });
+    const occupancy = days > 0 ? (nights/days)*100 : 0;
+    const adr = nights > 0 ? revenue/nights : 0;
+    const revpar = days > 0 ? revenue/days : 0;
+    const today = new Date(); today.setHours(0,0,0,0);
+    const next = state.bookings
+      .filter(b => b.propertyId === pid && b.status === 'confirmed' && new Date(b.checkin) >= today)
+      .sort((a,b)=> new Date(a.checkin) - new Date(b.checkin))[0];
+    return { occupancy, revenue, adr, revpar, bookings, nextCheckin: next ? formatDateShort(next.checkin) : null };
+  }
+
+  function renderUpcomingList(root){
+    const today = new Date(); today.setHours(0,0,0,0);
+    const in14 = new Date(today); in14.setDate(in14.getDate()+14);
+    let list = state.bookings.filter(b => {
+      if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return false;
+      const ci = new Date(b.checkin);
+      return ci >= today && ci <= in14 && b.status === 'confirmed';
+    }).sort((a,b)=> new Date(a.checkin) - new Date(b.checkin)).slice(0,5);
+
+    if (list.length === 0){
+      root.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No upcoming check-ins.</div>';
+      return;
+    }
+    let html = '';
+    list.forEach(b => {
+      const days = daysBetween(new Date().toISOString().slice(0,10), b.checkin);
+      html += `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;cursor:pointer" data-bid="${b.id}">
+          <div>
+            <div style="font-weight:500;font-size:13px">${escapeHTML(b.guestName)}</div>
+            <div style="font-size:12px;color:var(--text-muted)">${escapeHTML(propName(b.propertyId))}</div>
+          </div>
+          <div style="text-align:right">
+            <div style="font-size:13px;font-variant-numeric:tabular-nums">${formatDateShort(b.checkin)}</div>
+            <div style="font-size:11px;color:var(--text-subtle)">${days===0?'Today':days===1?'Tomorrow':'in '+days+' days'}</div>
+          </div>
+        </div>
+      `;
+    });
+    root.innerHTML = html;
+    root.querySelectorAll('[data-bid]').forEach(el => {
+      el.addEventListener('click', () => openBookingSlideover(el.dataset.bid));
+    });
+  }
+
+  function renderPricingList(root){
+    const today = new Date();
+    const month = today.getMonth();
+    const peakSummer = month >= 5 && month <= 8;
+    const suggestions = state.properties.slice(0,3).map(p => {
+      const adjust = peakSummer ? 12 : (month === 11 ? 18 : -5);
+      const newRate = Math.round(p.nightly * (1 + adjust/100));
+      return { p, adjust, newRate, reason: peakSummer ? 'Peak summer demand' : (month===11 ? 'Holiday season' : 'Low-season softness') };
+    });
+    let html = '';
+    suggestions.forEach(s => {
+      const positive = s.adjust > 0;
+      html += `
+        <div style="padding:10px 0;border-bottom:1px solid var(--border)">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div style="flex:1">
+              <div style="font-size:13px;font-weight:500">${escapeHTML(s.p.name)}</div>
+              <div style="font-size:11px;color:var(--text-subtle);margin-top:2px">${escapeHTML(s.reason)}</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:13px;font-variant-numeric:tabular-nums">${fmtUSD.format(s.newRate)}<span style="color:var(--text-subtle);font-size:11px"> /nt</span></div>
+              <div style="font-size:11px;color:${positive?'var(--success)':'var(--warning)'};font-variant-numeric:tabular-nums">${fmtPct(s.adjust)} from base</div>
+            </div>
+          </div>
+        </div>
+      `;
+    });
+    html += '<div style="font-size:11px;color:var(--text-subtle);margin-top:8px;padding-top:4px">Advisory only — pricing changes apply via your listing platform.</div>';
+    root.innerHTML = html;
+  }
+
+  function renderRecentBookings(root){
+    const list = state.bookings.slice(0,6);
+    let html = '<div class="table-wrap"><table><thead><tr>';
+    if (state.selectedPropertyId === 'all') html += '<th>Property</th>';
+    html += '<th>Guest</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Status</th><th class="numeric">Revenue</th></tr></thead><tbody>';
+    list.forEach(b => {
+      html += '<tr data-bid="' + b.id + '">';
+      if (state.selectedPropertyId === 'all') html += '<td>' + escapeHTML(propName(b.propertyId)) + '</td>';
+      html += '<td><strong>' + escapeHTML(b.guestName) + '</strong></td>';
+      html += '<td>' + formatDateShort(b.checkin) + '</td>';
+      html += '<td>' + formatDateShort(b.checkout) + '</td>';
+      html += '<td class="numeric">' + b.nights + '</td>';
+      html += '<td>' + statusBadge(b.status) + '</td>';
+      html += '<td class="numeric">' + fmtUSD.format(b.revenue) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    root.innerHTML = html;
+    root.querySelectorAll('[data-bid]').forEach(el => {
+      el.addEventListener('click', () => openBookingSlideover(el.dataset.bid));
+    });
+  }
+
+  function statusBadge(s){
+    const map = {
+      confirmed: ['badge-info','Confirmed'],
+      checkedin: ['badge-success','Checked-in'],
+      completed: ['badge-neutral','Completed'],
+      cancelled: ['badge-danger','Cancelled']
+    };
+    const [cls,label] = map[s] || ['badge-neutral', s];
+    return '<span class="badge ' + cls + '"><span class="dot" style="background:currentColor;opacity:0.6"></span>' + label + '</span>';
+  }
+
+  // ============ CALENDAR ============
+  function renderCalendar(root){
+    const d = state.calendarMonth;
+    const monthName = d.toLocaleDateString('en-US', { month:'long', year:'numeric' });
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Calendar</h1>
+          <p class="page-subtitle">${state.selectedPropertyId==='all' ? 'All properties unified view' : propName(state.selectedPropertyId)}</p>
+        </div>
+        <div class="toolbar">
+          <button class="btn-secondary" id="importCal">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+            Import iCal
+          </button>
+          <button class="btn-secondary" id="blockDates">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 14.14 14.14"/></svg>
+            Block dates
+          </button>
+        </div>
+      </div>
+
+      <div class="calendar-wrap">
+        <div class="cal-header">
+          <div style="display:flex;align-items:center;gap:8px">
+            <button class="btn-ghost btn-icon" id="calPrev" aria-label="Previous"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg></button>
+            <div class="cal-title">${monthName}</div>
+            <button class="btn-ghost btn-icon" id="calNext" aria-label="Next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m9 18 6-6-6-6"/></svg></button>
+            <button class="btn-ghost" id="calToday">Today</button>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;gap:10px;font-size:11px;color:var(--text-muted)">
+              <span style="display:flex;align-items:center;gap:4px"><span class="dot" style="background:var(--info)"></span>Confirmed</span>
+              <span style="display:flex;align-items:center;gap:4px"><span class="dot" style="background:var(--success)"></span>Checked-in</span>
+              <span style="display:flex;align-items:center;gap:4px"><span class="dot" style="background:var(--text-subtle)"></span>Completed</span>
+              <span style="display:flex;align-items:center;gap:4px"><span class="dot" style="background:var(--danger)"></span>Blocked</span>
+            </div>
+          </div>
+        </div>
+        <div class="cal-grid" id="calGrid"></div>
+      </div>
+    `;
+
+    drawCalendarGrid(document.getElementById('calGrid'));
+    document.getElementById('calPrev').addEventListener('click', () => {
+      state.calendarMonth = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth()-1, 1);
+      render();
+    });
+    document.getElementById('calNext').addEventListener('click', () => {
+      state.calendarMonth = new Date(state.calendarMonth.getFullYear(), state.calendarMonth.getMonth()+1, 1);
+      render();
+    });
+    document.getElementById('calToday').addEventListener('click', () => {
+      state.calendarMonth = new Date();
+      render();
+    });
+    document.getElementById('importCal').addEventListener('click', () => {
+      toast('iCal import: paste your Airbnb calendar URL in Settings to enable sync.', 'info');
+    });
+    document.getElementById('blockDates').addEventListener('click', openBlockDatesModal);
+  }
+
+  function drawCalendarGrid(root){
+    const d = state.calendarMonth;
+    const year = d.getFullYear(), month = d.getMonth();
+    const first = new Date(year, month, 1);
+    const startDow = first.getDay();
+    const daysInMonth = new Date(year, month+1, 0).getDate();
+    const daysPrev = new Date(year, month, 0).getDate();
+    const today = new Date(); today.setHours(0,0,0,0);
+
+    const names = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    let html = names.map(n => '<div class="cal-day-name">' + n + '</div>').join('');
+
+    const totalCells = Math.ceil((startDow + daysInMonth) / 7) * 7;
+    for (let i=0; i<totalCells; i++){
+      let dayNum, dateObj, otherMonth = false;
+      if (i < startDow){
+        dayNum = daysPrev - startDow + i + 1;
+        dateObj = new Date(year, month-1, dayNum);
+        otherMonth = true;
+      } else if (i >= startDow + daysInMonth){
+        dayNum = i - startDow - daysInMonth + 1;
+        dateObj = new Date(year, month+1, dayNum);
+        otherMonth = true;
+      } else {
+        dayNum = i - startDow + 1;
+        dateObj = new Date(year, month, dayNum);
+      }
+      dateObj.setHours(0,0,0,0);
+      const isToday = dateObj.getTime() === today.getTime();
+      const events = bookingsOnDate(dateObj);
+      let evHtml = '';
+      events.slice(0,3).forEach(b => {
+        const status = b._status || b.status;
+        evHtml += '<div class="cal-event ' + status + '" data-bid="' + (b.id||'') + '">' + escapeHTML(b._label||b.guestName) + '</div>';
+      });
+      if (events.length > 3) evHtml += '<div style="font-size:10px;color:var(--text-subtle);padding:0 5px">+' + (events.length-3) + ' more</div>';
+      html += '<div class="cal-day ' + (otherMonth?'other-month':'') + ' ' + (isToday?'today':'') + '" data-date="' + dateObj.toISOString().slice(0,10) + '"><div class="cal-day-num">' + dayNum + '</div>' + evHtml + '</div>';
+    }
+    root.innerHTML = html;
+    root.querySelectorAll('[data-bid]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        if (el.dataset.bid) openBookingSlideover(el.dataset.bid);
+      });
+    });
+  }
+
+  function bookingsOnDate(date){
+    const ds = date.toISOString().slice(0,10);
+    return state.bookings.filter(b => {
+      if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return false;
+      return ds >= b.checkin && ds < b.checkout;
+    }).map(b => ({...b, _label: b.guestName + (state.selectedPropertyId==='all' ? ' · '+propById(b.propertyId).image : '')}));
+  }
+
+  // ============ BOOKINGS ============
+  function renderBookings(root){
+    const list = filteredBookings();
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Bookings</h1>
+          <p class="page-subtitle">${list.length} ${list.length===1?'booking':'bookings'}</p>
+        </div>
+        <div class="toolbar">
+          <select class="select" id="statusFilter" style="width:auto">
+            <option value="">All statuses</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="checkedin">Checked-in</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </select>
+          <button class="btn-secondary" id="exportBookings">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export CSV
+          </button>
+        </div>
+      </div>
+
+      <div id="bookingsTable"></div>
+    `;
+    drawBookingsTable(document.getElementById('bookingsTable'), list);
+    document.getElementById('statusFilter').addEventListener('change', e => {
+      const v = e.target.value;
+      const filtered = v ? list.filter(b => b.status === v) : list;
+      drawBookingsTable(document.getElementById('bookingsTable'), filtered);
+    });
+    document.getElementById('exportBookings').addEventListener('click', () => exportBookingsCSV(list));
+  }
+
+  function drawBookingsTable(root, list){
+    if (list.length === 0){
+      root.innerHTML = '<div class="card">' + emptyState('No bookings found', 'Adjust filters or create a new booking to get started.', 'New booking', 'newBooking') + '</div>';
+      root.querySelectorAll('[data-action="newBooking"]').forEach(el => el.addEventListener('click', openNewBookingModal));
+      return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr>';
+    html += '<th>Confirmation</th>';
+    if (state.selectedPropertyId === 'all') html += '<th>Property</th>';
+    html += '<th>Guest</th><th>Check-in</th><th>Check-out</th><th>Nights</th><th>Source</th><th>Status</th><th class="numeric">Revenue</th><th></th></tr></thead><tbody>';
+    list.forEach(b => {
+      const isExp = state.expandedBooking === b.id;
+      html += '<tr data-bid="' + b.id + '">';
+      html += '<td><span class="mono" style="color:var(--text-muted)">' + b.confirmation + '</span></td>';
+      if (state.selectedPropertyId === 'all') html += '<td>' + escapeHTML(propName(b.propertyId)) + '</td>';
+      html += '<td><strong>' + escapeHTML(b.guestName) + '</strong><div style="font-size:11px;color:var(--text-subtle)">' + b.guests + ' guests</div></td>';
+      html += '<td>' + formatDateShort(b.checkin) + '</td>';
+      html += '<td>' + formatDateShort(b.checkout) + '</td>';
+      html += '<td class="numeric">' + b.nights + '</td>';
+      html += '<td><span class="badge badge-neutral">' + b.source + '</span></td>';
+      html += '<td>' + statusBadge(b.status) + '</td>';
+      html += '<td class="numeric">' + fmtUSD.format(b.revenue) + '</td>';
+      html += '<td style="text-align:right"><button class="btn-ghost btn-icon" data-row-menu="' + b.id + '" aria-label="Actions"><svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="12" cy="19" r="1.5"/></svg></button></td>';
+      html += '</tr>';
+      if (isExp){
+        const colspan = state.selectedPropertyId === 'all' ? 10 : 9;
+        html += '<tr style="background:var(--surface-2)"><td colspan="' + colspan + '" style="padding:16px">' + bookingExpansion(b) + '</td></tr>';
+      }
+    });
+    html += '</tbody></table></div>';
+    root.innerHTML = html;
+    root.querySelectorAll('tr[data-bid]').forEach(el => {
+      el.addEventListener('click', e => {
+        if (e.target.closest('[data-row-menu]')) return;
+        openBookingSlideover(el.dataset.bid);
+      });
+    });
+    root.querySelectorAll('[data-row-menu]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        const bid = el.dataset.rowMenu;
+        openBookingSlideover(bid);
+      });
+    });
+  }
+
+  function bookingExpansion(b){
+    return `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px">
+        <div>
+          <div class="section-title">Guest contact</div>
+          <div class="kv"><span class="kv-key">Email</span><span class="kv-val">${escapeHTML(b.guestEmail)}</span></div>
+          <div class="kv"><span class="kv-key">Phone</span><span class="kv-val">${escapeHTML(b.guestPhone)}</span></div>
+          <div class="kv"><span class="kv-key">Confirmation</span><span class="kv-val mono">${b.confirmation}</span></div>
+          ${b.specialRequests ? '<div style="margin-top:12px"><div class="section-title">Special requests</div><div style="font-size:13px">'+escapeHTML(b.specialRequests)+'</div></div>' : ''}
+        </div>
+        <div>
+          <div class="section-title">Financial breakdown</div>
+          <div class="kv"><span class="kv-key">Gross revenue</span><span class="kv-val">${fmtUSDc.format(b.revenue)}</span></div>
+          <div class="kv"><span class="kv-key">Platform commission</span><span class="kv-val" style="color:var(--danger)">-${fmtUSDc.format(b.commission)}</span></div>
+          <div class="kv"><span class="kv-key">Cleaning fee</span><span class="kv-val">${fmtUSDc.format(b.cleaning)}</span></div>
+          <div class="kv" style="border-top:1px solid var(--border-strong);padding-top:8px;margin-top:4px"><span class="kv-key" style="color:var(--text);font-weight:500">Net</span><span class="kv-val">${fmtUSDc.format(b.net)}</span></div>
+        </div>
+      </div>
+    `;
+  }
+
+  // ============ BOOKING SLIDEOVER ============
+  function openBookingSlideover(bid){
+    const b = state.bookings.find(x => x.id === bid);
+    if (!b) return;
+    const so = document.getElementById('slideover');
+    const bd = document.getElementById('slideBackdrop');
+    so.innerHTML = `
+      <div class="slideover-header">
+        <div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em">${propName(b.propertyId)}</div>
+          <div style="font-size:18px;font-weight:600;margin-top:2px">${escapeHTML(b.guestName)}</div>
+        </div>
+        <button class="btn-ghost btn-icon" id="closeSlide" aria-label="Close">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <div class="slideover-body">
+        <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+          ${statusBadge(b.status)}
+          <span class="badge badge-neutral">${b.source}</span>
+          <span class="badge badge-neutral mono">${b.confirmation}</span>
+        </div>
+
+        <div class="section-title">Stay</div>
+        <div class="grid-2" style="margin-bottom:16px">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Check-in</div>
+            <div style="font-size:14px;font-weight:500">${formatDate(b.checkin)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Check-out</div>
+            <div style="font-size:14px;font-weight:500">${formatDate(b.checkout)}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Nights</div>
+            <div style="font-size:14px;font-weight:500">${b.nights}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase">Guests</div>
+            <div style="font-size:14px;font-weight:500">${b.guests}</div>
+          </div>
+        </div>
+
+        <div class="section-title">Contact</div>
+        <div class="kv"><span class="kv-key">Email</span><span class="kv-val">${escapeHTML(b.guestEmail)}</span></div>
+        <div class="kv"><span class="kv-key">Phone</span><span class="kv-val">${escapeHTML(b.guestPhone)}</span></div>
+
+        ${b.specialRequests ? `
+          <div class="section-title" style="margin-top:16px">Special requests</div>
+          <div style="font-size:13px;padding:10px;background:var(--surface-2);border-radius:var(--radius-sm);border-left:2px solid var(--accent)">${escapeHTML(b.specialRequests)}</div>
+        ` : ''}
+
+        <div class="section-title" style="margin-top:16px">Financial breakdown</div>
+        <div class="kv"><span class="kv-key">Gross revenue</span><span class="kv-val">${fmtUSDc.format(b.revenue)}</span></div>
+        <div class="kv"><span class="kv-key">Commission (14%)</span><span class="kv-val" style="color:var(--danger)">-${fmtUSDc.format(b.commission)}</span></div>
+        <div class="kv"><span class="kv-key">Cleaning fee collected</span><span class="kv-val">${fmtUSDc.format(b.cleaning)}</span></div>
+        <div class="kv" style="border-top:1px solid var(--border-strong);margin-top:4px;padding-top:8px"><span class="kv-key" style="font-weight:500;color:var(--text)">Net payout</span><span class="kv-val">${fmtUSDc.format(b.net)}</span></div>
+
+        <div class="section-title" style="margin-top:16px">Communication log</div>
+        <div id="msgLog" style="max-height:200px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px;background:var(--surface-2)"></div>
+        <div style="display:flex;gap:6px;margin-top:8px">
+          <input class="input" id="msgInput" placeholder="Send message to guest…">
+          <button class="btn-primary" id="sendMsg">Send</button>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">
+          <button class="btn-ghost" data-tmpl="checkin" style="font-size:11px;padding:4px 8px">Check-in instructions</button>
+          <button class="btn-ghost" data-tmpl="rules" style="font-size:11px;padding:4px 8px">House rules</button>
+          <button class="btn-ghost" data-tmpl="thanks" style="font-size:11px;padding:4px 8px">Thank you</button>
+        </div>
+      </div>
+      <div class="slideover-footer">
+        <button class="btn-ghost" data-action="clean">Mark cleaned</button>
+        <button class="btn-ghost" data-action="expense">Log expense</button>
+        <button class="btn-secondary" data-action="message">Message guest</button>
+      </div>
+    `;
+
+    so.classList.add('open');
+    bd.classList.add('open');
+
+    document.getElementById('closeSlide').addEventListener('click', closeSlideover);
+    bd.onclick = closeSlideover;
+
+    drawMsgLog(b.id);
+    document.getElementById('sendMsg').addEventListener('click', () => sendMessage(b.id));
+    document.getElementById('msgInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter') sendMessage(b.id);
+    });
+    so.querySelectorAll('[data-tmpl]').forEach(el => {
+      el.addEventListener('click', () => {
+        const t = el.dataset.tmpl;
+        const txt = {
+          checkin: 'Hi ' + b.guestName.split(' ')[0] + '! Check-in is from 3pm. Door code: 4827. WiFi: house-net / password: welcome2025.',
+          rules: 'Quick reminder of house rules: no smoking, no parties, quiet hours 10pm–8am, max ' + b.guests + ' guests. Thanks!',
+          thanks: 'Thanks so much for staying with us, ' + b.guestName.split(' ')[0] + '! A 5-star review would mean the world. Safe travels!'
+        }[t];
+        document.getElementById('msgInput').value = txt;
+      });
+    });
+    so.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener('click', () => {
+        const a = el.dataset.action;
+        if (a === 'clean'){
+          toast('Cleaning marked complete for ' + propName(b.propertyId));
+        } else if (a === 'expense'){
+          closeSlideover();
+          openExpenseModal(b.propertyId);
+        } else if (a === 'message'){
+          document.getElementById('msgInput').focus();
+        }
+      });
+    });
+  }
+
+  function drawMsgLog(bid){
+    const log = state.messages[bid] || [
+      { who:'system', text:'Booking confirmed', when: '5 days ago' },
+      { who:'guest', text:'Looking forward to our stay!', when:'3 days ago' }
+    ];
+    state.messages[bid] = log;
+    const root = document.getElementById('msgLog');
+    if (log.length === 0){
+      root.innerHTML = '<div style="color:var(--text-subtle);font-size:12px;text-align:center;padding:8px">No messages yet.</div>';
+      return;
+    }
+    root.innerHTML = log.map(m => {
+      if (m.who === 'system') return '<div style="font-size:11px;color:var(--text-subtle);text-align:center;padding:4px">' + escapeHTML(m.text) + ' · ' + escapeHTML(m.when) + '</div>';
+      const right = m.who === 'host';
+      return '<div style="display:flex;justify-content:' + (right?'flex-end':'flex-start') + ';margin:4px 0"><div style="max-width:80%;padding:6px 10px;border-radius:var(--radius-sm);font-size:12px;background:' + (right?'var(--accent-bg)':'var(--surface)') + ';color:' + (right?'var(--accent)':'var(--text)') + ';border:1px solid var(--border)"><div>' + escapeHTML(m.text) + '</div><div style="font-size:10px;color:var(--text-subtle);margin-top:2px">' + escapeHTML(m.when) + '</div></div></div>';
+    }).join('');
+  }
+
+  function sendMessage(bid){
+    const inp = document.getElementById('msgInput');
+    const text = inp.value.trim();
+    if (!text) return;
+    if (!state.messages[bid]) state.messages[bid] = [];
+    state.messages[bid].push({ who:'host', text, when:'just now' });
+    inp.value = '';
+    drawMsgLog(bid);
+    toast('Message sent', 'success');
+  }
+
+  function closeSlideover(){
+    document.getElementById('slideover').classList.remove('open');
+    document.getElementById('slideBackdrop').classList.remove('open');
+  }
+
+  // ============ FINANCIALS ============
+  function renderFinancials(root){
+    const bks = bookingsInRange();
+    const exps = expensesInRange();
+    const totalRev = bks.reduce((s,b)=>s+b.revenue,0);
+    const totalComm = bks.reduce((s,b)=>s+b.commission,0);
+    const totalCleaning = bks.reduce((s,b)=>s+b.cleaning,0);
+    const totalExp = exps.reduce((s,e)=>s+e.amount,0);
+    const net = totalRev - totalComm - totalExp;
+
+    // Group expenses by category
+    const byCat = {};
+    exps.forEach(e => { byCat[e.category] = (byCat[e.category]||0) + e.amount; });
+
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Financials</h1>
+          <p class="page-subtitle">${rangeLabel()} · P&L and expense tracking</p>
+        </div>
+        <div class="toolbar">
+          ${dateRangePicker()}
+          <button class="btn-secondary" id="exportFin">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/></svg>
+            Export
+          </button>
+          <button class="btn-primary" id="newExpense">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New expense
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        ${kpiCard('Gross revenue', fmtUSD.format(totalRev))}
+        ${kpiCard('Platform commission', '-' + fmtUSD.format(totalComm))}
+        ${kpiCard('Operating expenses', '-' + fmtUSD.format(totalExp))}
+        ${kpiCard('Net profit', fmtUSD.format(net))}
+      </div>
+
+      <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px;margin-bottom:16px">
+        <div class="card">
+          <div class="card-header">
+            <h2 class="card-title">Profit &amp; loss statement</h2>
+            <span style="font-size:12px;color:var(--text-muted)">${rangeLabel()}</span>
+          </div>
+          <table>
+            <tbody>
+              <tr><td style="font-weight:500">Gross rental revenue</td><td class="numeric">${fmtUSDc.format(totalRev)}</td></tr>
+              <tr><td style="padding-left:32px;color:var(--text-muted)">Cleaning fees collected</td><td class="numeric" style="color:var(--text-muted)">${fmtUSDc.format(totalCleaning)}</td></tr>
+              <tr><td style="padding-left:32px;color:var(--text-muted)">Platform commission (Airbnb/VRBO)</td><td class="numeric" style="color:var(--danger)">-${fmtUSDc.format(totalComm)}</td></tr>
+              <tr style="border-top:1px solid var(--border-strong)"><td style="font-weight:500">Net rental income</td><td class="numeric" style="font-weight:500">${fmtUSDc.format(totalRev - totalComm)}</td></tr>
+              ${Object.keys(byCat).sort().map(cat => '<tr><td style="padding-left:32px;color:var(--text-muted)">'+escapeHTML(cat)+'</td><td class="numeric" style="color:var(--danger)">-'+fmtUSDc.format(byCat[cat])+'</td></tr>').join('')}
+              <tr style="border-top:1px solid var(--border-strong)"><td style="font-weight:500">Total operating expenses</td><td class="numeric" style="font-weight:500;color:var(--danger)">-${fmtUSDc.format(totalExp)}</td></tr>
+              <tr style="border-top:2px solid var(--text)"><td style="font-weight:600;font-size:14px">Net profit</td><td class="numeric" style="font-weight:600;font-size:14px;color:${net>=0?'var(--success)':'var(--danger)'}">${fmtUSDc.format(net)}</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Expense breakdown</h2></div>
+          <div id="expBreakdown"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title">Expense ledger</h2>
+          <span style="font-size:12px;color:var(--text-muted)">${exps.length} entries · click amount to edit inline</span>
+        </div>
+        <div id="expTable"></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="card-header">
+          <h2 class="card-title">Tax-deductible summary (annual)</h2>
+          <button class="btn-ghost" id="exportTax">Export for accountant</button>
+        </div>
+        <div id="taxSummary"></div>
+      </div>
+    `;
+
+    bindDateRange(root);
+    renderExpenseBreakdown(document.getElementById('expBreakdown'), byCat, totalExp);
+    renderExpenseTable(document.getElementById('expTable'), exps);
+    renderTaxSummary(document.getElementById('taxSummary'));
+
+    document.getElementById('newExpense').addEventListener('click', () => openExpenseModal());
+    document.getElementById('exportFin').addEventListener('click', () => exportFinancialsCSV());
+    document.getElementById('exportTax').addEventListener('click', () => {
+      exportTaxCSV();
+      toast('Tax summary exported (CSV).', 'success');
+    });
+  }
+
+  function renderExpenseBreakdown(root, byCat, total){
+    const cats = Object.keys(byCat).sort((a,b)=> byCat[b]-byCat[a]);
+    if (cats.length === 0){
+      root.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted);font-size:13px">No expenses in this period.</div>';
+      return;
+    }
+    const colors = ['var(--accent)','var(--success)','var(--warning)','var(--info)','var(--danger)','var(--text-muted)'];
+    let html = '';
+    cats.forEach((c,i) => {
+      const pct = total > 0 ? (byCat[c]/total)*100 : 0;
+      const color = colors[i % colors.length];
+      html += `
+        <div style="margin-bottom:10px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+            <span>${escapeHTML(c)}</span>
+            <span style="font-variant-numeric:tabular-nums">${fmtUSD.format(byCat[c])} <span style="color:var(--text-subtle);font-size:11px">${pct.toFixed(0)}%</span></span>
+          </div>
+          <div style="height:6px;background:var(--surface-2);border-radius:3px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${color}"></div>
+          </div>
+        </div>
+      `;
+    });
+    root.innerHTML = html;
+  }
+
+  function renderExpenseTable(root, exps){
+    if (exps.length === 0){
+      root.innerHTML = emptyState('No expenses', 'Log your first expense to start tracking.', 'New expense', 'newExpense2');
+      root.querySelectorAll('[data-action="newExpense2"]').forEach(el => el.addEventListener('click', () => openExpenseModal()));
+      return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th>Date</th><th>Category</th><th>Description</th>';
+    if (state.selectedPropertyId === 'all') html += '<th>Property</th>';
+    html += '<th class="numeric">Amount</th><th>Receipt</th><th></th></tr></thead><tbody>';
+    exps.slice(0,30).forEach(e => {
+      html += '<tr>';
+      html += '<td>' + formatDateShort(e.date) + '</td>';
+      html += '<td><span class="badge badge-neutral">' + escapeHTML(e.category) + '</span></td>';
+      html += '<td>' + escapeHTML(e.description) + '</td>';
+      if (state.selectedPropertyId === 'all') html += '<td style="color:var(--text-muted)">' + escapeHTML(propName(e.propertyId)) + '</td>';
+      html += '<td class="numeric"><input class="inline-edit numeric" data-eid="' + e.id + '" value="' + e.amount + '" type="number" step="0.01" style="text-align:right;max-width:90px"></td>';
+      html += '<td>' + (e.receipt ? '<span class="badge badge-info">📎 attached</span>' : '<span style="color:var(--text-subtle);font-size:12px">—</span>') + '</td>';
+      html += '<td style="text-align:right"><button class="btn-ghost btn-icon" data-del="' + e.id + '" title="Delete"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    root.innerHTML = html;
+    root.querySelectorAll('input[data-eid]').forEach(inp => {
+      inp.addEventListener('change', e => {
+        const id = inp.dataset.eid;
+        const v = parseFloat(inp.value);
+        if (isNaN(v) || v < 0){ toast('Invalid amount', 'error'); return; }
+        const exp = state.expenses.find(x => x.id === id);
+        if (exp){ exp.amount = v; inp.style.background='var(--success-bg)'; setTimeout(()=>inp.style.background='',600); toast('Updated · auto-saved'); }
+      });
+      inp.addEventListener('click', e => e.stopPropagation());
+    });
+    root.querySelectorAll('[data-del]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const id = btn.dataset.del;
+        state.expenses = state.expenses.filter(x => x.id !== id);
+        toast('Expense deleted');
+        render();
+      });
+    });
+  }
+
+  function renderTaxSummary(root){
+    const year = new Date().getFullYear();
+    const yearExps = state.expenses.filter(e => {
+      if (state.selectedPropertyId !== 'all' && e.propertyId !== state.selectedPropertyId) return false;
+      return new Date(e.date).getFullYear() === year;
+    });
+    const yearBks = state.bookings.filter(b => {
+      if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return false;
+      if (b.status === 'cancelled') return false;
+      return new Date(b.checkin).getFullYear() === year;
+    });
+    const rev = yearBks.reduce((s,b)=>s+b.revenue,0);
+    const comm = yearBks.reduce((s,b)=>s+b.commission,0);
+    const byCat = {};
+    yearExps.forEach(e => { byCat[e.category] = (byCat[e.category]||0) + e.amount; });
+
+    let html = '<table><thead><tr><th>Category</th><th>Schedule E line</th><th class="numeric">Amount</th></tr></thead><tbody>';
+    html += '<tr><td>Gross rental income</td><td><span class="mono" style="color:var(--text-muted)">Line 3</span></td><td class="numeric">' + fmtUSDc.format(rev) + '</td></tr>';
+    html += '<tr><td>Commissions paid</td><td><span class="mono" style="color:var(--text-muted)">Line 8</span></td><td class="numeric">' + fmtUSDc.format(comm) + '</td></tr>';
+    const lineMap = { Cleaning:'Line 7', Utilities:'Line 17', Maintenance:'Line 14', Supplies:'Line 15', Marketing:'Line 4', Management:'Line 11' };
+    Object.keys(byCat).sort().forEach(cat => {
+      html += '<tr><td>' + escapeHTML(cat) + '</td><td><span class="mono" style="color:var(--text-muted)">' + (lineMap[cat]||'—') + '</span></td><td class="numeric">' + fmtUSDc.format(byCat[cat]) + '</td></tr>';
+    });
+    const totalDed = comm + Object.values(byCat).reduce((s,v)=>s+v,0);
+    html += '<tr style="border-top:1px solid var(--border-strong)"><td style="font-weight:600">Total deductible</td><td></td><td class="numeric" style="font-weight:600">' + fmtUSDc.format(totalDed) + '</td></tr>';
+    html += '<tr><td style="font-weight:600">Estimated taxable income</td><td></td><td class="numeric" style="font-weight:600">' + fmtUSDc.format(rev - totalDed) + '</td></tr>';
+    html += '</tbody></table>';
+    root.innerHTML = html;
+  }
+
+  // ============ MAINTENANCE ============
+  function renderMaintenance(root){
+    let list = state.maintenance.slice();
+    if (state.selectedPropertyId !== 'all') list = list.filter(m => m.propertyId === state.selectedPropertyId);
+    list.sort((a,b) => {
+      const order = { overdue:0, pending:1, completed:2 };
+      if (order[a.status] !== order[b.status]) return order[a.status] - order[b.status];
+      return new Date(a.due) - new Date(b.due);
+    });
+    const overdue = list.filter(m => m.status === 'overdue').length;
+    const pending = list.filter(m => m.status === 'pending').length;
+    const completed = list.filter(m => m.status === 'completed').length;
+
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Maintenance</h1>
+          <p class="page-subtitle">${list.length} tasks · ${overdue} overdue</p>
+        </div>
+        <div class="toolbar">
+          <button class="btn-primary" id="newTask">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+            New task
+          </button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        ${kpiCard('Overdue', String(overdue), null, null, '', overdue>0?'Action needed':'All caught up', overdue>0?'warning':'success')}
+        ${kpiCard('Pending', String(pending))}
+        ${kpiCard('Completed', String(completed))}
+        ${kpiCard('Total spend (YTD)', fmtUSD.format(list.filter(m=>m.status==='completed').reduce((s,m)=>s+m.cost,0)))}
+      </div>
+
+      <div class="card">
+        <div class="card-header"><h2 class="card-title">Task list</h2></div>
+        <div id="maintList"></div>
+      </div>
+    `;
+
+    drawMaintenance(document.getElementById('maintList'), list);
+    document.getElementById('newTask').addEventListener('click', openTaskModal);
+  }
+
+  function drawMaintenance(root, list){
+    if (list.length === 0){
+      root.innerHTML = emptyState('No maintenance tasks', 'Schedule recurring tasks to keep your properties in top shape.', 'New task', 'newTask2');
+      root.querySelectorAll('[data-action="newTask2"]').forEach(el => el.addEventListener('click', openTaskModal));
+      return;
+    }
+    let html = '<div class="table-wrap"><table><thead><tr><th></th><th>Task</th>';
+    if (state.selectedPropertyId === 'all') html += '<th>Property</th>';
+    html += '<th>Due</th><th>Recurring</th><th>Vendor</th><th>Status</th><th class="numeric">Cost</th><th></th></tr></thead><tbody>';
+    list.forEach(m => {
+      const today = new Date(); today.setHours(0,0,0,0);
+      const due = new Date(m.due);
+      const daysLate = Math.round((today-due)/86400000);
+      html += '<tr>';
+      html += '<td><input type="checkbox" data-mid="' + m.id + '"' + (m.status==='completed'?' checked':'') + '></td>';
+      html += '<td><strong style="' + (m.status==='completed'?'text-decoration:line-through;color:var(--text-muted)':'') + '">' + escapeHTML(m.title) + '</strong></td>';
+      if (state.selectedPropertyId === 'all') html += '<td>' + escapeHTML(propName(m.propertyId)) + '</td>';
+      html += '<td>' + formatDateShort(m.due);
+      if (m.status === 'overdue') html += ' <span style="color:var(--danger);font-size:11px">(' + daysLate + 'd late)</span>';
+      html += '</td>';
+      html += '<td><span class="badge badge-neutral">' + m.recurring + '</span></td>';
+      html += '<td>' + escapeHTML(m.vendor) + '</td>';
+      const badge = m.status === 'completed' ? 'badge-success' : (m.status === 'overdue' ? 'badge-danger' : 'badge-warning');
+      html += '<td><span class="badge ' + badge + '">' + m.status + '</span></td>';
+      html += '<td class="numeric">' + fmtUSD.format(m.cost) + '</td>';
+      html += '<td style="text-align:right"><button class="btn-ghost btn-icon" data-mdel="' + m.id + '"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+    root.innerHTML = html;
+    root.querySelectorAll('input[data-mid]').forEach(cb => {
+      cb.addEventListener('change', () => {
+        const m = state.maintenance.find(x => x.id === cb.dataset.mid);
+        if (!m) return;
+        m.status = cb.checked ? 'completed' : 'pending';
+        toast(m.status === 'completed' ? 'Task completed' : 'Task reopened');
+        render();
+      });
+    });
+    root.querySelectorAll('[data-mdel]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.maintenance = state.maintenance.filter(x => x.id !== btn.dataset.mdel);
+        toast('Task removed');
+        render();
+      });
+    });
+  }
+
+  // ============ ANALYTICS ============
+  function renderAnalytics(root){
+    const kpis = computeKPIs();
+    const monthly = computeMonthlySeries();
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">Analytics</h1>
+          <p class="page-subtitle">Performance trends · ${rangeLabel()}</p>
+        </div>
+        <div class="toolbar">${dateRangePicker()}</div>
+      </div>
+
+      <div class="kpi-grid">
+        ${kpiCard('Occupancy', kpis.occupancy.toFixed(1) + '%')}
+        ${kpiCard('ADR', fmtUSD.format(kpis.adr))}
+        ${kpiCard('RevPAR', fmtUSD.format(kpis.revpar))}
+        ${kpiCard('Nights booked', fmtNum.format(kpis.nightsBooked) + ' / ' + fmtNum.format(kpis.totalNightsAvail))}
+      </div>
+
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header"><h2 class="card-title">Monthly revenue (last 12 months)</h2></div>
+        <div id="chart" style="padding:16px 0"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Property performance</h2></div>
+          <div id="propPerf"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Booking source mix</h2></div>
+          <div id="sourceMix"></div>
+        </div>
+      </div>
+    `;
+    bindDateRange(root);
+    drawChart(document.getElementById('chart'), monthly);
+    drawPropPerf(document.getElementById('propPerf'));
+    drawSourceMix(document.getElementById('sourceMix'));
+  }
+
+  function computeMonthlySeries(){
+    const now = new Date();
+    const series = [];
+    for (let i=11; i>=0; i--){
+      const d = new Date(now.getFullYear(), now.getMonth()-i, 1);
+      const next = new Date(d.getFullYear(), d.getMonth()+1, 1);
+      let rev = 0;
+      state.bookings.forEach(b => {
+        if (state.selectedPropertyId !== 'all' && b.propertyId !== state.selectedPropertyId) return;
+        if (b.status === 'cancelled') return;
+        const ci = new Date(b.checkin), co = new Date(b.checkout);
+        if (co <= d || ci >= next) return;
+        const s = new Date(Math.max(ci, d));
+        const e = new Date(Math.min(co, next));
+        const n = Math.round((e-s)/86400000);
+        rev += (b.revenue/b.nights)*n;
+      });
+      series.push({ label: d.toLocaleDateString('en-US',{month:'short'}), value: rev });
+    }
+    return series;
+  }
+
+  function drawChart(root, series){
+    if (series.length === 0 || series.every(s => s.value === 0)){
+      root.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted)">No revenue data yet.</div>';
+      return;
+    }
+    const max = Math.max(...series.map(s => s.value));
+    const w = 760, h = 180, pad = 32;
+    const bw = (w - pad*2) / series.length;
+    let bars = '';
+    series.forEach((s,i) => {
+      const bh = max > 0 ? (s.value / max) * (h - pad*2) : 0;
+      const x = pad + i*bw + 4;
+      const y = h - pad - bh;
+      bars += '<rect x="' + x + '" y="' + y + '" width="' + (bw-8) + '" height="' + bh + '" fill="var(--accent)" rx="2" opacity="0.85"><title>' + s.label + ': ' + fmtUSD.format(s.value) + '</title></rect>';
+      bars += '<text x="' + (x + (bw-8)/2) + '" y="' + (h - pad + 14) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)">' + s.label + '</text>';
+      bars += '<text x="' + (x + (bw-8)/2) + '" y="' + (y - 4) + '" text-anchor="middle" font-size="10" fill="var(--text-muted)" font-variant-numeric="tabular-nums">' + (s.value > 0 ? fmtUSD.format(s.value).replace('$','$') : '') + '</text>';
+    });
+    root.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" height="' + h + '" style="overflow:visible">' + bars + '</svg>';
+  }
+
+  function drawPropPerf(root){
+    if (state.properties.length === 0){ root.innerHTML = '<div class="empty">No properties.</div>'; return; }
+    let html = '<table><thead><tr><th>Property</th><th class="numeric">Occupancy</th><th class="numeric">ADR</th><th class="numeric">Revenue</th></tr></thead><tbody>';
+    state.properties.forEach(p => {
+      const s = propertyStats(p.id);
+      html += '<tr><td><strong>' + escapeHTML(p.name) + '</strong></td><td class="numeric">' + s.occupancy.toFixed(0) + '%</td><td class="numeric">' + fmtUSD.format(s.adr) + '</td><td class="numeric">' + fmtUSD.format(s.revenue) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+    root.innerHTML = html;
+  }
+
+  function drawSourceMix(root){
+    const mix = {};
+    bookingsInRange().forEach(b => { mix[b.source] = (mix[b.source]||0) + b.revenue; });
+    const total = Object.values(mix).reduce((s,v)=>s+v,0);
+    if (total === 0){ root.innerHTML = '<div style="padding:20px;text-align:center;color:var(--text-muted)">No bookings in range.</div>'; return; }
+    const colors = { Airbnb:'var(--danger)', VRBO:'var(--info)', Direct:'var(--success)' };
+    let html = '';
+    Object.keys(mix).forEach(k => {
+      const pct = (mix[k]/total)*100;
+      html += `
+        <div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px"><span>${k}</span><span style="font-variant-numeric:tabular-nums">${fmtUSD.format(mix[k])} <span style="color:var(--text-subtle);font-size:11px">${pct.toFixed(0)}%</span></span></div>
+          <div style="height:8px;background:var(--surface-2);border-radius:4px;overflow:hidden"><div style="height:100%;width:${pct}%;background:${colors[k]||'var(--accent)'}"></div></div>
+        </div>
+      `;
+    });
+    root.innerHTML = html;
+  }
+
+  // ============ PROPERTY DETAIL ============
+  function renderPropertyDetail(root){
+    const p = propById(state.propertyDetailId);
+    if (!p){ state.view = 'dashboard'; render(); return; }
+    state.selectedPropertyId = p.id;
+    renderPropertySelector();
+    root.innerHTML = `
+      <div class="page-header">
+        <div>
+          <button class="btn-ghost" id="backBtn" style="margin-bottom:8px;padding-left:0">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m15 18-6-6 6-6"/></svg>
+            Back to dashboard
+          </button>
+          <h1 class="page-title">${escapeHTML(p.name)}</h1>
+          <p class="page-subtitle">${escapeHTML(p.address)} · ${p.beds} bed · ${p.baths} bath</p>
+        </div>
+        <div class="toolbar">${dateRangePicker()}</div>
+      </div>
+
+      <div class="tabs">
+        <button class="tab" data-tab="calendar">Calendar</button>
+        <button class="tab" data-tab="guests">Guests</button>
+        <button class="tab" data-tab="financials">Financials</button>
+        <button class="tab" data-tab="maintenance">Maintenance</button>
+        <button class="tab" data-tab="documents">Documents</button>
+      </div>
+
+      <div id="tabContent"></div>
+    `;
+    bindDateRange(root);
+    root.querySelectorAll('.tab').forEach(el => {
+      el.classList.toggle('active', el.dataset.tab === state.propertyDetailTab);
+      el.addEventListener('click', () => { state.propertyDetailTab = el.dataset.tab; render(); });
+    });
+    document.getElementById('backBtn').addEventListener('click', () => {
+      state.view = 'dashboard'; state.selectedPropertyId='all'; renderPropertySelector(); render();
+    });
+    drawPropertyTab(document.getElementById('tabContent'));
+  }
+
+  function drawPropertyTab(root){
+    const tab = state.propertyDetailTab;
+    if (tab === 'calendar'){
+      root.innerHTML = '<div id="propCal"></div>';
+      renderCalendar(document.getElementById('propCal'));
+      // strip out the page header from nested calendar
+      const ph = document.getElementById('propCal').querySelector('.page-header');
+      if (ph) ph.remove();
+    } else if (tab === 'guests'){
+      const list = state.bookings.filter(b => b.propertyId === state.propertyDetailId);
+      drawBookingsTable(root, list);
+    } else if (tab === 'financials'){
+      const exps = state.expenses.filter(e => e.propertyId === state.propertyDetailId);
+      const bks = state.bookings.filter(b => b.propertyId === state.propertyDetailId && b.status !== 'cancelled');
+      const rev = bks.reduce((s,b)=>s+b.revenue,0);
+      const exp = exps.reduce((s,e)=>s+e.amount,0);
+      root.innerHTML = `
+        <div class="kpi-grid">
+          ${kpiCard('Revenue (all-time)', fmtUSD.format(rev))}
+          ${kpiCard('Expenses (all-time)', fmtUSD.format(exp))}
+          ${kpiCard('Net', fmtUSD.format(rev-exp))}
+          ${kpiCard('Bookings', String(bks.length))}
+        </div>
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Expense ledger</h2></div>
+          <div id="propExp"></div>
+        </div>
+      `;
+      renderExpenseTable(document.getElementById('propExp'), exps);
+    } else if (tab === 'maintenance'){
+      const list = state.maintenance.filter(m => m.propertyId === state.propertyDetailId);
+      drawMaintenance(root, list);
+    } else if (tab === 'documents'){
+      root.innerHTML = `
+        <div class="card">
+          <div class="card-header"><h2 class="card-title">Documents &amp; photos</h2><button class="btn-primary">Upload</button></div>
+          ${emptyState('No documents yet', 'Upload deeds, insurance, receipts, and listing photos here.', null)}
+        </div>
+      `;
+    }
+  }
+
+  // ============ MODALS ============
+  function showModal(html){
+    const host = document.getElementById('modalHost');
+    host.innerHTML = '<div class="modal-backdrop" id="modalBackdrop"><div class="modal" role="dialog" aria-modal="true">' + html + '</div></div>';
+    document.getElementById('modalBackdrop').addEventListener('click', e => {
+      if (e.target.id === 'modalBackdrop') closeModal();
+    });
+  }
+  function closeModal(){ document.getElementById('modalHost').innerHTML = ''; }
+
+  function openNewBookingModal(){
+    const today = new Date().toISOString().slice(0,10);
+    showModal(`
+      <h2 class="modal-title">New booking</h2>
+      <div class="grid-2" style="gap:12px">
+        <div><label>Property</label>
+          <select class="select" id="nbProp">${state.properties.map(p=>'<option value="'+p.id+'">'+escapeHTML(p.name)+'</option>').join('')}</select>
+        </div>
+        <div><label>Source</label>
+          <select class="select" id="nbSource"><option>Airbnb</option><option>VRBO</option><option>Direct</option></select>
+        </div>
+        <div><label>Guest name</label><input class="input" id="nbName" placeholder="Full name"></div>
+        <div><label>Email</label><input class="input" id="nbEmail" type="email"></div>
+        <div><label>Check-in</label><input class="input" id="nbCheckin" type="date" value="${today}"></div>
+        <div><label>Check-out</label><input class="input" id="nbCheckout" type="date"></div>
+        <div><label>Guests</label><input class="input" id="nbGuests" type="number" value="2" min="1"></div>
+        <div><label>Nightly rate</label><input class="input" id="nbRate" type="number" value=""></div>
+      </div>
+      <div style="margin-top:12px"><label>Special requests</label><textarea class="input" id="nbReq" rows="2"></textarea></div>
+      <div id="nbErr" style="font-size:12px;color:var(--danger);margin-top:8px;display:none"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn-secondary" id="nbCancel">Cancel</button>
+        <button class="btn-primary" id="nbSave">Create booking</button>
+      </div>
+    `);
+    // Pre-fill rate when prop changes
+    const setRate = () => {
+      const pid = document.getElementById('nbProp').value;
+      const p = propById(pid);
+      document.getElementById('nbRate').value = p ? p.nightly : '';
+    };
+    document.getElementById('nbProp').addEventListener('change', setRate);
+    setRate();
+    document.getElementById('nbCancel').addEventListener('click', closeModal);
+    document.getElementById('nbSave').addEventListener('click', () => {
+      const name = document.getElementById('nbName').value.trim();
+      const email = document.getElementById('nbEmail').value.trim();
+      const ci = document.getElementById('nbCheckin').value;
+      const co = document.getElementById('nbCheckout').value;
+      const rate = parseFloat(document.getElementById('nbRate').value);
+      const guests = parseInt(document.getElementById('nbGuests').value);
+      const err = document.getElementById('nbErr');
+      if (!name || !ci || !co || !rate || rate <= 0){
+        err.textContent = 'Please fill name, dates, and a valid nightly rate.';
+        err.style.display='block'; return;
+      }
+      if (new Date(co) <= new Date(ci)){
+        err.textContent = 'Check-out must be after check-in.'; err.style.display='block'; return;
+      }
+      const pid = document.getElementById('nbProp').value;
+      const p = propById(pid);
+      const nights = Math.round((new Date(co) - new Date(ci))/86400000);
+      const revenue = rate * nights;
+      const commission = Math.round(revenue*0.14);
+      const newB = {
+        id: 'b' + Date.now(),
+        propertyId: pid,
+        guestName: name,
+        guestEmail: email || (name.toLowerCase().replace(/\s+/g,'.')+'@email.com'),
+        guestPhone: '+1 (555) 000-0000',
+        confirmation: 'HMX' + Date.now().toString(36).toUpperCase().slice(-6),
+        checkin: ci, checkout: co, nights, guests: guests||2,
+        status: 'confirmed',
+        revenue, cleaning: p.cleaning, commission, net: revenue - commission,
+        specialRequests: document.getElementById('nbReq').value.trim(),
+        source: document.getElementById('nbSource').value
+      };
+      state.bookings.unshift(newB);
+      state.bookings.sort((a,b)=> new Date(b.checkin) - new Date(a.checkin));
+      closeModal();
+      toast('Booking created for ' + name);
+      render();
+    });
+  }
+
+  function openExpenseModal(prefPid){
+    const today = new Date().toISOString().slice(0,10);
+    showModal(`
+      <h2 class="modal-title">Log expense</h2>
+      <div class="grid-2" style="gap:12px">
+        <div><label>Date</label><input class="input" id="exDate" type="date" value="${today}"></div>
+        <div><label>Property</label>
+          <select class="select" id="exProp">${state.properties.map(p=>'<option value="'+p.id+'"' + (p.id===prefPid?' selected':'') + '>'+escapeHTML(p.name)+'</option>').join('')}</select>
+        </div>
+        <div><label>Category</label>
+          <select class="select" id="exCat">
+            <option>Cleaning</option><option>Utilities</option><option>Maintenance</option><option>Supplies</option><option>Marketing</option><option>Management</option>
+          </select>
+        </div>
+        <div><label>Amount (USD)</label><input class="input" id="exAmt" type="number" step="0.01" placeholder="0.00"></div>
+      </div>
+      <div style="margin-top:12px"><label>Description</label><input class="input" id="exDesc" placeholder="e.g. Quarterly HVAC service"></div>
+      <div style="margin-top:8px;font-size:12px;color:var(--text-muted)"><label style="display:inline-flex;align-items:center;gap:6px"><input type="checkbox" id="exRecur"> Make this a recurring monthly template</label></div>
+      <div id="exErr" style="font-size:12px;color:var(--danger);margin-top:8px;display:none"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn-secondary" id="exCancel">Cancel</button>
+        <button class="btn-primary" id="exSave">Save expense</button>
+      </div>
+    `);
+    document.getElementById('exCancel').addEventListener('click', closeModal);
+    document.getElementById('exSave').addEventListener('click', () => {
+      const amt = parseFloat(document.getElementById('exAmt').value);
+      const desc = document.getElementById('exDesc').value.trim();
+      const err = document.getElementById('exErr');
+      if (!amt || amt <= 0 || !desc){
+        err.textContent = 'Amount and description are required.'; err.style.display='block'; return;
+      }
+      const newE = {
+        id: 'e'+Date.now(),
+        date: document.getElementById('exDate').value,
+        category: document.getElementById('exCat').value,
+        description: desc,
+        propertyId: document.getElementById('exProp').value,
+        amount: amt,
+        receipt: false
+      };
+      state.expenses.unshift(newE);
+      closeModal();
+      toast('Expense logged: ' + fmtUSDc.format(amt));
+      if (document.getElementById('exRecur') && document.getElementById('exRecur').checked) toast('Recurring template saved (monthly).', 'info');
+      render();
+    });
+  }
+
+  function openTaskModal(){
+    const today = new Date().toISOString().slice(0,10);
+    showModal(`
+      <h2 class="modal-title">New maintenance task</h2>
+      <div><label>Title</label><input class="input" id="mtTitle" placeholder="e.g. Replace smoke detector batteries"></div>
+      <div class="grid-2" style="gap:12px;margin-top:12px">
+        <div><label>Property</label><select class="select" id="mtProp">${state.properties.map(p=>'<option value="'+p.id+'">'+escapeHTML(p.name)+'</option>').join('')}</select></div>
+        <div><label>Due date</label><input class="input" id="mtDue" type="date" value="${today}"></div>
+        <div><label>Recurring</label><select class="select" id="mtRec"><option>once</option><option>monthly</option><option>quarterly</option><option>biannual</option><option>annual</option></select></div>
+        <div><label>Vendor</label><input class="input" id="mtVendor" placeholder="e.g. Self, Bay Mechanical"></div>
+        <div><label>Estimated cost</label><input class="input" id="mtCost" type="number" value="0"></div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn-secondary" id="mtCancel">Cancel</button>
+        <button class="btn-primary" id="mtSave">Create task</button>
+      </div>
+    `);
+    document.getElementById('mtCancel').addEventListener('click', closeModal);
+    document.getElementById('mtSave').addEventListener('click', () => {
+      const title = document.getElementById('mtTitle').value.trim();
+      if (!title){ toast('Title required','error'); return; }
+      const due = document.getElementById('mtDue').value;
+      const today = new Date().toISOString().slice(0,10);
+      state.maintenance.push({
+        id:'m'+Date.now(),
+        title,
+        propertyId: document.getElementById('mtProp').value,
+        due,
+        recurring: document.getElementById('mtRec').value,
+        vendor: document.getElementById('mtVendor').value || 'Self',
+        status: due < today ? 'overdue' : 'pending',
+        cost: parseFloat(document.getElementById('mtCost').value)||0
+      });
+      closeModal();
+      toast('Task created');
+      render();
+    });
+  }
+
+  function openBlockDatesModal(){
+    const today = new Date().toISOString().slice(0,10);
+    showModal(`
+      <h2 class="modal-title">Block dates</h2>
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px">Block dates as unavailable across one or multiple properties (e.g. personal use, holidays, maintenance).</p>
+      <div class="grid-2" style="gap:12px">
+        <div><label>From</label><input class="input" type="date" id="blFrom" value="${today}"></div>
+        <div><label>To</label><input class="input" type="date" id="blTo"></div>
+      </div>
+      <div style="margin-top:12px"><label>Properties</label>
+        <div style="display:flex;flex-direction:column;gap:6px;background:var(--surface-2);padding:10px;border-radius:var(--radius-sm)">
+          ${state.properties.map(p=>'<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text)"><input type="checkbox" value="'+p.id+'" class="blProp"> '+escapeHTML(p.name)+'</label>').join('')}
+        </div>
+      </div>
+      <div style="margin-top:12px"><label>Reason (optional)</label><input class="input" id="blReason" placeholder="e.g. Personal use"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn-secondary" id="blCancel">Cancel</button>
+        <button class="btn-primary" id="blSave">Block dates</button>
+      </div>
+    `);
+    document.getElementById('blCancel').addEventListener('click', closeModal);
+    document.getElementById('blSave').addEventListener('click', () => {
+      const from = document.getElementById('blFrom').value;
+      const to = document.getElementById('blTo').value;
+      const props = Array.from(document.querySelectorAll('.blProp:checked')).map(c=>c.value);
+      if (!from || !to || props.length === 0){ toast('Pick dates and at least one property','error'); return; }
+      props.forEach(pid => {
+        const p = propById(pid);
+        state.bookings.push({
+          id:'bl'+Date.now()+pid,
+          propertyId:pid, guestName:'Blocked', guestEmail:'', guestPhone:'',
+          confirmation:'BLOCK', checkin:from, checkout:to,
+          nights: daysBetween(from,to), guests:0, status:'blocked',
+          revenue:0, cleaning:0, commission:0, net:0,
+          specialRequests: document.getElementById('blReason').value, source:'Internal'
+        });
+      });
+      closeModal();
+      toast('Blocked ' + props.length + ' propert' + (props.length===1?'y':'ies'));
+      render();
+    });
+  }
+
+  function openCompareModal(){
+    showModal(`
+      <h2 class="modal-title">Compare properties</h2>
+      <div class="grid-2" style="gap:12px;margin-bottom:16px">
+        <div><label>Property A</label><select class="select" id="cmpA">${state.properties.map((p,i)=>'<option value="'+p.id+'"'+(i===0?' selected':'')+'>'+escapeHTML(p.name)+'</option>').join('')}</select></div>
+        <div><label>Property B</label><select class="select" id="cmpB">${state.properties.map((p,i)=>'<option value="'+p.id+'"'+(i===1?' selected':'')+'>'+escapeHTML(p.name)+'</option>').join('')}</select></div>
+      </div>
+      <div id="cmpResult"></div>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:20px">
+        <button class="btn-secondary" id="cmpClose">Close</button>
+      </div>
+    `);
+    const draw = () => {
+      const a = propById(document.getElementById('cmpA').value);
+      const b = propById(document.getElementById('cmpB').value);
+      const sa = propertyStats(a.id), sb = propertyStats(b.id);
+      const root = document.getElementById('cmpResult');
+      const row = (label, va, vb, fmt=fmtUSD) => `<tr><td style="color:var(--text-muted)">${label}</td><td class="numeric">${typeof va==='string'?va:fmt.format(va)}</td><td class="numeric">${typeof vb==='string'?vb:fmt.format(vb)}</td></tr>`;
+      root.innerHTML = `<table><thead><tr><th>Metric</th><th class="numeric">${escapeHTML(a.name)}</th><th class="numeric">${escapeHTML(b.name)}</th></tr></thead><tbody>
+        ${row('Occupancy', sa.occupancy.toFixed(0)+'%', sb.occupancy.toFixed(0)+'%')}
+        ${row('Revenue', sa.revenue, sb.revenue)}
+        ${row('ADR', sa.adr, sb.adr)}
+        ${row('RevPAR', sa.revpar, sb.revpar)}
+        ${row('Bookings', String(sa.bookings), String(sb.bookings))}
+        ${row('Base rate', a.nightly, b.nightly)}
+      </tbody></table>`;
+    };
+    draw();
+    document.getElementById('cmpA').addEventListener('change', draw);
+    document.getElementById('cmpB').addEventListener('change', draw);
+    document.getElementById('cmpClose').addEventListener('click', closeModal);
+  }
+
+  function openNotifications(){
+    showModal(`
+      <h2 class="modal-title">Notifications</h2>
+      ${state.notifications.length === 0 ? '<div style="padding:24px;text-align:center;color:var(--text-muted)">No notifications.</div>' : state.notifications.map(n => `
+        <div style="padding:12px;border:1px solid var(--border);border-radius:var(--radius-sm);margin-bottom:8px;cursor:pointer" data-nid="${n.id}" data-bid="${n.bookingId||''}">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px">
+            <div>
+              <div style="font-weight:500;font-size:13px">${escapeHTML(n.title)}</div>
+              <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${escapeHTML(n.detail)}</div>
+            </div>
+            <span class="badge ${n.type==='maint'?'badge-warning':'badge-info'}">${n.type==='maint'?'maintenance':'check-in'}</span>
+          </div>
+        </div>
+      `).join('')}
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:12px">
+        <button class="btn-secondary" id="nCloseM">Close</button>
+      </div>
+    `);
+    document.querySelectorAll('[data-nid]').forEach(el => {
+      el.addEventListener('click', () => {
+        const bid = el.dataset.bid;
+        closeModal();
+        if (bid) openBookingSlideover(bid);
+        else { state.view='maintenance'; render(); }
+      });
+    });
+    document.getElementById('nCloseM').addEventListener('click', closeModal);
+  }
+
+  // ============ EXPORTS ============
+  function downloadCSV(filename, rows){
+    const csv = rows.map(r => r.map(c => {
+      const s = String(c==null?'':c);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g,'""') + '"' : s;
+    }).join(',')).join('\n');
+    const blob = new Blob([csv], {type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  }
+
+  function exportBookingsCSV(list){
+    const rows = [['Confirmation','Property','Guest','Email','Check-in','Check-out','Nights','Guests','Status','Source','Revenue','Commission','Cleaning','Net']];
+    list.forEach(b => rows.push([b.confirmation, propName(b.propertyId), b.guestName, b.guestEmail, b.checkin, b.checkout, b.nights, b.guests, b.status, b.source, b.revenue, b.commission, b.cleaning, b.net]));
+    downloadCSV('bookings.csv', rows);
+    toast('Exported ' + (list.length) + ' bookings');
+  }
+  function exportFinancialsCSV(){
+    const rows = [['Date','Category','Description','Property','Amount']];
+    expensesInRange().forEach(e => rows.push([e.date, e.category, e.description, propName(e.propertyId), e.amount]));
+    downloadCSV('financials.csv', rows);
+    toast('Financials exported');
+  }
+  function exportTaxCSV(){
+    const rows = [['Category','Schedule E Line','Amount']];
+    const year = new Date().getFullYear();
+    const yearExps = state.expenses.filter(e => new Date(e.date).getFullYear() === year);
+    const yearBks = state.bookings.filter(b => b.status !== 'cancelled' && new Date(b.checkin).getFullYear() === year);
+    rows.push(['Gross rental income','Line 3', yearBks.reduce((s,b)=>s+b.revenue,0)]);
+    rows.push(['Commissions paid','Line 8', yearBks.reduce((s,b)=>s+b.commission,0)]);
+    const byCat = {};
+    yearExps.forEach(e => { byCat[e.category] = (byCat[e.category]||0) + e.amount; });
+    Object.keys(byCat).forEach(c => rows.push([c,'—',byCat[c]]));
+    downloadCSV('tax-summary-' + year + '.csv', rows);
+  }
+
+  // ============ EMPTY STATE ============
+  function emptyState(title, desc, btnLabel, actionKey){
+    return `
+      <div class="empty">
+        <div class="empty-icon"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+        <p class="empty-title">${escapeHTML(title)}</p>
+        <p class="empty-desc">${escapeHTML(desc)}</p>
+        ${btnLabel ? '<button class="btn-primary" data-action="'+actionKey+'">'+escapeHTML(btnLabel)+'</button>' : ''}
+      </div>
+    `;
+  }
+
+  // ============ INIT ============
+  function init(){
+    seed();
+    applyTheme();
+    renderPropertySelector();
+    render();
+
+    // Wire global controls
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      state.theme = state.theme === 'dark' ? 'light' : 'dark';
+      applyTheme();
+    });
+    document.getElementById('newBookingBtn').addEventListener('click', openNewBookingModal);
+    document.getElementById('notifBtn').addEventListener('click', openNotifications);
+    document.getElementById('globalSearch').addEventListener('input', e => {
+      state.searchQuery = e.target.value;
+      if (state.view === 'bookings' || state.view === 'dashboard'){
+        if (state.view === 'bookings') render();
+      } else if (state.searchQuery){
+        state.view = 'bookings'; render();
+      }
+    });
+    document.getElementById('globalSearch').addEventListener('keydown', e => {
+      if (e.key === 'Enter'){ state.view='bookings'; render(); }
+    });
+    document.getElementById('propSelectorBtn').addEventListener('click', () => {
+      const m = document.getElementById('propSelectorMenu');
+      m.style.display = m.style.display === 'none' ? 'block' : 'none';
+    });
+    document.addEventListener('click', e => {
+      if (!e.target.closest('.prop-selector')){
+        document.getElementById('propSelectorMenu').style.display = 'none';
+      }
+    });
+    document.querySelectorAll('.nav-item').forEach(el => {
+      el.addEventListener('click', () => {
+        state.view = el.dataset.view;
+        if (state.view !== 'propertyDetail') state.propertyDetailId = null;
+        render();
+      });
+    });
+    // ESC closes slideover/modal
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape'){
+        if (document.getElementById('modalHost').innerHTML) closeModal();
+        else closeSlideover();
+      }
+    });
+    // Show notif dot
+    if (state.notifications.length > 0){
+      document.getElementById('notifDot').style.display = 'block';
+    }
+  }
+
+  // Wait until gate reveals
+  function waitForReveal(){
+    if (!document.getElementById('dn-auth-style')){
+      init();
+    } else {
+      setTimeout(waitForReveal, 200);
+    }
+  }
+  waitForReveal();
+})();
+</script>
+</body>
+</html>
