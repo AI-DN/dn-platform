@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.18 #25</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.19 #26</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4316,6 +4316,65 @@ async function syncArtifactFromLive(reqId, silent) {
 // was a qa_send_back / build_failed / build_validation_failed within the last 2 hours,
 // meaning the stored-vs-live divergence is expected and self-inflicted (not external).
 // buildRequest uses this to silently auto-sync instead of prompting the admin.
+// v1.2.18 #26 / task #22 — Tool use for the build agent.
+// Exposed to the model via the Anthropic API tools parameter. When the agent decides
+// it needs to verify a URL's shape/CORS/response before writing fetch() code, it calls
+// fetch_url and this browser-side executor runs the request against the live internet
+// and returns the response (capped at 60 KB so context doesn't blow past 128K).
+const BUILD_AGENT_TOOLS = [
+  {
+    name: 'fetch_url',
+    description: 'Fetch a URL via HTTP and return the response body, status code, and content type. Use this proactively whenever the user has named a data source URL or whenever you are about to write fetch() code in the generated app — verify the endpoint actually works and inspect the real JSON shape so your generated code parses fields that actually exist instead of fields you guessed. Response capped at 60 KB; times out after 15 seconds. Use GET by default. Only call when there is a concrete URL to test; do not call fetch_url to "search" or "browse".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url:    { type: 'string', description: 'Absolute HTTP/HTTPS URL to fetch' },
+        method: { type: 'string', enum: ['GET', 'POST', 'HEAD'], description: 'HTTP method (default GET)' }
+      },
+      required: ['url']
+    }
+  }
+];
+
+async function executeFetchUrlTool(input) {
+  const MAX_RESPONSE_BYTES = 60 * 1024;   // 60 KB → ~15K tokens; 6 rounds = ~90K added to context
+  const TOOL_TIMEOUT_MS    = 15 * 1000;
+  try {
+    const url = (input && input.url) || '';
+    if (!/^https?:\/\//i.test(url)) {
+      return { isError: true, content: 'Invalid URL — must start with http:// or https://. Got: ' + JSON.stringify(url) };
+    }
+    const method = ((input && input.method) || 'GET').toUpperCase();
+    if (['GET','POST','HEAD'].indexOf(method) === -1) {
+      return { isError: true, content: 'Unsupported method: ' + method };
+    }
+    const ctrl = new AbortController();
+    const t = setTimeout(function(){ try { ctrl.abort(); } catch(_){} }, TOOL_TIMEOUT_MS);
+    try {
+      const r = await fetch(url, { method: method, signal: ctrl.signal, credentials: 'omit' });
+      clearTimeout(t);
+      const contentType = r.headers.get('content-type') || '';
+      let body = '';
+      try { body = await r.text(); } catch(_){ body = '(response body unreadable)'; }
+      const totalLen = body.length;
+      const truncated = totalLen > MAX_RESPONSE_BYTES;
+      if (truncated) body = body.slice(0, MAX_RESPONSE_BYTES) + '\n\n... [truncated by fetch_url at ' + MAX_RESPONSE_BYTES + ' of ' + totalLen + ' bytes]';
+      const meta = 'HTTP ' + r.status + ' ' + (r.statusText || '') +
+                   '\nContent-Type: ' + contentType +
+                   '\nLength: ' + totalLen + ' bytes' + (truncated ? ' (truncated)' : '') + '\n\n';
+      return { isError: !r.ok, content: meta + body };
+    } catch (e) {
+      clearTimeout(t);
+      if (e && (e.name === 'AbortError' || /abort/i.test(e.message || ''))) {
+        return { isError: true, content: 'fetch_url timed out after ' + (TOOL_TIMEOUT_MS/1000) + 's: ' + url };
+      }
+      return { isError: true, content: 'fetch_url failed: ' + (e.message || String(e)) + '\n(URL: ' + url + ')\n(Possible causes: CORS blocking, network error, invalid host, TLS error.)' };
+    }
+  } catch (outerErr) {
+    return { isError: true, content: 'fetch_url tool error: ' + (outerErr.message || String(outerErr)) };
+  }
+}
+
 // v1.2.17 #24 / task #19 — Orphan recovery for stuck builds.
 // On page load, find any row whose qa_status='building' but which has had NO
 // activity_log event (heartbeat, complete, failed, etc.) in the last 10 minutes.
@@ -4539,91 +4598,153 @@ async function buildRequest(reqId) {
       ? [userBuildModelOverride].concat(defaultBuildChain.filter(function(m) { return m !== userBuildModelOverride; }))
       : defaultBuildChain.slice();
 
-    let resp;
-    let usedBuildModel = null;
-    let lastBuildErrText = '';
-    // v1.2.17 #24 / task #19 — Build telemetry: each fetch is wrapped in an AbortController
-    // with an 8-minute idle timeout (most builds complete in 1-2 min; 8 min is the cliff
-    // beyond which a stuck stream is almost certainly dead). A heartbeat interval writes
-    // build_heartbeat events to activity_log every 60s so admins can see the build is
-    // still alive even when it takes a while. On any exit (success/error/timeout) both
-    // the interval and the timeout are cleared.
+    // v1.2.18 #26 / task #22 — Tool-use loop wrapping model fallback.
+    //
+    // The build agent now has access to a fetch_url tool. The conversation can run
+    // multiple round-trips per build attempt — each round-trip either produces the
+    // final assistant text (stop_reason='end_turn'/'max_tokens') or one or more
+    // tool_use blocks which we execute and feed back as tool_result blocks.
+    //
+    // Outer loop = model fallback (Opus → Sonnet on 5xx, first iteration only).
+    // Inner loop = tool round-trips with the chosen model (max 6 rounds).
+    // Telemetry from #19 still applies — each round-trip is timeout-bounded and
+    // emits heartbeats; the outer catch writes a terminal build_failed event.
     const BUILD_TIMEOUT_MS    = 8 * 60 * 1000;
     const HEARTBEAT_EVERY_MS  = 60 * 1000;
+    const MAX_TOOL_ROUNDS     = 6;
+    let usedBuildModel = null;
+    let lastBuildErrText = '';
+    let finalData = null;
+    let totalToolCalls = 0;
+
     for (let mi = 0; mi < buildChain.length; mi++) {
       const tryModel = buildChain[mi];
       console.log('Build agent: trying ' + tryModel + (mi > 0 ? ' (fallback ' + mi + ')' : ''));
-      const attemptStartedAt = Date.now();
-      const controller = new AbortController();
-      const timeoutHandle = setTimeout(function() {
-        try { controller.abort(); } catch(_) {}
-      }, BUILD_TIMEOUT_MS);
-      const heartbeatHandle = setInterval(function() {
-        const elapsedSec = Math.round((Date.now() - attemptStartedAt) / 1000);
-        // Fire-and-forget — we don't want heartbeat failures to disrupt the build.
+      let messages = [{ role: 'user', content: userContent }];
+      let toolRound = 0;
+      let modelAborted = false;
+
+      while (true) {
+        const iterStartedAt = Date.now();
+        const controller = new AbortController();
+        const timeoutHandle = setTimeout(function(){ try { controller.abort(); } catch(_){} }, BUILD_TIMEOUT_MS);
+        const heartbeatHandle = setInterval(function(){
+          const elapsedSec = Math.round((Date.now() - iterStartedAt) / 1000);
+          try {
+            logActivity({
+              request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_heartbeat',
+              description: 'Build in progress · model=' + tryModel + (toolRound > 0 ? ' · tool-round ' + toolRound : '') + ' · ' + elapsedSec + 's elapsed'
+            });
+          } catch(_){}
+        }, HEARTBEAT_EVERY_MS);
+
+        let iterResp;
         try {
-          logActivity({
-            request_id: reqId,
-            actor: 'admin',
-            actor_name: 'admin',
-            action: 'build_heartbeat',
-            description: 'Build in progress · model=' + tryModel + ' · ' + elapsedSec + 's elapsed'
+          iterResp = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'x-api-key': apiKey,
+              'anthropic-version': '2023-06-01',
+              'anthropic-dangerous-direct-browser-access': 'true',
+              'content-type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: tryModel,
+              max_tokens: 128000,
+              messages: messages,
+              tools: BUILD_AGENT_TOOLS
+            }),
+            signal: controller.signal
           });
-        } catch(_) {}
-      }, HEARTBEAT_EVERY_MS);
-      try {
-        resp = await fetch('https://api.anthropic.com/v1/messages', {
-          method: 'POST',
-          headers: {
-            'x-api-key': apiKey,
-            'anthropic-version': '2023-06-01',
-            'anthropic-dangerous-direct-browser-access': 'true',
-            'content-type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: tryModel,
-            max_tokens: 128000,
-            messages: [{ role: 'user', content: userContent }]
-          }),
-          signal: controller.signal
-        });
-      } catch (fetchErr) {
+        } catch (fetchErr) {
+          clearInterval(heartbeatHandle);
+          clearTimeout(timeoutHandle);
+          if (fetchErr && (fetchErr.name === 'AbortError' || /abort/i.test(fetchErr.message || ''))) {
+            throw new Error('Build aborted: no response within ' + (BUILD_TIMEOUT_MS/60000) + ' minutes on ' + tryModel + (toolRound > 0 ? ' (tool-round ' + toolRound + ')' : '') + ' (stream_idle_timeout).');
+          }
+          throw fetchErr;
+        }
         clearInterval(heartbeatHandle);
         clearTimeout(timeoutHandle);
-        // AbortError → our 8-min timeout fired. Convert to a clearer error message
-        // so the outer catch can write a meaningful terminal event.
-        if (fetchErr && (fetchErr.name === 'AbortError' || /abort/i.test(fetchErr.message || ''))) {
-          throw new Error('Build aborted: no response within ' + (BUILD_TIMEOUT_MS / 60000) + ' minutes on ' + tryModel + ' (stream_idle_timeout).');
+
+        if (!iterResp.ok) {
+          // Fall back to the next model ONLY on the first iteration with this model
+          // (no conversation state to lose). Mid-conversation 5xx becomes a real error.
+          const errText = await iterResp.text().catch(function(){ return ''; });
+          if (toolRound === 0 && (iterResp.status === 529 || iterResp.status === 503 || iterResp.status === 502) && mi < buildChain.length - 1) {
+            lastBuildErrText = 'API ' + iterResp.status + ' on ' + tryModel + ' — falling back to ' + buildChain[mi + 1];
+            console.warn('Build agent: ' + lastBuildErrText);
+            modelAborted = true;
+            break;  // exit while, advance outer for-loop
+          }
+          throw new Error('API error (' + iterResp.status + ') on ' + tryModel + (toolRound > 0 ? ' during tool-round ' + toolRound : '') + ': ' + errText.slice(0, 300));
         }
-        throw fetchErr;
-      }
-      clearInterval(heartbeatHandle);
-      clearTimeout(timeoutHandle);
-      if (resp.ok) {
-        usedBuildModel = tryModel;
-        if (mi > 0) {
-          console.warn('Build agent: primary models overloaded; succeeded on fallback ' + tryModel);
-          try { showToast && showToast('Build ran on fallback model: ' + tryModel + ' (primary was overloaded)'); } catch(e) {}
+
+        const data = await iterResp.json();
+        messages.push({ role: 'assistant', content: data.content });
+
+        if (data.stop_reason !== 'tool_use') {
+          // Final round — extract this data, exit both loops
+          finalData = data;
+          usedBuildModel = tryModel;
+          if (mi > 0) {
+            console.warn('Build agent: primary models overloaded; succeeded on fallback ' + tryModel);
+            try { showToast && showToast('Build ran on fallback model: ' + tryModel + ' (primary was overloaded)'); } catch(_){}
+          }
+          break;
         }
-        break;
+
+        // Tool use round — execute every tool_use block and feed results back.
+        toolRound++;
+        if (toolRound > MAX_TOOL_ROUNDS) {
+          throw new Error('Build agent exceeded ' + MAX_TOOL_ROUNDS + ' tool-call rounds on ' + tryModel + '. Likely stuck in a loop — aborting to prevent runaway cost.');
+        }
+        const toolUses = data.content.filter(function(b){ return b.type === 'tool_use'; });
+        const resultBlocks = [];
+        for (let ti = 0; ti < toolUses.length; ti++) {
+          const tu = toolUses[ti];
+          totalToolCalls++;
+          try {
+            await logActivity({
+              request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_tool_call',
+              description: tu.name + '(' + JSON.stringify(tu.input || {}).slice(0, 220) + ')'
+            });
+          } catch(_){}
+          let toolResult;
+          if (tu.name === 'fetch_url') {
+            toolResult = await executeFetchUrlTool(tu.input || {});
+          } else {
+            toolResult = { isError: true, content: 'Unknown tool: ' + tu.name + '. Known tools: fetch_url.' };
+          }
+          resultBlocks.push({
+            type: 'tool_result',
+            tool_use_id: tu.id,
+            content: toolResult.content,
+            is_error: !!toolResult.isError
+          });
+        }
+        messages.push({ role: 'user', content: resultBlocks });
+        // loop back to top — re-call the model with the tool results appended
       }
-      // Capacity / transient errors → try next model in chain
-      if ((resp.status === 529 || resp.status === 503 || resp.status === 502) && mi < buildChain.length - 1) {
-        lastBuildErrText = 'API ' + resp.status + ' on ' + tryModel + ' — falling back to ' + buildChain[mi + 1];
-        console.warn('Build agent: ' + lastBuildErrText);
-        try { await resp.text(); } catch(e) {}
-        continue;
-      }
-      // Non-retryable or final attempt — surface the real error
-      const errText = await resp.text();
-      throw new Error('API error (' + resp.status + ') on ' + tryModel + ': ' + errText.slice(0, 300));
-    }
-    if (!resp || !resp.ok) {
-      throw new Error('All build models exhausted. ' + lastBuildErrText);
+
+      if (finalData) break;
+      if (modelAborted) continue;
+      // Defensive: if we reached here without finalData and without modelAborted,
+      // something unexpected happened; let the outer catch handle it.
+      throw new Error('Build loop exited without producing final data — internal inconsistency.');
     }
 
-    const data = await resp.json();
-    const reply = data.content[0].text;
+    if (!finalData) {
+      throw new Error('All build models exhausted. ' + lastBuildErrText);
+    }
+    if (totalToolCalls > 0) {
+      console.log('Build agent used ' + totalToolCalls + ' tool call(s) on ' + usedBuildModel + '.');
+    }
+    const data = finalData;
+    // Extract concatenated text from final assistant content (tool-use blocks
+    // were already consumed in the loop; only text blocks remain meaningful here).
+    const textBlocks = (data.content || []).filter(function(b){ return b.type === 'text'; });
+    const reply = textBlocks.map(function(b){ return b.text || ''; }).join('\n');
 
     // Detect truncation explicitly — model hit the token cap before finishing.
     // At max_tokens=128000 (Opus 4.7's synchronous ceiling) this should fit
@@ -5265,6 +5386,20 @@ function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
 '  - Generate a placeholder/sample dataset and ship it as if it were real.\n\n' +
 'If the request asks for live data but NO data source URL has been provided anywhere in the inputs,\n' +
 'REFUSE to build using the REFUSAL FORMAT below — do not guess at a likely URL and do not substitute embedded data.\n\n' +
+
+'═══════════════════════════════════════════════════════════════════════════\n' +
+'TOOL USE — fetch_url (v1.2.18 #26)\n' +
+'═══════════════════════════════════════════════════════════════════════════\n' +
+'You have access to a tool called `fetch_url` that makes real HTTP requests from the admin browser and returns the response (capped at 60 KB, 15s timeout). Use it BEFORE writing any fetch() code that the generated app will run:\n\n' +
+'  1. When the user has provided a data source URL — call fetch_url(url) FIRST to confirm it returns 2xx, check the content-type, and inspect the real JSON shape. Then write your runtime fetch() code against the actual fields the response contains, not the fields you imagine it should contain.\n' +
+'  2. When you are unsure whether an endpoint exists or is reachable — try it before committing.\n' +
+'  3. When you need to distinguish API variants — fetch a sample endpoint to see which shape comes back.\n\n' +
+'Do NOT use fetch_url to:\n' +
+'  - "Browse" or "search" the web. The tool only fetches the exact URL you give it.\n' +
+'  - Substitute for missing user input. If no URL was provided, REFUSE (see REFUSAL FORMAT).\n' +
+'  - Loop endlessly. You have a hard cap of 6 tool calls per build; stay well under that.\n\n' +
+'Calling sequence: respond with a `tool_use` content block. The result will come back in the next user turn as a `tool_result` block. After you have the data you need, emit the final HTML in the OUTPUT FORMAT specified below.\n\n' +
+'When fetch_url succeeds, treat the returned data as authoritative for that point in time. Mirror its field names and structure exactly in your generated runtime fetch() code so the app parses what the live API actually sends.\n\n' +
 
 '═══════════════════════════════════════════════════════════════════════════\n' +
 'REFUSAL FORMAT — when you cannot satisfy a hard requirement\n' +
