@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>DN Industry Events Strategic Tracker</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>DI</text></svg>">
+<meta name="theme-color" content="#07091a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f5f5f5;--text:#18181b;--text-muted:#52525b;--text-subtle:#a1a1aa;--border:rgba(0,0,0,0.08);--border-strong:rgba(0,0,0,0.16);--accent:#5e6ad2;--accent-hover:#4f59c4;--accent-bg:rgba(94,106,210,0.08);--success:#16a34a;--success-bg:rgba(22,163,74,0.08);--warning:#d97706;--warning-bg:rgba(217,119,6,0.08);--danger:#dc2626;--danger-bg:rgba(220,38,38,0.08);--info:#0284c7;--info-bg:rgba(2,132,199,0.08);--radius-sm:4px;--radius-md:6px;--radius-lg:8px}
+[data-theme="dark"]{--bg:#09090b;--surface:#131316;--surface-2:#1c1c20;--text:#fafafa;--text-muted:#a1a1aa;--text-subtle:#71717a;--border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);--accent:#7b85e3;--accent-hover:#8d96e8;--accent-bg:rgba(123,133,227,0.10);--success:#22c55e;--success-bg:rgba(34,197,94,0.10);--warning:#f59e0b;--warning-bg:rgba(245,158,11,0.10);--danger:#ef4444;--danger-bg:rgba(239,68,68,0.10);--info:#38bdf8;--info-bg:rgba(56,189,248,0.10)}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button{font-family:inherit}
+.app{display:flex;flex-direction:column;min-height:100vh}
+.header{display:flex;align-items:center;gap:16px;padding:12px 24px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:50}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.005em}
+.brand-mark{width:24px;height:24px;border-radius:6px;background:var(--accent);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:11px;letter-spacing:0.02em}
+.tabs{display:flex;gap:2px;margin-left:24px}
+.tab{background:transparent;border:1px solid transparent;color:var(--text-muted);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms ease}
+.tab:hover{color:var(--text);background:var(--surface-2)}
+.tab.active{color:var(--text);background:var(--surface-2);border-color:var(--border)}
+.header-right{margin-left:auto;display:flex;align-items:center;gap:8px}
+.icon-btn{background:transparent;border:1px solid var(--border);color:var(--text-muted);width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all 150ms ease}
+.icon-btn:hover{background:var(--surface-2);color:var(--text)}
+.user-chip{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border);border-radius:16px;font-size:12px;color:var(--text-muted)}
+.avatar{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms ease}
+.btn-secondary:hover{background:var(--surface-2);border-color:var(--text-subtle)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid transparent;padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;transition:all 150ms ease}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+.btn-danger{background:transparent;color:var(--danger);border:1px solid var(--border-strong);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer}
+.btn-danger:hover{background:var(--danger-bg)}
+.input,.select,textarea.input{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;transition:all 150ms ease;width:100%}
+.input:focus,.select:focus,textarea.input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.input::placeholder{color:var(--text-subtle)}
+textarea.input{resize:vertical;min-height:60px;line-height:1.5}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px}
+.caption{font-size:12px;font-weight:500;letter-spacing:0.02em;text-transform:uppercase;color:var(--text-muted)}
+.body-sm{font-size:13px;color:var(--text-muted)}
+.h1{font-size:20px;font-weight:600;letter-spacing:-0.005em;margin:0}
+.h2{font-size:16px;font-weight:600;margin:0}
+.display{font-size:28px;font-weight:600;letter-spacing:-0.01em;font-variant-numeric:tabular-nums;margin:0}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-size:13px}
+.layout{display:flex;flex:1;min-height:0}
+.sidebar{width:248px;border-right:1px solid var(--border);background:var(--surface);padding:16px;overflow-y:auto;flex-shrink:0}
+.sidebar.collapsed{width:0;padding:0;overflow:hidden;border-right:none}
+.main{flex:1;overflow-y:auto;padding:24px;min-width:0}
+.sidebar-section{margin-bottom:16px}
+.sidebar-section h3{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);margin:0 0 8px 0}
+.checkbox-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:13px;cursor:pointer;color:var(--text)}
+.checkbox-row input{accent-color:var(--accent);cursor:pointer}
+.checkbox-row .count{margin-left:auto;color:var(--text-subtle);font-size:11px;font-variant-numeric:tabular-nums}
+.toolbar{display:flex;align-items:center;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.search-input{position:relative;flex:1;max-width:360px;min-width:200px}
+.search-input input{padding-left:30px}
+.search-input svg{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text-subtle)}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+thead th{text-align:left;font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);padding:10px 12px;border-bottom:1px solid var(--border);white-space:nowrap;background:var(--surface);position:sticky;top:0;z-index:1}
+thead th.sortable{cursor:pointer;user-select:none}
+thead th.sortable:hover{color:var(--text)}
+tbody td{padding:10px 12px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle}
+tbody tr{transition:background 100ms ease}
+tbody tr:hover{background:var(--surface-2)}
+tbody tr.selected{background:var(--accent-bg)}
+.numeric{text-align:right;font-family:'SF Mono',Menlo,monospace}
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.table-scroll{overflow-x:auto;max-height:calc(100vh - 280px)}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;white-space:nowrap}
+.badge-success{background:var(--success-bg);color:var(--success)}
+.badge-warning{background:var(--warning-bg);color:var(--warning)}
+.badge-danger{background:var(--danger-bg);color:var(--danger)}
+.badge-info{background:var(--info-bg);color:var(--info)}
+.badge-neutral{background:var(--surface-2);color:var(--text-muted);border:1px solid var(--border)}
+.score-badge{display:inline-flex;align-items:center;justify-content:center;min-width:38px;padding:3px 8px;border-radius:var(--radius-sm);font-size:12px;font-weight:600;font-variant-numeric:tabular-nums;cursor:pointer;transition:all 150ms ease}
+.score-badge:hover{transform:translateY(-1px)}
+.score-high{background:var(--success-bg);color:var(--success)}
+.score-med{background:var(--warning-bg);color:var(--warning)}
+.score-low{background:var(--surface-2);color:var(--text-muted)}
+.score-unscored{background:transparent;border:1px dashed var(--border-strong);color:var(--text-subtle)}
+.status-pill{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:10px;font-size:11px;font-weight:500;cursor:pointer;border:1px solid transparent;transition:all 150ms ease}
+.status-pill:hover{filter:brightness(1.05)}
+.status-attending{background:var(--success-bg);color:var(--success);border-color:var(--success-bg)}
+.status-considering{background:var(--info-bg);color:var(--info);border-color:var(--info-bg)}
+.status-not_attending{background:var(--danger-bg);color:var(--danger);border-color:var(--danger-bg)}
+.status-unreviewed{background:var(--surface-2);color:var(--text-muted);border-color:var(--border)}
+.dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+.avatar-stack{display:inline-flex}
+.avatar-stack .avatar{width:22px;height:22px;font-size:9px;border:2px solid var(--surface);margin-left:-6px}
+.avatar-stack .avatar:first-child{margin-left:0}
+.avatar-more{width:22px;height:22px;border-radius:50%;background:var(--surface-2);color:var(--text-muted);border:2px solid var(--surface);margin-left:-6px;display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:600}
+.org-chip{display:inline-flex;align-items:center;gap:6px;font-size:12px;color:var(--text-muted)}
+.org-mark{width:18px;height:18px;border-radius:4px;background:var(--surface-2);display:inline-flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--text);border:1px solid var(--border)}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:24px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px 16px}
+.kpi-label{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:600;font-variant-numeric:tabular-nums;letter-spacing:-0.005em}
+.kpi-delta{font-size:12px;color:var(--text-muted);margin-top:4px;font-variant-numeric:tabular-nums}
+.delta-up{color:var(--success)}
+.delta-down{color:var(--danger)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:200;padding:24px}
+.modal{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:24px;max-width:560px;width:100%;max-height:calc(100vh - 48px);overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-title{font-size:16px;font-weight:600;margin:0}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:24px;padding-top:16px;border-top:1px solid var(--border)}
+.slideover-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.3);z-index:150}
+.slideover{position:fixed;right:0;top:0;bottom:0;width:640px;max-width:100vw;background:var(--surface);border-left:1px solid var(--border-strong);z-index:151;display:flex;flex-direction:column;overflow:hidden}
+.slideover-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.slideover-body{flex:1;overflow-y:auto;padding:0}
+.slideover-tabs{display:flex;gap:2px;padding:0 20px;border-bottom:1px solid var(--border);background:var(--surface)}
+.slideover-tab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);padding:10px 12px;font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms ease}
+.slideover-tab:hover{color:var(--text)}
+.slideover-tab.active{color:var(--text);border-bottom-color:var(--accent)}
+.slideover-content{padding:20px}
+.field{display:flex;flex-direction:column;gap:6px;margin-bottom:14px}
+.field label{font-size:12px;color:var(--text-muted);font-weight:500}
+.field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.empty{text-align:center;padding:48px 24px;color:var(--text-muted)}
+.empty-icon{opacity:0.16;margin-bottom:12px}
+.empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px}
+.empty-text{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:360px}
+.toast{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:10px;animation:toastIn 200ms ease}
+.toast-success{border-left:3px solid var(--success)}
+.toast-error{border-left:3px solid var(--danger)}
+.toast-info{border-left:3px solid var(--info)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:none}}
+.dropdown{position:relative;display:inline-block}
+.dropdown-menu{position:absolute;top:calc(100% + 4px);right:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:4px;min-width:200px;z-index:30;max-height:280px;overflow-y:auto}
+.dropdown-item{display:flex;align-items:center;gap:8px;padding:6px 10px;font-size:13px;color:var(--text);cursor:pointer;border-radius:var(--radius-sm);width:100%;text-align:left;background:transparent;border:none}
+.dropdown-item:hover{background:var(--surface-2)}
+.dropdown-item.danger{color:var(--danger)}
+.deadline-warning{display:inline-flex;align-items:center;gap:4px;color:var(--warning);font-size:11px;font-weight:500}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:1px;background:var(--border);border:1px solid var(--border);border-radius:var(--radius-md);overflow:hidden}
+.calendar-head{background:var(--surface);padding:8px;font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;text-align:center}
+.calendar-cell{background:var(--surface);min-height:96px;padding:6px;font-size:12px;position:relative}
+.calendar-cell.other-month{background:var(--surface-2)}
+.calendar-cell.today .cal-date{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center}
+.cal-date{font-weight:500;color:var(--text-muted);font-size:11px}
+.cal-event{display:block;font-size:11px;padding:2px 5px;margin-top:3px;border-radius:3px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:2px solid}
+.cal-event.tier-high{background:var(--success-bg);color:var(--success);border-left-color:var(--success)}
+.cal-event.tier-med{background:var(--warning-bg);color:var(--warning);border-left-color:var(--warning)}
+.cal-event.tier-low{background:var(--surface-2);color:var(--text-muted);border-left-color:var(--text-subtle)}
+.timeline{display:flex;flex-direction:column;gap:6px;padding:4px}
+.timeline-row{display:grid;grid-template-columns:240px 1fr;gap:12px;align-items:center;padding:8px;border-radius:var(--radius-sm)}
+.timeline-row:hover{background:var(--surface-2)}
+.timeline-bar-track{position:relative;height:24px;background:var(--surface-2);border-radius:var(--radius-sm);overflow:hidden}
+.timeline-bar{position:absolute;height:100%;border-radius:var(--radius-sm);padding:0 6px;display:flex;align-items:center;font-size:11px;font-weight:500;color:#fff;cursor:pointer;overflow:hidden;white-space:nowrap}
+.timeline-bar.tier-high{background:var(--success)}
+.timeline-bar.tier-med{background:var(--warning)}
+.timeline-bar.tier-low{background:var(--text-subtle)}
+.matrix{overflow-x:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md)}
+.matrix table{font-size:12px}
+.matrix th.event-name{position:sticky;left:0;background:var(--surface);text-align:left;min-width:200px;max-width:200px;z-index:2}
+.matrix td.event-name{position:sticky;left:0;background:var(--surface);font-weight:500;color:var(--text)}
+.matrix tbody tr:hover td.event-name{background:var(--surface-2)}
+.matrix td{text-align:center;padding:6px 8px}
+.matrix .check{color:var(--success);font-weight:600}
+.matrix .conflict{color:var(--danger);font-weight:600}
+.bulk-bar{position:sticky;bottom:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:10px 16px;margin-top:12px;display:flex;align-items:center;gap:12px;font-size:13px}
+.bulk-count{font-weight:600}
+.row-actions{display:flex;align-items:center;gap:2px;justify-content:flex-end}
+.event-row-expand{background:var(--surface-2)}
+.event-row-expand td{padding:12px 16px;font-size:12px;color:var(--text-muted)}
+.expand-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px}
+.expand-field strong{display:block;color:var(--text-subtle);font-size:11px;text-transform:uppercase;letter-spacing:0.04em;font-weight:500;margin-bottom:4px}
+.expand-field span{color:var(--text);font-size:13px}
+.score-breakdown{display:flex;flex-direction:column;gap:10px}
+.score-criterion{display:grid;grid-template-columns:1fr 60px 80px;gap:12px;align-items:center}
+.score-criterion label{font-size:12px;color:var(--text-muted)}
+.score-criterion .weight{font-size:11px;color:var(--text-subtle);font-family:ui-monospace,monospace}
+.range-input{width:100%}
+.range-input input{width:100%}
+.summary-line{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-top:1px solid var(--border);margin-top:8px;font-size:14px;font-weight:600}
+hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.tag{display:inline-block;padding:2px 8px;border-radius:10px;background:var(--surface-2);border:1px solid var(--border);font-size:11px;color:var(--text-muted);margin:2px}
+.compare-grid{display:grid;gap:12px}
+.activity-item{display:flex;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px}
+.activity-item:last-child{border:none}
+.activity-icon{width:28px;height:28px;border-radius:50%;background:var(--surface-2);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--text-muted)}
+@media(max-width:1024px){.sidebar{width:220px}}
+@media(max-width:768px){.sidebar{position:fixed;left:0;top:57px;bottom:0;z-index:40;width:280px;box-shadow:0 0 0 200vw rgba(0,0,0,0.3)}.sidebar.collapsed{box-shadow:none}.main{padding:16px}.tabs{display:none}.tabs.mobile-open{display:flex;position:absolute;top:57px;left:0;right:0;background:var(--surface);padding:8px;border-bottom:1px solid var(--border)}.slideover{width:100vw}.kpi-value{font-size:18px}.field-row{grid-template-columns:1fr}}
+.spinner{width:14px;height:14px;border:2px solid var(--border-strong);border-top-color:var(--accent);border-radius:50%;animation:spin 800ms linear infinite;display:inline-block}
+@keyframes spin{to{transform:rotate(360deg)}}
+.checkbox-cell{width:32px}
+.checkbox-cell input{accent-color:var(--accent);cursor:pointer}
+.range-slider{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-muted)}
+.range-slider input[type=range]{flex:1;accent-color:var(--accent)}
+.btn-icon-sm{background:transparent;border:none;color:var(--text-subtle);cursor:pointer;padding:4px;border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center}
+.btn-icon-sm:hover{color:var(--text);background:var(--surface-2)}
+.scoring-weight-row{display:grid;grid-template-columns:1fr 100px 60px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.scoring-weight-row:last-child{border:none}
+.export-options{display:flex;flex-direction:column;gap:8px}
+</style>
+</head>
+<body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = 'ca07cf89-dc0d-483b-8441-b162454a0621';
+  var APP_TITLE = "DN Industry Events Strategic Tracker with Scoring";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); window.__dnSession = window.__dnSession || null; document.dispatchEvent(new CustomEvent('dn-auth-ready')); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; window.__dnSession = { user: session.user, isAdmin: isAdmin }; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
+
+<div class="app" id="app">
+  <header class="header">
+    <div class="brand"><div class="brand-mark">DN</div><span>Industry Events</span></div>
+    <nav class="tabs" id="tabs">
+      <button class="tab active" data-tab="events">Events</button>
+      <button class="tab" data-tab="team">Team</button>
+      <button class="tab" data-tab="insights">Insights</button>
+      <button class="tab" data-tab="admin">Admin</button>
+    </nav>
+    <div class="header-right">
+      <button class="icon-btn" id="toggleSidebar" aria-label="Toggle filters" title="Toggle filters"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="6" y1="12" x2="18" y2="12"/><line x1="9" y1="18" x2="15" y2="18"/></svg></button>
+      <button class="icon-btn" id="themeToggle" aria-label="Toggle theme" title="Toggle theme"></button>
+      <div class="user-chip" id="userChip"><div class="avatar" id="userAvatar">—</div><span id="userEmail">…</span></div>
+    </div>
+  </header>
+  <div class="layout">
+    <aside class="sidebar" id="sidebar"></aside>
+    <main class="main" id="main"></main>
+  </div>
+</div>
+<div id="modalRoot"></div>
+<div id="slideoverRoot"></div>
+<div class="toast-wrap" id="toastWrap"></div>
+
+<script>
+document.addEventListener('dn-auth-ready', function(){ window.__bootApp && window.__bootApp(); });
+window.__bootApp = function(){
+'use strict';
+
+// ============ THEME ============
+const initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+function renderThemeIcon(){
+  const dark = document.documentElement.dataset.theme === 'dark';
+  const el = document.getElementById('themeToggle');
+  el.innerHTML = dark
+    ? '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg>'
+    : '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+}
+renderThemeIcon();
+document.getElementById('themeToggle').addEventListener('click', ()=>{
+  document.documentElement.dataset.theme = document.documentElement.dataset.theme==='dark'?'light':'dark';
+  renderThemeIcon();
+});
+
+// ============ USER ============
+const session = window.__dnSession || { user:{email:'user@digitatanetworks.com'}, isAdmin:false };
+document.getElementById('userEmail').textContent = (session.user.email||'user').split('@')[0];
+document.getElementById('userAvatar').textContent = (session.user.email||'?').slice(0,2).toUpperCase();
+
+// ============ TOAST ============
+function toast(msg, kind){
+  kind = kind || 'info';
+  const el = document.createElement('div');
+  el.className = 'toast toast-' + kind;
+  const icon = kind==='success'?'✓':kind==='error'?'✕':'•';
+  el.innerHTML = '<span style="color:var(--' + (kind==='success'?'success':kind==='error'?'danger':'info') + ')">'+icon+'</span><span>'+escapeHtml(msg)+'</span>';
+  document.getElementById('toastWrap').appendChild(el);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 200ms'; setTimeout(()=>el.remove(),200); }, 4000);
+}
+function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+// ============ DATA MODEL ============
+// Scoring weights (configurable in Admin)
+let scoringWeights = {
+  speaking:    { label: 'Speaking opportunity',  weight: 25 },
+  strategic:   { label: 'Strategic importance',  weight: 25 },
+  roi:         { label: 'ROI potential',         weight: 20 },
+  competitor:  { label: 'Competitor presence',   weight: 15 },
+  audience:    { label: 'Audience fit',          weight: 15 }
+};
+
+const ORGS = [
+  { id:'tmf',   name:'TM Forum',  abbr:'TMF' },
+  { id:'gsma',  name:'GSMA',      abbr:'GSMA' },
+  { id:'cca',   name:'CCA',       abbr:'CCA' },
+  { id:'mwc',   name:'MWC',       abbr:'MWC' },
+  { id:'gitex', name:'GITEX',     abbr:'GITEX' },
+  { id:'lf',    name:'Linux Foundation Networking', abbr:'LFN' },
+  { id:'manual',name:'Manual / Other', abbr:'MAN' }
+];
+
+const REGIONS = ['EMEA','Americas','APAC','MENA','Africa'];
+
+// Team members (managed in Admin)
+let teamMembers = [
+  { id:'tm1', name:'Sarah Chen',     role:'CMO',          color:'#5e6ad2' },
+  { id:'tm2', name:'Marcus Webb',    role:'VP Product',   color:'#0ea5e9' },
+  { id:'tm3', name:'Priya Sharma',   role:'Head of BD',   color:'#10b981' },
+  { id:'tm4', name:'Tomas Lindqvist',role:'CTO',          color:'#f59e0b' },
+  { id:'tm5', name:'Adaeze Okafor',  role:'Marketing Dir',color:'#ec4899' },
+  { id:'tm6', name:'David Park',     role:'Solutions Eng',color:'#8b5cf6' }
+];
+function initials(name){ return name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
+
+// Today reference
+const TODAY = new Date(); TODAY.setHours(0,0,0,0);
+function d(offsetDays, durationDays){
+  const s = new Date(TODAY); s.setDate(s.getDate()+offsetDays);
+  const e = new Date(s); e.setDate(e.getDate()+(durationDays||0));
+  return { start: iso(s), end: iso(e) };
+}
+function iso(dt){ return dt.toISOString().slice(0,10); }
+
+// Seed catalog — major telecom industry events. This is a starting catalog;
+// users add/edit/score via Admin and the table. Dates anchored relative to today
+// so the calendar always shows live near-term content.
+let events = [
+  { id:'e1',  name:'Mobile World Congress', orgId:'mwc',  ...d(45,4),  city:'Barcelona', country:'ES', region:'EMEA', format:'In-person', attendance:101000, audience:'C-level, operators, vendors', priceUsd:2999, sponsorshipUsd:250000, travelEstUsd:8500, status:'attending', assigned:['tm1','tm2','tm4'], speakingDeadline: addDays(-10), speakingStatus:'Submitted', competitors:['Ericsson','Nokia','Huawei','ZTE','Mavenir'], tags:['5G','RAN','Network Automation'], synopsis:'The flagship global telecom event. Mandatory presence for strategic positioning.', scores:{speaking:9,strategic:10,roi:8,competitor:10,audience:9}, source:'auto' },
+  { id:'e2',  name:'DTW (Digital Transformation World)', orgId:'tmf', ...d(85,3), city:'Copenhagen', country:'DK', region:'EMEA', format:'In-person', attendance:3500, audience:'BSS/OSS leaders, architects', priceUsd:2495, sponsorshipUsd:75000, travelEstUsd:4200, status:'considering', assigned:['tm2','tm3'], speakingDeadline: addDays(15), speakingStatus:'Drafting', competitors:['Amdocs','Netcracker','BearingPoint'], tags:['BSS','OSS','ODA','Open APIs'], synopsis:'TM Forum flagship — strong fit for our OSS narrative and Open API alignment.', scores:{speaking:8,strategic:9,roi:7,competitor:8,audience:10}, source:'auto' },
+  { id:'e3',  name:'GITEX Global', orgId:'gitex', ...d(180,5), city:'Dubai', country:'AE', region:'MENA', format:'In-person', attendance:170000, audience:'Enterprise, government, telecom', priceUsd:0, sponsorshipUsd:120000, travelEstUsd:6500, status:'considering', assigned:['tm3'], speakingDeadline: addDays(45), speakingStatus:'Not submitted', competitors:['Ericsson','Cisco','Microsoft','AWS'], tags:['Enterprise','MENA','Digital Gov'], synopsis:'Critical for MENA expansion. Strong government and enterprise audience.', scores:{speaking:6,strategic:8,roi:7,competitor:7,audience:8}, source:'auto' },
+  { id:'e4',  name:'GSMA M360 LATAM', orgId:'gsma', ...d(62,2), city:'Mexico City', country:'MX', region:'Americas', format:'In-person', attendance:1800, audience:'LATAM operators, regulators', priceUsd:1495, sponsorshipUsd:45000, travelEstUsd:3800, status:'attending', assigned:['tm3','tm6'], speakingDeadline: addDays(-5), speakingStatus:'Accepted', competitors:['Ericsson','Nokia','Mavenir'], tags:['LATAM','5G','Regulation'], synopsis:'Speaking slot confirmed on monetization panel. High-quality LATAM operator audience.', scores:{speaking:9,strategic:7,roi:8,competitor:6,audience:9}, source:'auto' },
+  { id:'e5',  name:'CCA Annual Convention', orgId:'cca', ...d(110,3), city:'Nashville', country:'US', region:'Americas', format:'In-person', attendance:2200, audience:'Tier-2/3 US carriers', priceUsd:1095, sponsorshipUsd:35000, travelEstUsd:2400, status:'unreviewed', assigned:[], speakingDeadline: addDays(40), speakingStatus:'Not submitted', competitors:['Nokia','Mavenir','Parallel Wireless'], tags:['Tier-2','US','Rural 5G'], synopsis:'Concentrated tier-2/3 US carrier audience. Smaller but high-density commercial opportunity.', scores:{speaking:7,strategic:6,roi:8,competitor:5,audience:8}, source:'auto' },
+  { id:'e6',  name:'TM Forum Innovate Asia', orgId:'tmf', ...d(135,2), city:'Kuala Lumpur', country:'MY', region:'APAC', format:'In-person', attendance:1200, audience:'APAC operators, sys integrators', priceUsd:1795, sponsorshipUsd:30000, travelEstUsd:5200, status:'considering', assigned:['tm4'], speakingDeadline: addDays(55), speakingStatus:'Not submitted', competitors:['Amdocs','Comarch'], tags:['APAC','BSS','Catalyst'], synopsis:'Strong Catalyst program. Good entry point for APAC operator relationships.', scores:{speaking:7,strategic:7,roi:6,competitor:6,audience:8}, source:'auto' },
+  { id:'e7',  name:'Network X', orgId:'manual', ...d(155,3), city:'Paris', country:'FR', region:'EMEA', format:'In-person', attendance:6500, audience:'Network engineering, fixed+mobile', priceUsd:2195, sponsorshipUsd:90000, travelEstUsd:3900, status:'attending', assigned:['tm2','tm4','tm6'], speakingDeadline: addDays(60), speakingStatus:'Submitted', competitors:['Ciena','Nokia','Adtran','Calix'], tags:['Fixed Networks','FTTH','5G Core'], synopsis:'Fixed and mobile convergence story plays well here. Strong tier-1 European operator presence.', scores:{speaking:8,strategic:8,roi:8,competitor:8,audience:8}, source:'manual' },
+  { id:'e8',  name:'MWC Las Vegas', orgId:'mwc', ...d(220,3), city:'Las Vegas', country:'US', region:'Americas', format:'In-person', attendance:22000, audience:'Americas operators, enterprise', priceUsd:1995, sponsorshipUsd:140000, travelEstUsd:3100, status:'unreviewed', assigned:[], speakingDeadline: addDays(90), speakingStatus:'Not submitted', competitors:['Ericsson','Samsung','Mavenir','Rakuten'], tags:['Americas','5G','Private Networks'], synopsis:'US flagship event. Decision pending on whether to co-locate with existing MWC Barcelona spend.', scores:{speaking:7,strategic:8,roi:7,competitor:9,audience:8}, source:'auto' },
+  { id:'e9',  name:'AfricaCom', orgId:'manual', ...d(75,3), city:'Cape Town', country:'ZA', region:'Africa', format:'In-person', attendance:13000, audience:'African operators, fintech', priceUsd:995, sponsorshipUsd:55000, travelEstUsd:4400, status:'attending', assigned:['tm1','tm5'], speakingDeadline: addDays(5), speakingStatus:'Submitted', competitors:['Huawei','Nokia','Ericsson','Mavenir'], tags:['Africa','Mobile Money','5G'], synopsis:'Home-region anchor event. Critical for African operator relationships.', scores:{speaking:9,strategic:10,roi:9,competitor:7,audience:10}, source:'manual' },
+  { id:'e10', name:'ONF Connect / Linux Foundation Networking Summit', orgId:'lf', ...d(95,3), city:'Antwerp', country:'BE', region:'EMEA', format:'Hybrid', attendance:1100, audience:'Open source / disaggregation', priceUsd:895, sponsorshipUsd:25000, travelEstUsd:3200, status:'not_attending', notAttendingReason:'Limited fit for current product portfolio; revisit if we expand into open-RAN tooling.', assigned:[], speakingDeadline: addDays(20), speakingStatus:'Declined', competitors:['Red Hat','VMware','Wind River'], tags:['Open Source','Disaggregation','ORAN'], synopsis:'Open source networking community event.', scores:{speaking:4,strategic:4,roi:3,competitor:5,audience:5}, source:'auto' },
+  { id:'e11', name:'TelecomTV DSP Leaders World Forum', orgId:'manual', ...d(125,2), city:'Windsor', country:'GB', region:'EMEA', format:'In-person', attendance:600, audience:'Tier-1 operator execs', priceUsd:3495, sponsorshipUsd:60000, travelEstUsd:2800, status:'considering', assigned:['tm1','tm2'], speakingDeadline: addDays(35), speakingStatus:'Drafting', competitors:['Amdocs','Netcracker'], tags:['Executive','DSP','Tier-1'], synopsis:'Small but extremely senior audience. High-signal executive engagement.', scores:{speaking:8,strategic:9,roi:8,competitor:5,audience:10}, source:'manual' },
+  { id:'e12', name:'GSMA M360 Africa', orgId:'gsma', ...d(28,2), city:'Kigali', country:'RW', region:'Africa', format:'In-person', attendance:2400, audience:'African operators, regulators', priceUsd:995, sponsorshipUsd:40000, travelEstUsd:4100, status:'attending', assigned:['tm1','tm3','tm5'], speakingDeadline: addDays(-15), speakingStatus:'Accepted', competitors:['Huawei','MTN','Airtel Africa'], tags:['Africa','Regulation','Inclusion'], synopsis:'Keynote confirmed. Strategic for African operator portfolio expansion.', scores:{speaking:10,strategic:10,roi:9,competitor:6,audience:10}, source:'auto' },
+  // a few past events for history/insights
+  { id:'e13', name:'MWC Barcelona (prior)', orgId:'mwc', ...d(-320,4), city:'Barcelona', country:'ES', region:'EMEA', format:'In-person', attendance:88000, audience:'Global telecom', priceUsd:2999, sponsorshipUsd:240000, travelEstUsd:8200, status:'attending', assigned:['tm1','tm2','tm4'], speakingStatus:'Accepted', competitors:['Ericsson','Nokia','Huawei'], tags:['5G','RAN'], synopsis:'Prior year — 42 qualified leads, 3 closed deals attributed.', scores:{speaking:9,strategic:10,roi:9,competitor:10,audience:9}, source:'auto', roiActual:9.2 },
+  { id:'e14', name:'DTW (prior)', orgId:'tmf', ...d(-265,3), city:'Copenhagen', country:'DK', region:'EMEA', format:'In-person', attendance:3200, audience:'BSS/OSS', priceUsd:2495, sponsorshipUsd:70000, travelEstUsd:4000, status:'attending', assigned:['tm2','tm3'], speakingStatus:'Accepted', competitors:['Amdocs','Netcracker'], tags:['BSS','OSS'], synopsis:'Prior year — strong Catalyst participation, 1 strategic partnership signed.', scores:{speaking:8,strategic:9,roi:8,competitor:8,audience:10}, source:'auto', roiActual:8.5 },
+  { id:'e15', name:'AfricaCom (prior)', orgId:'manual', ...d(-285,3), city:'Cape Town', country:'ZA', region:'Africa', format:'In-person', attendance:12000, audience:'African operators', priceUsd:995, sponsorshipUsd:50000, travelEstUsd:4200, status:'attending', assigned:['tm1','tm5'], speakingStatus:'Accepted', competitors:['Huawei','Nokia'], tags:['Africa'], synopsis:'Prior year — anchor for regional pipeline.', scores:{speaking:9,strategic:10,roi:9,competitor:7,audience:10}, source:'manual', roiActual:9.5 }
+];
+
+function addDays(n){ const dt = new Date(TODAY); dt.setDate(dt.getDate()+n); return iso(dt); }
+
+// Activity log
+let activity = [
+  { ts: Date.now()-3600000, who:'sarah.chen', text:'Marked MWC Las Vegas for review' },
+  { ts: Date.now()-7200000, who:'marcus.webb', text:'Updated scoring on DTW Copenhagen' },
+  { ts: Date.now()-86400000, who:'priya.sharma', text:'Assigned to GSMA M360 LATAM' }
+];
+
+// Saved filter presets
+let presets = [
+  { id:'p1', name:'High-value EMEA (next 6mo)', filters:{regions:['EMEA'], scoreMin:7, horizon:'6mo'} },
+  { id:'p2', name:'Unscored speaking opps',    filters:{statuses:['unreviewed','considering'], hasSpeakingDeadline:true, horizon:'12mo'} }
+];
+
+// ============ STATE ============
+let state = {
+  tab:'events',
+  view:'table', // table | calendar | timeline | matrix
+  horizon:'6mo', // 3mo | 6mo | 12mo | all | custom
+  customStart:null, customEnd:null,
+  search:'',
+  filters:{ regions:[], orgs:[], statuses:[], assigned:[], scoreMin:0, hasSpeakingDeadline:false },
+  sort:{ key:'score', dir:'desc' },
+  selected: new Set(),
+  expanded: new Set(),
+  detailEventId:null,
+  detailTab:'overview',
+  modal:null,
+  compareIds:[],
+  calMonth: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
+  sidebarOpen:true,
+  loading:false
+};
+
+// ============ SCORING ============
+function computeScore(ev){
+  if(!ev.scores) return null;
+  let total = 0, totalWeight = 0;
+  for(const key of Object.keys(scoringWeights)){
+    const w = scoringWeights[key].weight;
+    const s = ev.scores[key];
+    if(typeof s === 'number'){ total += s * w; totalWeight += w; }
+  }
+  if(totalWeight===0) return null;
+  return Math.round((total/totalWeight)*10)/10;
+}
+function scoreTier(s){ if(s==null) return 'unscored'; if(s>=8) return 'high'; if(s>=6) return 'med'; return 'low'; }
+
+// ============ FILTERS / DERIVED ============
+function horizonRange(){
+  const start = new Date(TODAY);
+  const end = new Date(TODAY);
+  if(state.horizon==='3mo') end.setMonth(end.getMonth()+3);
+  else if(state.horizon==='6mo') end.setMonth(end.getMonth()+6);
+  else if(state.horizon==='12mo') end.setMonth(end.getMonth()+12);
+  else if(state.horizon==='all'){ start.setFullYear(start.getFullYear()-2); end.setFullYear(end.getFullYear()+2); }
+  else if(state.horizon==='custom'){
+    return { start: state.customStart?new Date(state.customStart):start, end: state.customEnd?new Date(state.customEnd):end };
+  }
+  return { start, end };
+}
+function filteredEvents(){
+  const r = horizonRange();
+  const q = state.search.trim().toLowerCase();
+  return events.filter(ev=>{
+    const evStart = new Date(ev.start);
+    const evEnd = new Date(ev.end);
+    if(evEnd < r.start || evStart > r.end) return false;
+    if(state.filters.regions.length && !state.filters.regions.includes(ev.region)) return false;
+    if(state.filters.orgs.length && !state.filters.orgs.includes(ev.orgId)) return false;
+    if(state.filters.statuses.length && !state.filters.statuses.includes(ev.status)) return false;
+    if(state.filters.assigned.length && !ev.assigned.some(a=>state.filters.assigned.includes(a))) return false;
+    const s = computeScore(ev);
+    if(state.filters.scoreMin>0 && (s==null || s < state.filters.scoreMin)) return false;
+    if(state.filters.hasSpeakingDeadline && !ev.speakingDeadline) return false;
+    if(q){
+      const hay = (ev.name+' '+ev.city+' '+ev.country+' '+(orgById(ev.orgId)||{}).name+' '+(ev.synopsis||'')+' '+(ev.tags||[]).join(' ')).toLowerCase();
+      if(!hay.includes(q)) return false;
+    }
+    return true;
+  });
+}
+function sortEvents(arr){
+  const k = state.sort.key, dir = state.sort.dir==='asc'?1:-1;
+  return arr.slice().sort((a,b)=>{
+    let av, bv;
+    if(k==='score'){ av=computeScore(a); bv=computeScore(b); av=av==null?-1:av; bv=bv==null?-1:bv; }
+    else if(k==='date'){ av=a.start; bv=b.start; }
+    else if(k==='name'){ av=a.name.toLowerCase(); bv=b.name.toLowerCase(); }
+    else if(k==='location'){ av=a.city; bv=b.city; }
+    else if(k==='org'){ av=(orgById(a.orgId)||{}).name; bv=(orgById(b.orgId)||{}).name; }
+    else if(k==='status'){ av=a.status; bv=b.status; }
+    else { av=a[k]; bv=b[k]; }
+    if(av<bv) return -1*dir; if(av>bv) return 1*dir; return 0;
+  });
+}
+function orgById(id){ return ORGS.find(o=>o.id===id); }
+function memberById(id){ return teamMembers.find(m=>m.id===id); }
+
+// ============ FORMATTERS ============
+const usdFmt = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
+function fmtMoney(n){ return n==null?'—':usdFmt.format(n); }
+function fmtDateRange(s,e){
+  const sd=new Date(s), ed=new Date(e);
+  const sameMonth = sd.getMonth()===ed.getMonth() && sd.getFullYear()===ed.getFullYear();
+  const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  if(sd.getTime()===ed.getTime()) return m[sd.getMonth()]+' '+sd.getDate()+', '+sd.getFullYear();
+  if(sameMonth) return m[sd.getMonth()]+' '+sd.getDate()+'–'+ed.getDate()+', '+sd.getFullYear();
+  return m[sd.getMonth()]+' '+sd.getDate()+' – '+m[ed.getMonth()]+' '+ed.getDate()+', '+ed.getFullYear();
+}
+function daysUntil(dStr){ const dt=new Date(dStr); return Math.ceil((dt-TODAY)/86400000); }
+function relDate(ts){ const d = Math.floor((Date.now()-ts)/60000); if(d<1) return 'just now'; if(d<60) return d+'m ago'; if(d<1440) return Math.floor(d/60)+'h ago'; return Math.floor(d/1440)+'d ago'; }
+
+// ============ RENDER ROOT ============
+function render(){
+  renderTabs();
+  renderSidebar();
+  renderMain();
+  renderModal();
+  renderSlideover();
+}
+function renderTabs(){
+  document.querySelectorAll('.tab').forEach(t=>{
+    t.classList.toggle('active', t.dataset.tab===state.tab);
+  });
+}
+document.getElementById('tabs').addEventListener('click', e=>{
+  const b = e.target.closest('.tab'); if(!b) return;
+  state.tab = b.dataset.tab; state.detailEventId=null; render();
+});
+document.getElementById('toggleSidebar').addEventListener('click', ()=>{
+  state.sidebarOpen = !state.sidebarOpen;
+  document.getElementById('sidebar').classList.toggle('collapsed', !state.sidebarOpen);
+});
+
+// ============ SIDEBAR ============
+function renderSidebar(){
+  const sb = document.getElementById('sidebar');
+  if(state.tab !== 'events'){ sb.innerHTML = '<div class="sidebar-section"><h3>Filters</h3><div class="body-sm" style="font-size:12px">Filters apply on the Events tab.</div></div>'; return; }
+  const counts = {
+    region: countBy(events, e=>e.region),
+    org: countBy(events, e=>e.orgId),
+    status: countBy(events, e=>e.status),
+    assigned: countBy(events.flatMap(e=>e.assigned), x=>x)
+  };
+  sb.innerHTML = `
+    <div class="sidebar-section">
+      <h3>Saved presets</h3>
+      ${presets.map(p=>`<button class="btn-ghost" style="width:100%;text-align:left;justify-content:flex-start;display:block;margin-bottom:2px" data-preset="${p.id}">${escapeHtml(p.name)}</button>`).join('')}
+      <button class="btn-ghost" style="width:100%;text-align:left;color:var(--text-subtle);font-size:12px" id="savePreset">+ Save current filters</button>
+    </div>
+    <div class="sidebar-section">
+      <h3>Region</h3>
+      ${REGIONS.map(r=>`<label class="checkbox-row"><input type="checkbox" data-fregion="${r}" ${state.filters.regions.includes(r)?'checked':''}> ${r} <span class="count">${counts.region[r]||0}</span></label>`).join('')}
+    </div>
+    <div class="sidebar-section">
+      <h3>Organizing body</h3>
+      ${ORGS.map(o=>`<label class="checkbox-row"><input type="checkbox" data-forg="${o.id}" ${state.filters.orgs.includes(o.id)?'checked':''}> ${escapeHtml(o.abbr)} <span class="count">${counts.org[o.id]||0}</span></label>`).join('')}
+    </div>
+    <div class="sidebar-section">
+      <h3>Status</h3>
+      ${[['attending','Attending'],['considering','Considering'],['unreviewed','Unreviewed'],['not_attending','Not attending']].map(([k,l])=>`<label class="checkbox-row"><input type="checkbox" data-fstatus="${k}" ${state.filters.statuses.includes(k)?'checked':''}> ${l} <span class="count">${counts.status[k]||0}</span></label>`).join('')}
+    </div>
+    <div class="sidebar-section">
+      <h3>Assigned team</h3>
+      ${teamMembers.map(m=>`<label class="checkbox-row"><input type="checkbox" data-fassigned="${m.id}" ${state.filters.assigned.includes(m.id)?'checked':''}> ${escapeHtml(m.name)} <span class="count">${counts.assigned[m.id]||0}</span></label>`).join('')}
+    </div>
+    <div class="sidebar-section">
+      <h3>Strategic score ≥ <span style="color:var(--text);font-family:ui-monospace,monospace">${state.filters.scoreMin.toFixed(1)}</span></h3>
+      <input type="range" min="0" max="10" step="0.5" value="${state.filters.scoreMin}" id="scoreMinRange" style="width:100%;accent-color:var(--accent)">
+    </div>
+    <div class="sidebar-section">
+      <label class="checkbox-row"><input type="checkbox" id="deadlineOnly" ${state.filters.hasSpeakingDeadline?'checked':''}> Has speaking deadline</label>
+    </div>
+    <div class="sidebar-section">
+      <button class="btn-secondary" style="width:100%" id="clearFilters">Clear all filters</button>
+    </div>
+  `;
+  sb.querySelectorAll('[data-fregion]').forEach(el=>el.addEventListener('change', ()=>toggleFilter('regions', el.dataset.fregion)));
+  sb.querySelectorAll('[data-forg]').forEach(el=>el.addEventListener('change', ()=>toggleFilter('orgs', el.dataset.forg)));
+  sb.querySelectorAll('[data-fstatus]').forEach(el=>el.addEventListener('change', ()=>toggleFilter('statuses', el.dataset.fstatus)));
+  sb.querySelectorAll('[data-fassigned]').forEach(el=>el.addEventListener('change', ()=>toggleFilter('assigned', el.dataset.fassigned)));
+  sb.querySelectorAll('[data-preset]').forEach(el=>el.addEventListener('click', ()=>applyPreset(el.dataset.preset)));
+  const sm = sb.querySelector('#scoreMinRange'); if(sm) sm.addEventListener('input', e=>{ state.filters.scoreMin = parseFloat(e.target.value); renderSidebar(); renderMain(); });
+  const dl = sb.querySelector('#deadlineOnly'); if(dl) dl.addEventListener('change', e=>{ state.filters.hasSpeakingDeadline = e.target.checked; render(); });
+  const cf = sb.querySelector('#clearFilters'); if(cf) cf.addEventListener('click', ()=>{ state.filters={regions:[],orgs:[],statuses:[],assigned:[],scoreMin:0,hasSpeakingDeadline:false}; state.search=''; render(); toast('Filters cleared','info'); });
+  const sp = sb.querySelector('#savePreset'); if(sp) sp.addEventListener('click', ()=>openSavePresetModal());
+}
+function countBy(arr, fn){ const o={}; arr.forEach(x=>{ const k=fn(x); if(k!=null) o[k]=(o[k]||0)+1; }); return o; }
+function toggleFilter(key, val){
+  const arr = state.filters[key];
+  const i = arr.indexOf(val);
+  if(i>-1) arr.splice(i,1); else arr.push(val);
+  render();
+}
+function applyPreset(id){
+  const p = presets.find(x=>x.id===id); if(!p) return;
+  state.filters = Object.assign({regions:[],orgs:[],statuses:[],assigned:[],scoreMin:0,hasSpeakingDeadline:false}, p.filters);
+  if(p.filters.horizon) state.horizon = p.filters.horizon;
+  render();
+  toast('Preset applied: '+p.name, 'info');
+}
+function openSavePresetModal(){
+  state.modal = { kind:'savePreset' };
+  renderModal();
+}
+
+// ============ MAIN ROUTER ============
+function renderMain(){
+  const m = document.getElementById('main');
+  if(state.tab==='events') m.innerHTML = '', renderEventsTab(m);
+  else if(state.tab==='team') m.innerHTML='', renderTeamTab(m);
+  else if(state.tab==='insights') m.innerHTML='', renderInsightsTab(m);
+  else if(state.tab==='admin') m.innerHTML='', renderAdminTab(m);
+}
+
+// ============ EVENTS TAB ============
+function renderEventsTab(root){
+  // KPIs
+  const k = computeKpis();
+  const kpiHtml = `
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Events in window</div><div class="kpi-value">${k.windowCount}</div><div class="kpi-delta">${k.attending} attending · ${k.considering} considering</div></div>
+      <div class="kpi"><div class="kpi-label">Committed budget</div><div class="kpi-value">${fmtMoney(k.committedBudget)}</div><div class="kpi-delta">${fmtMoney(k.projectedBudget)} projected if all considering attend</div></div>
+      <div class="kpi"><div class="kpi-label">Avg score · attending</div><div class="kpi-value">${k.avgAttendingScore!=null?k.avgAttendingScore.toFixed(1):'—'}</div><div class="kpi-delta">vs ${k.avgDeclinedScore!=null?k.avgDeclinedScore.toFixed(1):'—'} declined</div></div>
+      <div class="kpi"><div class="kpi-label">Speaking pipeline</div><div class="kpi-value">${k.speakingSubmitted}<span style="font-size:14px;color:var(--text-muted);font-weight:400"> / ${k.speakingTotal}</span></div><div class="kpi-delta">${k.speakingAccepted} accepted · ${k.speakingUrgent} deadlines &lt; 30d</div></div>
+    </div>
+  `;
+
+  const toolbar = `
+    <div class="toolbar">
+      <div style="display:flex;gap:4px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:2px">
+        ${[['3mo','3mo'],['6mo','6mo'],['12mo','12mo'],['all','All'],['custom','Custom']].map(([k,l])=>`<button class="btn-ghost" data-horizon="${k}" style="padding:4px 10px;font-size:12px;${state.horizon===k?'background:var(--surface-2);color:var(--text)':''}">${l}</button>`).join('')}
+      </div>
+      <div class="search-input">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input class="input" id="search" placeholder="Search events, cities, organizations…" value="${escapeHtml(state.search)}">
+      </div>
+      <div style="display:flex;gap:4px;margin-left:auto;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:2px">
+        ${[['table','Table'],['calendar','Calendar'],['timeline','Timeline']].map(([k,l])=>`<button class="btn-ghost" data-view="${k}" style="padding:4px 10px;font-size:12px;${state.view===k?'background:var(--surface-2);color:var(--text)':''}">${l}</button>`).join('')}
+      </div>
+      <button class="btn-secondary" id="compareBtn" ${state.compareIds.length<2?'disabled':''}>Compare (${state.compareIds.length})</button>
+      <button class="btn-secondary" id="exportBtn">Export</button>
+      <button class="btn-primary" id="addEventBtn">+ Add event</button>
+    </div>
+  `;
+
+  root.innerHTML = kpiHtml + toolbar + '<div id="viewRoot"></div>';
+
+  // bind
+  root.querySelectorAll('[data-horizon]').forEach(b=>b.addEventListener('click', ()=>{
+    if(b.dataset.horizon==='custom'){ openCustomRangeModal(); return; }
+    state.horizon = b.dataset.horizon; render();
+  }));
+  root.querySelectorAll('[data-view]').forEach(b=>b.addEventListener('click', ()=>{ state.view = b.dataset.view; render(); }));
+  root.querySelector('#search').addEventListener('input', e=>{ state.search = e.target.value; renderViewOnly(); });
+  root.querySelector('#addEventBtn').addEventListener('click', ()=>openEventEditor(null));
+  root.querySelector('#exportBtn').addEventListener('click', ()=>openExportModal());
+  root.querySelector('#compareBtn').addEventListener('click', ()=>{ if(state.compareIds.length>=2) openCompareModal(); });
+
+  renderViewOnly();
+}
+function renderViewOnly(){
+  const root = document.getElementById('viewRoot'); if(!root) return;
+  const evs = sortEvents(filteredEvents());
+  if(state.view==='table') renderTable(root, evs);
+  else if(state.view==='calendar') renderCalendar(root, evs);
+  else if(state.view==='timeline') renderTimeline(root, evs);
+}
+
+function computeKpis(){
+  const evs = filteredEvents();
+  const attending = evs.filter(e=>e.status==='attending');
+  const considering = evs.filter(e=>e.status==='considering');
+  const declined = evs.filter(e=>e.status==='not_attending');
+  const speakingEvs = evs.filter(e=>e.speakingDeadline);
+  const submitted = speakingEvs.filter(e=> e.speakingStatus && e.speakingStatus !== 'Not submitted');
+  const accepted = speakingEvs.filter(e=> e.speakingStatus === 'Accepted');
+  const urgent = speakingEvs.filter(e=> e.speakingDeadline && daysUntil(e.speakingDeadline) >=0 && daysUntil(e.speakingDeadline) < 30 && e.speakingStatus !== 'Accepted' && e.speakingStatus !== 'Submitted');
+  const avg = arr => { const s = arr.map(computeScore).filter(x=>x!=null); return s.length? s.reduce((a,b)=>a+b,0)/s.length : null; };
+  const totalBudget = arr => arr.reduce((sum,e)=> sum + (e.priceUsd||0) + (e.sponsorshipUsd||0) + (e.travelEstUsd||0)*(Math.max(1,e.assigned.length)), 0);
+  return {
+    windowCount: evs.length,
+    attending: attending.length,
+    considering: considering.length,
+    committedBudget: totalBudget(attending),
+    projectedBudget: totalBudget(attending.concat(considering)),
+    avgAttendingScore: avg(attending),
+    avgDeclinedScore: avg(declined),
+    speakingTotal: speakingEvs.length,
+    speakingSubmitted: submitted.length,
+    speakingAccepted: accepted.length,
+    speakingUrgent: urgent.length
+  };
+}
+
+// ============ TABLE VIEW ============
+function renderTable(root, evs){
+  if(!evs.length){
+    root.innerHTML = renderEmpty('No events match your filters', 'Adjust your time horizon or clear filters to see more.', 'Reset filters', 'resetFiltersBtn');
+    const b = document.getElementById('resetFiltersBtn'); if(b) b.addEventListener('click', ()=>{ state.filters={regions:[],orgs:[],statuses:[],assigned:[],scoreMin:0,hasSpeakingDeadline:false}; state.search=''; state.horizon='12mo'; render(); });
+    return;
+  }
+  const sortIcon = key => state.sort.key===key ? (state.sort.dir==='asc'?' ↑':' ↓') : '';
+  let html = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr>
+    <th class="checkbox-cell"><input type="checkbox" id="selectAll" ${state.selected.size===evs.length && evs.length>0?'checked':''}></th>
+    <th class="sortable" data-sort="name">Event${sortIcon('name')}</th>
+    <th class="sortable" data-sort="score" style="width:88px">Score${sortIcon('score')}</th>
+    <th class="sortable" data-sort="date" style="width:180px">Dates${sortIcon('date')}</th>
+    <th class="sortable" data-sort="location">Location${sortIcon('location')}</th>
+    <th class="sortable" data-sort="org">Organizing body${sortIcon('org')}</th>
+    <th>Team</th>
+    <th class="sortable" data-sort="status">Status${sortIcon('status')}</th>
+    <th class="numeric">Est. cost</th>
+    <th style="width:80px"></th>
+  </tr></thead><tbody>`;
+  for(const ev of evs){
+    const score = computeScore(ev);
+    const tier = scoreTier(score);
+    const org = orgById(ev.orgId);
+    const dl = ev.speakingDeadline ? daysUntil(ev.speakingDeadline) : null;
+    const dlWarn = dl !=null && dl>=0 && dl<30 && ev.speakingStatus !== 'Accepted' && ev.speakingStatus !== 'Submitted';
+    const isSelected = state.selected.has(ev.id);
+    const isExpanded = state.expanded.has(ev.id);
+    const totalCost = (ev.priceUsd||0) + (ev.sponsorshipUsd||0) + (ev.travelEstUsd||0)*Math.max(1,ev.assigned.length);
+    html += `<tr class="${isSelected?'selected':''}" data-eid="${ev.id}">
+      <td class="checkbox-cell"><input type="checkbox" data-select="${ev.id}" ${isSelected?'checked':''}></td>
+      <td><div style="display:flex;align-items:center;gap:8px">
+        <button class="btn-icon-sm" data-expand="${ev.id}" aria-label="Expand"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" style="transition:transform 150ms;${isExpanded?'transform:rotate(90deg)':''}"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none;font-weight:500">${escapeHtml(ev.name)}</a>
+        ${dlWarn?`<span class="deadline-warning" title="Speaking deadline in ${dl} days"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${dl}d</span>`:''}
+      </div></td>
+      <td><button class="score-badge score-${tier}" data-score="${ev.id}" title="Edit score breakdown">${score==null?'—':score.toFixed(1)}</button></td>
+      <td class="mono" style="font-size:12px">${fmtDateRange(ev.start, ev.end)}</td>
+      <td>${escapeHtml(ev.city)}, ${escapeHtml(ev.country)}<div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(ev.region)}</div></td>
+      <td><div class="org-chip"><span class="org-mark">${escapeHtml((org||{abbr:'?'}).abbr.slice(0,3))}</span> ${escapeHtml((org||{name:'—'}).name)}</div></td>
+      <td>${renderAssigneeStack(ev)}</td>
+      <td>${renderStatusPill(ev)}</td>
+      <td class="numeric">${fmtMoney(totalCost)}</td>
+      <td class="row-actions">
+        <button class="btn-icon-sm" data-assign="${ev.id}" aria-label="Assign team" title="Assign"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg></button>
+        <button class="btn-icon-sm" data-edit="${ev.id}" aria-label="Edit" title="Edit"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></button>
+      </td>
+    </tr>`;
+    if(isExpanded){
+      html += `<tr class="event-row-expand"><td colspan="10"><div class="expand-grid">
+        <div class="expand-field" style="grid-column:1/-1"><strong>Synopsis</strong><span>${escapeHtml(ev.synopsis||'No synopsis recorded.')}</span></div>
+        <div class="expand-field"><strong>Expected attendance</strong><span>${(ev.attendance||0).toLocaleString()}</span></div>
+        <div class="expand-field"><strong>Audience</strong><span>${escapeHtml(ev.audience||'—')}</span></div>
+        <div class="expand-field"><strong>Format</strong><span>${escapeHtml(ev.format||'—')}</span></div>
+        <div class="expand-field"><strong>Pass</strong><span>${fmtMoney(ev.priceUsd)}</span></div>
+        <div class="expand-field"><strong>Sponsorship</strong><span>${fmtMoney(ev.sponsorshipUsd)}</span></div>
+        <div class="expand-field"><strong>Travel (per person)</strong><span>${fmtMoney(ev.travelEstUsd)}</span></div>
+        <div class="expand-field"><strong>Speaking</strong><span>${ev.speakingDeadline?'Deadline '+fmtDateRange(ev.speakingDeadline, ev.speakingDeadline)+' · '+(ev.speakingStatus||'—'):'—'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Competitors present</strong><span>${(ev.competitors||[]).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'—'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Tags</strong><span>${(ev.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')||'—'}</span></div>
+      </div></td></tr>`;
+    }
+  }
+  html += '</tbody></table></div></div>';
+
+  // bulk bar
+  if(state.selected.size > 0){
+    html += `<div class="bulk-bar">
+      <span class="bulk-count">${state.selected.size} selected</span>
+      <button class="btn-secondary" id="bulkAssign">Assign team</button>
+      <button class="btn-secondary" id="bulkStatus">Set status</button>
+      <button class="btn-secondary" id="bulkCompare">Add to compare</button>
+      <button class="btn-secondary" id="bulkExport">Export selection</button>
+      <button class="btn-ghost" id="bulkClear" style="margin-left:auto">Clear selection</button>
+    </div>`;
+  }
+
+  root.innerHTML = html;
+
+  // bind
+  root.querySelectorAll('[data-sort]').forEach(th=>th.addEventListener('click', ()=>{
+    const k = th.dataset.sort;
+    if(state.sort.key===k) state.sort.dir = state.sort.dir==='asc'?'desc':'asc';
+    else { state.sort.key = k; state.sort.dir = k==='score'?'desc':'asc'; }
+    renderViewOnly();
+  }));
+  const sa = root.querySelector('#selectAll'); if(sa) sa.addEventListener('change', e=>{ if(e.target.checked) evs.forEach(ev=>state.selected.add(ev.id)); else state.selected.clear(); renderViewOnly(); });
+  root.querySelectorAll('[data-select]').forEach(cb=>cb.addEventListener('change', e=>{ const id=cb.dataset.select; if(e.target.checked) state.selected.add(id); else state.selected.delete(id); renderViewOnly(); }));
+  root.querySelectorAll('[data-expand]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); const id=b.dataset.expand; if(state.expanded.has(id)) state.expanded.delete(id); else state.expanded.add(id); renderViewOnly(); }));
+  root.querySelectorAll('[data-open]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); openDetail(a.dataset.open); }));
+  root.querySelectorAll('[data-score]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); openScoreModal(b.dataset.score); }));
+  root.querySelectorAll('[data-assign]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); openAssignDropdown(b, b.dataset.assign); }));
+  root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); openEventEditor(b.dataset.edit); }));
+  root.querySelectorAll('[data-status-pill]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); cycleStatus(b.dataset.statusPill); }));
+
+  const ba = root.querySelector('#bulkAssign'); if(ba) ba.addEventListener('click', ()=>openBulkAssign());
+  const bs = root.querySelector('#bulkStatus'); if(bs) bs.addEventListener('click', ()=>openBulkStatus());
+  const bc = root.querySelector('#bulkCompare'); if(bc) bc.addEventListener('click', ()=>{ state.compareIds = Array.from(state.selected).slice(0,4); toast('Added '+state.compareIds.length+' to compare','success'); renderMain(); });
+  const be = root.querySelector('#bulkExport'); if(be) be.addEventListener('click', ()=>exportSelection());
+  const bcl = root.querySelector('#bulkClear'); if(bcl) bcl.addEventListener('click', ()=>{ state.selected.clear(); renderViewOnly(); });
+}
+
+function renderAssigneeStack(ev){
+  if(!ev.assigned || !ev.assigned.length) return '<span style="color:var(--text-subtle);font-size:12px">Unassigned</span>';
+  const shown = ev.assigned.slice(0,3);
+  const more = ev.assigned.length - shown.length;
+  let h = '<div class="avatar-stack">';
+  for(const id of shown){ const m = memberById(id); if(!m) continue; h += `<div class="avatar" style="background:${m.color}" title="${escapeHtml(m.name)}">${initials(m.name)}</div>`; }
+  if(more>0) h += `<div class="avatar-more">+${more}</div>`;
+  h += '</div>';
+  return h;
+}
+function renderStatusPill(ev){
+  const labels = { attending:'Attending', considering:'Considering', not_attending:'Not attending', unreviewed:'Unreviewed' };
+  return `<button class="status-pill status-${ev.status}" data-status-pill="${ev.id}" title="Click to cycle status"><span class="dot" style="background:currentColor"></span>${labels[ev.status]||ev.status}</button>`;
+}
+function cycleStatus(id){
+  const ev = events.find(e=>e.id===id); if(!ev) return;
+  const order = ['unreviewed','considering','attending','not_attending'];
+  const next = order[(order.indexOf(ev.status)+1) % order.length];
+  if(next==='not_attending'){ openNotAttendingReason(ev); return; }
+  ev.status = next;
+  logActivity('Set status to '+next+' on '+ev.name);
+  toast('Status updated','success');
+  renderViewOnly(); renderEventsTab.kpisDirty=true; renderMain();
+}
+function openNotAttendingReason(ev){
+  state.modal = { kind:'notAttending', eventId: ev.id };
+  renderModal();
+}
+
+// ============ CALENDAR VIEW ============
+function renderCalendar(root, evs){
+  const cm = state.calMonth;
+  const monthName = cm.toLocaleString('en-US',{month:'long', year:'numeric'});
+  const first = new Date(cm.getFullYear(), cm.getMonth(), 1);
+  const startWeekday = first.getDay();
+  const daysInMonth = new Date(cm.getFullYear(), cm.getMonth()+1, 0).getDate();
+  const cells = [];
+  for(let i=0;i<startWeekday;i++){ const d = new Date(first); d.setDate(d.getDate()-(startWeekday-i)); cells.push({date:d, other:true}); }
+  for(let i=1;i<=daysInMonth;i++){ cells.push({date:new Date(cm.getFullYear(),cm.getMonth(),i), other:false}); }
+  while(cells.length % 7 !== 0){ const last = cells[cells.length-1].date; const d = new Date(last); d.setDate(d.getDate()+1); cells.push({date:d, other:true}); }
+  let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+    <button class="btn-secondary" id="calPrev">‹</button>
+    <button class="btn-secondary" id="calToday">Today</button>
+    <button class="btn-secondary" id="calNext">›</button>
+    <div class="h2" style="margin-left:8px">${monthName}</div>
+  </div>`;
+  html += '<div class="calendar-grid">';
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=> html += `<div class="calendar-head">${d}</div>`);
+  for(const cell of cells){
+    const isToday = cell.date.getTime() === TODAY.getTime();
+    const dayEvs = evs.filter(ev=>{ const s=new Date(ev.start), e=new Date(ev.end); return cell.date>=s && cell.date<=e; });
+    html += `<div class="calendar-cell ${cell.other?'other-month':''} ${isToday?'today':''}">
+      <span class="cal-date">${cell.date.getDate()}</span>
+      ${dayEvs.slice(0,4).map(ev=>{ const t = scoreTier(computeScore(ev)); return `<a class="cal-event tier-${t}" data-open="${ev.id}" title="${escapeHtml(ev.name)}">${escapeHtml(ev.name)}</a>`; }).join('')}
+      ${dayEvs.length>4?`<div style="font-size:10px;color:var(--text-subtle);margin-top:2px">+${dayEvs.length-4} more</div>`:''}
+    </div>`;
+  }
+  html += '</div>';
+  html += '<div style="display:flex;gap:16px;margin-top:12px;font-size:12px;color:var(--text-muted)"><span><span class="dot" style="background:var(--success)"></span> High score (≥8)</span><span><span class="dot" style="background:var(--warning)"></span> Medium (6–7.9)</span><span><span class="dot" style="background:var(--text-subtle)"></span> Lower</span></div>';
+  root.innerHTML = html;
+  root.querySelector('#calPrev').addEventListener('click', ()=>{ state.calMonth = new Date(cm.getFullYear(), cm.getMonth()-1, 1); renderViewOnly(); });
+  root.querySelector('#calNext').addEventListener('click', ()=>{ state.calMonth = new Date(cm.getFullYear(), cm.getMonth()+1, 1); renderViewOnly(); });
+  root.querySelector('#calToday').addEventListener('click', ()=>{ state.calMonth = new Date(TODAY.getFullYear(), TODAY.getMonth(), 1); renderViewOnly(); });
+  root.querySelectorAll('[data-open]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); openDetail(a.dataset.open); }));
+}
+
+// ============ TIMELINE VIEW ============
+function renderTimeline(root, evs){
+  if(!evs.length){ root.innerHTML = renderEmpty('Nothing to plot','No events in the selected window.'); return; }
+  const r = horizonRange();
+  const span = Math.max(1, r.end - r.start);
+  let html = '<div class="card"><div class="caption" style="margin-bottom:8px">Timeline · '+evs.length+' events</div><div class="timeline">';
+  for(const ev of evs){
+    const s = Math.max(new Date(ev.start), r.start);
+    const e = Math.min(new Date(ev.end), r.end);
+    const leftPct = Math.max(0, (s - r.start) / span * 100);
+    const widthPct = Math.max(1.5, (e - s) / span * 100);
+    const tier = scoreTier(computeScore(ev));
+    const dl = ev.speakingDeadline ? daysUntil(ev.speakingDeadline) : null;
+    const dlWarn = dl!=null && dl>=0 && dl<30 && ev.speakingStatus!=='Accepted' && ev.speakingStatus!=='Submitted';
+    html += `<div class="timeline-row">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none;font-weight:500;font-size:13px">${escapeHtml(ev.name)}</a>
+        <span style="font-size:11px;color:var(--text-subtle)">${escapeHtml(ev.city)}, ${escapeHtml(ev.country)} · ${fmtDateRange(ev.start,ev.end)}</span>
+      </div>
+      <div class="timeline-bar-track">
+        <div class="timeline-bar tier-${tier}" style="left:${leftPct}%;width:${widthPct}%" data-open="${ev.id}">${escapeHtml(ev.name)}</div>
+        ${dlWarn?`<div title="Speaking deadline ${dl}d" style="position:absolute;top:0;bottom:0;left:${Math.max(0,(new Date(ev.speakingDeadline)-r.start)/span*100)}%;width:2px;background:var(--warning)"></div>`:''}
+      </div>
+    </div>`;
+  }
+  html += '</div></div>';
+  root.innerHTML = html;
+  root.querySelectorAll('[data-open]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); openDetail(a.dataset.open); }));
+}
+
+// ============ TEAM TAB ============
+function renderTeamTab(root){
+  const evs = sortEvents(filteredEvents()).filter(e=>e.status==='attending'||e.status==='considering');
+  const k = {
+    avgLoad: teamMembers.length? evs.filter(e=>e.status==='attending').reduce((s,e)=>s+e.assigned.length,0) / teamMembers.length : 0,
+    conflicts: detectConflicts().length
+  };
+  let html = `
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h1 class="h1">Team coordination</h1>
+        <div class="body-sm">Person-to-event assignment matrix for attending & considering events.</div>
+      </div>
+    </div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Team size</div><div class="kpi-value">${teamMembers.length}</div></div>
+      <div class="kpi"><div class="kpi-label">Avg events / person</div><div class="kpi-value">${k.avgLoad.toFixed(1)}</div><div class="kpi-delta">attending only</div></div>
+      <div class="kpi"><div class="kpi-label">Scheduling conflicts</div><div class="kpi-value" style="${k.conflicts>0?'color:var(--danger)':''}">${k.conflicts}</div><div class="kpi-delta">overlapping assignments</div></div>
+      <div class="kpi"><div class="kpi-label">Unassigned events</div><div class="kpi-value">${evs.filter(e=>!e.assigned.length).length}</div><div class="kpi-delta">need a DN attendee</div></div>
+    </div>
+  `;
+  if(!evs.length){
+    html += renderEmpty('No active events to coordinate','Mark events as Attending or Considering to populate the team matrix.');
+    root.innerHTML = html;
+    return;
+  }
+  // Matrix: rows = events, cols = members
+  html += '<div class="matrix"><table><thead><tr><th class="event-name">Event</th>';
+  for(const m of teamMembers) html += `<th style="text-align:center"><div class="avatar" style="background:${m.color};margin:0 auto 4px">${initials(m.name)}</div><div style="font-size:11px;color:var(--text-muted);font-weight:500">${escapeHtml(m.name.split(' ')[0])}</div></th>`;
+  html += '</tr></thead><tbody>';
+  const conflicts = detectConflicts();
+  const conflictSet = new Set(conflicts.map(c=>c.memberId+'|'+c.eventId));
+  for(const ev of evs){
+    html += `<tr><td class="event-name"><div style="display:flex;align-items:center;gap:6px"><span class="status-pill status-${ev.status}" style="font-size:10px;padding:1px 6px">${ev.status==='attending'?'A':'C'}</span><a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none">${escapeHtml(ev.name)}</a></div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;font-family:'SF Mono',monospace">${fmtDateRange(ev.start,ev.end)} · ${escapeHtml(ev.city)}</div></td>`;
+    for(const m of teamMembers){
+      const assigned = ev.assigned.includes(m.id);
+      const conflict = conflictSet.has(m.id+'|'+ev.id);
+      html += `<td><button class="btn-icon-sm" data-toggle-assign="${ev.id}|${m.id}" title="${conflict?'Conflict — overlaps with another assignment':(assigned?'Remove':'Assign')}">${assigned ? (conflict?'<span class="conflict">⚠</span>':'<span class="check">✓</span>') : '<span style="color:var(--text-subtle)">·</span>'}</button></td>`;
+    }
+    html += '</tr>';
+  }
+  html += '</tbody></table></div>';
+  if(conflicts.length){
+    html += '<div class="card" style="margin-top:16px;border-color:var(--danger-bg)"><div class="caption" style="color:var(--danger);margin-bottom:8px">Conflicts</div>';
+    for(const c of conflicts){ const m = memberById(c.memberId); const ev = events.find(e=>e.id===c.eventId); const other = events.find(e=>e.id===c.otherEventId); if(!m||!ev||!other) continue; html += `<div style="font-size:13px;margin-bottom:4px"><strong>${escapeHtml(m.name)}</strong> assigned to both <a href="#" data-open="${ev.id}" style="color:var(--accent)">${escapeHtml(ev.name)}</a> and <a href="#" data-open="${other.id}" style="color:var(--accent)">${escapeHtml(other.name)}</a> (${fmtDateRange(ev.start,ev.end)} ⇄ ${fmtDateRange(other.start,other.end)})</div>`; }
+    html += '</div>';
+  }
+  root.innerHTML = html;
+  root.querySelectorAll('[data-open]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); openDetail(a.dataset.open); }));
+  root.querySelectorAll('[data-toggle-assign]').forEach(b=>b.addEventListener('click', ()=>{
+    const [eid, mid] = b.dataset.toggleAssign.split('|');
+    const ev = events.find(e=>e.id===eid); if(!ev) return;
+    const i = ev.assigned.indexOf(mid);
+    if(i>-1) ev.assigned.splice(i,1); else ev.assigned.push(mid);
+    logActivity((i>-1?'Unassigned ':'Assigned ')+memberById(mid).name+' '+(i>-1?'from ':'to ')+ev.name);
+    renderTeamTab(root);
+  }));
+}
+function detectConflicts(){
+  const out = [];
+  for(const m of teamMembers){
+    const assigns = events.filter(e=> (e.status==='attending'||e.status==='considering') && e.assigned.includes(m.id));
+    for(let i=0;i<assigns.length;i++) for(let j=i+1;j<assigns.length;j++){
+      const a=assigns[i], b=assigns[j];
+      if(new Date(a.start)<=new Date(b.end) && new Date(b.start)<=new Date(a.end)){
+        out.push({memberId:m.id, eventId:a.id, otherEventId:b.id});
+        out.push({memberId:m.id, eventId:b.id, otherEventId:a.id});
+      }
+    }
+  }
+  return out;
+}
+
+// ============ INSIGHTS TAB ============
+function renderInsightsTab(root){
+  const past = events.filter(e=> new Date(e.end) < TODAY);
+  const pastAttended = past.filter(e=>e.status==='attending');
+  const ytdAttended = events.filter(e=> e.status==='attending' && new Date(e.start).getFullYear()===TODAY.getFullYear() && new Date(e.end) < TODAY);
+  const ytdBudget = pastAttended.filter(e=>new Date(e.start).getFullYear()===TODAY.getFullYear()).reduce((s,e)=>s+(e.priceUsd||0)+(e.sponsorshipUsd||0)+(e.travelEstUsd||0)*Math.max(1,e.assigned.length),0);
+  const allocBudget = 1500000;
+  const utilization = allocBudget? (ytdBudget/allocBudget*100) : 0;
+  const avgRoi = pastAttended.filter(e=>e.roiActual).reduce((s,e)=>s+e.roiActual,0) / Math.max(1, pastAttended.filter(e=>e.roiActual).length);
+  const speakingSubmitted = events.filter(e=>e.speakingStatus && e.speakingStatus!=='Not submitted').length;
+  const speakingAccepted = events.filter(e=>e.speakingStatus==='Accepted').length;
+  const convRate = speakingSubmitted? Math.round(speakingAccepted/speakingSubmitted*100) : 0;
+
+  let html = `
+    <h1 class="h1" style="margin-bottom:4px">Insights</h1>
+    <div class="body-sm" style="margin-bottom:16px">Historical performance, ROI tracking, and team load analysis.</div>
+    <div class="kpi-grid">
+      <div class="kpi"><div class="kpi-label">Events attended YTD</div><div class="kpi-value">${ytdAttended.length}</div><div class="kpi-delta">${fmtMoney(ytdBudget)} spent</div></div>
+      <div class="kpi"><div class="kpi-label">Budget utilization</div><div class="kpi-value">${utilization.toFixed(1)}%</div><div class="kpi-delta">of ${fmtMoney(allocBudget)} allocated</div></div>
+      <div class="kpi"><div class="kpi-label">Avg ROI score</div><div class="kpi-value">${isNaN(avgRoi)?'—':avgRoi.toFixed(1)}</div><div class="kpi-delta">historical attended events</div></div>
+      <div class="kpi"><div class="kpi-label">Speaking conversion</div><div class="kpi-value">${convRate}%</div><div class="kpi-delta">${speakingAccepted} accepted / ${speakingSubmitted} submitted</div></div>
+    </div>
+  `;
+
+  // Team load
+  const loadPerMember = teamMembers.map(m=>{
+    const upcoming = events.filter(e=> (e.status==='attending'||e.status==='considering') && e.assigned.includes(m.id) && new Date(e.end) >= TODAY);
+    return { m, count: upcoming.length, events: upcoming };
+  }).sort((a,b)=>b.count-a.count);
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" class="two-col">';
+  html += '<div class="card"><div class="caption" style="margin-bottom:12px">Team load (upcoming)</div>';
+  if(!loadPerMember.length) html += '<div class="body-sm">No team members configured.</div>';
+  else for(const x of loadPerMember){
+    const pct = Math.min(100, x.count*15);
+    html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="avatar" style="background:${x.m.color}">${initials(x.m.name)}</div><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${escapeHtml(x.m.name)}</span><span style="color:var(--text-muted)">${x.count} ${x.count===1?'event':'events'}</span></div><div style="height:4px;background:var(--surface-2);border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct>75?'var(--danger)':pct>50?'var(--warning)':'var(--accent)'}"></div></div></div></div>`;
+  }
+  html += '</div>';
+
+  // Activity log
+  html += '<div class="card"><div class="caption" style="margin-bottom:8px">Recent activity</div>';
+  if(!activity.length) html += '<div class="body-sm">No activity yet.</div>';
+  else for(const a of activity.slice(0,10)){
+    html += `<div class="activity-item"><div class="activity-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1"><div>${escapeHtml(a.text)}</div><div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(a.who||'system')} · ${relDate(a.ts)}</div></div></div>`;
+  }
+  html += '</div></div>';
+
+  // Past performance
+  html += '<div class="card"><div class="caption" style="margin-bottom:12px">Historical performance</div>';
+  if(!pastAttended.length) html += renderEmpty('No historical data yet', 'Past attended events will accumulate ROI metrics here.');
+  else {
+    html += '<table><thead><tr><th>Event</th><th>Date</th><th class="numeric">Strategic score</th><th class="numeric">ROI actual</th><th class="numeric">Spent</th></tr></thead><tbody>';
+    for(const ev of pastAttended.sort((a,b)=>new Date(b.start)-new Date(a.start))){
+      const sc = computeScore(ev);
+      const cost = (ev.priceUsd||0)+(ev.sponsorshipUsd||0)+(ev.travelEstUsd||0)*Math.max(1,ev.assigned.length);
+      html += `<tr><td><a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none">${escapeHtml(ev.name)}</a></td><td class="mono" style="font-size:12px">${fmtDateRange(ev.start,ev.end)}</td><td class="numeric">${sc==null?'—':sc.toFixed(1)}</td><td class="numeric">${ev.roiActual?ev.roiActual.toFixed(1):'—'}</td><td class="numeric">${fmtMoney(cost)}</td></tr>`;
+    }
+    html += '</tbody></table>';
+  }
+  html += '</div>';
+
+  root.innerHTML = html;
+  root.querySelectorAll('[data-open]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); openDetail(a.dataset.open); }));
+  // responsive cols
+  if(window.innerWidth < 800){ const tc = root.querySelector('.two-col'); if(tc) tc.style.gridTemplateColumns='1fr'; }
+}
+
+// ============ ADMIN TAB ============
+function renderAdminTab(root){
+  let html = `<h1 class="h1" style="margin-bottom:4px">Admin</h1><div class="body-sm" style="margin-bottom:16px">Manage scoring weights, team roster, and data sources.</div>`;
+  // Scoring weights
+  html += '<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="h2">Scoring weights</div><button class="btn-ghost" id="resetWeights">Reset to defaults</button></div>';
+  html += '<div class="body-sm" style="margin-bottom:12px">Weights are normalized — total does not need to sum to 100. Each criterion is scored 0–10 per event.</div>';
+  let totalW = 0; for(const k of Object.keys(scoringWeights)) totalW += scoringWeights[k].weight;
+  for(const k of Object.keys(scoringWeights)){
+    const sw = scoringWeights[k];
+    html += `<div class="scoring-weight-row">
+      <label>${escapeHtml(sw.label)}</label>
+      <input type="range" min="0" max="50" step="1" value="${sw.weight}" data-weight="${k}" style="accent-color:var(--accent)">
+      <span class="mono" style="text-align:right;font-size:12px;color:var(--text-muted)">${sw.weight} (${totalW?Math.round(sw.weight/totalW*100):0}%)</span>
+    </div>`;
+  }
+  html += '</div>';
+
+  // Team members
+  html += '<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="h2">Team roster</div><button class="btn-primary" id="addMember">+ Add member</button></div>';
+  html += '<table><thead><tr><th></th><th>Name</th><th>Role</th><th>Assignments</th><th></th></tr></thead><tbody>';
+  for(const m of teamMembers){
+    const load = events.filter(e=>e.assigned.includes(m.id) && new Date(e.end)>=TODAY).length;
+    html += `<tr><td style="width:40px"><div class="avatar" style="background:${m.color}">${initials(m.name)}</div></td><td>${escapeHtml(m.name)}</td><td style="color:var(--text-muted)">${escapeHtml(m.role)}</td><td class="numeric">${load}</td><td class="row-actions"><button class="btn-icon-sm" data-remove-member="${m.id}" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td></tr>`;
+  }
+  html += '</tbody></table></div>';
+
+  // Data sources
+  html += `<div class="card"><div class="h2" style="margin-bottom:12px">Event data sources</div>
+    <div class="body-sm" style="margin-bottom:12px">Automated discovery monitors these organizing bodies. Manual events can be added at any time via the Events tab.</div>
+    <table><thead><tr><th>Source</th><th>Type</th><th>Events tracked</th><th>Status</th></tr></thead><tbody>
+      ${ORGS.filter(o=>o.id!=='manual').map(o=>{
+        const count = events.filter(e=>e.orgId===o.id).length;
+        return `<tr><td><div class="org-chip"><span class="org-mark">${escapeHtml(o.abbr.slice(0,3))}</span> ${escapeHtml(o.name)}</div></td><td style="color:var(--text-muted)">Auto-discovery</td><td class="numeric">${count}</td><td><span class="badge badge-success">Active</span></td></tr>`;
+      }).join('')}
+      <tr><td><div class="org-chip"><span class="org-mark">MAN</span> Manual / Other</div></td><td style="color:var(--text-muted)">User-entered</td><td class="numeric">${events.filter(e=>e.orgId==='manual').length}</td><td><span class="badge badge-neutral">Manual</span></td></tr>
+    </tbody></table>
+  </div>`;
+
+  root.innerHTML = html;
+  root.querySelectorAll('[data-weight]').forEach(r=> r.addEventListener('input', e=>{ scoringWeights[r.dataset.weight].weight = parseInt(e.target.value,10); renderAdminTab(root); }));
+  root.querySelector('#resetWeights').addEventListener('click', ()=>{ scoringWeights = { speaking:{label:'Speaking opportunity',weight:25}, strategic:{label:'Strategic importance',weight:25}, roi:{label:'ROI potential',weight:20}, competitor:{label:'Competitor presence',weight:15}, audience:{label:'Audience fit',weight:15} }; toast('Weights reset','info'); renderAdminTab(root); });
+  root.querySelector('#addMember').addEventListener('click', ()=>{ state.modal = { kind:'addMember' }; renderModal(); });
+  root.querySelectorAll('[data-remove-member]').forEach(b=>b.addEventListener('click', ()=>{
+    const id = b.dataset.removeMember;
+    teamMembers = teamMembers.filter(m=>m.id!==id);
+    events.forEach(e=> e.assigned = e.assigned.filter(a=>a!==id));
+    toast('Team member removed','success');
+    renderAdminTab(root);
+  }));
+}
+
+// ============ DETAIL SLIDEOVER ============
+function openDetail(id){ state.detailEventId = id; state.detailTab = 'overview'; render(); }
+function closeDetail(){ state.detailEventId = null; render(); }
+function renderSlideover(){
+  const root = document.getElementById('slideoverRoot');
+  if(!state.detailEventId){ root.innerHTML=''; return; }
+  const ev = events.find(e=>e.id===state.detailEventId);
+  if(!ev){ root.innerHTML=''; return; }
+  const sortedFiltered = sortEvents(filteredEvents());
+  const idx = sortedFiltered.findIndex(e=>e.id===ev.id);
+  const prev = idx>0 ? sortedFiltered[idx-1] : null;
+  const next = idx>=0 && idx<sortedFiltered.length-1 ? sortedFiltered[idx+1] : null;
+  const score = computeScore(ev);
+  const tier = scoreTier(score);
+  const org = orgById(ev.orgId);
+
+  let body = '';
+  if(state.detailTab==='overview'){
+    body = `<div class="slideover-content">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span class="score-badge score-${tier}" style="font-size:14px">${score==null?'—':score.toFixed(1)}</span>${renderStatusPill(ev)}<span class="badge badge-neutral">${escapeHtml((org||{name:'—'}).name)}</span></div>
+      <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px 0">${escapeHtml(ev.synopsis||'No synopsis recorded.')}</p>
+      <hr class="divider">
+      <div class="expand-grid">
+        <div class="expand-field"><strong>Dates</strong><span>${fmtDateRange(ev.start,ev.end)}</span></div>
+        <div class="expand-field"><strong>Location</strong><span>${escapeHtml(ev.city)}, ${escapeHtml(ev.country)} · ${escapeHtml(ev.region)}</span></div>
+        <div class="expand-field"><strong>Format</strong><span>${escapeHtml(ev.format||'—')}</span></div>
+        <div class="expand-field"><strong>Expected attendance</strong><span>${(ev.attendance||0).toLocaleString()}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Audience</strong><span>${escapeHtml(ev.audience||'—')}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Tags</strong><span>${(ev.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')||'—'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Competitors</strong><span>${(ev.competitors||[]).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'—'}</span></div>
+      </div>
+      ${ev.status==='not_attending' && ev.notAttendingReason ? `<hr class="divider"><div class="expand-field"><strong>Reason for not attending</strong><span>${escapeHtml(ev.notAttendingReason)}</span></div>`:''}
+    </div>`;
+  } else if(state.detailTab==='scoring'){
+    body = '<div class="slideover-content"><div class="score-breakdown">';
+    let totalW=0; for(const k of Object.keys(scoringWeights)) totalW += scoringWeights[k].weight;
+    for(const k of Object.keys(scoringWeights)){
+      const sw = scoringWeights[k];
+      const v = (ev.scores && ev.scores[k]!=null) ? ev.scores[k] : 0;
+      body += `<div class="score-criterion">
+        <label>${escapeHtml(sw.label)} <span class="weight">w:${sw.weight} (${totalW?Math.round(sw.weight/totalW*100):0}%)</span></label>
+        <input type="range" min="0" max="10" step="1" value="${v}" data-score-key="${k}" class="range-input">
+        <span class="mono" style="text-align:right">${v} / 10</span>
+      </div>`;
+    }
+    body += `<div class="summary-line"><span>Strategic score</span><span class="score-badge score-${tier}" style="font-size:14px;min-width:60px">${score==null?'—':score.toFixed(1)}</span></div></div></div>`;
+  } else if(state.detailTab==='team'){
+    body = '<div class="slideover-content"><div class="caption" style="margin-bottom:12px">Assigned (' + ev.assigned.length + ')</div>';
+    body += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">';
+    if(!ev.assigned.length) body += '<span class="body-sm">No one assigned yet.</span>';
+    for(const id of ev.assigned){ const m=memberById(id); if(!m) continue; body += `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border);border-radius:16px"><div class="avatar" style="background:${m.color}">${initials(m.name)}</div><span style="font-size:12px">${escapeHtml(m.name)}</span><button class="btn-icon-sm" data-remove-assignee="${id}" aria-label="Remove">×</button></div>`; }
+    body += '</div><div class="caption" style="margin-bottom:8px">Add team member</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
+    const conflicts = detectConflicts().filter(c=>c.eventId===ev.id).map(c=>c.memberId);
+    for(const m of teamMembers){ if(ev.assigned.includes(m.id)) continue; const conf = conflicts.includes(m.id); body += `<button class="btn-secondary" data-add-assignee="${m.id}" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:6px"><div class="avatar" style="background:${m.color};width:18px;height:18px;font-size:9px">${initials(m.name)}</div>${escapeHtml(m.name)}${conf?' <span style="color:var(--warning)" title="Conflict">⚠</span>':''}</button>`; }
+    body += '</div></div>';
+  } else if(state.detailTab==='budget'){
+    const pass = ev.priceUsd||0;
+    const sponsor = ev.sponsorshipUsd||0;
+    const travelPer = ev.travelEstUsd||0;
+    const heads = Math.max(1, ev.assigned.length);
+    const travel = travelPer*heads;
+    const total = pass + sponsor + travel;
+    body = `<div class="slideover-content"><table style="font-size:13px"><tbody>
+      <tr><td>Conference pass</td><td class="numeric">${fmtMoney(pass)}</td></tr>
+      <tr><td>Sponsorship</td><td class="numeric">${fmtMoney(sponsor)}</td></tr>
+      <tr><td>Travel (${heads} × ${fmtMoney(travelPer)})</td><td class="numeric">${fmtMoney(travel)}</td></tr>
+      <tr><td style="font-weight:600">Total estimated</td><td class="numeric" style="font-weight:600">${fmtMoney(total)}</td></tr>
+    </tbody></table>
+    ${ev.speakingDeadline?`<hr class="divider"><div class="caption">Speaking opportunity</div><div style="margin-top:8px">Deadline: <strong class="mono">${fmtDateRange(ev.speakingDeadline,ev.speakingDeadline)}</strong> (${daysUntil(ev.speakingDeadline)} days)<br>Status: <span class="badge badge-info">${escapeHtml(ev.speakingStatus||'—')}</span></div>`:''}
+    </div>`;
+  } else if(state.detailTab==='history'){
+    const evActivity = activity.filter(a=>a.text.includes(ev.name));
+    body = '<div class="slideover-content">';
+    if(!evActivity.length) body += renderEmpty('No history yet','Changes to this event will appear here.');
+    else for(const a of evActivity) body += `<div class="activity-item"><div class="activity-icon">•</div><div style="flex:1"><div>${escapeHtml(a.text)}</div><div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(a.who||'system')} · ${relDate(a.ts)}</div></div></div>`;
+    if(ev.roiActual) body += `<hr class="divider"><div class="caption">ROI outcome</div><div style="font-size:14px;margin-top:8px"><strong class="mono">${ev.roiActual.toFixed(1)} / 10</strong> · post-event ROI score</div>`;
+    body += '</div>';
+  }
+
+  root.innerHTML = `
+    <div class="slideover-backdrop" id="sbBack"></div>
+    <div class="slideover" role="dialog" aria-label="${escapeHtml(ev.name)}">
+      <div class="slideover-header">
+        <button class="btn-icon-sm" id="sbClose" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ev.name)}</div><div style="font-size:12px;color:var(--text-muted)">${fmtDateRange(ev.start,ev.end)} · ${escapeHtml(ev.city)}, ${escapeHtml(ev.country)}</div></div>
+        <button class="btn-icon-sm" id="sbPrev" ${!prev?'disabled':''} aria-label="Previous"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
+        <button class="btn-icon-sm" id="sbNext" ${!next?'disabled':''} aria-label="Next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
+        <button class="btn-secondary" id="sbEdit" style="padding:5px 10px;font-size:12px">Edit</button>
+      </div>
+      <div class="slideover-tabs">
+        ${['overview','scoring','team','budget','history'].map(t=>`<button class="slideover-tab ${state.detailTab===t?'active':''}" data-stab="${t}">${t.charAt(0).toUpperCase()+t.slice(1)}</button>`).join('')}
+      </div>
+      <div class="slideover-body">${body}</div>
+    </div>
+  `;
+  document.getElementById('sbBack').addEventListener('click', closeDetail);
+  document.getElementById('sbClose').addEventListener('click', closeDetail);
+  document.getElementById('sbEdit').addEventListener('click', ()=>openEventEditor(ev.id));
+  if(prev) document.getElementById('sbPrev').addEventListener('click', ()=>openDetail(prev.id));
+  if(next) document.getElementById('sbNext').addEventListener('click', ()=>openDetail(next.id));
+  document.querySelectorAll('.slideover-tab').forEach(b=>b.addEventListener('click', ()=>{ state.detailTab = b.dataset.stab; renderSlideover(); }));
+  document.querySelectorAll('[data-score-key]').forEach(r=>r.addEventListener('input', e=>{ if(!ev.scores) ev.scores={}; ev.scores[r.dataset.scoreKey] = parseInt(e.target.value,10); renderSlideover(); renderMain(); }));
+  document.querySelectorAll('[data-add-assignee]').forEach(b=>b.addEventListener('click', ()=>{ ev.assigned.push(b.dataset.addAssignee); logActivity('Assigned '+memberById(b.dataset.addAssignee).name+' to '+ev.name); renderSlideover(); renderMain(); toast('Assigned','success'); }));
+  document.querySelectorAll('[data-remove-assignee]').forEach(b=>b.addEventListener('click', ()=>{ ev.assigned = ev.assigned.filter(x=>x!==b.dataset.removeAssignee); renderSlideover(); renderMain(); }));
+}
+
+// ============ MODALS ============
+function renderModal(){
+  const root = document.getElementById('modalRoot');
+  if(!state.modal){ root.innerHTML=''; return; }
+  const m = state.modal;
+  let inner = '';
+  if(m.kind==='editEvent') inner = modalEditEvent(m);
+  else if(m.kind==='score') inner = modalScore(m);
+  else if(m.kind==='notAttending') inner = modalNotAttending(m);
+  else if(m.kind==='customRange') inner = modalCustomRange();
+  else if(m.kind==='savePreset') inner = modalSavePreset();
+  else if(m.kind==='addMember') inner = modalAddMember();
+  else if(m.kind==='bulkAssign') inner = modalBulkAssign();
+  else if(m.kind==='bulkStatus') inner = modalBulkStatus();
+  else if(m.kind==='export') inner = modalExport();
+  else if(m.kind==='compare') inner = modalCompare();
+  else if(m.kind==='assignDropdown') inner = ''; // handled inline
+  root.innerHTML = inner ? `<div class="modal-backdrop" id="mb">${inner}</div>` : '';
+  const mb = document.getElementById('mb'); if(mb) mb.addEventListener('click', e=>{ if(e.target.id==='mb') closeModal(); });
+  bindModalEvents();
+}
+function closeModal(){ state.modal = null; renderModal(); }
+function bindModalEvents(){
+  document.querySelectorAll('[data-close-modal]').forEach(b=>b.addEventListener('click', closeModal));
+  const m = state.modal; if(!m) return;
+  if(m.kind==='editEvent'){
+    document.getElementById('saveEvent').addEventListener('click', saveEventFromForm);
+    const delBtn = document.getElementById('deleteEvent'); if(delBtn) delBtn.addEventListener('click', deleteEventFromForm);
+  }
+  if(m.kind==='score'){
+    document.querySelectorAll('[data-score-key]').forEach(r=>r.addEventListener('input', e=>{ const ev=events.find(x=>x.id===m.eventId); if(!ev.scores) ev.scores={}; ev.scores[r.dataset.scoreKey]=parseInt(e.target.value,10); renderModal(); }));
+    document.getElementById('saveScore').addEventListener('click', ()=>{ logActivity('Updated scoring on '+events.find(x=>x.id===m.eventId).name); toast('Scoring saved','success'); closeModal(); renderMain(); });
+  }
+  if(m.kind==='notAttending'){
+    document.getElementById('saveReason').addEventListener('click', ()=>{
+      const txt = document.getElementById('reasonText').value.trim();
+      if(!txt){ toast('A reason is required to mark Not attending','error'); return; }
+      const ev = events.find(x=>x.id===m.eventId);
+      ev.status='not_attending'; ev.notAttendingReason = txt;
+      logActivity('Marked Not attending on '+ev.name+' — '+txt);
+      toast('Status updated','success');
+      closeModal(); renderMain();
+    });
+  }
+  if(m.kind==='customRange'){
+    document.getElementById('saveRange').addEventListener('click', ()=>{
+      state.customStart = document.getElementById('rangeStart').value;
+      state.customEnd = document.getElementById('rangeEnd').value;
+      state.horizon = 'custom';
+      closeModal(); render();
+    });
+  }
+  if(m.kind==='savePreset'){
+    document.getElementById('savePresetBtn').addEventListener('click', ()=>{
+      const name = document.getElementById('presetName').value.trim();
+      if(!name){ toast('Name required','error'); return; }
+      presets.push({ id:'p'+Date.now(), name, filters: Object.assign({horizon:state.horizon}, state.filters) });
+      toast('Preset saved','success'); closeModal(); render();
+    });
+  }
+  if(m.kind==='addMember'){
+    document.getElementById('saveMember').addEventListener('click', ()=>{
+      const name = document.getElementById('mName').value.trim();
+      const role = document.getElementById('mRole').value.trim();
+      if(!name){ toast('Name required','error'); return; }
+      const colors=['#5e6ad2','#0ea5e9','#10b981','#f59e0b','#ec4899','#8b5cf6','#ef4444','#14b8a6'];
+      teamMembers.push({ id:'tm'+Date.now(), name, role, color: colors[teamMembers.length%colors.length] });
+      toast('Member added','success'); closeModal(); renderMain();
+    });
+  }
+  if(m.kind==='bulkAssign'){
+    document.getElementById('applyBulkAssign').addEventListener('click', ()=>{
+      const mid = document.getElementById('bulkAssignMember').value;
+      let n=0; state.selected.forEach(id=>{ const ev=events.find(e=>e.id===id); if(ev && !ev.assigned.includes(mid)){ ev.assigned.push(mid); n++; } });
+      logActivity('Bulk assigned '+memberById(mid).name+' to '+n+' events');
+      toast('Assigned to '+n+' events','success');
+      closeModal(); renderMain();
+    });
+  }
+  if(m.kind==='bulkStatus'){
+    document.getElementById('applyBulkStatus').addEventListener('click', ()=>{
+      const st = document.getElementById('bulkStatusSel').value;
+      if(st==='not_attending'){ toast('Use individual rows to set Not attending (reason required)','error'); return; }
+      let n=0; state.selected.forEach(id=>{ const ev=events.find(e=>e.id===id); if(ev){ ev.status=st; n++; } });
+      logActivity('Bulk set status to '+st+' on '+n+' events');
+      toast('Updated '+n+' events','success'); closeModal(); renderMain();
+    });
+  }
+  if(m.kind==='export'){
+    document.querySelectorAll('[data-export]').forEach(b=>b.addEventListener('click', ()=>doExport(b.dataset.export)));
+  }
+  if(m.kind==='compare'){
+    document.querySelectorAll('[data-remove-cmp]').forEach(b=>b.addEventListener('click', ()=>{ state.compareIds = state.compareIds.filter(x=>x!==b.dataset.removeCmp); if(state.compareIds.length<2){ closeModal(); renderMain(); } else { renderModal(); } }));
+  }
+}
+
+function modalEditEvent(m){
+  const isNew = !m.eventId;
+  const ev = isNew ? { name:'', orgId:'manual', start: addDays(30), end: addDays(32), city:'', country:'', region:'EMEA', format:'In-person', attendance:0, audience:'', priceUsd:0, sponsorshipUsd:0, travelEstUsd:0, status:'unreviewed', assigned:[], speakingDeadline:'', speakingStatus:'Not submitted', competitors:[], tags:[], synopsis:'', scores:{speaking:5,strategic:5,roi:5,competitor:5,audience:5}, source:'manual' } : events.find(e=>e.id===m.eventId);
+  return `<div class="modal">
+    <div class="modal-header"><div class="modal-title">${isNew?'Add event':'Edit event'}</div><button class="btn-icon-sm" data-close-modal>×</button></div>
+    <div class="field"><label>Event name</label><input class="input" id="fName" value="${escapeHtml(ev.name)}" placeholder="e.g. Mobile World Congress"></div>
+    <div class="field-row"><div class="field"><label>Organizing body</label><select class="input" id="fOrg">${ORGS.map(o=>`<option value="${o.id}" ${ev.orgId===o.id?'selected':''}>${escapeHtml(o.name)}</option>`).join('')}</select></div><div class="field"><label>Format</label><select class="input" id="fFormat"><option ${ev.format==='In-person'?'selected':''}>In-person</option><option ${ev.format==='Virtual'?'selected':''}>Virtual</option><option ${ev.format==='Hybrid'?'selected':''}>Hybrid</option></select></div></div>
+    <div class="field-row"><div class="field"><label>Start date</label><input type="date" class="input" id="fStart" value="${ev.start}"></div><div class="field"><label>End date</label><input type="date" class="input" id="fEnd" value="${ev.end}"></div></div>
+    <div class="field-row"><div class="field"><label>City</label><input class="input" id="fCity" value="${escapeHtml(ev.city)}"></div><div class="field"><label>Country (ISO 2)</label><input class="input" id="fCountry" maxlength="2" value="${escapeHtml(ev.country)}"></div></div>
+    <div class="field-row"><div class="field"><label>Region</label><select class="input" id="fRegion">${REGIONS.map(r=>`<option ${ev.region===r?'selected':''}>${r}</option>`).join('')}</select></div><div class="field"><label>Expected attendance</label><input type="number" class="input" id="fAtt" value="${ev.attendance||0}"></div></div>
+    <div class="field"><label>Audience</label><input class="input" id="fAud" value="${escapeHtml(ev.audience||'')}" placeholder="e.g. CSPs, hyperscalers, enterprise IT"></div>
+    <div class="field-row"><div class="field"><label>Pass cost (USD)</label><input type="number" class="input" id="fPrice" value="${ev.priceUsd||0}"></div><div class="field"><label>Sponsorship (USD)</label><input type="number" class="input" id="fSponsor" value="${ev.sponsorshipUsd||0}"></div></div>
+    <div class="field-row"><div class="field"><label>Travel per person (USD)</label><input type="number" class="input" id="fTravel" value="${ev.travelEstUsd||0}"></div><div class="field"><label>Speaking deadline</label><input type="date" class="input" id="fSpkDl" value="${ev.speakingDeadline||''}"></div></div>
+    <div class="field"><label>Speaking status</label><select class="input" id="fSpkSt">${['Not submitted','Drafting','Submitted','Accepted','Declined'].map(s=>`<option ${ev.speakingStatus===s?'selected':''}>${s}</option>`).join('')}</select></div>
+    <div class="field"><label>Competitors (comma separated)</label><input class="input" id="fComp" value="${escapeHtml((ev.competitors||[]).join(', '))}"></div>
+    <div class="field"><label>Tags (comma separated)</label><input class="input" id="fTags" value="${escapeHtml((ev.tags||[]).join(', '))}"></div>
+    <div class="field"><label>Synopsis</label><textarea class="input" id="fSyn">${escapeHtml(ev.synopsis||'')}</textarea></div>
+    <div class="modal-footer">
+      ${!isNew?`<button class="btn-danger" id="deleteEvent" data-id="${ev.id}" style="margin-right:auto">Delete</button>`:''}
+      <button class="btn-ghost" data-close-modal>Cancel</button>
+      <button class="btn-primary" id="saveEvent" data-id="${isNew?'':ev.id}">${isNew?'Add event':'Save'}</button>
+    </div>
+  </div>`;
+}
+function saveEventFromForm(){
+  const id = document.getElementById('saveEvent').dataset.id;
+  const name = document.getElementById('fName').value.trim();
+  if(!name){ toast('Event name is required','error'); return; }
+  const start = document.getElementById('fStart').value;
+  const end = document.getElementById('fEnd').value || start;
+  if(new Date(end) < new Date(start)){ toast('End date must be on or after start date','error'); return; }
+  const data = {
+    name,
+    orgId: document.getElementById('fOrg').value,
+    format: document.getElementById('fFormat').value,
+    start, end,
+    city: document.getElementById('fCity').value.trim(),
+    country: document.getElementById('fCountry').value.trim().toUpperCase(),
+    region: document.getElementById('fRegion').value,
+    attendance: parseInt(document.getElementById('fAtt').value,10)||0,
+    audience: document.getElementById('fAud').value.trim(),
+    priceUsd: parseInt(document.getElementById('fPrice').value,10)||0,
+    sponsorshipUsd: parseInt(document.getElementById('fSponsor').value,10)||0,
+    travelEstUsd: parseInt(document.getElementById('fTravel').value,10)||0,
+    speakingDeadline: document.getElementById('fSpkDl').value || null,
+    speakingStatus: document.getElementById('fSpkSt').value,
+    competitors: document.getElementById('fComp').value.split(',').map(s=>s.trim()).filter(Boolean),
+    tags: document.getElementById('fTags').value.split(',').map(s=>s.trim()).filter(Boolean),
+    synopsis: document.getElementById('fSyn').value.trim()
+  };
+  if(id){
+    const ev = events.find(e=>e.id===id);
+    Object.assign(ev, data);
+    // duplicate detection: same name + overlapping dates as another event
+    const dup = events.find(e=>e.id!==id && e.name.toLowerCase()===name.toLowerCase() && !(new Date(e.end)<new Date(start) || new Date(e.start)>new Date(end)));
+    if(dup) toast('Heads up: possible duplicate of an existing event','info');
+    logActivity('Edited '+name);
+    toast('Event saved','success');
+  } else {
+    const newEv = Object.assign({ id:'e'+Date.now(), status:'unreviewed', assigned:[], scores:{speaking:5,strategic:5,roi:5,competitor:5,audience:5}, source:'manual' }, data);
+    const dup = events.find(e=>e.name.toLowerCase()===name.toLowerCase() && !(new Date(e.end)<new Date(start) || new Date(e.start)>new Date(end)));
+    if(dup){ toast('Possible duplicate: "'+dup.name+'" overlaps. Saved anyway.','info'); }
+    events.push(newEv);
+    logActivity('Added '+name);
+    toast('Event added','success');
+  }
+  closeModal(); renderMain();
+}
+function deleteEventFromForm(){
+  const id = document.getElementById('deleteEvent').dataset.id;
+  const ev = events.find(e=>e.id===id); if(!ev) return;
+  events = events.filter(e=>e.id!==id);
+  state.selected.delete(id);
+  state.expanded.delete(id);
+  if(state.detailEventId===id) state.detailEventId=null;
+  logActivity('Deleted '+ev.name);
+  toast('Event deleted','success');
+  closeModal(); render();
+}
+function openEventEditor(id){ state.modal = { kind:'editEvent', eventId:id }; renderModal(); }
+function openScoreModal(id){ state.modal = { kind:'score', eventId:id }; renderModal(); }
+function modalScore(m){
+  const ev = events.find(e=>e.id===m.eventId);
+  const sc = computeScore(ev); const tier = scoreTier(sc);
+  let totalW=0; for(const k of Object.keys(scoringWeights)) totalW += scoringWeights[k].weight;
+  let body = `<div class="modal"><div class="modal-header"><div class="modal-title">Score — ${escapeHtml(ev.name)}</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="score-breakdown">`;
+  for(const k of Object.keys(scoringWeights)){
+    const sw = scoringWeights[k];
+    const v = (ev.scores && ev.scores[k]!=null)?ev.scores[k]:0;
+    body += `<div class="score-criterion"><label>${escapeHtml(sw.label)} <span class="weight">w:${sw.weight} (${totalW?Math.round(sw.weight/totalW*100):0}%)</span></label><input type="range" min="0" max="10" step="1" value="${v}" data-score-key="${k}"><span class="mono" style="text-align:right">${v}/10</span></div>`;
+  }
+  body += `<div class="summary-line"><span>Strategic score</span><span class="score-badge score-${tier}" style="font-size:14px;min-width:60px">${sc==null?'—':sc.toFixed(1)}</span></div></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveScore">Save scoring</button></div></div>`;
+  return body;
+}
+function modalNotAttending(m){
+  const ev = events.find(e=>e.id===m.eventId);
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Mark as Not attending — ${escapeHtml(ev.name)}</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Reason (required)</label><textarea class="input" id="reasonText" placeholder="e.g. Limited audience overlap; budget reallocated to higher-scoring event in same region.">${escapeHtml(ev.notAttendingReason||'')}</textarea></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveReason">Confirm</button></div></div>`;
+}
+function openCustomRangeModal(){ state.modal = { kind:'customRange' }; renderModal(); }
+function modalCustomRange(){
+  const today = iso(TODAY); const plus6 = addDays(180);
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Custom date range</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field-row"><div class="field"><label>From</label><input type="date" class="input" id="rangeStart" value="${state.customStart||today}"></div><div class="field"><label>To</label><input type="date" class="input" id="rangeEnd" value="${state.customEnd||plus6}"></div></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveRange">Apply</button></div></div>`;
+}
+function modalSavePreset(){
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Save filter preset</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Preset name</label><input class="input" id="presetName" placeholder="e.g. EMEA Q2 priority"></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="savePresetBtn">Save preset</button></div></div>`;
+}
+function modalAddMember(){
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Add team member</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Name</label><input class="input" id="mName"></div><div class="field"><label>Role</label><input class="input" id="mRole" placeholder="e.g. VP Engineering"></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveMember">Add</button></div></div>`;
+}
+function openBulkAssign(){ state.modal = { kind:'bulkAssign' }; renderModal(); }
+function modalBulkAssign(){
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Assign to ${state.selected.size} events</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Team member</label><select class="input" id="bulkAssignMember">${teamMembers.map(m=>`<option value="${m.id}">${escapeHtml(m.name)} — ${escapeHtml(m.role)}</option>`).join('')}</select></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="applyBulkAssign">Assign</button></div></div>`;
+}
+function openBulkStatus(){ state.modal = { kind:'bulkStatus' }; renderModal(); }
+function modalBulkStatus(){
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Set status on ${state.selected.size} events</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>New status</label><select class="input" id="bulkStatusSel"><option value="unreviewed">Unreviewed</option><option value="considering">Considering</option><option value="attending">Attending</option></select></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="applyBulkStatus">Apply</button></div></div>`;
+}
+function openExportModal(){ state.modal = { kind:'export' }; renderModal(); }
+function modalExport(){
+  const count = sortEvents(filteredEvents()).length;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Export ${count} events</div><button class="btn-icon-sm" data-close-modal>×</button></div>
+    <div class="body-sm" style="margin-bottom:12px">Export the current filtered view.</div>
+    <div class="export-options">
+      <button class="btn-secondary" data-export="csv" style="justify-content:flex-start;text-align:left;display:block">CSV — all event fields including scores, budget, team</button>
+      <button class="btn-secondary" data-export="ical" style="justify-content:flex-start;text-align:left;display:block">iCalendar (.ics) — attending events with DN status</button>
+      <button class="btn-secondary" data-export="json" style="justify-content:flex-start;text-align:left;display:block">JSON — full data dump</button>
+      <button class="btn-secondary" data-export="report" style="justify-content:flex-start;text-align:left;display:block">Markdown report — exec summary with KPIs</button>
+    </div>
+    <div class="modal-footer"><button class="btn-ghost" data-close-modal>Close</button></div>
+  </div>`;
+}
+function doExport(kind){
+  const evs = sortEvents(filteredEvents());
+  let content='', mime='text/plain', filename='events-export.txt';
+  if(kind==='csv'){
+    const cols = ['name','start','end','city','country','region','org','status','score','assigned','priceUsd','sponsorshipUsd','travelEstUsd','attendance','speakingDeadline','speakingStatus'];
+    content = cols.join(',')+'\
+';
+    for(const ev of evs){
+      const row = [ev.name, ev.start, ev.end, ev.city, ev.country, ev.region, (orgById(ev.orgId)||{}).name, ev.status, computeScore(ev), ev.assigned.map(a=>(memberById(a)||{}).name).join('; '), ev.priceUsd, ev.sponsorshipUsd, ev.travelEstUsd, ev.attendance, ev.speakingDeadline||'', ev.speakingStatus||''];
+      content += row.map(v=>{ const s=String(v==null?'':v); return new RegExp('[,"\\n]').test(s)?'"'+s.replace(new RegExp('"','g'),'""')+'"':s; }).join(',')+'\n';
+    }
+    mime='text/csv'; filename='dn-events.csv';
+  } else if(kind==='ical'){
+    const att = evs.filter(e=>e.status==='attending');
+    content = 'BEGIN:VCALENDAR\
+VERSION:2.0\
+PRODID:-//DN//Events//EN\
+';
+    for(const ev of att){
+      const ds = ev.start.replace(/-/g,''); const de = ev.end.replace(/-/g,'');
+      content += 'BEGIN:VEVENT\
+UID:'+ev.id+'@dn\
+DTSTART;VALUE=DATE:'+ds+'\
+DTEND;VALUE=DATE:'+de+'\
+SUMMARY:'+ev.name+' [DN: '+ev.status+']\
+LOCATION:'+ev.city+', '+ev.country+'\
+DESCRIPTION:'+(ev.synopsis||'').replace(new RegExp('\\n','g'),' ')+'\
+END:VEVENT\
+';
+    }
+    content += 'END:VCALENDAR\
+';
+    mime='text/calendar'; filename='dn-events.ics';
+  } else if(kind==='json'){
+    content = JSON.stringify(evs, null, 2); mime='application/json'; filename='dn-events.json';
+  } else if(kind==='report'){
+    const k = computeKpis();
+    content = '# DN Events Report\
+\
+Generated '+new Date().toLocaleString()+'\
+\
+## Summary\
+\
+- Events in window: '+k.windowCount+'\
+- Attending: '+k.attending+'\
+- Considering: '+k.considering+'\
+- Committed budget: '+fmtMoney(k.committedBudget)+'\
+- Projected if all considering attend: '+fmtMoney(k.projectedBudget)+'\
+- Avg score attending: '+(k.avgAttendingScore?k.avgAttendingScore.toFixed(1):'—')+'\
+\
+## Events\
+\
+';
+    for(const ev of evs){ content += '### '+ev.name+'\
+- Date: '+fmtDateRange(ev.start,ev.end)+'\
+- Location: '+ev.city+', '+ev.country+'\
+- Score: '+(computeScore(ev)||'—')+'\
+- Status: '+ev.status+'\
+- Team: '+(ev.assigned.map(a=>(memberById(a)||{}).name).join(', ')||'unassigned')+'\
+\
+'; }
+    mime='text/markdown'; filename='dn-events-report.md';
+  }
+  const blob = new Blob([content],{type:mime});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a'); a.href=url; a.download=filename; a.click();
+  setTimeout(()=>URL.revokeObjectURL(url), 1000);
+  toast('Exported '+filename,'success');
+  closeModal();
+}
+function exportSelection(){
+  const selectedEvs = events.filter(e=>state.selected.has(e.id));
+  if(!selectedEvs.length){ toast('No selection','error'); return; }
+  // CSV quick export
+  const cols = ['name','start','end','city','country','status','score'];
+  let content = cols.join(',')+'\
+';
+  for(const ev of selectedEvs) content += [ev.name, ev.start, ev.end, ev.city, ev.country, ev.status, computeScore(ev)].map(v=>{const s=String(v==null?'':v); return new RegExp('[,"\\n]').test(s)?'"'+s.replace(new RegExp('"','g'),'""')+'"':s;}).join(',')+'\n';
+  const blob = new Blob([content],{type:'text/csv'});
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dn-events-selection.csv'; a.click();
+  toast('Exported '+selectedEvs.length+' events','success');
+}
+function openCompareModal(){ state.modal = { kind:'compare' }; renderModal(); }
+function modalCompare(){
+  const evs = state.compareIds.map(id=>events.find(e=>e.id===id)).filter(Boolean).slice(0,4);
+  if(evs.length<2) return '<div class="modal"><div class="modal-header"><div class="modal-title">Compare events</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="body-sm">Select 2–4 events from the table to compare.</div></div>';
+  const cols = evs.length;
+  let html = '<div class="modal" style="max-width:'+(220+cols*220)+'px"><div class="modal-header"><div class="modal-title">Compare events</div><button class="btn-icon-sm" data-close-modal>×</button></div>';
+  html += '<div style="overflow-x:auto"><table style="font-size:12px"><thead><tr><th style="width:200px"></th>';
+  for(const ev of evs) html += `<th><div style="display:flex;justify-content:space-between;gap:6px"><span>${escapeHtml(ev.name)}</span><button class="btn-icon-sm" data-remove-cmp="${ev.id}">×</button></div></th>`;
+  html += '</tr></thead><tbody>';
+  const rows = [
+    ['Strategic score', ev=>{ const s=computeScore(ev); return `<span class="score-badge score-${scoreTier(s)}">${s==null?'—':s.toFixed(1)}</span>`; }],
+    ['Dates', ev=>fmtDateRange(ev.start,ev.end)],
+    ['Location', ev=>escapeHtml(ev.city+', '+ev.country)],
+    ['Region', ev=>escapeHtml(ev.region)],
+    ['Status', ev=>renderStatusPill(ev)],
+    ['Attendance', ev=>(ev.attendance||0).toLocaleString()],
+    ['Pass', ev=>fmtMoney(ev.priceUsd)],
+    ['Sponsorship', ev=>fmtMoney(ev.sponsorshipUsd)],
+    ['Total est. cost', ev=>fmtMoney((ev.priceUsd||0)+(ev.sponsorshipUsd||0)+(ev.travelEstUsd||0)*Math.max(1,ev.assigned.length))],
+    ['Team', ev=>renderAssigneeStack(ev)],
+    ['Speaking', ev=>ev.speakingDeadline?(ev.speakingStatus+' · '+daysUntil(ev.speakingDeadline)+'d'):'—'],
+    ['Competitors', ev=>(ev.competitors||[]).slice(0,3).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'—']
+  ];
+  // scoring criteria
+  for(const k of Object.keys(scoringWeights)) rows.push([scoringWeights[k].label, ev=>(ev.scores&&ev.scores[k]!=null)?ev.scores[k]+'/10':'—']);
+  for(const [lbl, fn] of rows){
+    html += `<tr><td style="color:var(--text-muted);font-weight:500">${escapeHtml(lbl)}</td>`;
+    for(const ev of evs) html += '<td>'+fn(ev)+'</td>';
+    html += '</tr>';
+  }
+  html += '</tbody></table></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Close</button></div></div>';
+  return html;
+}
+
+// ============ ASSIGN DROPDOWN (inline) ============
+let currentAssignDropdown = null;
+function openAssignDropdown(anchor, eventId){
+  if(currentAssignDropdown) currentAssignDropdown.remove();
+  const ev = events.find(e=>e.id===eventId);
+  const conflicts = detectConflicts().filter(c=>c.eventId===eventId).map(c=>c.memberId);
+  const menu = document.createElement('div');
+  menu.className = 'dropdown-menu';
+  menu.style.position='fixed';
+  const rect = anchor.getBoundingClientRect();
+  menu.style.top = (rect.bottom+4)+'px';
+  menu.style.left = Math.max(8, rect.right - 200)+'px';
+  menu.innerHTML = teamMembers.map(m=>{
+    const assigned = ev.assigned.includes(m.id);
+    const conflict = conflicts.includes(m.id);
+    return `<button class="dropdown-item" data-mid="${m.id}"><div class="avatar" style="background:${m.color};width:18px;height:18px;font-size:9px">${initials(m.name)}</div><span style="flex:1">${escapeHtml(m.name)}</span>${assigned?'<span style="color:var(--success)">✓</span>':''}${conflict?'<span style="color:var(--warning)" title="Conflict">⚠</span>':''}</button>`;
+  }).join('');
+  document.body.appendChild(menu);
+  currentAssignDropdown = menu;
+  menu.querySelectorAll('[data-mid]').forEach(b=>b.addEventListener('click', e=>{
+    e.stopPropagation();
+    const mid = b.dataset.mid;
+    const i = ev.assigned.indexOf(mid);
+    if(i>-1) ev.assigned.splice(i,1); else ev.assigned.push(mid);
+    logActivity((i>-1?'Unassigned ':'Assigned ')+memberById(mid).name+' '+(i>-1?'from ':'to ')+ev.name);
+    renderViewOnly();
+    openAssignDropdown(anchor, eventId);
+  }));
+  setTimeout(()=>{
+    const off = e=>{ if(!menu.contains(e.target)){ menu.remove(); currentAssignDropdown=null; document.removeEventListener('click', off); } };
+    document.addEventListener('click', off);
+  },0);
+}
+
+// ============ HELPERS ============
+function logActivity(text){ activity.unshift({ ts:Date.now(), who:(session.user.email||'user').split('@')[0], text }); if(activity.length>100) activity.length=100; }
+function renderEmpty(title, text, btnText, btnId){
+  return `<div class="empty"><div class="empty-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-title">${escapeHtml(title)}</div><div class="empty-text">${escapeHtml(text)}</div>${btnText?`<button class="btn-secondary" id="${btnId}">${escapeHtml(btnText)}</button>`:''}</div>`;
+}
+
+// keyboard
+document.addEventListener('keydown', e=>{
+  if(e.key==='Escape'){
+    if(state.modal){ closeModal(); return; }
+    if(state.detailEventId){ closeDetail(); return; }
+  }
+});
+
+// initial render
+render();
+toast('Tracker ready — '+events.filter(e=>new Date(e.end)>=TODAY).length+' upcoming events loaded','info');
+
+}; // __bootApp
+</script>
+</body>
+</html>
