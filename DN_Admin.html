@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.2.19 #26</span>
+  <span class="topbar-version" title="DN_Admin build">v1.2.21 #28</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4337,7 +4337,11 @@ const BUILD_AGENT_TOOLS = [
 ];
 
 async function executeFetchUrlTool(input) {
-  const MAX_RESPONSE_BYTES = 60 * 1024;   // 60 KB → ~15K tokens; 6 rounds = ~90K added to context
+  // v1.2.21 #28 — Reduced cap from 60 KB → 30 KB so context budget stays well below
+  // Opus's 200K limit even with the max 6 tool rounds. The agent only needs the
+  // SHAPE of the response, not the full payload — 30 KB is plenty for any JSON API
+  // to demonstrate its field structure.
+  const MAX_RESPONSE_BYTES = 30 * 1024;
   const TOOL_TIMEOUT_MS    = 15 * 1000;
   try {
     const url = (input && input.url) || '';
@@ -4609,7 +4613,12 @@ async function buildRequest(reqId) {
     // Inner loop = tool round-trips with the chosen model (max 6 rounds).
     // Telemetry from #19 still applies — each round-trip is timeout-bounded and
     // emits heartbeats; the outer catch writes a terminal build_failed event.
-    const BUILD_TIMEOUT_MS    = 8 * 60 * 1000;
+    // v1.2.21 #28 — Raised idle timeout from 8m → 15m because tool-use builds need
+    // headroom for the final HTML composition round after several tool calls (each
+    // tool result adds to context, then the agent has to emit ~100KB of HTML on top
+    // of all of it; this naturally takes 6-12 minutes on Opus 4.7 and the old cap
+    // was firing before the model could finish).
+    const BUILD_TIMEOUT_MS    = 15 * 60 * 1000;
     const HEARTBEAT_EVERY_MS  = 60 * 1000;
     const MAX_TOOL_ROUNDS     = 6;
     let usedBuildModel = null;
@@ -4682,6 +4691,16 @@ async function buildRequest(reqId) {
 
         const data = await iterResp.json();
         messages.push({ role: 'assistant', content: data.content });
+
+        // v1.2.21 #28 — Per-round timing telemetry so we can see which round-trip
+        // burns the most time. Useful when a build approaches the 15-min cap.
+        const _roundElapsedSec = Math.round((Date.now() - iterStartedAt) / 1000);
+        try {
+          await logActivity({
+            request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_round_complete',
+            description: 'Round ' + (toolRound + 1) + ' on ' + tryModel + ' · ' + _roundElapsedSec + 's · stop_reason=' + (data.stop_reason || 'unknown') + (data.usage ? ' · in=' + (data.usage.input_tokens || 0) + ' out=' + (data.usage.output_tokens || 0) : '')
+          });
+        } catch(_) {}
 
         if (data.stop_reason !== 'tool_use') {
           // Final round — extract this data, exit both loops
@@ -5498,7 +5517,37 @@ DN_HOUSE_STYLE.trim() + '\n' +
     '<\/script>\n' +
     '<!-- ===== END DN Platform Auth Gate ===== -->';
 
+  // v1.2.20 #27 \u2014 Every generated app must have a browser-tab icon. Computed
+  // server-side from the app title's initials so the agent just inserts the
+  // block verbatim; no SVG-generation reliability gamble.
+  const _faviconInitials = (function() {
+    const t = (req.title || 'DN').trim();
+    const parts = t.split(/[\s\-\u2014_:]+/).filter(function(w) {
+      return w && !/^(the|a|an|with|for|and|of|to|in|on|at|by|v\d+|\d+(\.\d+)+)$/i.test(w);
+    });
+    if (!parts.length) return 'DN';
+    if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+    return (parts[0].charAt(0) + parts[1].charAt(0)).toUpperCase();
+  })();
+  const faviconBlock =
+    '<!-- ===== DN Platform Favicon v1.0 ===== -->\n' +
+    '<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,' +
+      "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'>" +
+      "<rect width='32' height='32' rx='6' fill='%2347d1ff'/>" +
+      "<text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>" +
+      _faviconInitials +
+      "</text></svg>" +
+    '">\n' +
+    '<meta name="theme-color" content="#07091a">';
+
   prompt +=
+'\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n' +
+'MANDATORY DN PLATFORM FAVICON \u2014 INSERT VERBATIM INSIDE <head>\n' +
+'\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n' +
+'Every app shipped via the DN Platform must have a browser-tab icon (favicon) so it shows up properly in tabs, bookmarks, and history with DN branding. The initials below have been pre-computed from this app\'s title; copy the block verbatim into <head> (any position after the <title> tag is fine):\n\n' +
+'```html\n' + faviconBlock + '\n```\n\n' +
+'Do not alter the SVG, the colours, or the initials. If the app has a more specific brand icon you would like to use, you may add it as an ADDITIONAL <link rel="icon"> after this one \u2014 but the DN platform favicon above must remain so apps without their own icon still get one.\n\n' +
+
 '\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n' +
 'MANDATORY DN PLATFORM AUTH GATE \u2014 INSERT VERBATIM AS FIRST ELEMENTS OF <body>\n' +
 '\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\u2550\n\n' +
