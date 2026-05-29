@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.3.0 #30</span>
+  <span class="topbar-version" title="DN_Admin build">v1.3.1 #31</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4847,6 +4847,7 @@ async function buildRequest(reqId) {
       let messages = [{ role: 'user', content: userContent }];
       let toolRound = 0;
       let modelAborted = false;
+      let intensityDisabled = false;  // v1.3.1 #31 — set if the API rejects effort/thinking, so we retry without them.
 
       while (true) {
         const iterStartedAt = Date.now();
@@ -4871,9 +4872,12 @@ async function buildRequest(reqId) {
           messages: messages,
           tools: BUILD_AGENT_TOOLS
         };
-        if (buildEffort && dnModelSupportsEffort(tryModel)) {
+        // v1.3.1 #31 — `effort` belongs inside output_config (NOT top-level, which the
+        // API rejects with "effort: Extra inputs are not permitted"). Adaptive thinking
+        // is a top-level field. Both are GA and need no beta header.
+        if (buildEffort && dnModelSupportsEffort(tryModel) && !intensityDisabled) {
           _reqBody.thinking = { type: 'adaptive' };
-          _reqBody.effort = buildEffort;
+          _reqBody.output_config = { effort: buildEffort };
         }
         try {
           iterResp = await fetch('https://api.anthropic.com/v1/messages', {
@@ -4907,6 +4911,15 @@ async function buildRequest(reqId) {
             console.warn('Build agent: ' + lastBuildErrText);
             modelAborted = true;
             break;  // exit while, advance outer for-loop
+          }
+          // v1.3.1 #31 — Safety net: if the intensity params (effort/thinking) are rejected,
+          // retry the same model once without them rather than failing the whole build.
+          if (toolRound === 0 && iterResp.status === 400 && !intensityDisabled &&
+              buildEffort && dnModelSupportsEffort(tryModel) &&
+              /effort|output_config|thinking|adaptive/i.test(errText)) {
+            intensityDisabled = true;
+            console.warn('Build agent: intensity params rejected on ' + tryModel + ' — retrying without effort/thinking. ' + errText.slice(0, 160));
+            continue;  // retry same model, intensity params now omitted
           }
           throw new Error('API error (' + iterResp.status + ') on ' + tryModel + (toolRound > 0 ? ' during tool-round ' + toolRound : '') + ': ' + errText.slice(0, 300));
         }
