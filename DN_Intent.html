@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <!-- Auth gate (was: shared SHA-256 password). Now: Supabase Auth with Google provider. See showSignInGate() in main script. -->
 <style id="dn-auth-style">html body > *:not(#dn-auth-overlay){display:none !important}body{visibility:visible !important}</style>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.106.2"></script>
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DN Intent — Digitata Networks</title>
@@ -1470,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.13 #29</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.14 #30</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -2548,15 +2548,42 @@ async function initAuth() {
     showSignInGate('sdk'); return false;
   }
   supaClient = window.supabase.createClient(url, key, {
-    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+    auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'pkce' }
   });
-  // After OAuth redirect, the SDK auto-parses the URL hash. Get the session.
-  const { data: { session } } = await supaClient.auth.getSession();
+  // After OAuth redirect, the SDK auto-parses the URL. Get the session.
+  let { data: { session } } = await supaClient.auth.getSession();
+  // Defensive fallback (auth-fix 2026-05-29): on some browsers (notably mobile,
+  // fresh logins) the SDK's automatic URL detection does not complete, leaving the
+  // OAuth response sitting in the URL and getSession() empty -> infinite sign-in loop.
+  // If a credential is present in the URL, exchange/set it explicitly.
+  if (!session) {
+    try {
+      const params = new URLSearchParams(location.search);
+      const code = params.get('code');
+      const hash = new URLSearchParams((location.hash || '').replace(/^#/, ''));
+      const hashToken = hash.get('access_token');
+      if (code) {
+        // PKCE flow: exchange the ?code= for a session.
+        const { data: ex } = await supaClient.auth.exchangeCodeForSession(code);
+        if (ex && ex.session) session = ex.session;
+      } else if (hashToken) {
+        // Implicit flow leftover: set the session directly from the hash tokens.
+        const { data: st } = await supaClient.auth.setSession({
+          access_token: hashToken,
+          refresh_token: hash.get('refresh_token')
+        });
+        if (st && st.session) session = st.session;
+      }
+    } catch (e) {
+      console.error('Auth URL fallback failed', e);
+    }
+  }
   if (!session) { showSignInGate('signin'); return false; }
   currentSession = session;
-  // Clean OAuth hash from URL if present
-  if (location.hash && location.hash.indexOf('access_token') !== -1) {
-    history.replaceState(null, '', location.pathname + location.search);
+  // Clean OAuth credentials from the URL (hash for implicit, query for PKCE).
+  if ((location.hash && location.hash.indexOf('access_token') !== -1) ||
+      /[?&]code=/.test(location.search)) {
+    history.replaceState(null, '', location.pathname);
   }
   await loadProfile();
   // Default-deny gate (2026-05-26): block users without can_access_intent.
