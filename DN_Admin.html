@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.3.3 #33</span>
+  <span class="topbar-version" title="DN_Admin build">v1.3.5 #35</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4399,6 +4399,15 @@ async function executeFetchUrlTool(input) {
 // a terminal event. Reset their qa_status and emit build_failed reason='orphaned_on_reload'
 // so they reappear on the kanban as either Ready for QA (if a previous build exists)
 // or Improvement Requested / Inbox (if not).
+// v1.3.4 #34 — Guard against losing an in-flight build to an accidental reload/close.
+window.addEventListener('beforeunload', function(e) {
+  if (window._buildInFlightReqId) {
+    e.preventDefault();
+    e.returnValue = 'A build is still running — leaving or reloading this page will interrupt it.';
+    return e.returnValue;
+  }
+});
+
 async function recoverOrphanedBuilds() {
   try {
     const supaUrl = localStorage.getItem('dn_supa_url');
@@ -4413,6 +4422,7 @@ async function recoverOrphanedBuilds() {
     const ORPHAN_THRESHOLD_MIN = 10;
     const cutoff = new Date(Date.now() - ORPHAN_THRESHOLD_MIN * 60 * 1000).toISOString();
     let recovered = 0;
+    const recoveredTitles = [];
     for (let i = 0; i < building.length; i++) {
       const row = building[i];
       try {
@@ -4437,6 +4447,7 @@ async function recoverOrphanedBuilds() {
           });
         } catch(_) { /* never let logging block recovery */ }
         recovered++;
+        recoveredTitles.push(row.title || row.id);
         console.warn('Orphan recovered: "' + (row.title || row.id) + '" → ' + rollbackTo);
       } catch (rowErr) {
         console.warn('Orphan recovery failed for ' + row.id + ':', rowErr);
@@ -4444,6 +4455,9 @@ async function recoverOrphanedBuilds() {
     }
     if (recovered > 0) {
       console.log('Orphan recovery: rescued ' + recovered + ' stuck row(s). Refresh the board to see them.');
+      // v1.3.4 #34 — surface the reset so a stalled build is no longer silent.
+      var _msg = recovered + ' stalled build' + (recovered === 1 ? '' : 's') + ' found and reset to Improvement Requested: ' + recoveredTitles.join(', ') + '. You can rebuild them.';
+      try { if (typeof showToast === 'function') showToast(_msg); else alert(_msg); } catch(_) { try { alert(_msg); } catch(__) {} }
       // Trigger a board refresh so the rescued rows visually move to the right column
       if (typeof loadData === 'function') {
         try { loadData(); } catch(_) {}
@@ -4768,6 +4782,7 @@ async function buildRequest(reqId) {
     description: 'Monolithic build started for "' + (req.title || 'Untitled') + '"'
   });
 
+  let buildHeartbeat = null;  // v1.3.4 #34 — build-level keepalive; cleared in finally.
   try {
     const previousHtml = req.artifact_html || '';
     const qaNotes = req.qa_notes || '';
@@ -4855,8 +4870,24 @@ async function buildRequest(reqId) {
     // v1.3.0 #30 — accumulate token usage across all round-trips for actual-cost logging.
     const buildUsageTotal = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
 
+    // v1.3.4 #34 — ONE continuous heartbeat for the whole build. The previous per-fetch heartbeat
+    // went quiet during tool execution and the gaps between rounds, so a stall there looked idle;
+    // this one keeps reporting liveness across the entire build until it ends (cleared in finally).
+    const buildStartedAt = Date.now();
+    let currentTryModel = (buildChain && buildChain[0]) || '';
+    buildHeartbeat = setInterval(function() {
+      var elapsedSec = Math.round((Date.now() - buildStartedAt) / 1000);
+      try {
+        logActivity({
+          request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_heartbeat',
+          description: 'Build in progress · model=' + currentTryModel + ' · ' + elapsedSec + 's elapsed'
+        });
+      } catch(_) {}
+    }, HEARTBEAT_EVERY_MS);
+
     for (let mi = 0; mi < buildChain.length; mi++) {
       const tryModel = buildChain[mi];
+      currentTryModel = tryModel;
       console.log('Build agent: trying ' + tryModel + (mi > 0 ? ' (fallback ' + mi + ')' : ''));
       let messages = [{ role: 'user', content: userContent }];
       let toolRound = 0;
@@ -4868,15 +4899,6 @@ async function buildRequest(reqId) {
         const iterStartedAt = Date.now();
         const controller = new AbortController();
         const timeoutHandle = setTimeout(function(){ try { controller.abort(); } catch(_){} }, BUILD_TIMEOUT_MS);
-        const heartbeatHandle = setInterval(function(){
-          const elapsedSec = Math.round((Date.now() - iterStartedAt) / 1000);
-          try {
-            logActivity({
-              request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_heartbeat',
-              description: 'Build in progress · model=' + tryModel + (toolRound > 0 ? ' · tool-round ' + toolRound : '') + ' · ' + elapsedSec + 's elapsed'
-            });
-          } catch(_){}
-        }, HEARTBEAT_EVERY_MS);
 
         let iterResp;
         // v1.3.0 #30 — apply the chosen intensity via adaptive thinking + effort.
@@ -4907,14 +4929,12 @@ async function buildRequest(reqId) {
             signal: controller.signal
           });
         } catch (fetchErr) {
-          clearInterval(heartbeatHandle);
           clearTimeout(timeoutHandle);
           if (fetchErr && (fetchErr.name === 'AbortError' || /abort/i.test(fetchErr.message || ''))) {
             throw new Error('Build aborted: no response within ' + (BUILD_TIMEOUT_MS/60000) + ' minutes on ' + tryModel + (toolRound > 0 ? ' (tool-round ' + toolRound + ')' : '') + ' (stream_idle_timeout).');
           }
           throw fetchErr;
         }
-        clearInterval(heartbeatHandle);
         clearTimeout(timeoutHandle);
 
         if (!iterResp.ok) {
@@ -5091,7 +5111,36 @@ async function buildRequest(reqId) {
     // errors. If any are found, mark the build as failed and surface the errors.
     // This catches duplicate identifier declarations, undefined function
     // references, and other syntax/runtime issues before the build is shipped.
-    const validationErrors = await validateBuiltArtifact(html);
+    let validationErrors = await validateBuiltArtifact(html);
+    // v1.3.5 #35 — AUTO-CORRECT: before bouncing a build back to the admin, give the agent ONE
+    // corrective pass with the exact JS errors fed back in. Most validation failures are a single
+    // mechanical bug (e.g. a raw newline in a string/regex literal) that the agent fixes reliably
+    // when told precisely what broke. Only if it STILL fails do we mark build_failed.
+    if (validationErrors.length > 0) {
+      try {
+        await logActivity({ request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_autofix_attempt',
+          description: 'Validation found ' + validationErrors.length + ' JS error(s) on ' + (usedBuildModel || '?') + ' — attempting one auto-correct pass.' });
+      } catch(_) {}
+      try {
+        const fixedHtml = await attemptValidationAutofix(html, validationErrors, usedBuildModel, apiKey, buildEffort, buildUsageTotal);
+        if (fixedHtml && fixedHtml.length > 200) {
+          const reErrors = await validateBuiltArtifact(fixedHtml);
+          if (reErrors.length === 0) {
+            html = fixedHtml;
+            validationErrors = [];
+            try {
+              await logActivity({ request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_autofix_applied',
+                description: 'Auto-correct pass fixed the JS error(s); build now passes validation.' });
+            } catch(_) {}
+          } else {
+            html = fixedHtml;            // keep the closer-to-correct version for inspection
+            validationErrors = reErrors; // still failing — fall through to build_failed below
+          }
+        }
+      } catch (afErr) {
+        console.warn('Auto-correct pass failed (non-fatal):', afErr);
+      }
+    }
     if (validationErrors.length > 0) {
       const errSummary = validationErrors.slice(0, 5).map(function(e) {
         var msg = e.message || 'Unknown error';
@@ -5200,6 +5249,9 @@ async function buildRequest(reqId) {
     await patchRequest(reqId, { qa_status: rollbackTo });
     renderMonolithicView(req);
     window._buildInFlightReqId = null;
+  } finally {
+    // v1.3.4 #34 — always stop the build-level heartbeat (success, error, or early return).
+    if (buildHeartbeat) { try { clearInterval(buildHeartbeat); } catch(_) {} buildHeartbeat = null; }
   }
 }
 
@@ -5484,6 +5536,55 @@ function closeDesignConsultation() {
 // Loads the generated HTML in a hidden sandboxed iframe and captures any
 // JavaScript console errors that fire during initial load. Returns array of
 // error objects: [{ message, line, column, stack }]. Empty array = clean build.
+
+// v1.3.5 #35 — One corrective pass: hand the just-generated HTML back to the agent with the exact
+// JS errors and ask for a minimal fix. Returns corrected full HTML, or null if it can't produce one.
+async function attemptValidationAutofix(brokenHtml, errors, model, apiKey, buildEffort, usageTotal) {
+  if (!model || !apiKey || !brokenHtml) return null;
+  const errSummary = (errors || []).slice(0, 8).map(function(e) {
+    var loc = e.line ? ' (line ' + e.line + (e.column ? ':' + e.column : '') + ')' : '';
+    return '- ' + (e.message || 'Unknown error') + loc;
+  }).join('\n');
+  const prompt =
+    'The HTML document below was just generated but has JavaScript errors that stop it from running. ' +
+    'Fix ONLY these errors and return the COMPLETE corrected document as {"html":"<!DOCTYPE html>..."}. ' +
+    'Do not add features or change anything unrelated — preserve all existing functionality, structure, and styling.\n\n' +
+    'ERRORS:\n' + errSummary + '\n\n' +
+    'Most common cause on this platform: a string or regex literal that contains a RAW line break. ' +
+    'Replace any literal newline inside quotes or a regex with \\n, and do not use new RegExp() with a multi-line string for CSV — use a regex literal like /[",\\n]/ or plain string methods. ' +
+    'Verify the entire document parses before returning.\n\n' +
+    'HTML:\n```html\n' + brokenHtml + '\n```';
+  const body = { model: model, max_tokens: 128000, messages: [{ role: 'user', content: prompt }] };
+  if (buildEffort && dnModelSupportsEffort(model)) { body.thinking = { type: 'adaptive' }; body.output_config = { effort: buildEffort }; }
+  const ctrl = new AbortController();
+  const to = setTimeout(function(){ try { ctrl.abort(); } catch(_){} }, 15 * 60 * 1000);
+  let resp;
+  try {
+    resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+      signal: ctrl.signal
+    });
+  } catch (e) { clearTimeout(to); console.warn('autofix fetch failed:', e); return null; }
+  clearTimeout(to);
+  if (!resp.ok) { console.warn('autofix API error', resp.status); return null; }
+  const data = await resp.json();
+  if (usageTotal && data && data.usage) {
+    usageTotal.input_tokens += (data.usage.input_tokens || 0);
+    usageTotal.output_tokens += (data.usage.output_tokens || 0);
+    usageTotal.cache_read_input_tokens += (data.usage.cache_read_input_tokens || 0);
+    usageTotal.cache_creation_input_tokens += (data.usage.cache_creation_input_tokens || 0);
+  }
+  const reply = (data.content || []).filter(function(b){ return b.type === 'text'; }).map(function(b){ return b.text || ''; }).join('\n');
+  const parsed = parseBuildReply(reply);
+  if (!parsed) return null;
+  if (parsed.mode === 'patches') {
+    const r = applyPatchesToArtifact(brokenHtml, parsed.patches);
+    return (r && r.ok) ? r.html : null;
+  }
+  return parsed.html || null;
+}
 
 async function validateBuiltArtifact(html) {
   return new Promise(function(resolve) {
@@ -5855,7 +5956,8 @@ DN_HOUSE_STYLE.trim() + '\n' +
 '- The HTML must include a complete <!DOCTYPE html> declaration and run standalone when opened in a browser.\n' +
 '- The UI must conform to the DN House Style above. That includes: light AND dark mode with toggle, neutral palette + ONE accent, sharp corners, hairline borders, Inter typography with proper scale, tabular numerics, real empty states, real loading states, toast notifications, theme toggle in the header.\n' +
 "- Handle errors gracefully. Validate inputs. Don't let runtime errors crash the page.\n" +
-'- Before submitting your output, mentally validate: (a) the JavaScript parses with no duplicate identifier declarations, (b) every onclick handler references a function that is actually defined, (c) the page renders something meaningful in its empty state.\n\n';
+'- CRITICAL JS SYNTAX RULE: never put a raw line break inside a string or regex literal. To represent a newline, use the escape \\n (e.g. "a\\nb", or the regex /[",\\n]/). Do NOT split a quoted string or a /.../ regex across two source lines. For CSV/TSV export, build the special-character test with a regex literal like /[",\\n]/ (or plain string methods such as indexOf) — do NOT use new RegExp() with a multi-line string. This exact mistake (a raw newline in a literal) has repeatedly produced "Invalid or unexpected token" and "Invalid regular expression: missing /" errors that fail validation, so be especially careful in any CSV/export, clipboard, or template-building code.\n' +
+'- Before submitting your output, mentally validate: (a) the JavaScript parses with no duplicate identifier declarations, (b) every onclick handler references a function that is actually defined, (c) no string or regex literal contains a raw line break (use \\n), (d) the page renders something meaningful in its empty state.\n\n';
 
   if (isRebuild) {
     // v1.1.1 #6 — guarantee auth-gate retrofits emit full HTML, not patches
