@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.3.2 #32</span>
+  <span class="topbar-version" title="DN_Admin build">v1.3.3 #33</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -3738,7 +3738,14 @@ function getKanbanColumn(req) {
   // shipped before and now have pending capabilities go to a dedicated "Improvement requested"
   // column so admins see at-a-glance that a user has asked for new work.
   if (status === 'not_built') return hasArtifact ? 'improvement_requested' : 'inbox';
-  if (status === 'ready_for_qa') return 'ready_qa';
+  // v1.3.3 #33 — a ready_for_qa row that still carries a user-requested (added_after_build)
+  // capability belongs in Improvement Requested, where it surfaces a direct rebuild button.
+  if (status === 'ready_for_qa') {
+    let _caps = req.capabilities;
+    if (typeof _caps === 'string') { try { _caps = JSON.parse(_caps); } catch (e) { _caps = []; } }
+    const hasPending = Array.isArray(_caps) && _caps.some(function(c) { return c && typeof c === 'object' && c.added_after_build; });
+    return hasPending ? 'improvement_requested' : 'ready_qa';
+  }
   if (status === 'qa_passed') return 'qa_passed';
   if (status === 'shipped') return 'shipped';
   return 'inbox';
@@ -4031,7 +4038,12 @@ function renderMonolithicView(req) {
               '<button class="mono-btn mono-btn-warning" onclick="buildRequest(\'' + req.id + '\')">Try rebuild without changes</button>' +
               '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'ready_for_qa') {
-    actions = '<button class="mono-btn mono-btn-primary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview</button>' +
+    // v1.3.3 #33 — if a user-requested improvement is still pending, offer a direct rebuild
+    // (rebuilds the pending capability with no admin text needed) alongside the QA actions.
+    actions = (hasPendingChanges
+        ? '<button class="mono-btn mono-btn-primary" onclick="buildRequest(\'' + req.id + '\')">Rebuild with changes →</button>'
+        : '') +
+              '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview</button>' +
               '<button class="mono-btn mono-btn-success" onclick="approveQa_mono(\'' + req.id + '\')">Approve</button>' +
               '<button class="mono-btn mono-btn-warning" onclick="openSendBackModal(\'' + req.id + '\')">Send back</button>' +
               '<button class="mono-btn mono-btn-warning" onclick="openNeedsInputModal()">Mark as needs input</button>' +
@@ -4409,7 +4421,7 @@ async function recoverOrphanedBuilds() {
         if (!aResp.ok) continue;
         const recent = await aResp.json();
         if (Array.isArray(recent) && recent.length > 0) continue;  // recent activity = not orphaned
-        const rollbackTo = (row.artifact_html && row.artifact_html.length > 0) ? 'ready_for_qa' : 'not_built';
+        const rollbackTo = 'not_built';  // v1.3.3 #33 — orphaned builds return to Improvement Requested / Inbox, not Ready for QA.
         const patchHeaders = Object.assign({}, headers, { 'Content-Type': 'application/json', 'Prefer': 'return=minimal' });
         await fetch(supaUrl + '/rest/v1/requests?id=eq.' + encodeURIComponent(row.id), {
           method: 'PATCH', headers: patchHeaders,
@@ -5179,7 +5191,11 @@ async function buildRequest(reqId) {
     } catch(_) { /* never let logging block recovery */ }
     alert('Build failed: ' + e.message + '\n\nThe request has been reset to its previous state.');
     // Roll back qa_status
-    const rollbackTo = (req.artifact_html && req.artifact_html.length > 0) ? 'ready_for_qa' : 'not_built';
+    // v1.3.3 #33 — A failed build produced nothing new to review, so it must never land in
+    // ready_for_qa. Returning to not_built routes it to the Improvement Requested column (when a
+    // prior artifact exists) with a direct "Rebuild with changes" button, and keeps the pending
+    // user capability intact so the next rebuild reapplies it without the admin re-typing anything.
+    const rollbackTo = 'not_built';
     req.qa_status = rollbackTo;
     await patchRequest(reqId, { qa_status: rollbackTo });
     renderMonolithicView(req);
