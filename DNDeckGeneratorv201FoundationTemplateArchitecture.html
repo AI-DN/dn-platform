@@ -982,6 +982,22 @@ function getAnthropicCost(model, inputTokens, outputTokens) {
 function uuid() { return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => { const r = Math.random()*16|0; const v = c==='x' ? r : (r&0x3|0x8); return v.toString(16); }); }
 function nowIso() { return new Date().toISOString(); }
 
+// ===== Multi-language support (Spanish LatAm, Portuguese Brazil) =====
+const LANGUAGES = {
+  'en':    { label: 'English',                    name: 'English' },
+  'es-LA': { label: 'Spanish (Latin America)',    name: 'Spanish (Latin American / neutral)' },
+  'pt-BR': { label: 'Portuguese (Brazil)',        name: 'Brazilian Portuguese' }
+};
+function currentLanguageName() { return (LANGUAGES[state.language] || LANGUAGES['en']).name; }
+function languageInstructionForContent() {
+  if (!state.language || state.language === 'en') return '';
+  return '\n\nLANGUAGE REQUIREMENT: Write ALL slide titles, body text, bullets, and speaker notes in ' + currentLanguageName() + '. Do NOT write content in English. Keep brand names (Digitata Networks, DN) and product names exactly as given. The JSON structure/keys stay in English; only the human-readable values are translated.';
+}
+function languageInstructionForImage() {
+  if (!state.language || state.language === 'en') return '';
+  return '\n\n=== SLIDE TEXT LANGUAGE ===\nAny and all text rendered inside the slide image (headline, subheads, body, bullets, labels, captions, callouts) MUST be written in ' + currentLanguageName() + '. Do NOT render slide text in English. Brand names and product names may remain as-is. Footer/branding overlays are applied separately and are not your concern.\n=== END SLIDE TEXT LANGUAGE ===';
+}
+
 const deckCost = {
   polish: 0, outline: 0, image: 0, testImage: 0, whitePaper: 0, whitePaperIllust: 0, imageDetails: [],
   total() { return this.polish + this.outline + this.image + this.testImage + this.whitePaper + this.whitePaperIllust; },
@@ -1028,7 +1044,7 @@ const state = {
   logoBacking: false, adminMode: false,
   slideMin: 6, slideMax: 10,
   maxIllustrations: 3,
-  composeStep: 0, rawText: '', slides: [],
+  composeStep: 0, rawText: '', slides: [], language: 'en',
   polishMode: null, polishing: false, generating: false,
   expandedRefine: {}, toastOnceKeys: {},
   lastSelectedModel: null,
@@ -1080,6 +1096,8 @@ function hydrateStateFromStorage() {
   if (about) state.aboutDN = about;
   const maxIll = get('dn_wp_max_illust');
   if (maxIll) { const n = parseInt(maxIll); if (!isNaN(n) && n >= 0 && n <= 20) state.maxIllustrations = n; }
+  const lang = get('dn_language');
+  if (lang && LANGUAGES[lang]) state.language = lang;
 }
 
 function toast(opts) {
@@ -1258,7 +1276,7 @@ async function polishWithClaude(_unused, mode) {
   const volumeNote = rawDetectedCount === null ? '' : (rawDetectedCount > max ? `The raw input contains roughly ${rawDetectedCount} slide-units of content - that is MORE than fits in ${max} slides. You MUST aggressively consolidate: merge related points, drop secondary detail, keep only the highest-signal ideas.` : rawDetectedCount < min ? `The raw input contains roughly ${rawDetectedCount} slide-units of content - that is LESS than fits in ${min} slides. You MUST expand thoughtfully: add reasoning, examples, implications. Do not invent unrelated claims.` : `The raw input naturally fits the ${min}-${max} range - shape it cleanly without distorting count.`);
   const topicSystem = `You are a presentation writer for Digitata Networks.\n\nThe user has given you a BRIEF TOPIC PROMPT instead of source material. Your job is to write a complete ${min}-${max} slide deck on that topic from scratch.\n\nHARD CONSTRAINT - slide count: You MUST return between ${min} and ${max} slides. Aim for ${target}. This is non-negotiable.\n\nEXPANSION GUIDANCE:\n- Each slide needs a clear, declarative title (5-10 words)\n- Each body must be substantive: 3-5 bullets OR a short informative paragraph (40-80 words)\n- Cover the topic comprehensively: introduce the subject, explore key facets, build to conclusions\n- Be informative and factual - do not invent claims you cannot justify\n- Match the implied audience and tone from the prompt (e.g. "for investors", "for engineers", "for sales team")\n- Vary slide types: intro/context, key concepts, comparison, detail, implications, conclusion/next steps\n- If the prompt mentions a specific slide count, prioritise that within the ${min}-${max} range\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
   const reshapeSystem = `You are a presentation editor for Digitata Networks.\n\nHARD CONSTRAINT - slide count: You MUST return between ${min} and ${max} slides. Aim for ${target}. This is non-negotiable. If you return outside this range, the output will be rejected and retried.\n\n${volumeNote}\n\nHOW TO HIT THE COUNT regardless of source volume:\n- If the source has MORE content than fits in ${max} slides: AGGRESSIVELY CONSOLIDATE. Merge, drop secondary detail, keep only the strongest ideas.\n- If the source has LESS than ${min} slides need: EXPAND thoughtfully. Add reasoning, examples, implications. Do not invent unrelated claims.\n- If it fits naturally: shape it cleanly.\n\nMode: ${mode}\nInstruction: ${modeInstruction}\n\nReturn ONLY valid JSON, no markdown fences:\n{"slides":[{"title":"...","body":"..."}]}`;
-  const baseSystem = isTopicMode ? topicSystem : reshapeSystem;
+  const baseSystem = (isTopicMode ? topicSystem : reshapeSystem) + languageInstructionForContent();
   const userPrompt = isTopicMode
     ? `Write a ${min}-${max} slide presentation (target ${target}) based on this topic prompt:\n\n${rawText}`
     : `Produce between ${min} and ${max} slides (target ${target}). Slide count compliance is mandatory - consolidate or expand as instructed.\n\nRAW:\n${rawText}`;
@@ -1381,7 +1399,7 @@ function composeSkillPrompt(skill, slide) {
       honorChecklist + '\n\n' +
       'If ANY zone fails the checklist \u2014 if even one has a stray text element, an icon overlapping its edge, a slightly different background, or any visible border \u2014 redo the composition. Honoring only some zones is a failure. Honoring all zones is success.\n=== END FINAL CHECK ===';
   }
-  let prompt = brandingBlock + preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock;
+  let prompt = brandingBlock + preBlock + base + '\n\nSLIDE-SPECIFIC CONTENT:\nTitle: ' + slide.title + '\n\nBody:\n' + (slide.body || '(no body)') + '\n\nRender visually with title prominent, body as structured elements.' + postBlock + languageInstructionForImage();
   return prompt;
 }
 function composeSkillPromptPreview(skill) { return composeSkillPrompt(skill, null); }
@@ -3425,7 +3443,7 @@ Output format: a strict JSON object with this shape:
   ]
 }
 
-No prose outside the JSON. No markdown fences. Just the JSON object.`;
+No prose outside the JSON. No markdown fences. Just the JSON object.` + languageInstructionForContent();
   const slidesContext = state.slides.map((s, i) => {
     return `SLIDE ${i + 1}: ${s.title}\nBody:\n${s.body || '(empty)'}\nSpeaker notes:\n${s.speakerNotes || '(empty)'}\n`;
   }).join('\n---\n\n');
@@ -3816,6 +3834,7 @@ function renderStep1() {
       <div class="step-header"><div class="step-num">2</div><div class="step-title">Input</div><div class="step-desc">${currentSkill ? escapeHtml(currentSkill.name) + ' · ' : ''}slide range, text, logos</div></div>
       <div class="step-body">
         <div class="field"><label class="field-label">Slide count range</label><div class="range-row"><div><input class="input" type="number" id="slideMin" min="1" max="50" value="${state.slideMin}"><div class="field-hint" style="margin-top:4px">Minimum</div></div><div><input class="input" type="number" id="slideMax" min="1" max="50" value="${state.slideMax}"><div class="field-hint" style="margin-top:4px">Maximum</div></div></div></div>
+        <div class="field"><label class="field-label">Content language <span class="subtle">applies to slide text, speaker notes &amp; in-image text — DN branding &amp; interface stay English</span></label><div class="template-select" style="max-width:320px"><select class="select" id="deckLanguage"><option value="en" ${state.language === 'en' ? 'selected' : ''}>English</option><option value="es-LA" ${state.language === 'es-LA' ? 'selected' : ''}>Spanish (Latin America)</option><option value="pt-BR" ${state.language === 'pt-BR' ? 'selected' : ''}>Portuguese (Brazil)</option></select></div></div>
         <!-- Build #95 — import existing deck as PDF -->
         <div id="pdfImportBanner" style="background:var(--surface-2,var(--surface));border:1px dashed var(--border);border-radius:var(--radius-md);padding:10px 12px;margin-bottom:14px;display:flex;align-items:center;gap:10px">
           <span style="font-size:20px;flex-shrink:0">\u{1F4C4}</span>
@@ -3873,6 +3892,8 @@ function renderStep1() {
   if (pdfBtn) pdfBtn.onclick = () => openPdfImportModal();
   document.getElementById('slideMin').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMin = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
   document.getElementById('slideMax').onchange = e => { let v = Math.max(1, Math.min(50, parseInt(e.target.value) || 1)); state.slideMax = v; if (state.slideMin > state.slideMax) { const s = state.slideMin; state.slideMin = state.slideMax; state.slideMax = s; } persistSetting('dn_slide_min', String(state.slideMin)); persistSetting('dn_slide_max', String(state.slideMax)); renderStep1(); };
+  const langSel = document.getElementById('deckLanguage');
+  if (langSel) langSel.onchange = e => { state.language = e.target.value; persistSetting('dn_language', state.language); toast({ type: 'info', message: 'Content language: ' + (LANGUAGES[state.language] || LANGUAGES['en']).label }); };
   // Build #57 — branding slot tile clicks
   document.querySelectorAll('[data-branding-slot]').forEach(el => {
     el.onclick = () => openBrandingPicker(el.getAttribute('data-branding-slot'));
@@ -4038,7 +4059,7 @@ async function addSlideWithAi() {
   let title = 'New slide', body = '';
   if (key && state.slides.length > 0) {
     try {
-      const sys = `You are a presentation editor for Digitata Networks. Suggest the next slide to add to the deck below. It should fit the narrative flow, not duplicate existing content, and stay anchored to the deck's theme. Return ONLY valid JSON: {"title":"...","body":"..."} (body uses '\\n' between lines, 3-6 short lines max).`;
+      const sys = `You are a presentation editor for Digitata Networks. Suggest the next slide to add to the deck below. It should fit the narrative flow, not duplicate existing content, and stay anchored to the deck's theme. Return ONLY valid JSON: {"title":"...","body":"..."} (body uses '\\n' between lines, 3-6 short lines max).` + languageInstructionForContent();
       const user = `Skill: ${skill ? skill.name : '(none)'}\nExisting deck:\n${deckCtx}\n\nWhat is the most logical NEXT slide to add?`;
       const resp = await fetch('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -4549,7 +4570,7 @@ async function rewriteNotesWithClaude(idx) {
   const key = (state.apiKeys.anthropic || '').trim();
   if (!key) { toast({ type: 'error', message: 'Set Anthropic API key in Settings.' }); return; }
   slide.rewritingNotes = true; renderStep5Slides();
-  const systemPrompt = 'You are a presentation coach. Rewrite the following slide content as natural speaker notes — flowing presenter language a person would actually say aloud while presenting. Convert bullets to sentences. Keep the same facts and order. Stay under 150 words. Return only the rewritten notes, no preamble.';
+  const systemPrompt = 'You are a presentation coach. Rewrite the following slide content as natural speaker notes — flowing presenter language a person would actually say aloud while presenting. Convert bullets to sentences. Keep the same facts and order. Stay under 150 words. Return only the rewritten notes, no preamble.' + languageInstructionForContent();
   const userPrompt = `Slide title: ${slide.title}\n\nSlide content:\n${slide.speakerNotes || slide.body || ''}`;
   const modelName = 'claude-sonnet-4-6';
   try {
