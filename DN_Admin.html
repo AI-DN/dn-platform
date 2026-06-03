@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.6.0 #41</span>
+  <span class="topbar-version" title="DN_Admin build">v1.7.0 #42</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1137,6 +1137,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
     <button class="btn-sm" id="btn-access-requests" onclick="openAccessRequestsPanel()" title="Pending access requests" style="display:none;">📥 Access Requests<span class="btn-pending-badge" id="ar-pending-badge" style="display:none;">0</span></button>
     <button class="btn-sm" id="btn-app-access" onclick="openAppAccessPanel()" title="App access — per-app grants" style="display:none;">🔑 App Access</button>
     <button class="btn-sm" id="btn-activity" onclick="openActivityPanel()" title="Ecosystem activity & usage" style="display:none;">📊 Activity</button>
+    <button class="btn-sm" id="btn-builds" onclick="toggleBuildMonitor()" title="Build monitor — live build streams">🖥 Builds<span class="btn-pending-badge" id="builds-badge" style="display:none;">0</span></button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (API keys, GitHub)" aria-label="Settings">⚙</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
@@ -1199,6 +1200,15 @@ body.chat-open .board-wrap { padding-right: 420px; }
       <div class="users-list" id="users-list"></div>
     </div>
   </div>
+</div>
+
+<!-- Build Monitor panel (v1.7.0 #42) -->
+<div id="build-monitor" style="display:none;position:fixed;top:0;right:0;width:400px;max-width:92vw;height:100vh;background:#0a0e20;border-left:1px solid rgba(255,255,255,0.1);box-shadow:-8px 0 30px rgba(0,0,0,0.5);z-index:240;flex-direction:column;font-family:inherit;">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.08);flex:0 0 auto;">
+    <span style="font-family:'Syne',system-ui,sans-serif;font-weight:700;font-size:14px;color:#47D1FF;">Build monitor</span>
+    <button onclick="closeBuildMonitor()" title="Close" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:#9aa1bd;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+  </div>
+  <div id="build-monitor-body" style="flex:1 1 auto;overflow:auto;padding:12px 14px;"></div>
 </div>
 
 <!-- Activity overlay (admin-only) — v1.4.0 #38 -->
@@ -4247,11 +4257,9 @@ function renderMonolithicView(req) {
     actions += '<button class="mono-btn mono-btn-warning" onclick="openNeedsInputModal()">Mark as needs input</button>';
     actions += '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'building') {
-    // v1.6.0 #41 — live stream view: phase line, running stats, and a typing tail
-    // that updates from the model's streamed output as the build happens.
-    actions = '<div class="mono-building"><span class="mono-spinner"></span><span id="build-stream-phase">Starting build…</span></div>' +
-      '<div id="build-stream-stats" style="font-size:11px;color:#8089a3;margin-top:6px;min-height:14px;"></div>' +
-      '<pre id="build-stream-tail" style="margin:10px 0 0;max-height:260px;overflow:auto;background:#0a1024;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.55;color:#9fd2ff;white-space:pre-wrap;word-break:break-word;"></pre>';
+    // v1.7.0 #42 — live stream now lives in the dockable Build Monitor (right panel).
+    actions = '<div class="mono-building"><span class="mono-spinner"></span>Building…' +
+      '<a onclick="openBuildMonitor()" style="color:#47D1FF;cursor:pointer;text-decoration:underline;margin-left:8px;">watch in Build Monitor →</a></div>';
   } else if (status === 'build_failed') {
     actions = '<button class="mono-btn mono-btn-primary" onclick="openSendBackModal(\'' + req.id + '\')">Send back to fix errors</button>' +
               '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview broken artifact</button>' +
@@ -4621,9 +4629,9 @@ async function executeFetchUrlTool(input) {
 // or Improvement Requested / Inbox (if not).
 // v1.3.4 #34 — Guard against losing an in-flight build to an accidental reload/close.
 window.addEventListener('beforeunload', function(e) {
-  if (window._buildInFlightReqId) {
+  if (window._buildInFlightReqId || (typeof dnBuildPending === 'function' && dnBuildPending())) {
     e.preventDefault();
-    e.returnValue = 'A build is still running — leaving or reloading this page will interrupt it.';
+    e.returnValue = 'A build is still running or queued — leaving or reloading this page will interrupt it.';
     return e.returnValue;
   }
 });
@@ -4924,6 +4932,77 @@ async function openBuildAdvisor(reqId) {
 // Returns { ok:true, status:200, data } | { ok:false, status, errText }.
 // Throws on network error or idle-abort (caller maps abort → stream_idle_timeout).
 // ════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════
+// BUILD MONITOR (v1.7.0 #42) — dockable right-side panel. Each build streams
+// into its own buffer in window.dnBuilds (survives completion), and the panel
+// renders from those buffers. Builds auto-queue (one at a time) via a promise
+// chain, so kicking off several apps runs them in sequence, all visible here.
+// ════════════════════════════════════════════════════════════════════════
+window.dnBuilds = window.dnBuilds || {};
+let _buildQueueTail = Promise.resolve();
+let _monitorPaintAt = 0;
+let _monitorSelected = null;
+let _bmUserClosed = false;
+
+function dnBuildPending() {
+  return Object.keys(window.dnBuilds).some(function(k){ var s = window.dnBuilds[k].status; return s === 'building' || s === 'queued'; });
+}
+function refreshBuildMonitorBadge() {
+  var n = Object.keys(window.dnBuilds).filter(function(k){ var s = window.dnBuilds[k].status; return s === 'building' || s === 'queued'; }).length;
+  var b = document.getElementById('builds-badge');
+  if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; }
+}
+function dnSetBuild(reqId, patch) {
+  var b = window.dnBuilds[reqId] || { reqId: reqId, tail: '', phase: '', outChars: 0, thinkChars: 0 };
+  for (var k in patch) b[k] = patch[k];
+  window.dnBuilds[reqId] = b;
+  if (!_monitorSelected || !window.dnBuilds[_monitorSelected]) _monitorSelected = reqId;
+  renderBuildMonitor(patch.hasOwnProperty('status'));
+  refreshBuildMonitorBadge();
+}
+function selectBuildMonitor(id) { _monitorSelected = id; renderBuildMonitor(true); }
+function openBuildMonitor() { _bmUserClosed = false; var p = document.getElementById('build-monitor'); if (p) p.style.display = 'flex'; try { localStorage.setItem('dn_bm_open', '1'); } catch(_) {} renderBuildMonitor(true); }
+function closeBuildMonitor() { _bmUserClosed = true; var p = document.getElementById('build-monitor'); if (p) p.style.display = 'none'; try { localStorage.setItem('dn_bm_open', '0'); } catch(_) {} }
+function toggleBuildMonitor() { var p = document.getElementById('build-monitor'); if (!p) return; if (p.style.display === 'flex') closeBuildMonitor(); else openBuildMonitor(); }
+function clearFinishedBuilds() {
+  Object.keys(window.dnBuilds).forEach(function(k){ var s = window.dnBuilds[k].status; if (s === 'done' || s === 'failed') delete window.dnBuilds[k]; });
+  if (!window.dnBuilds[_monitorSelected]) _monitorSelected = null;
+  renderBuildMonitor(true); refreshBuildMonitorBadge();
+}
+function renderBuildMonitor(force) {
+  var nowt = Date.now();
+  if (!force && (nowt - _monitorPaintAt) < 100) return;
+  _monitorPaintAt = nowt;
+  var body = document.getElementById('build-monitor-body');
+  if (!body) return;
+  var ids = Object.keys(window.dnBuilds);
+  if (ids.length === 0) { body.innerHTML = '<div style="color:#7a8099;font-size:12px;line-height:1.5;">No builds running. Start one from a request and it will stream here. You can queue several — they run one at a time.</div>'; return; }
+  var rank = { building: 0, queued: 1, failed: 2, done: 3 };
+  ids.sort(function(a, b){ var A = window.dnBuilds[a], B = window.dnBuilds[b]; return ((rank[A.status] == null ? 9 : rank[A.status]) - (rank[B.status] == null ? 9 : rank[B.status])) || ((B.startedAt || B.queuedAt || 0) - (A.startedAt || A.queuedAt || 0)); });
+  if (!_monitorSelected || !window.dnBuilds[_monitorSelected]) _monitorSelected = ids[0];
+  var list = ids.map(function(id){
+    var b = window.dnBuilds[id];
+    var chip = b.status === 'building' ? '<span style="color:#47D1FF;">● building</span>' : b.status === 'queued' ? '<span style="color:#f59e0b;">… queued</span>' : b.status === 'failed' ? '<span style="color:#f05060;">✗ failed</span>' : '<span style="color:#22c55e;">✓ done v' + (b.version || '') + '</span>';
+    var on = (id === _monitorSelected);
+    return '<button onclick="selectBuildMonitor(\'' + id + '\')" style="display:block;width:100%;text-align:left;margin-bottom:6px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1px solid ' + (on ? '#47D1FF' : 'rgba(255,255,255,0.08)') + ';background:' + (on ? 'rgba(71,209,255,0.12)' : 'rgba(255,255,255,0.03)') + ';color:#e8eaf0;font:inherit;">' +
+      '<div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + esc(b.title || id.slice(0, 8)) + '</div>' +
+      '<div style="font-size:10.5px;margin-top:2px;">' + chip + '</div></button>';
+  }).join('');
+  var s = window.dnBuilds[_monitorSelected];
+  var detail = '';
+  if (s) {
+    var phase = s.status === 'queued' ? 'Queued — waiting for an earlier build to finish…' : s.status === 'failed' ? ('Failed: ' + esc(s.error || 'unknown')) : s.status === 'done' ? ('Completed ✓  (v' + (s.version || '') + ')') : (s.phase === 'thinking' ? 'Thinking…' : s.phase === 'tool' ? ('Calling tool' + (s.toolName ? ': ' + esc(s.toolName) : '') + '…') : s.phase === 'writing' ? 'Writing the app…' : 'Working…');
+    var st = []; if (s.thinkChars) st.push('~' + Math.round(s.thinkChars / 4).toLocaleString() + ' thinking tokens'); if (s.outChars) st.push((Math.round(s.outChars / 1024 * 10) / 10) + ' KB generated');
+    detail = '<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">' +
+      '<div style="font-size:12px;color:#cdd3e6;font-weight:600;">' + phase + '</div>' +
+      '<div style="font-size:11px;color:#8089a3;margin-top:3px;min-height:13px;">' + st.join('  ·  ') + '</div>' +
+      (s.tail ? ('<pre id="bm-tail" style="margin:8px 0 0;max-height:calc(100vh - 250px);overflow:auto;background:#070b18;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;color:#9fd2ff;white-space:pre-wrap;word-break:break-word;">' + esc(s.tail) + '</pre>') : '') + '</div>';
+  }
+  var finished = ids.some(function(id){ var st = window.dnBuilds[id].status; return st === 'done' || st === 'failed'; });
+  body.innerHTML = list + detail + (finished ? '<div style="margin-top:10px;text-align:right;"><button onclick="clearFinishedBuilds()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:#8089a3;border-radius:6px;padding:4px 10px;font:inherit;font-size:11px;cursor:pointer;">Clear finished</button></div>' : '');
+  var pre = document.getElementById('bm-tail'); if (pre) pre.scrollTop = pre.scrollHeight;
+}
+
 async function streamAnthropicMessage(reqBody, apiKey, idleMs, onProgress) {
   const controller = new AbortController();
   let idleTimer = null;
@@ -5112,6 +5191,15 @@ async function buildRequest(reqId) {
   delete _buildModelChoice[reqId];
   const buildEffort = (buildChoice && dnModelSupportsEffort(buildChoice.model)) ? (buildChoice.effort || '') : '';
 
+  // ── v1.7.0 #42 — register in the Build Monitor and auto-queue (one build at a time) ──
+  dnSetBuild(reqId, { title: req.title || 'Untitled', status: 'queued', queuedAt: Date.now(), phase: '', tail: '', outChars: 0, thinkChars: 0, error: null, version: req.artifact_version || 0 });
+  if (!_bmUserClosed) openBuildMonitor(); else refreshBuildMonitorBadge();
+  const _prevTurn = _buildQueueTail;
+  let _releaseTurn = function() {};
+  _buildQueueTail = new Promise(function(res) { _releaseTurn = res; });
+  try { await _prevTurn; } catch(_) {}
+  dnSetBuild(reqId, { status: 'building', startedAt: Date.now() });
+
   // Mark building
   req.qa_status = 'building';
   window._buildInFlightReqId = reqId;
@@ -5230,23 +5318,9 @@ async function buildRequest(reqId) {
       } catch(_) {}
     }, HEARTBEAT_EVERY_MS);
 
-    // v1.6.0 #41 — paint the streamed build progress onto the Building card (throttled ~8fps).
-    var _streamPaintAt = 0;
+    // v1.7.0 #42 — stream progress flows into the Build Monitor panel (per-build buffer).
     function onBuildProgress(p) {
-      var nowt = Date.now();
-      if (p.phase !== 'tool' && (nowt - _streamPaintAt) < 120) return;
-      _streamPaintAt = nowt;
-      var ph = document.getElementById('build-stream-phase');
-      var stt = document.getElementById('build-stream-stats');
-      var tl = document.getElementById('build-stream-tail');
-      if (ph) ph.textContent = (p.phase === 'thinking' ? 'Thinking…' : p.phase === 'tool' ? ('Calling tool' + (p.toolName ? ': ' + p.toolName : '') + '…') : p.phase === 'writing' ? 'Writing the app…' : 'Working…');
-      if (stt) {
-        var parts = [];
-        if (p.thinkChars) parts.push('~' + Math.round(p.thinkChars / 4).toLocaleString() + ' thinking tokens');
-        if (p.outChars) parts.push((Math.round(p.outChars / 1024 * 10) / 10) + ' KB generated');
-        stt.textContent = parts.join('  ·  ');
-      }
-      if (tl && p.tail) { tl.textContent = p.tail; tl.scrollTop = tl.scrollHeight; }
+      dnSetBuild(reqId, { phase: p.phase, outChars: p.outChars, thinkChars: p.thinkChars, toolName: p.toolName, tail: p.tail });
     }
 
     for (let mi = 0; mi < buildChain.length; mi++) {
@@ -5519,6 +5593,7 @@ async function buildRequest(reqId) {
         qa_notes: failNotes
       });
       Object.assign(req, { artifact_html: html, artifact_version: failVersion, qa_status: 'build_failed', qa_notes: failNotes });
+      dnSetBuild(reqId, { status: 'failed', error: 'validation — ' + validationErrors.length + ' JS error(s)', finishedAt: Date.now() });
       await logActivity({
         request_id: reqId,
         actor: 'admin',
@@ -5569,6 +5644,7 @@ async function buildRequest(reqId) {
       description: (isRebuild ? 'Rebuild' : 'Build') + ' v' + newVersion + ' complete (' + Math.round(html.length / 1024) + ' KB)' + _costStr
     });
 
+    dnSetBuild(reqId, { status: 'done', finishedAt: Date.now(), version: newVersion });
     renderMonolithicView(req);
     window._buildInFlightReqId = null;
   } catch(e) {
@@ -5603,10 +5679,13 @@ async function buildRequest(reqId) {
     catch (pErr) { console.error('Rollback patch failed (row may show building until reload/orphan-recovery):', pErr); }
     renderMonolithicView(req);
     window._buildInFlightReqId = null;
+    dnSetBuild(reqId, { status: 'failed', error: (errMsg || 'error').slice(0, 200), finishedAt: Date.now() });
     alert('Build failed: ' + e.message + '\n\nThe request has been reset to Improvement Requested — you can rebuild it.');
   } finally {
     // v1.3.4 #34 — always stop the build-level heartbeat (success, error, or early return).
     if (buildHeartbeat) { try { clearInterval(buildHeartbeat); } catch(_) {} buildHeartbeat = null; }
+    // v1.7.0 #42 — release the queue so the next queued build can start.
+    try { _releaseTurn(); } catch(_) {}
   }
 }
 
