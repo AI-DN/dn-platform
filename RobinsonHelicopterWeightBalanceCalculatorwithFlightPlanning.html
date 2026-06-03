@@ -121,6 +121,10 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
 .cmp-table .numeric{text-align:right;font-family:ui-monospace,Menlo,monospace;}
 .btnbar{display:flex;flex-wrap:wrap;gap:8px;}
 .envwrap svg{width:100%;height:auto;display:block;}
+.da-inputs-box{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;margin-bottom:10px;}
+.da-inputs-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-top:6px;}
+.da-inputs-grid>div .sub{font-size:11px;}
+.da-inputs-grid>div .mono{font-size:14px;font-weight:600;}
 #printArea{display:none;}
 @media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{display:block;position:absolute;left:0;top:0;width:100%;padding:20px;color:#000;}}
 .logitem{border-bottom:1px solid var(--border);padding:10px 0;font-size:12px;}
@@ -135,7 +139,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
   body{visibility:visible !important;background:#07091a !important}
 </style>
 <div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
-  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+  <div style="font-size:13px;color:#7a8099">Checking access\u2026</div>
 </div>
 <script>
 (function(){
@@ -145,12 +149,12 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
   var APP_TITLE = "Robinson Helicopter Weight & Balance Calculator with Flight Planning";
   var o = document.getElementById('dn-auth-overlay');
   function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
-  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
-  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting\u2026'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending\u2026'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='\u2713 Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
   function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
   if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
-  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); try{ var _lk='dn_open_'+APP_REQUEST_ID; var _last=0; try{_last=+(sessionStorage.getItem(_lk)||0);}catch(e){} if(Date.now()-_last>1800000){ try{sessionStorage.setItem(_lk,String(Date.now()));}catch(e){} fetch(SUPABASE_URL+'/rest/v1/activity_log',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({request_id:APP_REQUEST_ID,actor:'end_user',actor_name:(session.user.email||session.user.id),action:'app_opened',description:'Opened '+APP_TITLE})}).catch(function(){}); } }catch(e){} } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
 })();
 </script>
 <!-- ===== END DN Platform Auth Gate ===== -->
@@ -163,7 +167,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     <div class='cap' style='margin-bottom:8px'>Quick Load Presets</div>
     <div id='quickTpls'></div>
     <div style='margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center'><span class='cap'>Saved Configurations</span></div>
-    <div style='display:flex;gap:6px;margin-bottom:10px'><input class='input' id='saveTplName' placeholder='Name this load…'><button class='btn-secondary' id='saveTplBtn'>Save</button></div>
+    <div style='display:flex;gap:6px;margin-bottom:10px'><input class='input' id='saveTplName' placeholder='Name this load\u2026'><button class='btn-secondary' id='saveTplBtn'>Save</button></div>
     <div id='savedTpls'></div>
     <div style='margin:18px 0 8px' class='cap'>Flight Log</div>
     <div id='flightLog'></div>
@@ -237,7 +241,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
   </div>
 
   <div class='card collapsed' id='perfCard'>
-    <div class='collapse-head' data-collapse='perfCard'><div class='h2'>Performance Notes</div><span class='chev'>&#9662;</span></div>
+    <div class='collapse-head' data-collapse='perfCard'><div class='h2'>Density Altitude &amp; Hover Performance</div><span class='chev'>&#9662;</span></div>
     <div class='collapse-body'><div id='perfBody'></div></div>
   </div>
 
@@ -351,7 +355,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     m.stations.forEach(function(s){
       var val=(w[s.id]!==undefined&&w[s.id]!=='')?w[s.id]:'';
       var sub='arm '+fmt1.format(s.arm)+' in';
-      var arm=fmt1.format(s.arm)+'\"';
+      var arm=fmt1.format(s.arm)+'"';
       if(s.type==='fuel'){var gal=val?(Number(val)/m.fuelDensity):0;sub='max '+fmt1.format(s.maxGal)+' gal'+(val?' \u00b7 '+fmt1.format(gal)+' gal':'');}
       if(s.type==='baggage'){sub='max '+s.max+' lb';}
       html+="<div class='stationrow'><div><div class='st-name'>"+s.name+" <button class='presetbtn' data-preset='"+s.id+"'>presets</button></div><div class='st-sub'>"+sub+"</div></div>";
@@ -368,7 +372,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px'><span class='statuspill s-"+c.status+"'><span class='ic'></span>"+sLbl+"</span><span class='sub'>"+fmt0.format(pct)+"% of MGW</span></div>";
     html+="<div class='totrow big'><span class='label'>Total Weight</span><span class='val' style='color:"+(c.over?'var(--danger)':'var(--text)')+"'>"+fmt0.format(c.tw)+" lb</span></div>";
     html+="<div class='totrow'><span class='label'>Max Gross Weight</span><span class='val' style='font-size:14px;color:var(--text-muted)'>"+fmt0.format(c.m.maxGross)+" lb</span></div>";
-    html+="<div class='totrow big'><span class='label'>CG Position</span><span class='val' style='color:"+(c.cgOut?'var(--danger)':'var(--text)')+"'>"+(c.hasLoad?fmt1.format(c.cg)+'\"':'&mdash;')+"</span></div>";
+    html+="<div class='totrow big'><span class='label'>CG Position</span><span class='val' style='color:"+(c.cgOut?'var(--danger)':'var(--text)')+"'>"+(c.hasLoad?fmt1.format(c.cg)+'"':'&mdash;')+"</span></div>";
     html+="<div class='totrow'><span class='label'>Limits at this weight</span><span class='val' style='font-size:13px;color:var(--text-muted)'>"+fmt1.format(c.fwd)+" &ndash; "+fmt1.format(c.aft)+"\"</span></div>";
     $('totalsBox').innerHTML=html;
   }
@@ -396,16 +400,14 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     var poly=[];m.fwd.forEach(function(p){poly.push(X(p.arm)+','+Y(p.w));});for(var i=m.aft.length-1;i>=0;i--){poly.push(X(m.aft[i].arm)+','+Y(m.aft[i].w));}
     var colMap={green:'var(--success)',yellow:'var(--warning)',red:'var(--danger)',empty:'var(--text-subtle)'};
     var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="CG envelope">';
-    // grid + axes
     s+='<line x1="'+pl+'" y1="'+pt+'" x2="'+pl+'" y2="'+(H-pb)+'" stroke="var(--border-strong)"/>';
     s+='<line x1="'+pl+'" y1="'+(H-pb)+'" x2="'+(W-pr)+'" y2="'+(H-pb)+'" stroke="var(--border-strong)"/>';
     var wstep=(m.maxGross-m.minGross)<=600?100:200;
     for(var ww=Math.ceil(wMin/wstep)*wstep;ww<wMax;ww+=wstep){if(ww<wMin)continue;var yy=Y(ww);s+='<line x1="'+pl+'" y1="'+yy+'" x2="'+(W-pr)+'" y2="'+yy+'" stroke="var(--border)"/>';s+='<text x="'+(pl-6)+'" y="'+(yy+3)+'" text-anchor="end" font-size="9" fill="var(--text-subtle)">'+ww+'</text>';}
     for(var aa=Math.ceil(armMin);aa<=armMax;aa+=2){var xx=X(aa);s+='<text x="'+xx+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="var(--text-subtle)">'+aa+'</text>';}
     s+='<text x="'+((pl+W-pr)/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)">CG arm (in)</text>';
-    s+='<text x="12" y="'+((pt+H-pb)/2)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)" transform="rotate(-90 12 '+((pt+H-pb)/2)+')">Weight (lb)</text>';
+    s+='<text x="12" y="'+((pt+H-pb)/2)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)" transform="rotate(-90 12 '+((pt+H-pb)/2)+')" >Weight (lb)</text>';
     s+='<polygon points="'+poly.join(' ')+'" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>';
-    // MGW line
     s+='<line x1="'+pl+'" y1="'+Y(m.maxGross)+'" x2="'+(W-pr)+'" y2="'+Y(m.maxGross)+'" stroke="var(--danger)" stroke-dasharray="4 3" stroke-width="1"/>';
     if(c.hasLoad){var ew=Number(emp().w)||0,earm=Number(emp().arm)||0;var ex=X(Math.max(armMin,Math.min(armMax,earm))),ey=Y(Math.max(wMin,Math.min(wMax,ew)));var cx=X(Math.max(armMin,Math.min(armMax,c.cg))),cy=Y(Math.max(wMin,Math.min(wMax,c.tw)));s+='<line x1="'+cx+'" y1="'+pt+'" x2="'+cx+'" y2="'+(H-pb)+'" stroke="'+colMap[c.status]+'" stroke-width="0.5" stroke-dasharray="2 2"/>';if(ew>0){s+='<line x1="'+ex+'" y1="'+ey+'" x2="'+cx+'" y2="'+cy+'" stroke="var(--text-muted)" stroke-width="1.3" stroke-dasharray="3 2"/>';s+='<circle cx="'+ex+'" cy="'+ey+'" r="4" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="1.5"/>';s+='<text x="'+(ex-7)+'" y="'+(ey+3)+'" text-anchor="end" font-size="9" fill="var(--text-muted)">Empty</text>';}s+='<circle cx="'+cx+'" cy="'+cy+'" r="8" fill="'+colMap[c.status]+'" fill-opacity="0.25"/><circle cx="'+cx+'" cy="'+cy+'" r="4.5" fill="'+colMap[c.status]+'" stroke="var(--surface)" stroke-width="1.5"><animate attributeName="r" from="4.5" to="5.5" dur="0.2s"/></circle>';s+='<text x="'+(cx+7)+'" y="'+(cy-6)+'" font-size="9" font-weight="600" fill="'+colMap[c.status]+'">T/O</text>';}
     s+='</svg>';
@@ -459,7 +461,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     var resGal=rate*(resMin/60);
     var usable=Math.max(0,gal-resGal);
     var endTotal=rate>0?gal/rate:0;var endUsable=rate>0?usable/rate:0;
-    function hm(h){if(h<=0)return '0:00';var hh=Math.floor(h);var mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}return hh+':' +(mm<10?'0':'')+mm;}
+    function hm(h){if(h<=0)return '0:00';var hh=Math.floor(h);var mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}return hh+':'+(mm<10?'0':'')+mm;}
     $('fuelKpis').innerHTML=
       "<div class='kpi'><div class='v'>"+fmt1.format(gal)+"</div><div class='l'>Fuel aboard (gal)</div></div>"+
       "<div class='kpi'><div class='v'>"+fmt0.format(fuelLb)+"</div><div class='l'>Fuel weight (lb)</div></div>"+
@@ -468,21 +470,76 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
       "<div class='kpi'><div class='v'>"+fmt1.format(resGal)+"</div><div class='l'>Reserve (gal)</div></div>";
   }
 
+  // ---- Density Altitude & Hover Performance advisory ----
   function renderPerf(c){
-    var w=computeWx();var m=M();
+    var w=computeWx();
+    var m=M();
     var html='';
-    if(!w){html+="<div class='alert'><span>&#9432;</span><span>Enter weather data above to estimate performance impact.</span></div>";}
-    else{
-      var hogeNote;
-      if(w.da>9000)hogeNote='Out-of-ground-effect hover likely unavailable at gross weight. Plan running takeoff.';
-      else if(w.da>6000)hogeNote='OGE hover margin reduced. Verify against RFM HOGE chart for '+fmt0.format(c.tw||m.maxGross)+' lb.';
-      else hogeNote='OGE hover normally available within weight limits at this density altitude.';
+
+    // Master disclaimer — always shown at top
+    html+="<div style='background:var(--warning-bg);border:1px solid var(--warning);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;color:var(--text);margin-bottom:12px'>";
+    html+="<b style='color:var(--warning)'>ESTIMATES ONLY</b> &mdash; Always verify against the current "+m.name+" Pilot's Operating Handbook (POH). Not for operational use. No performance data is embedded in this application."; 
+    html+="</div>";
+
+    if(!w){
+      html+="<div class='alert'><span>&#9432;</span><span>Enter OAT, altimeter setting, and field elevation in the <b>Weather &amp; Density Altitude</b> section above to compute density altitude and hover performance advisory.</span></div>";
+    } else {
+      // Inputs used — pilot sanity-check panel
+      html+="<div class='da-inputs-box'>";
+      html+="<div class='cap'>Inputs used for this estimate</div>";
+      html+="<div class='da-inputs-grid'>";
+      html+="<div><div class='sub'>OAT</div><div class='mono'>"+fmt1.format(w.oat)+"&deg;C</div></div>";
+      html+="<div><div class='sub'>Altimeter</div><div class='mono'>"+fmt1.format(w.alt)+" inHg</div></div>";
+      html+="<div><div class='sub'>Field Elevation</div><div class='mono'>"+fmt0.format(w.elev)+" ft</div></div>";
+      html+="</div></div>";
+
+      // Pressure Alt + Density Alt KPIs
+      var daColor=w.da>8000?'var(--danger)':w.da>6000?'var(--warning)':'var(--text)';
+      var isaDev=(w.oat-w.isa);
       html+="<div class='kpis'>";
-      html+="<div class='kpi'><div class='v'>"+fmt0.format(w.da)+"</div><div class='l'>Planning DA (ft)</div></div>";
-      html+="<div class='kpi'><div class='v'>"+fmt0.format(c.tw||0)+"</div><div class='l'>Takeoff weight (lb)</div></div>";
+      html+="<div class='kpi'><div class='v'>"+fmt0.format(w.pa)+"</div><div class='l'>Pressure Alt (ft)</div></div>";
+      html+="<div class='kpi'><div class='v' style='color:"+daColor+"'>"+fmt0.format(w.da)+"</div><div class='l'>Density Alt (ft) &mdash; <em>est.</em></div></div>";
+      html+="<div class='kpi'><div class='v'>"+(isaDev>=0?'+':'')+fmt0.format(isaDev)+"&deg;</div><div class='l'>ISA Deviation</div></div>";
+      html+="<div class='kpi'><div class='v'>"+fmt0.format(c.tw||0)+"</div><div class='l'>Current gross wt (lb)</div></div>";
       html+="</div>";
-      html+="<div class='alert "+(w.da>6000?'warn':'ok')+"' style='margin-top:10px'><span>"+(w.da>6000?'&#9888;':'&#10003;')+"</span><span><b>Hover ceiling: </b>"+hogeNote+"</span></div>";
-      html+="<div class='alert' style='margin-top:6px'><span>&#9432;</span><span>Takeoff distance over a 50-ft obstacle increases substantially with density altitude and weight. Always confirm against the published Section 5 performance charts in the RFM for this aircraft.</span></div>";
+
+      // HOGE advisory
+      var pctMgw=m.maxGross>0?(c.tw/m.maxGross*100):0;
+      var hogeStatus,hogeClass,hogeIcon,hogeDetail;
+
+      if(!c.hasLoad){
+        hogeStatus='No load entered';
+        hogeClass='';
+        hogeIcon='&#9432;';
+        hogeDetail='Enter occupant and fuel weights in the calculator above to generate a weight-dependent hover advisory.';
+      } else if(w.da>9000){
+        hogeStatus='HOGE likely marginal \u2014 ESTIMATE';
+        hogeClass='danger';
+        hogeIcon='&#9888;';
+        hogeDetail='At '+fmt0.format(w.da)+' ft density altitude, hover out-of-ground-effect (HOGE) is likely unavailable at or near max gross weight for this model class. Plan a roll-on or running departure. Verify the HOGE ceiling chart in POH Section 5 for '+fmt0.format(c.tw)+' lb ('+fmt1.format(pctMgw)+'% of '+fmt0.format(m.maxGross)+' lb MGW).';
+      } else if(w.da>6000||pctMgw>=95){
+        hogeStatus='HOGE margin reduced \u2014 ESTIMATE';
+        hogeClass='warn';
+        hogeIcon='&#9888;';
+        var reasonParts=[];
+        if(w.da>6000)reasonParts.push('density altitude '+fmt0.format(w.da)+' ft');
+        if(pctMgw>=95)reasonParts.push('gross weight at '+fmt1.format(pctMgw)+'% of max gross');
+        hogeDetail='With '+reasonParts.join(' and')+', available HOGE ceiling is reduced. Check POH Section 5 HOGE chart for '+fmt0.format(c.tw)+' lb at this density altitude before committing to a hover departure.';
+      } else {
+        hogeStatus='HOGE conditions acceptable \u2014 ESTIMATE';
+        hogeClass='ok';
+        hogeIcon='&#10003;';
+        hogeDetail='At '+fmt0.format(w.da)+' ft density altitude and '+fmt0.format(c.tw)+' lb ('+fmt1.format(pctMgw)+'% of '+fmt0.format(m.maxGross)+' lb MGW), hover out-of-ground-effect is generally within normal parameters for this model class. Confirm via POH Section 5 performance charts for this specific aircraft and loading.';
+      }
+
+      html+="<div class='alert "+(hogeClass?hogeClass:'')+"' style='margin-top:12px'><span style='flex-shrink:0'>"+hogeIcon+"</span><span><b>"+hogeStatus+"</b> &mdash; "+hogeDetail+"</span></div>";
+
+      // DA formula note
+      html+="<div style='margin-top:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)'>";
+      html+="<b>Formula:</b> PA = field elevation + (29.92 &minus; QNH) &times; 1000 ft/inHg. DA = PA + 120 &times; (OAT &minus; ISA temp). ISA = 15&deg;C &minus; 2&deg;C per 1000 ft PA.";
+      html+="</div>";
+
+      html+="<div class='alert' style='margin-top:8px'><span>&#9432;</span><span>Takeoff distance over a 50-ft obstacle increases substantially with both density altitude and gross weight. These are trend indicators only &mdash; always verify all performance figures against Section 5 charts in the POH for this specific aircraft and configuration. No R22/R44 POH figures are embedded in this tool.</span></div>";
     }
     $('perfBody').innerHTML=html;
   }
@@ -500,14 +557,9 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
   // ---- station input events ----
   $('stationList').addEventListener('input',function(ev){
     var t=ev.target;
-    if(t.dataset.w!==undefined){var v=t.value.replace(/[^0-9.]/g,'');wts()[t.dataset.w]=v;recompute();renderStationSubsOnly();}
+    if(t.dataset.w!==undefined){var v=t.value.replace(/[^0-9.]/g,'');wts()[t.dataset.w]=v;recompute();}
     if(t.dataset.empf!==undefined){var vv=t.value.replace(/[^0-9.]/g,'');emp()[t.dataset.empf]=vv;recompute();}
   });
-  function renderStationSubsOnly(){
-    // update fuel gal sub-labels without rerendering inputs (avoid focus loss)
-    var m=M();var w=wts();
-    var rows=$('stationList').querySelectorAll('.stationrow');
-  }
   $('stationList').addEventListener('click',function(ev){
     var t=ev.target;
     if(t.dataset.step!==undefined){var id=t.dataset.step;var d=Number(t.dataset.d);var cur=Number(wts()[id])||0;var nv=Math.max(0,cur+d);wts()[id]=String(nv);renderStations();recompute();}
@@ -592,8 +644,8 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
   }
 
   // ---- export ----
-  function csvSafe(v){v=String(v);if(v.indexOf(',')!==-1||v.indexOf('\"')!==-1||v.indexOf('\
-')!==-1){return '\"'+v.split('\"').join('\"\"')+'\"';}return v;}
+  function csvSafe(v){v=String(v);if(v.indexOf(',')!==-1||v.indexOf('"')!==-1||v.indexOf('\
+')!==-1){return '"'+v.split('"').join('""')+'"';}return v;}
   $('csvBtn').addEventListener('click',function(){var c=compute();var lines=[];lines.push(['Robinson W&B Sheet'].map(csvSafe).join(','));lines.push(['Aircraft',c.m.name].map(csvSafe).join(','));lines.push(['Tail',state.tail||''].map(csvSafe).join(','));lines.push(['Pilot',state.pilot||''].map(csvSafe).join(','));lines.push(['Generated',new Date().toLocaleString()].map(csvSafe).join(','));lines.push('');lines.push(['Station','Weight (lb)','Arm (in)','Moment'].map(csvSafe).join(','));c.rows.forEach(function(r){lines.push([r.name,fmt0.format(r.weight),fmt1.format(r.arm),fmt0.format(r.moment)].map(csvSafe).join(','));});lines.push(['TOTAL',fmt0.format(c.tw),fmt1.format(c.cg),fmt0.format(c.mom)].map(csvSafe).join(','));lines.push('');lines.push(['CG limits at weight',fmt1.format(c.fwd)+' - '+fmt1.format(c.aft)].map(csvSafe).join(','));lines.push(['Status',c.status.toUpperCase()].map(csvSafe).join(','));
     var blob=new Blob([lines.join('\
 ')],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='wb-'+(state.tail||state.model)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);toast('CSV exported','success');});
@@ -603,13 +655,13 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     html+='<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px"><tr><td style="padding:3px"><b>Tail Number:</b> '+(state.tail||'____________')+'</td><td style="padding:3px"><b>PIC:</b> '+(state.pilot||'____________')+'</td></tr></table>';
     html+='<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:12px"><thead><tr><th style="text-align:left;padding:5px;border-bottom:2px solid #000">Station</th><th style="text-align:right;padding:5px;border-bottom:2px solid #000">Weight (lb)</th><th style="text-align:right;padding:5px;border-bottom:2px solid #000">Arm (in)</th><th style="text-align:right;padding:5px;border-bottom:2px solid #000">Moment</th></tr></thead><tbody>'+rows+'<tr style="font-weight:700"><td style="padding:5px;border-top:2px solid #000">TOTAL</td><td style="padding:5px;border-top:2px solid #000;text-align:right">'+fmt0.format(c.tw)+'</td><td style="padding:5px;border-top:2px solid #000;text-align:right">'+fmt1.format(c.cg)+'</td><td style="padding:5px;border-top:2px solid #000;text-align:right">'+fmt0.format(c.mom)+'</td></tr></tbody></table>';
     html+='<div style="font-size:12px;margin-bottom:6px"><b>Max Gross:</b> '+fmt0.format(c.m.maxGross)+' lb &nbsp; <b>CG limits @ weight:</b> '+fmt1.format(c.fwd)+'&ndash;'+fmt1.format(c.aft)+' in &nbsp; <b>Result:</b> '+c.status.toUpperCase()+'</div>';
-    if(wx)html+='<div style="font-size:12px;margin-bottom:6px"><b>Pressure Alt:</b> '+fmt0.format(wx.pa)+' ft &nbsp; <b>Density Alt:</b> '+fmt0.format(wx.da)+' ft</div>';
-    html+='<div style="font-size:11px;color:#666;margin-top:18px">Values are a planning aid. Verify against the FAA-approved Rotorcraft Flight Manual and current weighing record.</div>';
+    if(wx)html+='<div style="font-size:12px;margin-bottom:6px"><b>Pressure Alt:</b> '+fmt0.format(wx.pa)+' ft &nbsp; <b>Density Alt:</b> '+fmt0.format(wx.da)+' ft (est.)</div>';
+    html+='<div style="font-size:11px;color:#888;background:#fff8e1;border:1px solid #f0a030;padding:6px 8px;margin-bottom:6px"><b>ESTIMATES ONLY</b> &mdash; Density altitude and hover performance figures are estimates. Always verify against the FAA-approved Rotorcraft Flight Manual and current weighing record.</div>';
+    html+='<div style="font-size:11px;color:#666;margin-top:12px">Values are a planning aid. Verify against the FAA-approved Rotorcraft Flight Manual and current weighing record.</div>';
     html+='<div style="margin-top:40px;font-size:12px">Pilot signature: ______________________________  Date: ______________</div>';
     $('printArea').innerHTML=html;window.print();toast('Print dialog opened','info');});
 
   // ---- init ----
-  function initSubLabels(){}
   renderStations();renderQuick();renderSaved();renderLog();renderWx();recompute();
 })();
 </script>
