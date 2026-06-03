@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>DN Industry Events Strategic Tracker</title>
+<!-- ===== DN Platform Favicon v1.0 ===== -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>DI</text></svg>">
 <meta name="theme-color" content="#07091a">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -28,11 +29,12 @@ button{font-family:inherit}
 .icon-btn:hover{background:var(--surface-2);color:var(--text)}
 .user-chip{display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border);border-radius:16px;font-size:12px;color:var(--text-muted)}
 .avatar{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
-.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease;display:inline-flex;align-items:center;gap:6px}
 .btn-primary:hover{background:var(--accent-hover)}
 .btn-primary:disabled{opacity:0.5;cursor:not-allowed}
 .btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:all 150ms ease}
 .btn-secondary:hover{background:var(--surface-2);border-color:var(--text-subtle)}
+.btn-secondary:disabled{opacity:0.5;cursor:not-allowed}
 .btn-ghost{background:transparent;color:var(--text-muted);border:1px solid transparent;padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;transition:all 150ms ease}
 .btn-ghost:hover{background:var(--surface-2);color:var(--text)}
 .btn-danger{background:transparent;color:var(--danger);border:1px solid var(--border-strong);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer}
@@ -124,9 +126,9 @@ tbody tr.selected{background:var(--accent-bg)}
 .empty{text-align:center;padding:48px 24px;color:var(--text-muted)}
 .empty-icon{opacity:0.16;margin-bottom:12px}
 .empty-title{font-size:14px;font-weight:600;color:var(--text);margin-bottom:6px}
-.empty-text{font-size:13px;color:var(--text-muted);margin-bottom:16px}
-.toast-wrap{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:360px}
-.toast{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:10px;animation:toastIn 200ms ease}
+.empty-text{font-size:13px;color:var(--text-muted);margin-bottom:16px;max-width:480px;margin-left:auto;margin-right:auto}
+.toast-wrap{position:fixed;top:16px;right:16px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:380px}
+.toast{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;display:flex;align-items:flex-start;gap:10px;animation:toastIn 200ms ease}
 .toast-success{border-left:3px solid var(--success)}
 .toast-error{border-left:3px solid var(--danger)}
 .toast-info{border-left:3px solid var(--info)}
@@ -197,6 +199,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
 .scoring-weight-row{display:grid;grid-template-columns:1fr 100px 60px;gap:12px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
 .scoring-weight-row:last-child{border:none}
 .export-options{display:flex;flex-direction:column;gap:8px}
+.skel{background:linear-gradient(90deg,var(--surface-2) 25%,var(--border) 37%,var(--surface-2) 63%);background-size:400% 100%;animation:shimmer 1.4s ease infinite;border-radius:var(--radius-sm)}
+@keyframes shimmer{0%{background-position:100% 0}100%{background-position:0 0}}
 </style>
 </head>
 <body>
@@ -217,8 +221,8 @@ hr.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
   var APP_TITLE = "DN Industry Events Strategic Tracker with Scoring";
   var o = document.getElementById('dn-auth-overlay');
   function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
-  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
-  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting\u2026'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending\u2026'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='\u2713 Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
   function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); window.__dnSession = window.__dnSession || null; document.dispatchEvent(new CustomEvent('dn-auth-ready')); }
   if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
   var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
@@ -282,15 +286,14 @@ function toast(msg, kind){
   kind = kind || 'info';
   const el = document.createElement('div');
   el.className = 'toast toast-' + kind;
-  const icon = kind==='success'?'✓':kind==='error'?'✕':'•';
-  el.innerHTML = '<span style="color:var(--' + (kind==='success'?'success':kind==='error'?'danger':'info') + ')">'+icon+'</span><span>'+escapeHtml(msg)+'</span>';
+  const icon = kind==='success'?'\u2713':kind==='error'?'\u2715':'\u2022';
+  el.innerHTML = '<span style="color:var(--' + (kind==='success'?'success':kind==='error'?'danger':'info') + ')">' + icon + '</span><span>' + escapeHtml(msg) + '</span>';
   document.getElementById('toastWrap').appendChild(el);
-  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 200ms'; setTimeout(()=>el.remove(),200); }, 4000);
+  setTimeout(()=>{ el.style.opacity='0'; el.style.transition='opacity 200ms'; setTimeout(()=>el.remove(),200); }, 5000);
 }
 function escapeHtml(s){ return String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
 
 // ============ DATA MODEL ============
-// Scoring weights (configurable in Admin)
 let scoringWeights = {
   speaking:    { label: 'Speaking opportunity',  weight: 25 },
   strategic:   { label: 'Strategic importance',  weight: 25 },
@@ -310,8 +313,10 @@ const ORGS = [
 ];
 
 const REGIONS = ['EMEA','Americas','APAC','MENA','Africa'];
+const COUNTRY_REGION = { ES:'EMEA',DK:'EMEA',GB:'EMEA',UK:'EMEA',FR:'EMEA',BE:'EMEA',DE:'EMEA',NL:'EMEA',IT:'EMEA',SE:'EMEA',FI:'EMEA',NO:'EMEA',IE:'EMEA',CH:'EMEA',AT:'EMEA',PT:'EMEA',PL:'EMEA',AE:'MENA',SA:'MENA',QA:'MENA',KW:'MENA',BH:'MENA',OM:'MENA',EG:'MENA',JO:'MENA',US:'Americas',MX:'Americas',BR:'Americas',CA:'Americas',AR:'Americas',CL:'Americas',CO:'Americas',PE:'Americas',MY:'APAC',SG:'APAC',IN:'APAC',CN:'APAC',JP:'APAC',KR:'APAC',ID:'APAC',TH:'APAC',VN:'APAC',PH:'APAC',AU:'APAC',NZ:'APAC',HK:'APAC',TW:'APAC',ZA:'Africa',RW:'Africa',KE:'Africa',NG:'Africa',GH:'Africa',TZ:'Africa',UG:'Africa',SN:'Africa',CI:'Africa',ET:'Africa' };
+function guessRegion(cc){ return COUNTRY_REGION[(cc||'').toUpperCase()] || 'EMEA'; }
 
-// Team members (managed in Admin)
+// Team roster
 let teamMembers = [
   { id:'tm1', name:'Sarah Chen',     role:'CMO',          color:'#5e6ad2' },
   { id:'tm2', name:'Marcus Webb',    role:'VP Product',   color:'#0ea5e9' },
@@ -322,57 +327,32 @@ let teamMembers = [
 ];
 function initials(name){ return name.split(' ').map(p=>p[0]).join('').slice(0,2).toUpperCase(); }
 
-// Today reference
 const TODAY = new Date(); TODAY.setHours(0,0,0,0);
-function d(offsetDays, durationDays){
-  const s = new Date(TODAY); s.setDate(s.getDate()+offsetDays);
-  const e = new Date(s); e.setDate(e.getDate()+(durationDays||0));
-  return { start: iso(s), end: iso(e) };
-}
 function iso(dt){ return dt.toISOString().slice(0,10); }
-
-// Seed catalog — major telecom industry events. This is a starting catalog;
-// users add/edit/score via Admin and the table. Dates anchored relative to today
-// so the calendar always shows live near-term content.
-let events = [
-  { id:'e1',  name:'Mobile World Congress', orgId:'mwc',  ...d(45,4),  city:'Barcelona', country:'ES', region:'EMEA', format:'In-person', attendance:101000, audience:'C-level, operators, vendors', priceUsd:2999, sponsorshipUsd:250000, travelEstUsd:8500, status:'attending', assigned:['tm1','tm2','tm4'], speakingDeadline: addDays(-10), speakingStatus:'Submitted', competitors:['Ericsson','Nokia','Huawei','ZTE','Mavenir'], tags:['5G','RAN','Network Automation'], synopsis:'The flagship global telecom event. Mandatory presence for strategic positioning.', scores:{speaking:9,strategic:10,roi:8,competitor:10,audience:9}, source:'auto' },
-  { id:'e2',  name:'DTW (Digital Transformation World)', orgId:'tmf', ...d(85,3), city:'Copenhagen', country:'DK', region:'EMEA', format:'In-person', attendance:3500, audience:'BSS/OSS leaders, architects', priceUsd:2495, sponsorshipUsd:75000, travelEstUsd:4200, status:'considering', assigned:['tm2','tm3'], speakingDeadline: addDays(15), speakingStatus:'Drafting', competitors:['Amdocs','Netcracker','BearingPoint'], tags:['BSS','OSS','ODA','Open APIs'], synopsis:'TM Forum flagship — strong fit for our OSS narrative and Open API alignment.', scores:{speaking:8,strategic:9,roi:7,competitor:8,audience:10}, source:'auto' },
-  { id:'e3',  name:'GITEX Global', orgId:'gitex', ...d(180,5), city:'Dubai', country:'AE', region:'MENA', format:'In-person', attendance:170000, audience:'Enterprise, government, telecom', priceUsd:0, sponsorshipUsd:120000, travelEstUsd:6500, status:'considering', assigned:['tm3'], speakingDeadline: addDays(45), speakingStatus:'Not submitted', competitors:['Ericsson','Cisco','Microsoft','AWS'], tags:['Enterprise','MENA','Digital Gov'], synopsis:'Critical for MENA expansion. Strong government and enterprise audience.', scores:{speaking:6,strategic:8,roi:7,competitor:7,audience:8}, source:'auto' },
-  { id:'e4',  name:'GSMA M360 LATAM', orgId:'gsma', ...d(62,2), city:'Mexico City', country:'MX', region:'Americas', format:'In-person', attendance:1800, audience:'LATAM operators, regulators', priceUsd:1495, sponsorshipUsd:45000, travelEstUsd:3800, status:'attending', assigned:['tm3','tm6'], speakingDeadline: addDays(-5), speakingStatus:'Accepted', competitors:['Ericsson','Nokia','Mavenir'], tags:['LATAM','5G','Regulation'], synopsis:'Speaking slot confirmed on monetization panel. High-quality LATAM operator audience.', scores:{speaking:9,strategic:7,roi:8,competitor:6,audience:9}, source:'auto' },
-  { id:'e5',  name:'CCA Annual Convention', orgId:'cca', ...d(110,3), city:'Nashville', country:'US', region:'Americas', format:'In-person', attendance:2200, audience:'Tier-2/3 US carriers', priceUsd:1095, sponsorshipUsd:35000, travelEstUsd:2400, status:'unreviewed', assigned:[], speakingDeadline: addDays(40), speakingStatus:'Not submitted', competitors:['Nokia','Mavenir','Parallel Wireless'], tags:['Tier-2','US','Rural 5G'], synopsis:'Concentrated tier-2/3 US carrier audience. Smaller but high-density commercial opportunity.', scores:{speaking:7,strategic:6,roi:8,competitor:5,audience:8}, source:'auto' },
-  { id:'e6',  name:'TM Forum Innovate Asia', orgId:'tmf', ...d(135,2), city:'Kuala Lumpur', country:'MY', region:'APAC', format:'In-person', attendance:1200, audience:'APAC operators, sys integrators', priceUsd:1795, sponsorshipUsd:30000, travelEstUsd:5200, status:'considering', assigned:['tm4'], speakingDeadline: addDays(55), speakingStatus:'Not submitted', competitors:['Amdocs','Comarch'], tags:['APAC','BSS','Catalyst'], synopsis:'Strong Catalyst program. Good entry point for APAC operator relationships.', scores:{speaking:7,strategic:7,roi:6,competitor:6,audience:8}, source:'auto' },
-  { id:'e7',  name:'Network X', orgId:'manual', ...d(155,3), city:'Paris', country:'FR', region:'EMEA', format:'In-person', attendance:6500, audience:'Network engineering, fixed+mobile', priceUsd:2195, sponsorshipUsd:90000, travelEstUsd:3900, status:'attending', assigned:['tm2','tm4','tm6'], speakingDeadline: addDays(60), speakingStatus:'Submitted', competitors:['Ciena','Nokia','Adtran','Calix'], tags:['Fixed Networks','FTTH','5G Core'], synopsis:'Fixed and mobile convergence story plays well here. Strong tier-1 European operator presence.', scores:{speaking:8,strategic:8,roi:8,competitor:8,audience:8}, source:'manual' },
-  { id:'e8',  name:'MWC Las Vegas', orgId:'mwc', ...d(220,3), city:'Las Vegas', country:'US', region:'Americas', format:'In-person', attendance:22000, audience:'Americas operators, enterprise', priceUsd:1995, sponsorshipUsd:140000, travelEstUsd:3100, status:'unreviewed', assigned:[], speakingDeadline: addDays(90), speakingStatus:'Not submitted', competitors:['Ericsson','Samsung','Mavenir','Rakuten'], tags:['Americas','5G','Private Networks'], synopsis:'US flagship event. Decision pending on whether to co-locate with existing MWC Barcelona spend.', scores:{speaking:7,strategic:8,roi:7,competitor:9,audience:8}, source:'auto' },
-  { id:'e9',  name:'AfricaCom', orgId:'manual', ...d(75,3), city:'Cape Town', country:'ZA', region:'Africa', format:'In-person', attendance:13000, audience:'African operators, fintech', priceUsd:995, sponsorshipUsd:55000, travelEstUsd:4400, status:'attending', assigned:['tm1','tm5'], speakingDeadline: addDays(5), speakingStatus:'Submitted', competitors:['Huawei','Nokia','Ericsson','Mavenir'], tags:['Africa','Mobile Money','5G'], synopsis:'Home-region anchor event. Critical for African operator relationships.', scores:{speaking:9,strategic:10,roi:9,competitor:7,audience:10}, source:'manual' },
-  { id:'e10', name:'ONF Connect / Linux Foundation Networking Summit', orgId:'lf', ...d(95,3), city:'Antwerp', country:'BE', region:'EMEA', format:'Hybrid', attendance:1100, audience:'Open source / disaggregation', priceUsd:895, sponsorshipUsd:25000, travelEstUsd:3200, status:'not_attending', notAttendingReason:'Limited fit for current product portfolio; revisit if we expand into open-RAN tooling.', assigned:[], speakingDeadline: addDays(20), speakingStatus:'Declined', competitors:['Red Hat','VMware','Wind River'], tags:['Open Source','Disaggregation','ORAN'], synopsis:'Open source networking community event.', scores:{speaking:4,strategic:4,roi:3,competitor:5,audience:5}, source:'auto' },
-  { id:'e11', name:'TelecomTV DSP Leaders World Forum', orgId:'manual', ...d(125,2), city:'Windsor', country:'GB', region:'EMEA', format:'In-person', attendance:600, audience:'Tier-1 operator execs', priceUsd:3495, sponsorshipUsd:60000, travelEstUsd:2800, status:'considering', assigned:['tm1','tm2'], speakingDeadline: addDays(35), speakingStatus:'Drafting', competitors:['Amdocs','Netcracker'], tags:['Executive','DSP','Tier-1'], synopsis:'Small but extremely senior audience. High-signal executive engagement.', scores:{speaking:8,strategic:9,roi:8,competitor:5,audience:10}, source:'manual' },
-  { id:'e12', name:'GSMA M360 Africa', orgId:'gsma', ...d(28,2), city:'Kigali', country:'RW', region:'Africa', format:'In-person', attendance:2400, audience:'African operators, regulators', priceUsd:995, sponsorshipUsd:40000, travelEstUsd:4100, status:'attending', assigned:['tm1','tm3','tm5'], speakingDeadline: addDays(-15), speakingStatus:'Accepted', competitors:['Huawei','MTN','Airtel Africa'], tags:['Africa','Regulation','Inclusion'], synopsis:'Keynote confirmed. Strategic for African operator portfolio expansion.', scores:{speaking:10,strategic:10,roi:9,competitor:6,audience:10}, source:'auto' },
-  // a few past events for history/insights
-  { id:'e13', name:'MWC Barcelona (prior)', orgId:'mwc', ...d(-320,4), city:'Barcelona', country:'ES', region:'EMEA', format:'In-person', attendance:88000, audience:'Global telecom', priceUsd:2999, sponsorshipUsd:240000, travelEstUsd:8200, status:'attending', assigned:['tm1','tm2','tm4'], speakingStatus:'Accepted', competitors:['Ericsson','Nokia','Huawei'], tags:['5G','RAN'], synopsis:'Prior year — 42 qualified leads, 3 closed deals attributed.', scores:{speaking:9,strategic:10,roi:9,competitor:10,audience:9}, source:'auto', roiActual:9.2 },
-  { id:'e14', name:'DTW (prior)', orgId:'tmf', ...d(-265,3), city:'Copenhagen', country:'DK', region:'EMEA', format:'In-person', attendance:3200, audience:'BSS/OSS', priceUsd:2495, sponsorshipUsd:70000, travelEstUsd:4000, status:'attending', assigned:['tm2','tm3'], speakingStatus:'Accepted', competitors:['Amdocs','Netcracker'], tags:['BSS','OSS'], synopsis:'Prior year — strong Catalyst participation, 1 strategic partnership signed.', scores:{speaking:8,strategic:9,roi:8,competitor:8,audience:10}, source:'auto', roiActual:8.5 },
-  { id:'e15', name:'AfricaCom (prior)', orgId:'manual', ...d(-285,3), city:'Cape Town', country:'ZA', region:'Africa', format:'In-person', attendance:12000, audience:'African operators', priceUsd:995, sponsorshipUsd:50000, travelEstUsd:4200, status:'attending', assigned:['tm1','tm5'], speakingStatus:'Accepted', competitors:['Huawei','Nokia'], tags:['Africa'], synopsis:'Prior year — anchor for regional pipeline.', scores:{speaking:9,strategic:10,roi:9,competitor:7,audience:10}, source:'manual', roiActual:9.5 }
-];
-
 function addDays(n){ const dt = new Date(TODAY); dt.setDate(dt.getDate()+n); return iso(dt); }
 
-// Activity log
-let activity = [
-  { ts: Date.now()-3600000, who:'sarah.chen', text:'Marked MWC Las Vegas for review' },
-  { ts: Date.now()-7200000, who:'marcus.webb', text:'Updated scoring on DTW Copenhagen' },
-  { ts: Date.now()-86400000, who:'priya.sharma', text:'Assigned to GSMA M360 LATAM' }
-];
+let events = [];
+let activity = [];
 
-// Saved filter presets
 let presets = [
   { id:'p1', name:'High-value EMEA (next 6mo)', filters:{regions:['EMEA'], scoreMin:7, horizon:'6mo'} },
   { id:'p2', name:'Unscored speaking opps',    filters:{statuses:['unreviewed','considering'], hasSpeakingDeadline:true, horizon:'12mo'} }
 ];
 
+let dataSources = [
+  { id:'tmf',   name:'TM Forum', abbr:'TMF',   url:'', lastSync:null, status:'idle', count:0, error:null },
+  { id:'gsma',  name:'GSMA',     abbr:'GSMA',  url:'', lastSync:null, status:'idle', count:0, error:null },
+  { id:'cca',   name:'CCA',      abbr:'CCA',   url:'', lastSync:null, status:'idle', count:0, error:null },
+  { id:'mwc',   name:'MWC',      abbr:'MWC',   url:'', lastSync:null, status:'idle', count:0, error:null },
+  { id:'gitex', name:'GITEX',    abbr:'GITEX', url:'', lastSync:null, status:'idle', count:0, error:null },
+  { id:'lf',    name:'Linux Foundation Networking', abbr:'LFN', url:'', lastSync:null, status:'idle', count:0, error:null }
+];
+
 // ============ STATE ============
 let state = {
   tab:'events',
-  view:'table', // table | calendar | timeline | matrix
-  horizon:'6mo', // 3mo | 6mo | 12mo | all | custom
+  view:'table',
+  horizon:'6mo',
   customStart:null, customEnd:null,
   search:'',
   filters:{ regions:[], orgs:[], statuses:[], assigned:[], scoreMin:0, hasSpeakingDeadline:false },
@@ -385,7 +365,8 @@ let state = {
   compareIds:[],
   calMonth: new Date(TODAY.getFullYear(), TODAY.getMonth(), 1),
   sidebarOpen:true,
-  loading:false
+  loading:false,
+  importing:false
 };
 
 // ============ SCORING ============
@@ -402,6 +383,160 @@ function computeScore(ev){
 }
 function scoreTier(s){ if(s==null) return 'unscored'; if(s>=8) return 'high'; if(s>=6) return 'med'; return 'low'; }
 
+// ============ FEED INGESTION ============
+function toIso(v){
+  if(!v) return null;
+  if(typeof v==='string' && /^\d{4}-\d{2}-\d{2}/.test(v)) return v.slice(0,10);
+  const dt = new Date(v);
+  if(isNaN(dt.getTime())) return null;
+  return iso(dt);
+}
+function formatFromMode(mode){
+  const m = String(mode||'').toLowerCase();
+  if(m.indexOf('online')>-1) return 'Virtual';
+  if(m.indexOf('mixed')>-1) return 'Hybrid';
+  return 'In-person';
+}
+function parsePrice(offers){
+  if(!offers) return 0;
+  const list = Array.isArray(offers)?offers:[offers];
+  for(const off of list){ const p = parseFloat(off && (off.price||off.lowPrice)); if(!isNaN(p)) return Math.round(p); }
+  return 0;
+}
+function parseLoc(o){
+  let city='', country='';
+  const loc = o.location;
+  if(typeof loc==='string'){ const parts=loc.split(','); city=(parts[0]||'').trim(); country=(parts[parts.length-1]||'').trim(); }
+  else if(loc && typeof loc==='object'){
+    const lc = Array.isArray(loc)?loc[0]:loc;
+    const a = (lc && lc.address) || lc;
+    if(typeof a==='string'){ const parts=a.split(','); city=(parts[0]||'').trim(); country=(parts[parts.length-1]||'').trim(); }
+    else if(a && typeof a==='object'){ city=a.addressLocality||a.city||''; let c=a.addressCountry||a.country||''; country=(c&&typeof c==='object')?(c.name||''):c; }
+    if(!city && lc && lc.name) city=lc.name;
+  }
+  if(o.city) city=o.city;
+  if(o.country) country=o.country;
+  return { city:String(city||''), country:String(country||'') };
+}
+function extractList(data){
+  if(!data) return [];
+  if(Array.isArray(data)) return data;
+  if(Array.isArray(data.events)) return data.events;
+  if(Array.isArray(data.items)) return data.items;
+  if(Array.isArray(data.data)) return data.data;
+  if(Array.isArray(data.results)) return data.results;
+  if(Array.isArray(data['@graph'])) return data['@graph'].filter(x=>x && (!x['@type'] || /event/i.test(JSON.stringify(x['@type']))));
+  if(data['@type'] && /event/i.test(JSON.stringify(data['@type']))) return [data];
+  if(data.name || data.startDate || data.start) return [data];
+  return [];
+}
+function extractJsonLdEvents(html){
+  const out = [];
+  const re = /<script[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi;
+  let m;
+  while((m = re.exec(html))){
+    let json; try{ json = JSON.parse(m[1].trim()); }catch(e){ continue; }
+    const items = Array.isArray(json) ? json : (json['@graph'] ? json['@graph'] : [json]);
+    for(const it of items){ if(it && it['@type'] && /event/i.test(JSON.stringify(it['@type']))) out.push(it); }
+  }
+  return out;
+}
+function normalizeEvent(o, sourceId){
+  if(!o || typeof o!=='object') return null;
+  const name = o.name || o.title || o.eventName;
+  if(!name) return null;
+  const start = toIso(o.start || o.startDate || o.start_date || o.date);
+  if(!start) return null;
+  const end = toIso(o.end || o.endDate || o.end_date) || start;
+  const loc = parseLoc(o);
+  const cc = loc.country.length===2 ? loc.country.toUpperCase() : loc.country;
+  let tags = [];
+  if(Array.isArray(o.tags)) tags = o.tags;
+  else if(Array.isArray(o.keywords)) tags = o.keywords;
+  else if(typeof o.keywords==='string') tags = o.keywords.split(',').map(s=>s.trim()).filter(Boolean);
+  return {
+    id: 'e'+Date.now().toString(36)+Math.random().toString(36).slice(2,6),
+    name: String(name),
+    orgId: sourceId || 'manual',
+    start, end,
+    city: loc.city,
+    country: cc,
+    region: o.region || guessRegion(cc),
+    format: o.format || (o.eventAttendanceMode ? formatFromMode(o.eventAttendanceMode) : 'In-person'),
+    attendance: parseInt(o.attendance || o.maximumAttendeeCapacity || 0, 10) || 0,
+    audience: o.audience ? (typeof o.audience==='string' ? o.audience : (o.audience.audienceType||'')) : '',
+    priceUsd: parseInt(o.priceUsd||0,10) || parsePrice(o.offers) || 0,
+    sponsorshipUsd: parseInt(o.sponsorshipUsd||0,10) || 0,
+    travelEstUsd: parseInt(o.travelEstUsd||0,10) || 0,
+    status: 'unreviewed', assigned: [],
+    speakingDeadline: toIso(o.speakingDeadline) || null,
+    speakingStatus: o.speakingStatus || 'Not submitted',
+    competitors: Array.isArray(o.competitors) ? o.competitors : [],
+    tags,
+    synopsis: o.synopsis || o.description || '',
+    scores: {}, source: sourceId ? 'feed' : 'import'
+  };
+}
+function mergeFeedEvents(list){
+  let added = 0;
+  for(const ne of list){
+    const exists = events.find(e=> e.name.toLowerCase()===ne.name.toLowerCase() && e.start===ne.start);
+    if(exists) continue;
+    events.push(ne); added++;
+  }
+  return added;
+}
+async function syncFeeds(){
+  const configured = dataSources.filter(s=>s.url.trim());
+  if(!configured.length){ toast('No feed URLs configured. Add them in Admin \u2192 Data sources.','error'); return; }
+  state.loading = true; if(state.tab==='events') renderMain(); else renderAdminTabSafe();
+  let totalAdded = 0; const errors = [];
+  for(const s of configured){
+    s.status = 'syncing'; s.error = null;
+    try{
+      const res = await fetch(s.url, { headers:{ 'Accept':'application/json, text/html' } });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const text = await res.text();
+      let data;
+      try{ data = JSON.parse(text); }catch(e){ data = extractJsonLdEvents(text); }
+      const list = extractList(data).map(o=>normalizeEvent(o, s.id)).filter(Boolean);
+      const added = mergeFeedEvents(list);
+      s.count = list.length; s.lastSync = Date.now(); s.status = 'ok'; totalAdded += added;
+    }catch(err){
+      s.status = 'error'; s.error = (err && err.message) ? err.message : String(err);
+      errors.push(s.abbr+': '+s.error);
+    }
+  }
+  state.loading = false;
+  if(totalAdded>0) logActivity('Synced feeds \u2014 added '+totalAdded+' new events');
+  renderMain();
+  if(errors.length) toast('Feed issues \u2014 '+errors.join('; ')+'. Sites may block cross-origin (CORS) requests.','error');
+  else toast('Synced '+totalAdded+' new event'+(totalAdded===1?'':'s')+' from feeds','success');
+}
+async function importFromUrl(url){
+  url = (url||'').trim();
+  if(!/^https?:\/\//.test(url)){ toast('Enter a valid http(s) URL','error'); return; }
+  state.importing = true;
+  toast('Fetching '+url.slice(0,60)+'\u2026','info');
+  try{
+    const res = await fetch(url, { headers:{ 'Accept':'application/json, text/html' } });
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const text = await res.text();
+    let list = [];
+    try{ const j = JSON.parse(text); list = extractList(j); }
+    catch(e){ list = extractJsonLdEvents(text); }
+    const norm = list.map(o=>normalizeEvent(o, null)).filter(Boolean);
+    if(!norm.length){ toast('No event data found at that URL (no JSON-LD Event schema or JSON feed detected). Add it manually instead.','error'); return; }
+    const added = mergeFeedEvents(norm);
+    logActivity('Imported '+added+' event(s) from URL');
+    toast(added>0 ? ('Imported '+added+' event(s)') : 'No new events (already tracked)', added>0?'success':'info');
+    renderMain();
+  }catch(err){
+    toast('Import failed: '+((err&&err.message)||err)+'. The site may block cross-origin (CORS) requests \u2014 add the event manually.','error');
+  }finally{ state.importing = false; }
+}
+function renderAdminTabSafe(){ const m=document.getElementById('main'); if(state.tab==='admin') renderAdminTab(m); }
+
 // ============ FILTERS / DERIVED ============
 function horizonRange(){
   const start = new Date(TODAY);
@@ -409,7 +544,7 @@ function horizonRange(){
   if(state.horizon==='3mo') end.setMonth(end.getMonth()+3);
   else if(state.horizon==='6mo') end.setMonth(end.getMonth()+6);
   else if(state.horizon==='12mo') end.setMonth(end.getMonth()+12);
-  else if(state.horizon==='all'){ start.setFullYear(start.getFullYear()-2); end.setFullYear(end.getFullYear()+2); }
+  else if(state.horizon==='all'){ start.setFullYear(start.getFullYear()-3); end.setFullYear(end.getFullYear()+3); }
   else if(state.horizon==='custom'){
     return { start: state.customStart?new Date(state.customStart):start, end: state.customEnd?new Date(state.customEnd):end };
   }
@@ -455,14 +590,14 @@ function memberById(id){ return teamMembers.find(m=>m.id===id); }
 
 // ============ FORMATTERS ============
 const usdFmt = new Intl.NumberFormat('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0});
-function fmtMoney(n){ return n==null?'—':usdFmt.format(n); }
+function fmtMoney(n){ return n==null?'\u2014':usdFmt.format(n); }
 function fmtDateRange(s,e){
   const sd=new Date(s), ed=new Date(e);
   const sameMonth = sd.getMonth()===ed.getMonth() && sd.getFullYear()===ed.getFullYear();
   const m=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   if(sd.getTime()===ed.getTime()) return m[sd.getMonth()]+' '+sd.getDate()+', '+sd.getFullYear();
-  if(sameMonth) return m[sd.getMonth()]+' '+sd.getDate()+'–'+ed.getDate()+', '+sd.getFullYear();
-  return m[sd.getMonth()]+' '+sd.getDate()+' – '+m[ed.getMonth()]+' '+ed.getDate()+', '+ed.getFullYear();
+  if(sameMonth) return m[sd.getMonth()]+' '+sd.getDate()+'\u2013'+ed.getDate()+', '+sd.getFullYear();
+  return m[sd.getMonth()]+' '+sd.getDate()+' \u2013 '+m[ed.getMonth()]+' '+ed.getDate()+', '+ed.getFullYear();
 }
 function daysUntil(dStr){ const dt=new Date(dStr); return Math.ceil((dt-TODAY)/86400000); }
 function relDate(ts){ const d = Math.floor((Date.now()-ts)/60000); if(d<1) return 'just now'; if(d<60) return d+'m ago'; if(d<1440) return Math.floor(d/60)+'h ago'; return Math.floor(d/1440)+'d ago'; }
@@ -522,7 +657,7 @@ function renderSidebar(){
       ${teamMembers.map(m=>`<label class="checkbox-row"><input type="checkbox" data-fassigned="${m.id}" ${state.filters.assigned.includes(m.id)?'checked':''}> ${escapeHtml(m.name)} <span class="count">${counts.assigned[m.id]||0}</span></label>`).join('')}
     </div>
     <div class="sidebar-section">
-      <h3>Strategic score ≥ <span style="color:var(--text);font-family:ui-monospace,monospace">${state.filters.scoreMin.toFixed(1)}</span></h3>
+      <h3>Strategic score \u2265 <span style="color:var(--text);font-family:ui-monospace,monospace">${state.filters.scoreMin.toFixed(1)}</span></h3>
       <input type="range" min="0" max="10" step="0.5" value="${state.filters.scoreMin}" id="scoreMinRange" style="width:100%;accent-color:var(--accent)">
     </div>
     <div class="sidebar-section">
@@ -556,54 +691,73 @@ function applyPreset(id){
   render();
   toast('Preset applied: '+p.name, 'info');
 }
-function openSavePresetModal(){
-  state.modal = { kind:'savePreset' };
-  renderModal();
-}
+function openSavePresetModal(){ state.modal = { kind:'savePreset' }; renderModal(); }
 
 // ============ MAIN ROUTER ============
 function renderMain(){
   const m = document.getElementById('main');
-  if(state.tab==='events') m.innerHTML = '', renderEventsTab(m);
-  else if(state.tab==='team') m.innerHTML='', renderTeamTab(m);
-  else if(state.tab==='insights') m.innerHTML='', renderInsightsTab(m);
-  else if(state.tab==='admin') m.innerHTML='', renderAdminTab(m);
+  if(state.tab==='events'){ m.innerHTML=''; renderEventsTab(m); }
+  else if(state.tab==='team'){ m.innerHTML=''; renderTeamTab(m); }
+  else if(state.tab==='insights'){ m.innerHTML=''; renderInsightsTab(m); }
+  else if(state.tab==='admin'){ m.innerHTML=''; renderAdminTab(m); }
 }
 
 // ============ EVENTS TAB ============
+function loadingBlock(msg){
+  return `<div class="empty"><div style="margin-bottom:14px"><span class="spinner" style="width:26px;height:26px"></span></div><div class="empty-title">${escapeHtml(msg)}</div><div class="empty-text">Fetching events from configured industry feeds\u2026</div>
+  <div style="max-width:560px;margin:0 auto;display:flex;flex-direction:column;gap:8px">${[0,1,2,3].map(()=>'<div class="skel" style="height:40px"></div>').join('')}</div></div>`;
+}
+function eventsEmptyHero(){
+  return `<div class="empty">
+    <div class="empty-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+    <div class="empty-title">No events loaded yet</div>
+    <div class="empty-text">This tracker populates from live telecom industry feeds (TM Forum, GSMA, CCA, MWC, GITEX). No feed URLs are configured, so there is no event data to show. Connect a feed, scrape an event page, or add one manually to begin.</div>
+    <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button class="btn-primary" id="heroConfig">Configure data feeds</button>
+      <button class="btn-secondary" id="heroSync">Sync feeds</button>
+      <button class="btn-secondary" id="heroImport">Import from URL</button>
+      <button class="btn-secondary" id="heroAdd">Add event manually</button>
+    </div>
+  </div>`;
+}
 function renderEventsTab(root){
-  // KPIs
+  if(state.loading){ root.innerHTML = loadingBlock('Syncing event feeds\u2026'); return; }
+  if(events.length===0){
+    root.innerHTML = `<div class="card" style="max-width:720px;margin:16px auto">`+eventsEmptyHero()+`</div>`;
+    const c=root.querySelector('#heroConfig'); if(c) c.addEventListener('click', ()=>{ state.tab='admin'; render(); });
+    const sy=root.querySelector('#heroSync'); if(sy) sy.addEventListener('click', ()=>syncFeeds());
+    const im=root.querySelector('#heroImport'); if(im) im.addEventListener('click', ()=>{ state.modal={kind:'importUrl'}; renderModal(); });
+    const ad=root.querySelector('#heroAdd'); if(ad) ad.addEventListener('click', ()=>openEventEditor(null));
+    return;
+  }
   const k = computeKpis();
   const kpiHtml = `
     <div class="kpi-grid">
-      <div class="kpi"><div class="kpi-label">Events in window</div><div class="kpi-value">${k.windowCount}</div><div class="kpi-delta">${k.attending} attending · ${k.considering} considering</div></div>
+      <div class="kpi"><div class="kpi-label">Events in window</div><div class="kpi-value">${k.windowCount}</div><div class="kpi-delta">${k.attending} attending \u00b7 ${k.considering} considering</div></div>
       <div class="kpi"><div class="kpi-label">Committed budget</div><div class="kpi-value">${fmtMoney(k.committedBudget)}</div><div class="kpi-delta">${fmtMoney(k.projectedBudget)} projected if all considering attend</div></div>
-      <div class="kpi"><div class="kpi-label">Avg score · attending</div><div class="kpi-value">${k.avgAttendingScore!=null?k.avgAttendingScore.toFixed(1):'—'}</div><div class="kpi-delta">vs ${k.avgDeclinedScore!=null?k.avgDeclinedScore.toFixed(1):'—'} declined</div></div>
-      <div class="kpi"><div class="kpi-label">Speaking pipeline</div><div class="kpi-value">${k.speakingSubmitted}<span style="font-size:14px;color:var(--text-muted);font-weight:400"> / ${k.speakingTotal}</span></div><div class="kpi-delta">${k.speakingAccepted} accepted · ${k.speakingUrgent} deadlines &lt; 30d</div></div>
+      <div class="kpi"><div class="kpi-label">Avg score \u00b7 attending</div><div class="kpi-value">${k.avgAttendingScore!=null?k.avgAttendingScore.toFixed(1):'\u2014'}</div><div class="kpi-delta">vs ${k.avgDeclinedScore!=null?k.avgDeclinedScore.toFixed(1):'\u2014'} declined</div></div>
+      <div class="kpi"><div class="kpi-label">Speaking pipeline</div><div class="kpi-value">${k.speakingSubmitted}<span style="font-size:14px;color:var(--text-muted);font-weight:400"> / ${k.speakingTotal}</span></div><div class="kpi-delta">${k.speakingAccepted} accepted \u00b7 ${k.speakingUrgent} deadlines &lt; 30d</div></div>
     </div>
   `;
-
   const toolbar = `
     <div class="toolbar">
       <div style="display:flex;gap:4px;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:2px">
-        ${[['3mo','3mo'],['6mo','6mo'],['12mo','12mo'],['all','All'],['custom','Custom']].map(([k,l])=>`<button class="btn-ghost" data-horizon="${k}" style="padding:4px 10px;font-size:12px;${state.horizon===k?'background:var(--surface-2);color:var(--text)':''}">${l}</button>`).join('')}
+        ${[['3mo','3mo'],['6mo','6mo'],['12mo','12mo'],['all','All'],['custom','Custom']].map(([kk,l])=>`<button class="btn-ghost" data-horizon="${kk}" style="padding:4px 10px;font-size:12px;${state.horizon===kk?'background:var(--surface-2);color:var(--text)':''}">${l}</button>`).join('')}
       </div>
       <div class="search-input">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-        <input class="input" id="search" placeholder="Search events, cities, organizations…" value="${escapeHtml(state.search)}">
+        <input class="input" id="search" placeholder="Search events, cities, organizations\u2026" value="${escapeHtml(state.search)}">
       </div>
       <div style="display:flex;gap:4px;margin-left:auto;border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:2px">
-        ${[['table','Table'],['calendar','Calendar'],['timeline','Timeline']].map(([k,l])=>`<button class="btn-ghost" data-view="${k}" style="padding:4px 10px;font-size:12px;${state.view===k?'background:var(--surface-2);color:var(--text)':''}">${l}</button>`).join('')}
+        ${[['table','Table'],['calendar','Calendar'],['timeline','Timeline']].map(([kk,l])=>`<button class="btn-ghost" data-view="${kk}" style="padding:4px 10px;font-size:12px;${state.view===kk?'background:var(--surface-2);color:var(--text)':''}">${l}</button>`).join('')}
       </div>
+      <button class="btn-secondary" id="syncBtn">Sync feeds</button>
       <button class="btn-secondary" id="compareBtn" ${state.compareIds.length<2?'disabled':''}>Compare (${state.compareIds.length})</button>
       <button class="btn-secondary" id="exportBtn">Export</button>
       <button class="btn-primary" id="addEventBtn">+ Add event</button>
     </div>
   `;
-
   root.innerHTML = kpiHtml + toolbar + '<div id="viewRoot"></div>';
-
-  // bind
   root.querySelectorAll('[data-horizon]').forEach(b=>b.addEventListener('click', ()=>{
     if(b.dataset.horizon==='custom'){ openCustomRangeModal(); return; }
     state.horizon = b.dataset.horizon; render();
@@ -612,8 +766,8 @@ function renderEventsTab(root){
   root.querySelector('#search').addEventListener('input', e=>{ state.search = e.target.value; renderViewOnly(); });
   root.querySelector('#addEventBtn').addEventListener('click', ()=>openEventEditor(null));
   root.querySelector('#exportBtn').addEventListener('click', ()=>openExportModal());
+  root.querySelector('#syncBtn').addEventListener('click', ()=>syncFeeds());
   root.querySelector('#compareBtn').addEventListener('click', ()=>{ if(state.compareIds.length>=2) openCompareModal(); });
-
   renderViewOnly();
 }
 function renderViewOnly(){
@@ -623,7 +777,6 @@ function renderViewOnly(){
   else if(state.view==='calendar') renderCalendar(root, evs);
   else if(state.view==='timeline') renderTimeline(root, evs);
 }
-
 function computeKpis(){
   const evs = filteredEvents();
   const attending = evs.filter(e=>e.status==='attending');
@@ -657,7 +810,7 @@ function renderTable(root, evs){
     const b = document.getElementById('resetFiltersBtn'); if(b) b.addEventListener('click', ()=>{ state.filters={regions:[],orgs:[],statuses:[],assigned:[],scoreMin:0,hasSpeakingDeadline:false}; state.search=''; state.horizon='12mo'; render(); });
     return;
   }
-  const sortIcon = key => state.sort.key===key ? (state.sort.dir==='asc'?' ↑':' ↓') : '';
+  const sortIcon = key => state.sort.key===key ? (state.sort.dir==='asc'?' \u2191':' \u2193') : '';
   let html = `<div class="table-wrap"><div class="table-scroll"><table><thead><tr>
     <th class="checkbox-cell"><input type="checkbox" id="selectAll" ${state.selected.size===evs.length && evs.length>0?'checked':''}></th>
     <th class="sortable" data-sort="name">Event${sortIcon('name')}</th>
@@ -686,10 +839,10 @@ function renderTable(root, evs){
         <a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none;font-weight:500">${escapeHtml(ev.name)}</a>
         ${dlWarn?`<span class="deadline-warning" title="Speaking deadline in ${dl} days"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>${dl}d</span>`:''}
       </div></td>
-      <td><button class="score-badge score-${tier}" data-score="${ev.id}" title="Edit score breakdown">${score==null?'—':score.toFixed(1)}</button></td>
+      <td><button class="score-badge score-${tier}" data-score="${ev.id}" title="Edit score breakdown">${score==null?'\u2014':score.toFixed(1)}</button></td>
       <td class="mono" style="font-size:12px">${fmtDateRange(ev.start, ev.end)}</td>
-      <td>${escapeHtml(ev.city)}, ${escapeHtml(ev.country)}<div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(ev.region)}</div></td>
-      <td><div class="org-chip"><span class="org-mark">${escapeHtml((org||{abbr:'?'}).abbr.slice(0,3))}</span> ${escapeHtml((org||{name:'—'}).name)}</div></td>
+      <td>${escapeHtml(ev.city||'\u2014')}${ev.country?', '+escapeHtml(ev.country):''}<div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(ev.region)}</div></td>
+      <td><div class="org-chip"><span class="org-mark">${escapeHtml((org||{abbr:'?'}).abbr.slice(0,3))}</span> ${escapeHtml((org||{name:'\u2014'}).name)}</div></td>
       <td>${renderAssigneeStack(ev)}</td>
       <td>${renderStatusPill(ev)}</td>
       <td class="numeric">${fmtMoney(totalCost)}</td>
@@ -702,20 +855,19 @@ function renderTable(root, evs){
       html += `<tr class="event-row-expand"><td colspan="10"><div class="expand-grid">
         <div class="expand-field" style="grid-column:1/-1"><strong>Synopsis</strong><span>${escapeHtml(ev.synopsis||'No synopsis recorded.')}</span></div>
         <div class="expand-field"><strong>Expected attendance</strong><span>${(ev.attendance||0).toLocaleString()}</span></div>
-        <div class="expand-field"><strong>Audience</strong><span>${escapeHtml(ev.audience||'—')}</span></div>
-        <div class="expand-field"><strong>Format</strong><span>${escapeHtml(ev.format||'—')}</span></div>
+        <div class="expand-field"><strong>Audience</strong><span>${escapeHtml(ev.audience||'\u2014')}</span></div>
+        <div class="expand-field"><strong>Format</strong><span>${escapeHtml(ev.format||'\u2014')}</span></div>
         <div class="expand-field"><strong>Pass</strong><span>${fmtMoney(ev.priceUsd)}</span></div>
         <div class="expand-field"><strong>Sponsorship</strong><span>${fmtMoney(ev.sponsorshipUsd)}</span></div>
         <div class="expand-field"><strong>Travel (per person)</strong><span>${fmtMoney(ev.travelEstUsd)}</span></div>
-        <div class="expand-field"><strong>Speaking</strong><span>${ev.speakingDeadline?'Deadline '+fmtDateRange(ev.speakingDeadline, ev.speakingDeadline)+' · '+(ev.speakingStatus||'—'):'—'}</span></div>
-        <div class="expand-field" style="grid-column:1/-1"><strong>Competitors present</strong><span>${(ev.competitors||[]).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'—'}</span></div>
-        <div class="expand-field" style="grid-column:1/-1"><strong>Tags</strong><span>${(ev.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')||'—'}</span></div>
+        <div class="expand-field"><strong>Speaking</strong><span>${ev.speakingDeadline?'Deadline '+fmtDateRange(ev.speakingDeadline, ev.speakingDeadline)+' \u00b7 '+(ev.speakingStatus||'\u2014'):'\u2014'}</span></div>
+        <div class="expand-field"><strong>Source</strong><span>${ev.source==='feed'?'Auto feed':ev.source==='import'?'URL import':'Manual'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Competitors present</strong><span>${(ev.competitors||[]).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'\u2014'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Tags</strong><span>${(ev.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')||'\u2014'}</span></div>
       </div></td></tr>`;
     }
   }
   html += '</tbody></table></div></div>';
-
-  // bulk bar
   if(state.selected.size > 0){
     html += `<div class="bulk-bar">
       <span class="bulk-count">${state.selected.size} selected</span>
@@ -726,10 +878,7 @@ function renderTable(root, evs){
       <button class="btn-ghost" id="bulkClear" style="margin-left:auto">Clear selection</button>
     </div>`;
   }
-
   root.innerHTML = html;
-
-  // bind
   root.querySelectorAll('[data-sort]').forEach(th=>th.addEventListener('click', ()=>{
     const k = th.dataset.sort;
     if(state.sort.key===k) state.sort.dir = state.sort.dir==='asc'?'desc':'asc';
@@ -744,14 +893,12 @@ function renderTable(root, evs){
   root.querySelectorAll('[data-assign]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); openAssignDropdown(b, b.dataset.assign); }));
   root.querySelectorAll('[data-edit]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); openEventEditor(b.dataset.edit); }));
   root.querySelectorAll('[data-status-pill]').forEach(b=>b.addEventListener('click', e=>{ e.stopPropagation(); cycleStatus(b.dataset.statusPill); }));
-
   const ba = root.querySelector('#bulkAssign'); if(ba) ba.addEventListener('click', ()=>openBulkAssign());
   const bs = root.querySelector('#bulkStatus'); if(bs) bs.addEventListener('click', ()=>openBulkStatus());
   const bc = root.querySelector('#bulkCompare'); if(bc) bc.addEventListener('click', ()=>{ state.compareIds = Array.from(state.selected).slice(0,4); toast('Added '+state.compareIds.length+' to compare','success'); renderMain(); });
   const be = root.querySelector('#bulkExport'); if(be) be.addEventListener('click', ()=>exportSelection());
   const bcl = root.querySelector('#bulkClear'); if(bcl) bcl.addEventListener('click', ()=>{ state.selected.clear(); renderViewOnly(); });
 }
-
 function renderAssigneeStack(ev){
   if(!ev.assigned || !ev.assigned.length) return '<span style="color:var(--text-subtle);font-size:12px">Unassigned</span>';
   const shown = ev.assigned.slice(0,3);
@@ -774,12 +921,9 @@ function cycleStatus(id){
   ev.status = next;
   logActivity('Set status to '+next+' on '+ev.name);
   toast('Status updated','success');
-  renderViewOnly(); renderEventsTab.kpisDirty=true; renderMain();
+  renderMain();
 }
-function openNotAttendingReason(ev){
-  state.modal = { kind:'notAttending', eventId: ev.id };
-  renderModal();
-}
+function openNotAttendingReason(ev){ state.modal = { kind:'notAttending', eventId: ev.id }; renderModal(); }
 
 // ============ CALENDAR VIEW ============
 function renderCalendar(root, evs){
@@ -789,17 +933,17 @@ function renderCalendar(root, evs){
   const startWeekday = first.getDay();
   const daysInMonth = new Date(cm.getFullYear(), cm.getMonth()+1, 0).getDate();
   const cells = [];
-  for(let i=0;i<startWeekday;i++){ const d = new Date(first); d.setDate(d.getDate()-(startWeekday-i)); cells.push({date:d, other:true}); }
+  for(let i=0;i<startWeekday;i++){ const dd = new Date(first); dd.setDate(dd.getDate()-(startWeekday-i)); cells.push({date:dd, other:true}); }
   for(let i=1;i<=daysInMonth;i++){ cells.push({date:new Date(cm.getFullYear(),cm.getMonth(),i), other:false}); }
-  while(cells.length % 7 !== 0){ const last = cells[cells.length-1].date; const d = new Date(last); d.setDate(d.getDate()+1); cells.push({date:d, other:true}); }
+  while(cells.length % 7 !== 0){ const last = cells[cells.length-1].date; const dd = new Date(last); dd.setDate(dd.getDate()+1); cells.push({date:dd, other:true}); }
   let html = `<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-    <button class="btn-secondary" id="calPrev">‹</button>
+    <button class="btn-secondary" id="calPrev">\u2039</button>
     <button class="btn-secondary" id="calToday">Today</button>
-    <button class="btn-secondary" id="calNext">›</button>
+    <button class="btn-secondary" id="calNext">\u203a</button>
     <div class="h2" style="margin-left:8px">${monthName}</div>
   </div>`;
   html += '<div class="calendar-grid">';
-  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(d=> html += `<div class="calendar-head">${d}</div>`);
+  ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'].forEach(dn=> html += `<div class="calendar-head">${dn}</div>`);
   for(const cell of cells){
     const isToday = cell.date.getTime() === TODAY.getTime();
     const dayEvs = evs.filter(ev=>{ const s=new Date(ev.start), e=new Date(ev.end); return cell.date>=s && cell.date<=e; });
@@ -810,7 +954,7 @@ function renderCalendar(root, evs){
     </div>`;
   }
   html += '</div>';
-  html += '<div style="display:flex;gap:16px;margin-top:12px;font-size:12px;color:var(--text-muted)"><span><span class="dot" style="background:var(--success)"></span> High score (≥8)</span><span><span class="dot" style="background:var(--warning)"></span> Medium (6–7.9)</span><span><span class="dot" style="background:var(--text-subtle)"></span> Lower</span></div>';
+  html += '<div style="display:flex;gap:16px;margin-top:12px;font-size:12px;color:var(--text-muted)"><span><span class="dot" style="background:var(--success)"></span> High score (\u22658)</span><span><span class="dot" style="background:var(--warning)"></span> Medium (6\u20137.9)</span><span><span class="dot" style="background:var(--text-subtle)"></span> Lower / unscored</span></div>';
   root.innerHTML = html;
   root.querySelector('#calPrev').addEventListener('click', ()=>{ state.calMonth = new Date(cm.getFullYear(), cm.getMonth()-1, 1); renderViewOnly(); });
   root.querySelector('#calNext').addEventListener('click', ()=>{ state.calMonth = new Date(cm.getFullYear(), cm.getMonth()+1, 1); renderViewOnly(); });
@@ -823,7 +967,7 @@ function renderTimeline(root, evs){
   if(!evs.length){ root.innerHTML = renderEmpty('Nothing to plot','No events in the selected window.'); return; }
   const r = horizonRange();
   const span = Math.max(1, r.end - r.start);
-  let html = '<div class="card"><div class="caption" style="margin-bottom:8px">Timeline · '+evs.length+' events</div><div class="timeline">';
+  let html = '<div class="card"><div class="caption" style="margin-bottom:8px">Timeline \u00b7 '+evs.length+' events</div><div class="timeline">';
   for(const ev of evs){
     const s = Math.max(new Date(ev.start), r.start);
     const e = Math.min(new Date(ev.end), r.end);
@@ -835,7 +979,7 @@ function renderTimeline(root, evs){
     html += `<div class="timeline-row">
       <div style="display:flex;flex-direction:column;gap:2px">
         <a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none;font-weight:500;font-size:13px">${escapeHtml(ev.name)}</a>
-        <span style="font-size:11px;color:var(--text-subtle)">${escapeHtml(ev.city)}, ${escapeHtml(ev.country)} · ${fmtDateRange(ev.start,ev.end)}</span>
+        <span style="font-size:11px;color:var(--text-subtle)">${escapeHtml(ev.city||'\u2014')}${ev.country?', '+escapeHtml(ev.country):''} \u00b7 ${fmtDateRange(ev.start,ev.end)}</span>
       </div>
       <div class="timeline-bar-track">
         <div class="timeline-bar tier-${tier}" style="left:${leftPct}%;width:${widthPct}%" data-open="${ev.id}">${escapeHtml(ev.name)}</div>
@@ -859,7 +1003,7 @@ function renderTeamTab(root){
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px">
       <div>
         <h1 class="h1">Team coordination</h1>
-        <div class="body-sm">Person-to-event assignment matrix for attending & considering events.</div>
+        <div class="body-sm">Person-to-event assignment matrix for attending &amp; considering events.</div>
       </div>
     </div>
     <div class="kpi-grid">
@@ -870,29 +1014,28 @@ function renderTeamTab(root){
     </div>
   `;
   if(!evs.length){
-    html += renderEmpty('No active events to coordinate','Mark events as Attending or Considering to populate the team matrix.');
+    html += renderEmpty('No active events to coordinate','Load events from feeds, then mark them Attending or Considering to populate the team matrix.');
     root.innerHTML = html;
     return;
   }
-  // Matrix: rows = events, cols = members
   html += '<div class="matrix"><table><thead><tr><th class="event-name">Event</th>';
   for(const m of teamMembers) html += `<th style="text-align:center"><div class="avatar" style="background:${m.color};margin:0 auto 4px">${initials(m.name)}</div><div style="font-size:11px;color:var(--text-muted);font-weight:500">${escapeHtml(m.name.split(' ')[0])}</div></th>`;
   html += '</tr></thead><tbody>';
   const conflicts = detectConflicts();
   const conflictSet = new Set(conflicts.map(c=>c.memberId+'|'+c.eventId));
   for(const ev of evs){
-    html += `<tr><td class="event-name"><div style="display:flex;align-items:center;gap:6px"><span class="status-pill status-${ev.status}" style="font-size:10px;padding:1px 6px">${ev.status==='attending'?'A':'C'}</span><a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none">${escapeHtml(ev.name)}</a></div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;font-family:'SF Mono',monospace">${fmtDateRange(ev.start,ev.end)} · ${escapeHtml(ev.city)}</div></td>`;
+    html += `<tr><td class="event-name"><div style="display:flex;align-items:center;gap:6px"><span class="status-pill status-${ev.status}" style="font-size:10px;padding:1px 6px">${ev.status==='attending'?'A':'C'}</span><a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none">${escapeHtml(ev.name)}</a></div><div style="font-size:11px;color:var(--text-subtle);margin-top:2px;font-family:'SF Mono',monospace">${fmtDateRange(ev.start,ev.end)} \u00b7 ${escapeHtml(ev.city||'\u2014')}</div></td>`;
     for(const m of teamMembers){
       const assigned = ev.assigned.includes(m.id);
       const conflict = conflictSet.has(m.id+'|'+ev.id);
-      html += `<td><button class="btn-icon-sm" data-toggle-assign="${ev.id}|${m.id}" title="${conflict?'Conflict — overlaps with another assignment':(assigned?'Remove':'Assign')}">${assigned ? (conflict?'<span class="conflict">⚠</span>':'<span class="check">✓</span>') : '<span style="color:var(--text-subtle)">·</span>'}</button></td>`;
+      html += `<td><button class="btn-icon-sm" data-toggle-assign="${ev.id}|${m.id}" title="${conflict?'Conflict \u2014 overlaps with another assignment':(assigned?'Remove':'Assign')}">${assigned ? (conflict?'<span class="conflict">\u26a0</span>':'<span class="check">\u2713</span>') : '<span style="color:var(--text-subtle)">\u00b7</span>'}</button></td>`;
     }
     html += '</tr>';
   }
   html += '</tbody></table></div>';
   if(conflicts.length){
     html += '<div class="card" style="margin-top:16px;border-color:var(--danger-bg)"><div class="caption" style="color:var(--danger);margin-bottom:8px">Conflicts</div>';
-    for(const c of conflicts){ const m = memberById(c.memberId); const ev = events.find(e=>e.id===c.eventId); const other = events.find(e=>e.id===c.otherEventId); if(!m||!ev||!other) continue; html += `<div style="font-size:13px;margin-bottom:4px"><strong>${escapeHtml(m.name)}</strong> assigned to both <a href="#" data-open="${ev.id}" style="color:var(--accent)">${escapeHtml(ev.name)}</a> and <a href="#" data-open="${other.id}" style="color:var(--accent)">${escapeHtml(other.name)}</a> (${fmtDateRange(ev.start,ev.end)} ⇄ ${fmtDateRange(other.start,other.end)})</div>`; }
+    for(const c of conflicts){ const m = memberById(c.memberId); const ev = events.find(e=>e.id===c.eventId); const other = events.find(e=>e.id===c.otherEventId); if(!m||!ev||!other) continue; html += `<div style="font-size:13px;margin-bottom:4px"><strong>${escapeHtml(m.name)}</strong> assigned to both <a href="#" data-open="${ev.id}" style="color:var(--accent)">${escapeHtml(ev.name)}</a> and <a href="#" data-open="${other.id}" style="color:var(--accent)">${escapeHtml(other.name)}</a> (${fmtDateRange(ev.start,ev.end)} \u21c4 ${fmtDateRange(other.start,other.end)})</div>`; }
     html += '</div>';
   }
   root.innerHTML = html;
@@ -929,28 +1072,25 @@ function renderInsightsTab(root){
   const ytdBudget = pastAttended.filter(e=>new Date(e.start).getFullYear()===TODAY.getFullYear()).reduce((s,e)=>s+(e.priceUsd||0)+(e.sponsorshipUsd||0)+(e.travelEstUsd||0)*Math.max(1,e.assigned.length),0);
   const allocBudget = 1500000;
   const utilization = allocBudget? (ytdBudget/allocBudget*100) : 0;
-  const avgRoi = pastAttended.filter(e=>e.roiActual).reduce((s,e)=>s+e.roiActual,0) / Math.max(1, pastAttended.filter(e=>e.roiActual).length);
+  const roiVals = pastAttended.filter(e=>e.roiActual);
+  const avgRoi = roiVals.length? roiVals.reduce((s,e)=>s+e.roiActual,0) / roiVals.length : NaN;
   const speakingSubmitted = events.filter(e=>e.speakingStatus && e.speakingStatus!=='Not submitted').length;
   const speakingAccepted = events.filter(e=>e.speakingStatus==='Accepted').length;
   const convRate = speakingSubmitted? Math.round(speakingAccepted/speakingSubmitted*100) : 0;
-
   let html = `
     <h1 class="h1" style="margin-bottom:4px">Insights</h1>
     <div class="body-sm" style="margin-bottom:16px">Historical performance, ROI tracking, and team load analysis.</div>
     <div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">Events attended YTD</div><div class="kpi-value">${ytdAttended.length}</div><div class="kpi-delta">${fmtMoney(ytdBudget)} spent</div></div>
       <div class="kpi"><div class="kpi-label">Budget utilization</div><div class="kpi-value">${utilization.toFixed(1)}%</div><div class="kpi-delta">of ${fmtMoney(allocBudget)} allocated</div></div>
-      <div class="kpi"><div class="kpi-label">Avg ROI score</div><div class="kpi-value">${isNaN(avgRoi)?'—':avgRoi.toFixed(1)}</div><div class="kpi-delta">historical attended events</div></div>
+      <div class="kpi"><div class="kpi-label">Avg ROI score</div><div class="kpi-value">${isNaN(avgRoi)?'\u2014':avgRoi.toFixed(1)}</div><div class="kpi-delta">historical attended events</div></div>
       <div class="kpi"><div class="kpi-label">Speaking conversion</div><div class="kpi-value">${convRate}%</div><div class="kpi-delta">${speakingAccepted} accepted / ${speakingSubmitted} submitted</div></div>
     </div>
   `;
-
-  // Team load
   const loadPerMember = teamMembers.map(m=>{
     const upcoming = events.filter(e=> (e.status==='attending'||e.status==='considering') && e.assigned.includes(m.id) && new Date(e.end) >= TODAY);
     return { m, count: upcoming.length, events: upcoming };
   }).sort((a,b)=>b.count-a.count);
-
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:24px" class="two-col">';
   html += '<div class="card"><div class="caption" style="margin-bottom:12px">Team load (upcoming)</div>';
   if(!loadPerMember.length) html += '<div class="body-sm">No team members configured.</div>';
@@ -959,41 +1099,34 @@ function renderInsightsTab(root){
     html += `<div style="display:flex;align-items:center;gap:10px;margin-bottom:8px"><div class="avatar" style="background:${x.m.color}">${initials(x.m.name)}</div><div style="flex:1"><div style="display:flex;justify-content:space-between;font-size:13px"><span>${escapeHtml(x.m.name)}</span><span style="color:var(--text-muted)">${x.count} ${x.count===1?'event':'events'}</span></div><div style="height:4px;background:var(--surface-2);border-radius:2px;margin-top:4px;overflow:hidden"><div style="width:${pct}%;height:100%;background:${pct>75?'var(--danger)':pct>50?'var(--warning)':'var(--accent)'}"></div></div></div></div>`;
   }
   html += '</div>';
-
-  // Activity log
   html += '<div class="card"><div class="caption" style="margin-bottom:8px">Recent activity</div>';
-  if(!activity.length) html += '<div class="body-sm">No activity yet.</div>';
+  if(!activity.length) html += '<div class="body-sm">No activity yet. Sync feeds or update an event to start a history.</div>';
   else for(const a of activity.slice(0,10)){
-    html += `<div class="activity-item"><div class="activity-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1"><div>${escapeHtml(a.text)}</div><div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(a.who||'system')} · ${relDate(a.ts)}</div></div></div>`;
+    html += `<div class="activity-item"><div class="activity-icon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg></div><div style="flex:1"><div>${escapeHtml(a.text)}</div><div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(a.who||'system')} \u00b7 ${relDate(a.ts)}</div></div></div>`;
   }
   html += '</div></div>';
-
-  // Past performance
   html += '<div class="card"><div class="caption" style="margin-bottom:12px">Historical performance</div>';
-  if(!pastAttended.length) html += renderEmpty('No historical data yet', 'Past attended events will accumulate ROI metrics here.');
+  if(!pastAttended.length) html += renderEmpty('No historical data yet', 'Past attended events will accumulate ROI metrics here as your event window moves forward.');
   else {
     html += '<table><thead><tr><th>Event</th><th>Date</th><th class="numeric">Strategic score</th><th class="numeric">ROI actual</th><th class="numeric">Spent</th></tr></thead><tbody>';
     for(const ev of pastAttended.sort((a,b)=>new Date(b.start)-new Date(a.start))){
       const sc = computeScore(ev);
       const cost = (ev.priceUsd||0)+(ev.sponsorshipUsd||0)+(ev.travelEstUsd||0)*Math.max(1,ev.assigned.length);
-      html += `<tr><td><a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none">${escapeHtml(ev.name)}</a></td><td class="mono" style="font-size:12px">${fmtDateRange(ev.start,ev.end)}</td><td class="numeric">${sc==null?'—':sc.toFixed(1)}</td><td class="numeric">${ev.roiActual?ev.roiActual.toFixed(1):'—'}</td><td class="numeric">${fmtMoney(cost)}</td></tr>`;
+      html += `<tr><td><a href="#" data-open="${ev.id}" style="color:var(--text);text-decoration:none">${escapeHtml(ev.name)}</a></td><td class="mono" style="font-size:12px">${fmtDateRange(ev.start,ev.end)}</td><td class="numeric">${sc==null?'\u2014':sc.toFixed(1)}</td><td class="numeric">${ev.roiActual?ev.roiActual.toFixed(1):'\u2014'}</td><td class="numeric">${fmtMoney(cost)}</td></tr>`;
     }
     html += '</tbody></table>';
   }
   html += '</div>';
-
   root.innerHTML = html;
   root.querySelectorAll('[data-open]').forEach(a=>a.addEventListener('click', e=>{ e.preventDefault(); openDetail(a.dataset.open); }));
-  // responsive cols
   if(window.innerWidth < 800){ const tc = root.querySelector('.two-col'); if(tc) tc.style.gridTemplateColumns='1fr'; }
 }
 
 // ============ ADMIN TAB ============
 function renderAdminTab(root){
-  let html = `<h1 class="h1" style="margin-bottom:4px">Admin</h1><div class="body-sm" style="margin-bottom:16px">Manage scoring weights, team roster, and data sources.</div>`;
-  // Scoring weights
+  let html = `<h1 class="h1" style="margin-bottom:4px">Admin</h1><div class="body-sm" style="margin-bottom:16px">Manage scoring weights, team roster, and live data sources.</div>`;
   html += '<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="h2">Scoring weights</div><button class="btn-ghost" id="resetWeights">Reset to defaults</button></div>';
-  html += '<div class="body-sm" style="margin-bottom:12px">Weights are normalized — total does not need to sum to 100. Each criterion is scored 0–10 per event.</div>';
+  html += '<div class="body-sm" style="margin-bottom:12px">Weights are normalized \u2014 total does not need to sum to 100. Each criterion is scored 0\u201310 per event.</div>';
   let totalW = 0; for(const k of Object.keys(scoringWeights)) totalW += scoringWeights[k].weight;
   for(const k of Object.keys(scoringWeights)){
     const sw = scoringWeights[k];
@@ -1004,8 +1137,6 @@ function renderAdminTab(root){
     </div>`;
   }
   html += '</div>';
-
-  // Team members
   html += '<div class="card" style="margin-bottom:16px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="h2">Team roster</div><button class="btn-primary" id="addMember">+ Add member</button></div>';
   html += '<table><thead><tr><th></th><th>Name</th><th>Role</th><th>Assignments</th><th></th></tr></thead><tbody>';
   for(const m of teamMembers){
@@ -1013,19 +1144,21 @@ function renderAdminTab(root){
     html += `<tr><td style="width:40px"><div class="avatar" style="background:${m.color}">${initials(m.name)}</div></td><td>${escapeHtml(m.name)}</td><td style="color:var(--text-muted)">${escapeHtml(m.role)}</td><td class="numeric">${load}</td><td class="row-actions"><button class="btn-icon-sm" data-remove-member="${m.id}" title="Remove"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button></td></tr>`;
   }
   html += '</tbody></table></div>';
-
-  // Data sources
-  html += `<div class="card"><div class="h2" style="margin-bottom:12px">Event data sources</div>
-    <div class="body-sm" style="margin-bottom:12px">Automated discovery monitors these organizing bodies. Manual events can be added at any time via the Events tab.</div>
-    <table><thead><tr><th>Source</th><th>Type</th><th>Events tracked</th><th>Status</th></tr></thead><tbody>
-      ${ORGS.filter(o=>o.id!=='manual').map(o=>{
-        const count = events.filter(e=>e.orgId===o.id).length;
-        return `<tr><td><div class="org-chip"><span class="org-mark">${escapeHtml(o.abbr.slice(0,3))}</span> ${escapeHtml(o.name)}</div></td><td style="color:var(--text-muted)">Auto-discovery</td><td class="numeric">${count}</td><td><span class="badge badge-success">Active</span></td></tr>`;
-      }).join('')}
-      <tr><td><div class="org-chip"><span class="org-mark">MAN</span> Manual / Other</div></td><td style="color:var(--text-muted)">User-entered</td><td class="numeric">${events.filter(e=>e.orgId==='manual').length}</td><td><span class="badge badge-neutral">Manual</span></td></tr>
+  html += `<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="h2">Event data sources (live feeds)</div><button class="btn-primary" id="syncAll" ${state.loading?'disabled':''}>${state.loading?'<span class="spinner"></span> Syncing\u2026':'Sync all feeds'}</button></div>
+    <div class="body-sm" style="margin-bottom:12px">Configure a JSON feed URL for each organizing body. On sync, the tracker fetches each feed and adds new events; existing events keep your scoring, status, and assignments. A feed may return a JSON array of events or a page containing schema.org JSON-LD <span class="mono">Event</span> markup. Recognized fields: <span class="mono">name, startDate/start, endDate/end, location, description, offers, keywords, eventAttendanceMode, maximumAttendeeCapacity</span>.</div>
+    <table><thead><tr><th>Source</th><th>Feed URL</th><th>Last sync</th><th class="numeric">Tracked</th><th>Status</th></tr></thead><tbody>
+    ${dataSources.map(s=>{
+      const count = events.filter(e=>e.orgId===s.id).length;
+      const badge = s.status==='ok'?'<span class="badge badge-success">Synced</span>': s.status==='error'?'<span class="badge badge-danger">Error</span>': s.status==='syncing'?'<span class="badge badge-info">Syncing</span>': (s.url.trim()?'<span class="badge badge-warning">Pending</span>':'<span class="badge badge-neutral">Not configured</span>');
+      return `<tr><td><div class="org-chip"><span class="org-mark">${escapeHtml(s.abbr.slice(0,3))}</span> ${escapeHtml(s.name)}</div></td><td><input class="input" data-feed-url="${s.id}" value="${escapeHtml(s.url)}" placeholder="https://\u2026/events.json"></td><td class="body-sm">${s.lastSync?relDate(s.lastSync):'\u2014'}</td><td class="numeric">${count}</td><td>${badge}${s.status==='error'&&s.error?'<div style="font-size:10px;color:var(--danger);max-width:160px">'+escapeHtml(s.error)+'</div>':''}</td></tr>`;
+    }).join('')}
+    <tr><td><div class="org-chip"><span class="org-mark">MAN</span> Manual / Other</div></td><td class="body-sm" style="color:var(--text-subtle)">Added via Events tab or URL import below</td><td class="body-sm">\u2014</td><td class="numeric">${events.filter(e=>e.orgId==='manual').length}</td><td><span class="badge badge-neutral">Manual</span></td></tr>
     </tbody></table>
+    <hr class="divider">
+    <div class="h2" style="font-size:14px;margin-bottom:8px">Import a single event from a URL</div>
+    <div class="body-sm" style="margin-bottom:8px">Backfill an event missed by the feeds by scraping any public event page (extracts schema.org Event JSON-LD). Note: some sites block cross-origin (CORS) requests.</div>
+    <div style="display:flex;gap:8px"><input class="input" id="adminImportUrl" placeholder="https://www.example.com/events/..." style="flex:1"><button class="btn-secondary" id="adminImportBtn">Import</button></div>
   </div>`;
-
   root.innerHTML = html;
   root.querySelectorAll('[data-weight]').forEach(r=> r.addEventListener('input', e=>{ scoringWeights[r.dataset.weight].weight = parseInt(e.target.value,10); renderAdminTab(root); }));
   root.querySelector('#resetWeights').addEventListener('click', ()=>{ scoringWeights = { speaking:{label:'Speaking opportunity',weight:25}, strategic:{label:'Strategic importance',weight:25}, roi:{label:'ROI potential',weight:20}, competitor:{label:'Competitor presence',weight:15}, audience:{label:'Audience fit',weight:15} }; toast('Weights reset','info'); renderAdminTab(root); });
@@ -1037,6 +1170,9 @@ function renderAdminTab(root){
     toast('Team member removed','success');
     renderAdminTab(root);
   }));
+  root.querySelectorAll('[data-feed-url]').forEach(inp=>inp.addEventListener('change', ()=>{ const s=dataSources.find(x=>x.id===inp.dataset.feedUrl); if(s) s.url=inp.value.trim(); }));
+  const sAll = root.querySelector('#syncAll'); if(sAll) sAll.addEventListener('click', ()=>{ root.querySelectorAll('[data-feed-url]').forEach(inp=>{ const s=dataSources.find(x=>x.id===inp.dataset.feedUrl); if(s) s.url=inp.value.trim(); }); syncFeeds(); });
+  const aImp = root.querySelector('#adminImportBtn'); if(aImp) aImp.addEventListener('click', ()=>{ const u=root.querySelector('#adminImportUrl').value; importFromUrl(u); });
 }
 
 // ============ DETAIL SLIDEOVER ============
@@ -1054,21 +1190,21 @@ function renderSlideover(){
   const score = computeScore(ev);
   const tier = scoreTier(score);
   const org = orgById(ev.orgId);
-
   let body = '';
   if(state.detailTab==='overview'){
     body = `<div class="slideover-content">
-      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span class="score-badge score-${tier}" style="font-size:14px">${score==null?'—':score.toFixed(1)}</span>${renderStatusPill(ev)}<span class="badge badge-neutral">${escapeHtml((org||{name:'—'}).name)}</span></div>
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span class="score-badge score-${tier}" style="font-size:14px">${score==null?'\u2014':score.toFixed(1)}</span>${renderStatusPill(ev)}<span class="badge badge-neutral">${escapeHtml((org||{name:'\u2014'}).name)}</span></div>
       <p style="font-size:13px;color:var(--text-muted);margin:0 0 16px 0">${escapeHtml(ev.synopsis||'No synopsis recorded.')}</p>
       <hr class="divider">
       <div class="expand-grid">
         <div class="expand-field"><strong>Dates</strong><span>${fmtDateRange(ev.start,ev.end)}</span></div>
-        <div class="expand-field"><strong>Location</strong><span>${escapeHtml(ev.city)}, ${escapeHtml(ev.country)} · ${escapeHtml(ev.region)}</span></div>
-        <div class="expand-field"><strong>Format</strong><span>${escapeHtml(ev.format||'—')}</span></div>
+        <div class="expand-field"><strong>Location</strong><span>${escapeHtml(ev.city||'\u2014')}${ev.country?', '+escapeHtml(ev.country):''} \u00b7 ${escapeHtml(ev.region)}</span></div>
+        <div class="expand-field"><strong>Format</strong><span>${escapeHtml(ev.format||'\u2014')}</span></div>
         <div class="expand-field"><strong>Expected attendance</strong><span>${(ev.attendance||0).toLocaleString()}</span></div>
-        <div class="expand-field" style="grid-column:1/-1"><strong>Audience</strong><span>${escapeHtml(ev.audience||'—')}</span></div>
-        <div class="expand-field" style="grid-column:1/-1"><strong>Tags</strong><span>${(ev.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')||'—'}</span></div>
-        <div class="expand-field" style="grid-column:1/-1"><strong>Competitors</strong><span>${(ev.competitors||[]).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'—'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Audience</strong><span>${escapeHtml(ev.audience||'\u2014')}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Tags</strong><span>${(ev.tags||[]).map(t=>`<span class="tag">${escapeHtml(t)}</span>`).join('')||'\u2014'}</span></div>
+        <div class="expand-field" style="grid-column:1/-1"><strong>Competitors</strong><span>${(ev.competitors||[]).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'\u2014'}</span></div>
+        <div class="expand-field"><strong>Data source</strong><span>${ev.source==='feed'?'Auto feed':ev.source==='import'?'URL import':'Manual entry'}</span></div>
       </div>
       ${ev.status==='not_attending' && ev.notAttendingReason ? `<hr class="divider"><div class="expand-field"><strong>Reason for not attending</strong><span>${escapeHtml(ev.notAttendingReason)}</span></div>`:''}
     </div>`;
@@ -1084,15 +1220,15 @@ function renderSlideover(){
         <span class="mono" style="text-align:right">${v} / 10</span>
       </div>`;
     }
-    body += `<div class="summary-line"><span>Strategic score</span><span class="score-badge score-${tier}" style="font-size:14px;min-width:60px">${score==null?'—':score.toFixed(1)}</span></div></div></div>`;
+    body += `<div class="summary-line"><span>Strategic score</span><span class="score-badge score-${tier}" style="font-size:14px;min-width:60px">${score==null?'\u2014':score.toFixed(1)}</span></div></div></div>`;
   } else if(state.detailTab==='team'){
     body = '<div class="slideover-content"><div class="caption" style="margin-bottom:12px">Assigned (' + ev.assigned.length + ')</div>';
     body += '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px">';
     if(!ev.assigned.length) body += '<span class="body-sm">No one assigned yet.</span>';
-    for(const id of ev.assigned){ const m=memberById(id); if(!m) continue; body += `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border);border-radius:16px"><div class="avatar" style="background:${m.color}">${initials(m.name)}</div><span style="font-size:12px">${escapeHtml(m.name)}</span><button class="btn-icon-sm" data-remove-assignee="${id}" aria-label="Remove">×</button></div>`; }
+    for(const id of ev.assigned){ const m=memberById(id); if(!m) continue; body += `<div style="display:flex;align-items:center;gap:8px;padding:4px 10px 4px 4px;border:1px solid var(--border);border-radius:16px"><div class="avatar" style="background:${m.color}">${initials(m.name)}</div><span style="font-size:12px">${escapeHtml(m.name)}</span><button class="btn-icon-sm" data-remove-assignee="${id}" aria-label="Remove">\u00d7</button></div>`; }
     body += '</div><div class="caption" style="margin-bottom:8px">Add team member</div><div style="display:flex;flex-wrap:wrap;gap:6px">';
     const conflicts = detectConflicts().filter(c=>c.eventId===ev.id).map(c=>c.memberId);
-    for(const m of teamMembers){ if(ev.assigned.includes(m.id)) continue; const conf = conflicts.includes(m.id); body += `<button class="btn-secondary" data-add-assignee="${m.id}" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:6px"><div class="avatar" style="background:${m.color};width:18px;height:18px;font-size:9px">${initials(m.name)}</div>${escapeHtml(m.name)}${conf?' <span style="color:var(--warning)" title="Conflict">⚠</span>':''}</button>`; }
+    for(const m of teamMembers){ if(ev.assigned.includes(m.id)) continue; const conf = conflicts.includes(m.id); body += `<button class="btn-secondary" data-add-assignee="${m.id}" style="padding:4px 10px;font-size:12px;display:flex;align-items:center;gap:6px"><div class="avatar" style="background:${m.color};width:18px;height:18px;font-size:9px">${initials(m.name)}</div>${escapeHtml(m.name)}${conf?' <span style="color:var(--warning)" title="Conflict">\u26a0</span>':''}</button>`; }
     body += '</div></div>';
   } else if(state.detailTab==='budget'){
     const pass = ev.priceUsd||0;
@@ -1104,26 +1240,25 @@ function renderSlideover(){
     body = `<div class="slideover-content"><table style="font-size:13px"><tbody>
       <tr><td>Conference pass</td><td class="numeric">${fmtMoney(pass)}</td></tr>
       <tr><td>Sponsorship</td><td class="numeric">${fmtMoney(sponsor)}</td></tr>
-      <tr><td>Travel (${heads} × ${fmtMoney(travelPer)})</td><td class="numeric">${fmtMoney(travel)}</td></tr>
+      <tr><td>Travel (${heads} \u00d7 ${fmtMoney(travelPer)})</td><td class="numeric">${fmtMoney(travel)}</td></tr>
       <tr><td style="font-weight:600">Total estimated</td><td class="numeric" style="font-weight:600">${fmtMoney(total)}</td></tr>
     </tbody></table>
-    ${ev.speakingDeadline?`<hr class="divider"><div class="caption">Speaking opportunity</div><div style="margin-top:8px">Deadline: <strong class="mono">${fmtDateRange(ev.speakingDeadline,ev.speakingDeadline)}</strong> (${daysUntil(ev.speakingDeadline)} days)<br>Status: <span class="badge badge-info">${escapeHtml(ev.speakingStatus||'—')}</span></div>`:''}
+    ${ev.speakingDeadline?`<hr class="divider"><div class="caption">Speaking opportunity</div><div style="margin-top:8px">Deadline: <strong class="mono">${fmtDateRange(ev.speakingDeadline,ev.speakingDeadline)}</strong> (${daysUntil(ev.speakingDeadline)} days)<br>Status: <span class="badge badge-info">${escapeHtml(ev.speakingStatus||'\u2014')}</span></div>`:''}
     </div>`;
   } else if(state.detailTab==='history'){
     const evActivity = activity.filter(a=>a.text.includes(ev.name));
     body = '<div class="slideover-content">';
     if(!evActivity.length) body += renderEmpty('No history yet','Changes to this event will appear here.');
-    else for(const a of evActivity) body += `<div class="activity-item"><div class="activity-icon">•</div><div style="flex:1"><div>${escapeHtml(a.text)}</div><div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(a.who||'system')} · ${relDate(a.ts)}</div></div></div>`;
-    if(ev.roiActual) body += `<hr class="divider"><div class="caption">ROI outcome</div><div style="font-size:14px;margin-top:8px"><strong class="mono">${ev.roiActual.toFixed(1)} / 10</strong> · post-event ROI score</div>`;
+    else for(const a of evActivity) body += `<div class="activity-item"><div class="activity-icon">\u2022</div><div style="flex:1"><div>${escapeHtml(a.text)}</div><div style="font-size:11px;color:var(--text-subtle)">${escapeHtml(a.who||'system')} \u00b7 ${relDate(a.ts)}</div></div></div>`;
+    if(ev.roiActual) body += `<hr class="divider"><div class="caption">ROI outcome</div><div style="font-size:14px;margin-top:8px"><strong class="mono">${ev.roiActual.toFixed(1)} / 10</strong> \u00b7 post-event ROI score</div>`;
     body += '</div>';
   }
-
   root.innerHTML = `
     <div class="slideover-backdrop" id="sbBack"></div>
     <div class="slideover" role="dialog" aria-label="${escapeHtml(ev.name)}">
       <div class="slideover-header">
         <button class="btn-icon-sm" id="sbClose" aria-label="Close"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ev.name)}</div><div style="font-size:12px;color:var(--text-muted)">${fmtDateRange(ev.start,ev.end)} · ${escapeHtml(ev.city)}, ${escapeHtml(ev.country)}</div></div>
+        <div style="flex:1;min-width:0"><div style="font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(ev.name)}</div><div style="font-size:12px;color:var(--text-muted)">${fmtDateRange(ev.start,ev.end)} \u00b7 ${escapeHtml(ev.city||'\u2014')}${ev.country?', '+escapeHtml(ev.country):''}</div></div>
         <button class="btn-icon-sm" id="sbPrev" ${!prev?'disabled':''} aria-label="Previous"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"/></svg></button>
         <button class="btn-icon-sm" id="sbNext" ${!next?'disabled':''} aria-label="Next"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg></button>
         <button class="btn-secondary" id="sbEdit" style="padding:5px 10px;font-size:12px">Edit</button>
@@ -1161,7 +1296,7 @@ function renderModal(){
   else if(m.kind==='bulkStatus') inner = modalBulkStatus();
   else if(m.kind==='export') inner = modalExport();
   else if(m.kind==='compare') inner = modalCompare();
-  else if(m.kind==='assignDropdown') inner = ''; // handled inline
+  else if(m.kind==='importUrl') inner = modalImportUrl();
   root.innerHTML = inner ? `<div class="modal-backdrop" id="mb">${inner}</div>` : '';
   const mb = document.getElementById('mb'); if(mb) mb.addEventListener('click', e=>{ if(e.target.id==='mb') closeModal(); });
   bindModalEvents();
@@ -1184,7 +1319,7 @@ function bindModalEvents(){
       if(!txt){ toast('A reason is required to mark Not attending','error'); return; }
       const ev = events.find(x=>x.id===m.eventId);
       ev.status='not_attending'; ev.notAttendingReason = txt;
-      logActivity('Marked Not attending on '+ev.name+' — '+txt);
+      logActivity('Marked Not attending on '+ev.name+' \u2014 '+txt);
       toast('Status updated','success');
       closeModal(); renderMain();
     });
@@ -1239,13 +1374,19 @@ function bindModalEvents(){
   if(m.kind==='compare'){
     document.querySelectorAll('[data-remove-cmp]').forEach(b=>b.addEventListener('click', ()=>{ state.compareIds = state.compareIds.filter(x=>x!==b.dataset.removeCmp); if(state.compareIds.length<2){ closeModal(); renderMain(); } else { renderModal(); } }));
   }
+  if(m.kind==='importUrl'){
+    document.getElementById('runImport').addEventListener('click', ()=>{
+      const url = document.getElementById('importUrlInput').value.trim();
+      closeModal();
+      importFromUrl(url);
+    });
+  }
 }
-
 function modalEditEvent(m){
   const isNew = !m.eventId;
-  const ev = isNew ? { name:'', orgId:'manual', start: addDays(30), end: addDays(32), city:'', country:'', region:'EMEA', format:'In-person', attendance:0, audience:'', priceUsd:0, sponsorshipUsd:0, travelEstUsd:0, status:'unreviewed', assigned:[], speakingDeadline:'', speakingStatus:'Not submitted', competitors:[], tags:[], synopsis:'', scores:{speaking:5,strategic:5,roi:5,competitor:5,audience:5}, source:'manual' } : events.find(e=>e.id===m.eventId);
+  const ev = isNew ? { name:'', orgId:'manual', start: addDays(30), end: addDays(32), city:'', country:'', region:'EMEA', format:'In-person', attendance:0, audience:'', priceUsd:0, sponsorshipUsd:0, travelEstUsd:0, status:'unreviewed', assigned:[], speakingDeadline:'', speakingStatus:'Not submitted', competitors:[], tags:[], synopsis:'', scores:{}, source:'manual' } : events.find(e=>e.id===m.eventId);
   return `<div class="modal">
-    <div class="modal-header"><div class="modal-title">${isNew?'Add event':'Edit event'}</div><button class="btn-icon-sm" data-close-modal>×</button></div>
+    <div class="modal-header"><div class="modal-title">${isNew?'Add event':'Edit event'}</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div>
     <div class="field"><label>Event name</label><input class="input" id="fName" value="${escapeHtml(ev.name)}" placeholder="e.g. Mobile World Congress"></div>
     <div class="field-row"><div class="field"><label>Organizing body</label><select class="input" id="fOrg">${ORGS.map(o=>`<option value="${o.id}" ${ev.orgId===o.id?'selected':''}>${escapeHtml(o.name)}</option>`).join('')}</select></div><div class="field"><label>Format</label><select class="input" id="fFormat"><option ${ev.format==='In-person'?'selected':''}>In-person</option><option ${ev.format==='Virtual'?'selected':''}>Virtual</option><option ${ev.format==='Hybrid'?'selected':''}>Hybrid</option></select></div></div>
     <div class="field-row"><div class="field"><label>Start date</label><input type="date" class="input" id="fStart" value="${ev.start}"></div><div class="field"><label>End date</label><input type="date" class="input" id="fEnd" value="${ev.end}"></div></div>
@@ -1271,6 +1412,7 @@ function saveEventFromForm(){
   if(!name){ toast('Event name is required','error'); return; }
   const start = document.getElementById('fStart').value;
   const end = document.getElementById('fEnd').value || start;
+  if(!start){ toast('Start date is required','error'); return; }
   if(new Date(end) < new Date(start)){ toast('End date must be on or after start date','error'); return; }
   const data = {
     name,
@@ -1294,13 +1436,12 @@ function saveEventFromForm(){
   if(id){
     const ev = events.find(e=>e.id===id);
     Object.assign(ev, data);
-    // duplicate detection: same name + overlapping dates as another event
     const dup = events.find(e=>e.id!==id && e.name.toLowerCase()===name.toLowerCase() && !(new Date(e.end)<new Date(start) || new Date(e.start)>new Date(end)));
     if(dup) toast('Heads up: possible duplicate of an existing event','info');
     logActivity('Edited '+name);
     toast('Event saved','success');
   } else {
-    const newEv = Object.assign({ id:'e'+Date.now(), status:'unreviewed', assigned:[], scores:{speaking:5,strategic:5,roi:5,competitor:5,audience:5}, source:'manual' }, data);
+    const newEv = Object.assign({ id:'e'+Date.now(), status:'unreviewed', assigned:[], scores:{}, source:'manual' }, data);
     const dup = events.find(e=>e.name.toLowerCase()===name.toLowerCase() && !(new Date(e.end)<new Date(start) || new Date(e.start)>new Date(end)));
     if(dup){ toast('Possible duplicate: "'+dup.name+'" overlaps. Saved anyway.','info'); }
     events.push(newEv);
@@ -1326,113 +1467,122 @@ function modalScore(m){
   const ev = events.find(e=>e.id===m.eventId);
   const sc = computeScore(ev); const tier = scoreTier(sc);
   let totalW=0; for(const k of Object.keys(scoringWeights)) totalW += scoringWeights[k].weight;
-  let body = `<div class="modal"><div class="modal-header"><div class="modal-title">Score — ${escapeHtml(ev.name)}</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="score-breakdown">`;
+  let body = `<div class="modal"><div class="modal-header"><div class="modal-title">Score \u2014 ${escapeHtml(ev.name)}</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="score-breakdown">`;
   for(const k of Object.keys(scoringWeights)){
     const sw = scoringWeights[k];
     const v = (ev.scores && ev.scores[k]!=null)?ev.scores[k]:0;
     body += `<div class="score-criterion"><label>${escapeHtml(sw.label)} <span class="weight">w:${sw.weight} (${totalW?Math.round(sw.weight/totalW*100):0}%)</span></label><input type="range" min="0" max="10" step="1" value="${v}" data-score-key="${k}"><span class="mono" style="text-align:right">${v}/10</span></div>`;
   }
-  body += `<div class="summary-line"><span>Strategic score</span><span class="score-badge score-${tier}" style="font-size:14px;min-width:60px">${sc==null?'—':sc.toFixed(1)}</span></div></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveScore">Save scoring</button></div></div>`;
+  body += `<div class="summary-line"><span>Strategic score</span><span class="score-badge score-${tier}" style="font-size:14px;min-width:60px">${sc==null?'\u2014':sc.toFixed(1)}</span></div></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveScore">Save scoring</button></div></div>`;
   return body;
 }
 function modalNotAttending(m){
   const ev = events.find(e=>e.id===m.eventId);
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Mark as Not attending — ${escapeHtml(ev.name)}</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Reason (required)</label><textarea class="input" id="reasonText" placeholder="e.g. Limited audience overlap; budget reallocated to higher-scoring event in same region.">${escapeHtml(ev.notAttendingReason||'')}</textarea></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveReason">Confirm</button></div></div>`;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Mark as Not attending \u2014 ${escapeHtml(ev.name)}</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="field"><label>Reason (required)</label><textarea class="input" id="reasonText" placeholder="e.g. Limited audience overlap; budget reallocated to higher-scoring event in same region.">${escapeHtml(ev.notAttendingReason||'')}</textarea></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveReason">Confirm</button></div></div>`;
 }
 function openCustomRangeModal(){ state.modal = { kind:'customRange' }; renderModal(); }
 function modalCustomRange(){
   const today = iso(TODAY); const plus6 = addDays(180);
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Custom date range</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field-row"><div class="field"><label>From</label><input type="date" class="input" id="rangeStart" value="${state.customStart||today}"></div><div class="field"><label>To</label><input type="date" class="input" id="rangeEnd" value="${state.customEnd||plus6}"></div></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveRange">Apply</button></div></div>`;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Custom date range</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="field-row"><div class="field"><label>From</label><input type="date" class="input" id="rangeStart" value="${state.customStart||today}"></div><div class="field"><label>To</label><input type="date" class="input" id="rangeEnd" value="${state.customEnd||plus6}"></div></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveRange">Apply</button></div></div>`;
 }
 function modalSavePreset(){
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Save filter preset</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Preset name</label><input class="input" id="presetName" placeholder="e.g. EMEA Q2 priority"></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="savePresetBtn">Save preset</button></div></div>`;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Save filter preset</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="field"><label>Preset name</label><input class="input" id="presetName" placeholder="e.g. EMEA Q2 priority"></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="savePresetBtn">Save preset</button></div></div>`;
 }
 function modalAddMember(){
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Add team member</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Name</label><input class="input" id="mName"></div><div class="field"><label>Role</label><input class="input" id="mRole" placeholder="e.g. VP Engineering"></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveMember">Add</button></div></div>`;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Add team member</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="field"><label>Name</label><input class="input" id="mName"></div><div class="field"><label>Role</label><input class="input" id="mRole" placeholder="e.g. VP Engineering"></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="saveMember">Add</button></div></div>`;
+}
+function modalImportUrl(){
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Import event from URL</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div>
+    <div class="body-sm" style="margin-bottom:12px">Paste a public event webpage or JSON feed URL. The importer extracts event details from schema.org JSON-LD <span class="mono">Event</span> markup or a JSON array of events.</div>
+    <div class="field"><label>Event page or feed URL</label><input class="input" id="importUrlInput" placeholder="https://www.example.com/events/..."></div>
+    <div class="body-sm" style="color:var(--text-subtle);font-size:12px">Note: some sites block cross-origin (CORS) requests. If import fails, add the event manually.</div>
+    <div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="runImport">Import</button></div></div>`;
 }
 function openBulkAssign(){ state.modal = { kind:'bulkAssign' }; renderModal(); }
 function modalBulkAssign(){
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Assign to ${state.selected.size} events</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>Team member</label><select class="input" id="bulkAssignMember">${teamMembers.map(m=>`<option value="${m.id}">${escapeHtml(m.name)} — ${escapeHtml(m.role)}</option>`).join('')}</select></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="applyBulkAssign">Assign</button></div></div>`;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Assign to ${state.selected.size} events</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="field"><label>Team member</label><select class="input" id="bulkAssignMember">${teamMembers.map(m=>`<option value="${m.id}">${escapeHtml(m.name)} \u2014 ${escapeHtml(m.role)}</option>`).join('')}</select></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="applyBulkAssign">Assign</button></div></div>`;
 }
 function openBulkStatus(){ state.modal = { kind:'bulkStatus' }; renderModal(); }
 function modalBulkStatus(){
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Set status on ${state.selected.size} events</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="field"><label>New status</label><select class="input" id="bulkStatusSel"><option value="unreviewed">Unreviewed</option><option value="considering">Considering</option><option value="attending">Attending</option></select></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="applyBulkStatus">Apply</button></div></div>`;
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Set status on ${state.selected.size} events</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="field"><label>New status</label><select class="input" id="bulkStatusSel"><option value="unreviewed">Unreviewed</option><option value="considering">Considering</option><option value="attending">Attending</option></select></div><div class="modal-footer"><button class="btn-ghost" data-close-modal>Cancel</button><button class="btn-primary" id="applyBulkStatus">Apply</button></div></div>`;
 }
 function openExportModal(){ state.modal = { kind:'export' }; renderModal(); }
 function modalExport(){
   const count = sortEvents(filteredEvents()).length;
-  return `<div class="modal"><div class="modal-header"><div class="modal-title">Export ${count} events</div><button class="btn-icon-sm" data-close-modal>×</button></div>
+  return `<div class="modal"><div class="modal-header"><div class="modal-title">Export ${count} events</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div>
     <div class="body-sm" style="margin-bottom:12px">Export the current filtered view.</div>
     <div class="export-options">
-      <button class="btn-secondary" data-export="csv" style="justify-content:flex-start;text-align:left;display:block">CSV — all event fields including scores, budget, team</button>
-      <button class="btn-secondary" data-export="ical" style="justify-content:flex-start;text-align:left;display:block">iCalendar (.ics) — attending events with DN status</button>
-      <button class="btn-secondary" data-export="json" style="justify-content:flex-start;text-align:left;display:block">JSON — full data dump</button>
-      <button class="btn-secondary" data-export="report" style="justify-content:flex-start;text-align:left;display:block">Markdown report — exec summary with KPIs</button>
+      <button class="btn-secondary" data-export="csv" style="justify-content:flex-start;text-align:left;display:block">CSV \u2014 all event fields including scores, budget, team</button>
+      <button class="btn-secondary" data-export="ical" style="justify-content:flex-start;text-align:left;display:block">iCalendar (.ics) \u2014 attending events with DN status</button>
+      <button class="btn-secondary" data-export="json" style="justify-content:flex-start;text-align:left;display:block">JSON \u2014 full data dump</button>
+      <button class="btn-secondary" data-export="report" style="justify-content:flex-start;text-align:left;display:block">Markdown report \u2014 exec summary with KPIs</button>
     </div>
     <div class="modal-footer"><button class="btn-ghost" data-close-modal>Close</button></div>
   </div>`;
+}
+function csvCell(v){
+  const s = String(v == null ? '' : v);
+  return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
 }
 function doExport(kind){
   const evs = sortEvents(filteredEvents());
   let content='', mime='text/plain', filename='events-export.txt';
   if(kind==='csv'){
-    const cols = ['name','start','end','city','country','region','org','status','score','assigned','priceUsd','sponsorshipUsd','travelEstUsd','attendance','speakingDeadline','speakingStatus'];
-    content = cols.join(',')+'\
-';
+    const cols = ['name','start','end','city','country','region','org','status','score','assigned','priceUsd','sponsorshipUsd','travelEstUsd','attendance','speakingDeadline','speakingStatus','source'];
+    content = cols.join(',') + '\n';
     for(const ev of evs){
-      const row = [ev.name, ev.start, ev.end, ev.city, ev.country, ev.region, (orgById(ev.orgId)||{}).name, ev.status, computeScore(ev), ev.assigned.map(a=>(memberById(a)||{}).name).join('; '), ev.priceUsd, ev.sponsorshipUsd, ev.travelEstUsd, ev.attendance, ev.speakingDeadline||'', ev.speakingStatus||''];
-      content += row.map(v=>{ const s=String(v==null?'':v); return new RegExp('[,"\\n]').test(s)?'"'+s.replace(new RegExp('"','g'),'""')+'"':s; }).join(',')+'\n';
+      const row = [ev.name, ev.start, ev.end, ev.city, ev.country, ev.region, (orgById(ev.orgId)||{}).name, ev.status, computeScore(ev), ev.assigned.map(a=>(memberById(a)||{}).name).join('; '), ev.priceUsd, ev.sponsorshipUsd, ev.travelEstUsd, ev.attendance, ev.speakingDeadline||'', ev.speakingStatus||'', ev.source||''];
+      content += row.map(v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; }).join(',') + '\n';
     }
     mime='text/csv'; filename='dn-events.csv';
   } else if(kind==='ical'){
     const att = evs.filter(e=>e.status==='attending');
-    content = 'BEGIN:VCALENDAR\
-VERSION:2.0\
-PRODID:-//DN//Events//EN\
-';
+    content = 'BEGIN:VCALENDAR\nVERSION:2.0\nPRODID:-//DN//Events//EN\n';
     for(const ev of att){
       const ds = ev.start.replace(/-/g,''); const de = ev.end.replace(/-/g,'');
-      content += 'BEGIN:VEVENT\
-UID:'+ev.id+'@dn\
-DTSTART;VALUE=DATE:'+ds+'\
-DTEND;VALUE=DATE:'+de+'\
-SUMMARY:'+ev.name+' [DN: '+ev.status+']\
-LOCATION:'+ev.city+', '+ev.country+'\
-DESCRIPTION:'+(ev.synopsis||'').replace(new RegExp('\\n','g'),' ')+'\
-END:VEVENT\
-';
+      const desc = (ev.synopsis||'').replace(/\n/g,' ');
+      content += 'BEGIN:VEVENT\n'
+        + 'UID:' + ev.id + '@dn\n'
+        + 'DTSTART;VALUE=DATE:' + ds + '\n'
+        + 'DTEND;VALUE=DATE:' + de + '\n'
+        + 'SUMMARY:' + ev.name + ' [DN: ' + ev.status + ']\n'
+        + 'LOCATION:' + ev.city + ', ' + ev.country + '\n'
+        + 'DESCRIPTION:' + desc + '\n'
+        + 'END:VEVENT\n';
     }
-    content += 'END:VCALENDAR\
-';
+    content += 'END:VCALENDAR\n';
     mime='text/calendar'; filename='dn-events.ics';
   } else if(kind==='json'){
     content = JSON.stringify(evs, null, 2); mime='application/json'; filename='dn-events.json';
   } else if(kind==='report'){
     const k = computeKpis();
-    content = '# DN Events Report\
-\
-Generated '+new Date().toLocaleString()+'\
-\
-## Summary\
-\
-- Events in window: '+k.windowCount+'\
-- Attending: '+k.attending+'\
-- Considering: '+k.considering+'\
-- Committed budget: '+fmtMoney(k.committedBudget)+'\
-- Projected if all considering attend: '+fmtMoney(k.projectedBudget)+'\
-- Avg score attending: '+(k.avgAttendingScore?k.avgAttendingScore.toFixed(1):'—')+'\
-\
-## Events\
-\
-';
-    for(const ev of evs){ content += '### '+ev.name+'\
-- Date: '+fmtDateRange(ev.start,ev.end)+'\
-- Location: '+ev.city+', '+ev.country+'\
-- Score: '+(computeScore(ev)||'—')+'\
-- Status: '+ev.status+'\
-- Team: '+(ev.assigned.map(a=>(memberById(a)||{}).name).join(', ')||'unassigned')+'\
-\
-'; }
+    const lines = [
+      '# DN Events Report',
+      '',
+      'Generated ' + new Date().toLocaleString(),
+      '',
+      '## Summary',
+      '',
+      '- Events in window: ' + k.windowCount,
+      '- Attending: ' + k.attending,
+      '- Considering: ' + k.considering,
+      '- Committed budget: ' + fmtMoney(k.committedBudget),
+      '- Projected if all considering attend: ' + fmtMoney(k.projectedBudget),
+      '- Avg score attending: ' + (k.avgAttendingScore ? k.avgAttendingScore.toFixed(1) : '\u2014'),
+      '',
+      '## Events',
+      ''
+    ];
+    for(const ev of evs){
+      lines.push('### ' + ev.name);
+      lines.push('- Date: ' + fmtDateRange(ev.start, ev.end));
+      lines.push('- Location: ' + ev.city + ', ' + ev.country);
+      lines.push('- Score: ' + (computeScore(ev) || '\u2014'));
+      lines.push('- Status: ' + ev.status);
+      lines.push('- Team: ' + (ev.assigned.map(a=>(memberById(a)||{}).name).join(', ') || 'unassigned'));
+      lines.push('');
+    }
+    content = lines.join('\n');
     mime='text/markdown'; filename='dn-events-report.md';
   }
   const blob = new Blob([content],{type:mime});
@@ -1445,11 +1595,13 @@ Generated '+new Date().toLocaleString()+'\
 function exportSelection(){
   const selectedEvs = events.filter(e=>state.selected.has(e.id));
   if(!selectedEvs.length){ toast('No selection','error'); return; }
-  // CSV quick export
   const cols = ['name','start','end','city','country','status','score'];
-  let content = cols.join(',')+'\
-';
-  for(const ev of selectedEvs) content += [ev.name, ev.start, ev.end, ev.city, ev.country, ev.status, computeScore(ev)].map(v=>{const s=String(v==null?'':v); return new RegExp('[,"\\n]').test(s)?'"'+s.replace(new RegExp('"','g'),'""')+'"':s;}).join(',')+'\n';
+  let content = cols.join(',') + '\n';
+  for(const ev of selectedEvs){
+    content += [ev.name, ev.start, ev.end, ev.city, ev.country, ev.status, computeScore(ev)]
+      .map(v => { const s = String(v == null ? '' : v); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; })
+      .join(',') + '\n';
+  }
   const blob = new Blob([content],{type:'text/csv'});
   const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dn-events-selection.csv'; a.click();
   toast('Exported '+selectedEvs.length+' events','success');
@@ -1457,16 +1609,16 @@ function exportSelection(){
 function openCompareModal(){ state.modal = { kind:'compare' }; renderModal(); }
 function modalCompare(){
   const evs = state.compareIds.map(id=>events.find(e=>e.id===id)).filter(Boolean).slice(0,4);
-  if(evs.length<2) return '<div class="modal"><div class="modal-header"><div class="modal-title">Compare events</div><button class="btn-icon-sm" data-close-modal>×</button></div><div class="body-sm">Select 2–4 events from the table to compare.</div></div>';
+  if(evs.length<2) return '<div class="modal"><div class="modal-header"><div class="modal-title">Compare events</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div><div class="body-sm">Select 2\u20134 events from the table to compare.</div></div>';
   const cols = evs.length;
-  let html = '<div class="modal" style="max-width:'+(220+cols*220)+'px"><div class="modal-header"><div class="modal-title">Compare events</div><button class="btn-icon-sm" data-close-modal>×</button></div>';
+  let html = '<div class="modal" style="max-width:'+(220+cols*220)+'px"><div class="modal-header"><div class="modal-title">Compare events</div><button class="btn-icon-sm" data-close-modal>\u00d7</button></div>';
   html += '<div style="overflow-x:auto"><table style="font-size:12px"><thead><tr><th style="width:200px"></th>';
-  for(const ev of evs) html += `<th><div style="display:flex;justify-content:space-between;gap:6px"><span>${escapeHtml(ev.name)}</span><button class="btn-icon-sm" data-remove-cmp="${ev.id}">×</button></div></th>`;
+  for(const ev of evs) html += `<th><div style="display:flex;justify-content:space-between;gap:6px"><span>${escapeHtml(ev.name)}</span><button class="btn-icon-sm" data-remove-cmp="${ev.id}">\u00d7</button></div></th>`;
   html += '</tr></thead><tbody>';
   const rows = [
-    ['Strategic score', ev=>{ const s=computeScore(ev); return `<span class="score-badge score-${scoreTier(s)}">${s==null?'—':s.toFixed(1)}</span>`; }],
+    ['Strategic score', ev=>{ const s=computeScore(ev); return `<span class="score-badge score-${scoreTier(s)}">${s==null?'\u2014':s.toFixed(1)}</span>`; }],
     ['Dates', ev=>fmtDateRange(ev.start,ev.end)],
-    ['Location', ev=>escapeHtml(ev.city+', '+ev.country)],
+    ['Location', ev=>escapeHtml((ev.city||'\u2014')+(ev.country?', '+ev.country:''))],
     ['Region', ev=>escapeHtml(ev.region)],
     ['Status', ev=>renderStatusPill(ev)],
     ['Attendance', ev=>(ev.attendance||0).toLocaleString()],
@@ -1474,11 +1626,10 @@ function modalCompare(){
     ['Sponsorship', ev=>fmtMoney(ev.sponsorshipUsd)],
     ['Total est. cost', ev=>fmtMoney((ev.priceUsd||0)+(ev.sponsorshipUsd||0)+(ev.travelEstUsd||0)*Math.max(1,ev.assigned.length))],
     ['Team', ev=>renderAssigneeStack(ev)],
-    ['Speaking', ev=>ev.speakingDeadline?(ev.speakingStatus+' · '+daysUntil(ev.speakingDeadline)+'d'):'—'],
-    ['Competitors', ev=>(ev.competitors||[]).slice(0,3).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'—']
+    ['Speaking', ev=>ev.speakingDeadline?(ev.speakingStatus+' \u00b7 '+daysUntil(ev.speakingDeadline)+'d'):'\u2014'],
+    ['Competitors', ev=>(ev.competitors||[]).slice(0,3).map(c=>`<span class="tag">${escapeHtml(c)}</span>`).join('')||'\u2014']
   ];
-  // scoring criteria
-  for(const k of Object.keys(scoringWeights)) rows.push([scoringWeights[k].label, ev=>(ev.scores&&ev.scores[k]!=null)?ev.scores[k]+'/10':'—']);
+  for(const k of Object.keys(scoringWeights)) rows.push([scoringWeights[k].label, ev=>(ev.scores&&ev.scores[k]!=null)?ev.scores[k]+'/10':'\u2014']);
   for(const [lbl, fn] of rows){
     html += `<tr><td style="color:var(--text-muted);font-weight:500">${escapeHtml(lbl)}</td>`;
     for(const ev of evs) html += '<td>'+fn(ev)+'</td>';
@@ -1503,7 +1654,7 @@ function openAssignDropdown(anchor, eventId){
   menu.innerHTML = teamMembers.map(m=>{
     const assigned = ev.assigned.includes(m.id);
     const conflict = conflicts.includes(m.id);
-    return `<button class="dropdown-item" data-mid="${m.id}"><div class="avatar" style="background:${m.color};width:18px;height:18px;font-size:9px">${initials(m.name)}</div><span style="flex:1">${escapeHtml(m.name)}</span>${assigned?'<span style="color:var(--success)">✓</span>':''}${conflict?'<span style="color:var(--warning)" title="Conflict">⚠</span>':''}</button>`;
+    return `<button class="dropdown-item" data-mid="${m.id}"><div class="avatar" style="background:${m.color};width:18px;height:18px;font-size:9px">${initials(m.name)}</div><span style="flex:1">${escapeHtml(m.name)}</span>${assigned?'<span style="color:var(--success)">\u2713</span>':''}${conflict?'<span style="color:var(--warning)" title="Conflict">\u26a0</span>':''}</button>`;
   }).join('');
   document.body.appendChild(menu);
   currentAssignDropdown = menu;
@@ -1528,7 +1679,6 @@ function renderEmpty(title, text, btnText, btnId){
   return `<div class="empty"><div class="empty-icon"><svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div><div class="empty-title">${escapeHtml(title)}</div><div class="empty-text">${escapeHtml(text)}</div>${btnText?`<button class="btn-secondary" id="${btnId}">${escapeHtml(btnText)}</button>`:''}</div>`;
 }
 
-// keyboard
 document.addEventListener('keydown', e=>{
   if(e.key==='Escape'){
     if(state.modal){ closeModal(); return; }
@@ -1538,7 +1688,8 @@ document.addEventListener('keydown', e=>{
 
 // initial render
 render();
-toast('Tracker ready — '+events.filter(e=>new Date(e.end)>=TODAY).length+' upcoming events loaded','info');
+if(dataSources.some(s=>s.url.trim())){ syncFeeds(); }
+else { toast('No event feeds configured yet. Add feed URLs in Admin \u2192 Data sources and Sync, or import an event from a URL.','info'); }
 
 }; // __bootApp
 </script>
