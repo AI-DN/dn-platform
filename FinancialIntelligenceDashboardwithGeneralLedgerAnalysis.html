@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Financial Intelligence Dashboard</title>
+<!-- ===== DN Platform Favicon v1.0 ===== -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>FI</text></svg>">
+<meta name="theme-color" content="#07091a">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -222,6 +225,7 @@ tbody tr:hover{background:var(--surface-2)}
 <button class="tab" data-tab="ledger">Ledger Data</button>
 <button class="tab" data-tab="income">Income Statement</button>
 <button class="tab" data-tab="balance">Balance Sheet</button>
+<button class="tab" data-tab="creditors">Creditors</button>
 <button class="tab" data-tab="master-chart">Master Chart</button>
 <button class="tab" data-tab="imports">Imports</button>
 </div>
@@ -235,6 +239,7 @@ tbody tr:hover{background:var(--surface-2)}
 <div id="ledger-tab" class="tab-content"><div id="ledger-filter-bar"></div><div class="filter-bar" id="ledger-filters"><div class="filter-group"><label>Transaction Type</label><select id="filter-type" class="input" style="margin:0"><option value="">All Types</option></select></div><div class="filter-group" style="flex:1;min-width:240px"><label>Search</label><input type="text" id="filter-search" class="input" style="margin:0" placeholder="Search memo, name, account..."></div></div><div id="ledger-content"></div></div>
 <div id="income-tab" class="tab-content"><div id="income-filter-bar"></div><div id="income-view-toggle-container"></div><div style="margin-bottom:24px;display:flex;gap:12px"><button class="btn btn-primary" id="export-income-excel">Export to Excel</button><button class="btn btn-secondary" id="export-income-pdf">Export to PDF</button></div><div id="income-content"></div></div>
 <div id="balance-tab" class="tab-content"><div id="balance-filter-bar"></div><div id="balance-view-toggle-container"></div><div style="margin-bottom:24px;display:flex;gap:12px"><button class="btn btn-primary" id="export-balance-excel">Export to Excel</button><button class="btn btn-secondary" id="export-balance-pdf">Export to PDF</button></div><div id="balance-content"></div></div>
+<div id="creditors-tab" class="tab-content"><div id="creditors-filter-bar"></div><div id="creditors-content"></div></div>
 <div id="master-chart-tab" class="tab-content"><div id="master-chart-content"></div></div>
 <div id="imports-tab" class="tab-content"><div id="imports-content"></div></div>
 </div>
@@ -254,6 +259,7 @@ let visibleColumns=ALL_COLUMNS.filter(c=>c.default).map(c=>c.key);
 window.currentFilteredEntries=[];
 let importsTableState={typeFilter:'all',statusFilter:'all',search:'',sortKey:'created_at',sortDir:'desc'};
 let pendingUpload=null;
+let creditorState={search:'',sortKey:'balance',sortDir:'desc'};
 
 const prefersDark=window.matchMedia('(prefers-color-scheme: dark)').matches;
 let currentTheme=prefersDark?'dark':'light';
@@ -314,8 +320,8 @@ function getEntriesForRange(range){return appState.entries.filter(e=>{if(globalF
 function getPeriodLabel(){const now=new Date();if(globalFilters.period==='all')return'All Time';if(globalFilters.period==='ytd')return'YTD '+now.getFullYear();if(globalFilters.period==='quarter')return'Q'+(Math.floor(now.getMonth()/3)+1)+' '+now.getFullYear();if(globalFilters.period==='month')return now.toLocaleDateString('en-US',{month:'long',year:'numeric'});if(globalFilters.period==='custom'){const r=computePeriodRange();if(r.from&&r.to)return formatDateShort(r.from)+' – '+formatDateShort(r.to);if(r.from)return'From '+formatDateShort(r.from);if(r.to)return'Until '+formatDateShort(r.to);return'Custom';}return'';}
 
 function renderFilterBar(containerId){const container=document.getElementById(containerId);if(!container)return;const periods=[{key:'all',label:'All Time'},{key:'ytd',label:'YTD'},{key:'quarter',label:'Quarter'},{key:'month',label:'Month'},{key:'custom',label:'Custom'}];const sortedC=appState.companies.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));let h='<div class="filter-bar">';h+='<div class="filter-group"><label>Period</label><div class="period-buttons">';periods.forEach(p=>{const a=globalFilters.period===p.key?' active':'';h+='<button class="period-btn'+a+'" data-period="'+p.key+'">'+p.label+'</button>';});h+='</div></div>';if(globalFilters.period==='custom'){h+='<div class="filter-group"><label>Custom Range</label><div class="custom-range"><input type="date" id="'+containerId+'-from" value="'+(globalFilters.customFrom||'')+'"><span style="color:var(--text-subtle)">→</span><input type="date" id="'+containerId+'-to" value="'+(globalFilters.customTo||'')+'"><button class="btn btn-primary" id="'+containerId+'-apply">Apply</button></div></div>';}h+='<div class="filter-group" style="min-width:200px"><label>Company</label><select id="'+containerId+'-company" class="input" style="margin:0"><option value="">All companies</option>';sortedC.forEach(c=>{const s=globalFilters.companyId===c.id?' selected':'';h+='<option value="'+c.id+'"'+s+'>'+escapeHtml(c.name||'(unnamed)')+'</option>';});h+='</select></div>';h+='<div class="filter-group" style="align-self:flex-end"><div style="font-size:11px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.04em">Active</div><div style="font-size:13px;color:var(--text-muted);padding:7px 0">'+escapeHtml(getPeriodLabel());if(globalFilters.companyId){const co=appState.companies.find(c=>c.id===globalFilters.companyId);if(co)h+=' · '+escapeHtml(co.name);}h+='</div></div></div>';container.innerHTML=h;container.querySelectorAll('.period-btn').forEach(b=>{b.addEventListener('click',function(){globalFilters.period=this.dataset.period;if(globalFilters.period!=='custom'){globalFilters.customFrom='';globalFilters.customTo='';}onFiltersChanged();});});const fromI=document.getElementById(containerId+'-from'),toI=document.getElementById(containerId+'-to'),applyB=document.getElementById(containerId+'-apply');if(applyB)applyB.addEventListener('click',()=>{globalFilters.customFrom=fromI.value;globalFilters.customTo=toI.value;onFiltersChanged();});const cs=document.getElementById(containerId+'-company');if(cs)cs.addEventListener('change',function(){globalFilters.companyId=this.value||'';onFiltersChanged();});}
-function renderAllFilterBars(){renderFilterBar('dashboard-filter-bar');renderFilterBar('ledger-filter-bar');renderFilterBar('income-filter-bar');renderFilterBar('balance-filter-bar');}
-function onFiltersChanged(){chartHidden={revenue:false,opex:false,netIncome:false};treeExpanded={};renderAllFilterBars();const t=document.querySelector('.tab.active').dataset.tab;if(t==='dashboard')renderDashboard();else if(t==='ledger')filterAndRenderLedger();else if(t==='income')renderIncomeStatement();else if(t==='balance')renderBalanceSheet();else if(t==='imports')renderImportsTab();else if(t==='master-chart')renderMasterChart();}
+function renderAllFilterBars(){renderFilterBar('dashboard-filter-bar');renderFilterBar('ledger-filter-bar');renderFilterBar('income-filter-bar');renderFilterBar('balance-filter-bar');renderFilterBar('creditors-filter-bar');}
+function onFiltersChanged(){chartHidden={revenue:false,opex:false,netIncome:false};treeExpanded={};renderAllFilterBars();const t=document.querySelector('.tab.active').dataset.tab;if(t==='dashboard')renderDashboard();else if(t==='ledger')filterAndRenderLedger();else if(t==='income')renderIncomeStatement();else if(t==='balance')renderBalanceSheet();else if(t==='imports')renderImportsTab();else if(t==='master-chart')renderMasterChart();else if(t==='creditors')renderCreditors();}
 
 // ── KPI/RATIO COMPUTATION ──
 function kpiSet(entriesCurrent){const codes=[...new Set(entriesCurrent.map(e=>e.account_code).filter(Boolean))];let rev=0,cogs=0,opex=0,tax=0,assets=0,liab=0;codes.forEach(c=>{const cat=classifyAccount(c);const b=computeAccountBalance(entriesCurrent,c);if(cat==='revenue')rev+=b;else if(cat==='cogs')cogs+=b;else if(cat==='opex')opex+=b;else if(cat==='tax')tax+=b;else if(cat==='asset')assets+=b;else if(cat==='liability')liab+=b;});return{revenue:rev,cogs:cogs,opexOnly:opex,opex:opex+cogs,tax:tax,ebitda:rev-(opex+cogs),netIncome:rev-(cogs+opex+tax),assets:assets,liabilities:liab};}
@@ -336,7 +342,7 @@ function openKpiDrillDown(kpiKey){const cur=getFilteredEntries();const priorRang
 function renderDashboardChart(){const cont=document.getElementById('chart-container');const legend=document.getElementById('chart-legend');const cur=getFilteredEntries();// Render legend
 const legItems=[{k:'revenue',label:'Revenue',color:'var(--chart-rev)'},{k:'opex',label:'Operating Expenses',color:'var(--chart-opex)'},{k:'netIncome',label:'Net Income',color:'var(--chart-net)'}];legend.innerHTML=legItems.map(it=>'<span class="legend-item'+(chartHidden[it.k]?' disabled':'')+'" data-series="'+it.k+'"><span class="legend-dot" style="background:'+it.color+'"></span>'+it.label+'</span>').join('');legend.querySelectorAll('.legend-item').forEach(el=>{el.addEventListener('click',function(){const k=this.dataset.series;chartHidden[k]=!chartHidden[k];renderDashboardChart();});});if(cur.length===0){cont.innerHTML='<div class="empty-state"><p>No data in current filter.</p></div>';document.getElementById('chart-sub').textContent='Monthly trend';return;}const buckets=monthBuckets(cur);if(buckets.length===0){cont.innerHTML='<div class="empty-state"><p>No data.</p></div>';return;}const data=buckets.map(b=>{const k=kpiSet(b.entries);return{key:b.key,year:b.year,month:b.month,revenue:k.revenue,opex:k.opex,netIncome:k.netIncome};});document.getElementById('chart-sub').textContent=data.length+' month'+(data.length===1?'':'s')+' · '+escapeHtml(getPeriodLabel());const W=900,H=280,P={t:20,r:20,b:40,l:60};const iw=W-P.l-P.r,ih=H-P.t-P.b;const visibleSeries=['revenue','opex','netIncome'].filter(k=>!chartHidden[k]);const allVals=data.flatMap(d=>visibleSeries.map(k=>d[k]));if(allVals.length===0){cont.innerHTML='<div class="empty-state"><p>All series hidden.</p></div>';return;}const minV=Math.min(0,...allVals);const maxV=Math.max(0,...allVals);const range=(maxV-minV)||1;const x=i=>data.length===1?P.l+iw/2:P.l+(i/(data.length-1))*iw;const y=v=>P.t+ih-((v-minV)/range)*ih;const path=key=>data.map((d,i)=>(i===0?'M':'L')+x(i).toFixed(1)+','+y(d[key]).toFixed(1)).join(' ');const ticks=5;let yticks='';for(let i=0;i<=ticks;i++){const v=minV+(range*i/ticks);const yy=y(v);yticks+='<line x1="'+P.l+'" y1="'+yy+'" x2="'+(W-P.r)+'" y2="'+yy+'" stroke="currentColor" stroke-opacity="0.08"/>';yticks+='<text x="'+(P.l-8)+'" y="'+(yy+4)+'" text-anchor="end" font-size="10" fill="currentColor" opacity="0.6">'+formatCurrencyShort(v)+'</text>';}const monthNames=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];let xlabels='';data.forEach((d,i)=>{const lab=monthNames[d.month]+' '+String(d.year).slice(2);xlabels+='<text x="'+x(i)+'" y="'+(H-P.b+18)+'" text-anchor="middle" font-size="10" fill="currentColor" opacity="0.6">'+lab+'</text>';});const cs=getComputedStyle(document.documentElement);const cRev=cs.getPropertyValue('--chart-rev').trim()||'#5e6ad2';const cOpex=cs.getPropertyValue('--chart-opex').trim()||'#d97706';const cNet=cs.getPropertyValue('--chart-net').trim()||'#16a34a';let lines='';if(!chartHidden.revenue)lines+='<path d="'+path('revenue')+'" stroke="'+cRev+'" stroke-width="2" fill="none"/>';if(!chartHidden.opex)lines+='<path d="'+path('opex')+'" stroke="'+cOpex+'" stroke-width="2" fill="none"/>';if(!chartHidden.netIncome)lines+='<path d="'+path('netIncome')+'" stroke="'+cNet+'" stroke-width="2" fill="none"/>';let dots='';data.forEach((d,i)=>{if(!chartHidden.revenue)dots+='<circle cx="'+x(i)+'" cy="'+y(d.revenue)+'" r="3" fill="'+cRev+'"/>';if(!chartHidden.opex)dots+='<circle cx="'+x(i)+'" cy="'+y(d.opex)+'" r="3" fill="'+cOpex+'"/>';if(!chartHidden.netIncome)dots+='<circle cx="'+x(i)+'" cy="'+y(d.netIncome)+'" r="3" fill="'+cNet+'"/>';});let hovers='';data.forEach((d,i)=>{const cx=x(i);hovers+='<rect x="'+(cx-15)+'" y="'+P.t+'" width="30" height="'+ih+'" fill="transparent" data-idx="'+i+'" class="chart-hover"/>';});const svg='<svg class="chart-svg" viewBox="0 0 '+W+' '+H+'" preserveAspectRatio="xMidYMid meet">'+yticks+xlabels+lines+dots+hovers+'</svg><div id="chart-tooltip" style="position:absolute;display:none;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-sm);padding:8px 12px;font-size:12px;pointer-events:none;z-index:10"></div>';cont.innerHTML='<div style="position:relative">'+svg+'</div>';const tip=document.getElementById('chart-tooltip');cont.querySelectorAll('.chart-hover').forEach(rect=>{rect.addEventListener('mousemove',e=>{const i=parseInt(rect.dataset.idx);const d=data[i];const month=monthNames[d.month]+' '+d.year;let html='<div style="font-weight:600;margin-bottom:4px">'+month+'</div>';if(!chartHidden.revenue)html+='<div>Revenue: '+formatCurrency(d.revenue)+'</div>';if(!chartHidden.opex)html+='<div>OpEx: '+formatCurrency(d.opex)+'</div>';if(!chartHidden.netIncome)html+='<div>Net: '+formatCurrency(d.netIncome)+'</div>';tip.innerHTML=html;tip.style.display='block';const r=cont.getBoundingClientRect();tip.style.left=(e.clientX-r.left+12)+'px';tip.style.top=(e.clientY-r.top+12)+'px';});rect.addEventListener('mouseleave',()=>{tip.style.display='none';});});}
 
-function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.querySelector('.tab[data-tab="'+name+'"]').classList.add('active');document.getElementById(name+'-tab').classList.add('active');if(name==='dashboard')renderDashboard();else if(name==='ledger')renderLedgerData();else if(name==='income')renderIncomeStatement();else if(name==='balance')renderBalanceSheet();else if(name==='master-chart')renderMasterChart();else if(name==='imports')renderImportsTab();}
+function switchTab(name){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active'));document.querySelector('.tab[data-tab="'+name+'"]').classList.add('active');document.getElementById(name+'-tab').classList.add('active');if(name==='dashboard')renderDashboard();else if(name==='ledger')renderLedgerData();else if(name==='income')renderIncomeStatement();else if(name==='balance')renderBalanceSheet();else if(name==='creditors')renderCreditors();else if(name==='master-chart')renderMasterChart();else if(name==='imports')renderImportsTab();}
 
 // ── LEDGER ──
 function renderLedgerData(){const c=document.getElementById('ledger-content');if(appState.entries.length===0){c.innerHTML='<div class="empty-state"><h3>No Data</h3><p>Use the Imports tab to upload an Excel file.</p></div>';return;}updateLedgerFilters();filterAndRenderLedger();}
@@ -387,6 +393,104 @@ const tree=buildHierarchyTree(pd,bsFilter);
 // totals
 const codes=[...new Set(pd.map(e=>e.account_code).filter(Boolean))];let ta=0,tl=0,te=0,re=0;codes.forEach(co=>{const cat=classifyAccount(co);const b=computeAccountBalance(pd,co);if(cat==='asset')ta+=b;else if(cat==='liability')tl+=b;else if(cat==='equity')te+=b;else if(cat==='revenue')re+=b;else if(cat==='cogs'||cat==='opex'||cat==='tax')re-=b;});const teWithRE=te+re;const tle=tl+teWithRE;const diff=Math.abs(ta-tle);
 let h='<div class="report-section"><h2>Consolidated Balance Sheet</h2><p style="color:var(--text-muted);margin-bottom:8px;font-size:13px">'+escapeHtml(scope)+' · '+(hierarchyView==='AFS'?'AFS hierarchy':'GR hierarchy')+'</p>';if(tree.length===0){h+='<div class="empty-state"><h3>No Balance Sheet data</h3><p>No asset, liability, or equity accounts in current filter.</p></div></div>';c.innerHTML=h;return;}h+='<div class="table-wrapper"><table><thead><tr><th>Account</th><th class="number-cell">Amount</th></tr></thead><tbody>'+renderTree(tree,0,'bs')+'<tr class="report-total"><td>Retained Earnings (computed from P&amp;L)</td><td class="number-cell">'+formatCurrency(re)+'</td></tr><tr class="report-total"><td><strong>Total Assets</strong></td><td class="number-cell"><strong>'+formatCurrency(ta)+'</strong></td></tr><tr class="report-total"><td>Total Liabilities</td><td class="number-cell">'+formatCurrency(tl)+'</td></tr><tr class="report-total"><td>Total Equity (incl. Retained Earnings)</td><td class="number-cell">'+formatCurrency(teWithRE)+'</td></tr><tr class="report-total"><td><strong>Total Liabilities &amp; Equity</strong></td><td class="number-cell"><strong>'+formatCurrency(tle)+'</strong></td></tr></tbody></table></div>';if(diff>100000)h+='<div style="background:var(--danger-bg);border:1px solid var(--danger);border-radius:var(--radius-sm);padding:12px;margin-top:16px;color:var(--danger)">Balance sheet does not balance — difference: '+formatCurrency(diff)+'</div>';else if(diff>0.01)h+='<div style="background:var(--warning-bg);border:1px solid var(--warning);border-radius:var(--radius-sm);padding:12px;margin-top:16px;color:var(--warning)">Balance sheet differs by '+formatCurrency(diff)+' (acceptable rounding)</div>';else h+='<div style="background:var(--success-bg);border:1px solid var(--success);border-radius:var(--radius-sm);padding:12px;margin-top:16px;color:var(--success)">Balance sheet balances</div>';h+='</div>';c.innerHTML=h;wireTreeToggle(c);}
+
+// ── CREDITORS OVERVIEW ──
+function isPayableAccount(code){if(!code)return false;const cls=classifyAccount(code);const cs=String(code).toLowerCase();return cls==='liability'||cs.indexOf('payable')!==-1||cs.indexOf('a/p')!==-1||cs.indexOf('creditor')!==-1;}
+function computeCreditors(){
+  const entries=getFilteredEntries();
+  const r=computePeriodRange();
+  const refDate=r.to||new Date();
+  function bi(days){if(days<=30)return 0;if(days<=60)return 1;if(days<=90)return 2;return 3;}
+  const byVendor=new Map();let hasVendor=false;
+  entries.forEach(e=>{
+    const v=e.vendor&&String(e.vendor).trim();if(!v)return;if(!isPayableAccount(e.account_code))return;hasVendor=true;
+    if(!byVendor.has(v))byVendor.set(v,{name:v,code:null,debit:0,credit:0,balance:0,lastDate:null,buckets:[0,0,0,0],ageWeight:0,txns:0});
+    const rec=byVendor.get(v);rec.debit+=e.debit;rec.credit+=e.credit;const net=e.credit-e.debit;rec.balance+=net;rec.txns++;
+    if(!rec.lastDate||e.entry_date>rec.lastDate)rec.lastDate=e.entry_date;
+    const age=Math.max(0,Math.floor((refDate-e.entry_date)/86400000));rec.buckets[bi(age)]+=net;rec.ageWeight+=age*net;
+  });
+  let list=Array.from(byVendor.values());let mode='vendor';
+  if(!hasVendor){
+    mode='account';const byAcct=new Map();
+    entries.forEach(e=>{
+      const code=e.account_code;if(!code)return;if(!isPayableAccount(code))return;
+      if(!byAcct.has(code))byAcct.set(code,{name:accountDisplayName(code),code:code,debit:0,credit:0,balance:0,lastDate:null,buckets:[0,0,0,0],ageWeight:0,txns:0});
+      const rec=byAcct.get(code);rec.debit+=e.debit;rec.credit+=e.credit;const net=e.credit-e.debit;rec.balance+=net;rec.txns++;
+      if(!rec.lastDate||e.entry_date>rec.lastDate)rec.lastDate=e.entry_date;
+      const age=Math.max(0,Math.floor((refDate-e.entry_date)/86400000));rec.buckets[bi(age)]+=net;rec.ageWeight+=age*net;
+    });
+    list=Array.from(byAcct.values());
+  }
+  return {list:list,mode:mode,refDate:refDate};
+}
+function renderCreditors(){
+  const c=document.getElementById('creditors-content');
+  if(!supabaseClient){c.innerHTML='<div class="empty-state"><h3>Not Connected</h3><p>Connect to Supabase to analyze creditors.</p></div>';return;}
+  if(appState.entries.length===0){c.innerHTML='<div class="empty-state"><h3>No Data</h3><p>Upload ledger data via the Imports tab to analyze creditors and accounts payable.</p></div>';return;}
+  const res=computeCreditors();let list=res.list;
+  if(list.length===0){c.innerHTML='<div class="empty-state"><h3>No creditor data for this period</h3><p>No '+(res.mode==='vendor'?'vendor':'accounts-payable')+' activity found in the current filter. Try widening the period or selecting a different company.</p></div>';return;}
+  const q=creditorState.search.toLowerCase();
+  let filtered=list.filter(x=>!q||x.name.toLowerCase().indexOf(q)!==-1||(x.code&&x.code.toLowerCase().indexOf(q)!==-1));
+  const sk=creditorState.sortKey,sd=creditorState.sortDir;const bcols={b0:0,b1:1,b2:2,b3:3};
+  filtered.sort((a,b)=>{
+    if(sk==='name')return sd==='asc'?a.name.toLowerCase().localeCompare(b.name.toLowerCase()):b.name.toLowerCase().localeCompare(a.name.toLowerCase());
+    let va,vb;
+    if(sk==='lastDate'){va=a.lastDate?a.lastDate.getTime():0;vb=b.lastDate?b.lastDate.getTime():0;}
+    else if(bcols[sk]!==undefined){va=a.buckets[bcols[sk]];vb=b.buckets[bcols[sk]];}
+    else {va=a.balance;vb=b.balance;}
+    return sd==='asc'?va-vb:vb-va;
+  });
+  const totalBalance=filtered.reduce((s,x)=>s+x.balance,0);
+  const totalPayable=filtered.reduce((s,x)=>s+(x.balance>0?x.balance:0),0);
+  const numCreditors=filtered.filter(x=>Math.abs(x.balance)>0.005).length;
+  const b0=filtered.reduce((s,x)=>s+x.buckets[0],0);
+  const b1=filtered.reduce((s,x)=>s+x.buckets[1],0);
+  const b2=filtered.reduce((s,x)=>s+x.buckets[2],0);
+  const b3=filtered.reduce((s,x)=>s+x.buckets[3],0);
+  const overdue=b1+b2+b3;
+  const totWeight=filtered.reduce((s,x)=>s+x.ageWeight,0);
+  const avgDays=totalBalance!==0?(totWeight/totalBalance):0;
+  let scope=getPeriodLabel();
+  if(globalFilters.companyId){const co=appState.companies.find(x=>x.id===globalFilters.companyId);if(co)scope+=' · '+co.name;}else scope='All Companies · '+scope;
+  let h='<div style="margin-bottom:8px"><h2 style="font-size:20px;font-weight:600">Creditors Overview</h2><p style="color:var(--text-muted);font-size:13px">Accounts payable by '+(res.mode==='vendor'?'vendor':'payable account')+' · '+escapeHtml(scope)+' · aged at '+formatDateShort(res.refDate)+'</p></div>';
+  h+='<div class="kpi-strip" style="grid-template-columns:repeat(4,1fr)">';
+  h+='<div class="kpi-card" style="cursor:default"><h3>Total Payables</h3><div class="value">'+formatCurrency(totalPayable)+'</div><div class="prior">Net balance: '+formatCurrency(totalBalance)+'</div></div>';
+  h+='<div class="kpi-card" style="cursor:default"><h3>Creditors</h3><div class="value">'+numCreditors+'</div><div class="prior">with open balance</div></div>';
+  h+='<div class="kpi-card" style="cursor:default"><h3>Overdue (over 30d)</h3><div class="value">'+formatCurrency(overdue)+'</div><div class="prior">'+(totalPayable>0?((overdue/totalPayable)*100).toFixed(1):'0.0')+'% of payables</div></div>';
+  h+='<div class="kpi-card" style="cursor:default"><h3>Avg Days Outstanding</h3><div class="value">'+Math.round(avgDays)+'</div><div class="prior">weighted by balance</div></div>';
+  h+='</div>';
+  h+='<div style="font-size:11px;font-weight:500;color:var(--text-muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:8px">Aging Summary</div>';
+  h+='<div class="ratio-strip" style="grid-template-columns:repeat(4,1fr)">';
+  const aging=[['Current (0–30)',b0],['31–60 days',b1],['61–90 days',b2],['90+ days',b3]];
+  aging.forEach(bk=>{const pct=totalBalance!==0?((bk[1]/totalBalance)*100):0;h+='<div class="ratio-card"><div class="label">'+bk[0]+'</div><div class="val">'+formatCurrencyShort(bk[1])+'</div><div class="sub">'+pct.toFixed(1)+'% of balance</div></div>';});
+  h+='</div>';
+  h+='<div class="table-header-controls" style="justify-content:space-between"><input type="text" class="input" id="creditor-search" style="margin:0;max-width:280px" placeholder="Search creditor..." value="'+escapeHtml(creditorState.search)+'"><button class="btn btn-primary" id="creditor-export-btn">Export to Excel</button></div>';
+  const cols=[['name','Creditor',false],['lastDate','Last Txn',false],['b0','Current',true],['b1','31–60',true],['b2','61–90',true],['b3','90+',true],['balance','Balance',true]];
+  h+='<div class="table-wrapper"><table><thead><tr>';
+  cols.forEach(col=>{const ar=sk===col[0]?(sd==='asc'?' ↑':' ↓'):'';h+='<th class="sortable'+(col[2]?' number-cell':'')+'" data-sort="'+col[0]+'">'+col[1]+ar+'</th>';});
+  h+='</tr></thead><tbody>';
+  filtered.forEach((x,i)=>{
+    h+='<tr style="cursor:pointer" data-idx="'+i+'">';
+    h+='<td>'+escapeHtml(x.name)+(x.code&&x.code!==x.name?'<br><span style="color:var(--text-subtle);font-size:11px">'+escapeHtml(x.code)+'</span>':'')+'</td>';
+    h+='<td>'+(x.lastDate?formatDateShort(x.lastDate):'—')+'</td>';
+    h+='<td class="number-cell">'+formatCurrency(x.buckets[0])+'</td>';
+    h+='<td class="number-cell">'+formatCurrency(x.buckets[1])+'</td>';
+    h+='<td class="number-cell">'+formatCurrency(x.buckets[2])+'</td>';
+    h+='<td class="number-cell">'+formatCurrency(x.buckets[3])+'</td>';
+    h+='<td class="number-cell"><strong>'+formatCurrency(x.balance)+'</strong></td>';
+    h+='</tr>';
+  });
+  h+='<tr class="report-total"><td><strong>Total ('+filtered.length+')</strong></td><td></td><td class="number-cell"><strong>'+formatCurrency(b0)+'</strong></td><td class="number-cell"><strong>'+formatCurrency(b1)+'</strong></td><td class="number-cell"><strong>'+formatCurrency(b2)+'</strong></td><td class="number-cell"><strong>'+formatCurrency(b3)+'</strong></td><td class="number-cell"><strong>'+formatCurrency(totalBalance)+'</strong></td></tr>';
+  h+='</tbody></table></div><p style="color:var(--text-muted);font-size:13px">Aging is approximated from transaction date relative to the period-end (or today). Showing '+filtered.length+' creditor(s).</p>';
+  c.innerHTML=h;
+  window._creditorList=filtered;
+  c.querySelectorAll('th[data-sort]').forEach(th=>{th.addEventListener('click',function(){const k=this.dataset.sort;if(creditorState.sortKey===k)creditorState.sortDir=creditorState.sortDir==='asc'?'desc':'asc';else{creditorState.sortKey=k;creditorState.sortDir=(k==='name')?'asc':'desc';}renderCreditors();});});
+  c.querySelectorAll('tr[data-idx]').forEach(tr=>{tr.addEventListener('click',function(){openCreditorDetails(parseInt(this.dataset.idx));});});
+  const eb=document.getElementById('creditor-export-btn');if(eb)eb.addEventListener('click',exportCreditorsToExcel);
+  const si=document.getElementById('creditor-search');if(si)si.addEventListener('input',function(){creditorState.search=this.value;const pos=this.selectionStart;renderCreditors();const ns=document.getElementById('creditor-search');if(ns){ns.focus();try{ns.setSelectionRange(pos,pos);}catch(_){}}});
+}
+function openCreditorDetails(i){const list=window._creditorList||[];const x=list[i];if(!x)return;const entries=getFilteredEntries().filter(e=>{if(x.code)return e.account_code===x.code&&isPayableAccount(e.account_code);const v=e.vendor&&String(e.vendor).trim();return v===x.name&&isPayableAccount(e.account_code);});let h='<div class="field-group"><div class="field-label">Creditor</div><div class="field-value">'+escapeHtml(x.name)+'</div></div>';h+='<div class="field-group"><div class="field-label">Net Balance</div><div class="field-value">'+formatCurrency(x.balance)+'</div></div>';h+='<div class="field-group"><div class="field-label">Last Transaction</div><div class="field-value">'+(x.lastDate?formatDateShort(x.lastDate):'—')+'</div></div>';h+='<div class="field-group"><div class="field-label">Aging</div><div class="field-value">Current (0–30): '+formatCurrency(x.buckets[0])+'<br>31–60 days: '+formatCurrency(x.buckets[1])+'<br>61–90 days: '+formatCurrency(x.buckets[2])+'<br>90+ days: '+formatCurrency(x.buckets[3])+'</div></div>';h+='<div class="field-group"><div class="field-label">Transactions ('+entries.length+')</div></div>';h+='<div class="table-wrapper"><table><thead><tr><th>Date</th><th>Account</th><th class="number-cell">Debit</th><th class="number-cell">Credit</th></tr></thead><tbody>';entries.slice().sort((a,b)=>b.entry_date-a.entry_date).slice(0,200).forEach(e=>{h+='<tr><td>'+formatDate(e.entry_date)+'</td><td>'+escapeHtml(e.account_code||'')+'</td><td class="number-cell">'+(e.debit?formatCurrency(e.debit):'—')+'</td><td class="number-cell">'+(e.credit?formatCurrency(e.credit):'—')+'</td></tr>';});h+='</tbody></table></div>';openSidePanel('Creditor — '+x.name,h);}
+function exportCreditorsToExcel(){const list=window._creditorList||[];if(list.length===0){showToast('No Data','No creditors to export','warning');return;}const data=[['Creditor','Code','Last Transaction','Current (0-30)','31-60','61-90','90+','Net Balance']];list.forEach(x=>{data.push([x.name,x.code||'',x.lastDate?formatDate(x.lastDate):'',x.buckets[0],x.buckets[1],x.buckets[2],x.buckets[3],x.balance]);});const ws=XLSX.utils.aoa_to_sheet(data);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Creditors');XLSX.writeFile(wb,'creditors_'+getPeriodLabel().replace(/\s+/g,'_')+'_'+new Date().toISOString().split('T')[0]+'.xlsx');showToast('Export Complete','Exported '+list.length+' creditors','success');}
 
 // ── MASTER CHART ──
 function renderMasterChartFilterBar(){const sortedC=appState.companies.slice().sort((a,b)=>(a.name||'').localeCompare(b.name||''));let h='<div class="filter-bar"><div class="filter-group" style="min-width:200px"><label>Company</label><select id="master-chart-company-filter" class="input" style="margin:0"><option value="">All companies</option>';sortedC.forEach(c=>{const s=globalFilters.companyId===c.id?' selected':'';h+='<option value="'+c.id+'"'+s+'>'+escapeHtml(c.name||'(unnamed)')+'</option>';});h+='</select></div><div class="filter-group" style="align-self:flex-end"><div style="font-size:11px;color:var(--text-subtle);text-transform:uppercase;letter-spacing:.04em">Active</div>';let act='All companies';if(globalFilters.companyId){const co=appState.companies.find(c=>c.id===globalFilters.companyId);if(co)act=co.name;}h+='<div style="font-size:13px;color:var(--text-muted);padding:7px 0">'+escapeHtml(act)+'</div></div></div>';return h;}
