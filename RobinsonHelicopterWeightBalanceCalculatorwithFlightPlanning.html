@@ -1,0 +1,616 @@
+<!DOCTYPE html><html lang='en'><head><meta charset='UTF-8'><meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'><title>Robinson W&B Calculator</title>
+<!-- ===== DN Platform Favicon v1.0 ===== -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>RH</text></svg>">
+<meta name="theme-color" content="#07091a">
+<style>
+:root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f5f5f5;--text:#18181b;--text-muted:#52525b;--text-subtle:#a1a1aa;--border:rgba(0,0,0,0.08);--border-strong:rgba(0,0,0,0.16);--accent:#5e6ad2;--accent-hover:#4f59c4;--accent-bg:rgba(94,106,210,0.08);--success:#16a34a;--success-bg:rgba(22,163,74,0.08);--warning:#d97706;--warning-bg:rgba(217,119,6,0.08);--danger:#dc2626;--danger-bg:rgba(220,38,38,0.08);--info:#0284c7;--info-bg:rgba(2,132,199,0.08);--radius-sm:4px;--radius-md:6px;--radius-lg:8px;}
+[data-theme='dark']{--bg:#09090b;--surface:#131316;--surface-2:#1c1c20;--text:#fafafa;--text-muted:#a1a1aa;--text-subtle:#71717a;--border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);--accent:#7b85e3;--accent-hover:#8d96e8;--accent-bg:rgba(123,133,227,0.10);--success:#22c55e;--success-bg:rgba(34,197,94,0.10);--warning:#f59e0b;--warning-bg:rgba(245,158,11,0.10);--danger:#ef4444;--danger-bg:rgba(239,68,68,0.10);--info:#38bdf8;--info-bg:rgba(56,189,248,0.10);}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+.num,table,.kpi,.arm,input{font-variant-numeric:tabular-nums;}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;}
+button{font-family:inherit;}
+.app{max-width:1200px;margin:0 auto;padding:0 16px 96px;}
+header.top{position:sticky;top:0;z-index:40;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;padding:12px 16px;margin:0 -16px 16px;}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600;font-size:15px;letter-spacing:-0.005em;}
+.brand .dot{width:22px;height:22px;border-radius:5px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;}
+.spacer{flex:1;}
+.toggle-group{display:inline-flex;border:1px solid var(--border-strong);border-radius:var(--radius-sm);overflow:hidden;}
+.toggle-group button{background:var(--surface);color:var(--text-muted);border:none;padding:7px 14px;font-size:13px;font-weight:600;cursor:pointer;transition:background 150ms ease,color 150ms ease;}
+.toggle-group button.active{background:var(--accent);color:#fff;}
+.iconbtn{background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);width:34px;height:34px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 150ms ease,color 150ms ease;}
+.iconbtn:hover{background:var(--surface-2);color:var(--text);}
+.iconbtn:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.disclaimer{background:var(--warning-bg);border:1px solid var(--warning);color:var(--text);border-radius:var(--radius-md);padding:10px 12px;font-size:12px;margin-bottom:16px;display:flex;gap:8px;align-items:flex-start;}
+.disclaimer b{color:var(--warning);}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
+@media(max-width:900px){.grid{grid-template-columns:1fr;}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;}
+.card+.card{margin-top:16px;}
+.h1{font-size:20px;font-weight:600;letter-spacing:-0.005em;}
+.h2{font-size:16px;font-weight:600;}
+.cap{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);}
+.sub{font-size:12px;color:var(--text-subtle);}
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:8px;}
+.stationrow{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);}
+.stationrow:last-child{border-bottom:none;}
+.st-name{font-size:13px;font-weight:500;}
+.st-sub{font-size:11px;color:var(--text-subtle);}
+.st-arm{font-size:12px;color:var(--text-subtle);text-align:right;min-width:64px;font-family:ui-monospace,Menlo,monospace;}
+.stepper{display:inline-flex;align-items:center;border:1px solid var(--border-strong);border-radius:var(--radius-sm);overflow:hidden;background:var(--surface-2);}
+.stepper button{background:transparent;border:none;color:var(--text-muted);width:30px;height:34px;font-size:16px;cursor:pointer;transition:background 150ms ease;}
+.stepper button:hover{background:var(--border);color:var(--text);}
+.stepper input{width:62px;height:34px;border:none;background:transparent;color:var(--text);text-align:center;font-size:14px;font-weight:600;font-family:ui-monospace,Menlo,monospace;}
+.stepper input:focus{outline:none;background:var(--surface);}
+.stepper input::placeholder{color:var(--text-subtle);font-weight:400;}
+.presetbtn{background:transparent;border:1px solid var(--border);color:var(--text-subtle);border-radius:var(--radius-sm);font-size:11px;padding:2px 6px;cursor:pointer;margin-left:6px;}
+.presetbtn:hover{color:var(--accent);border-color:var(--accent);}
+.totals{margin-top:8px;border-top:2px solid var(--border-strong);padding-top:12px;}
+.totrow{display:flex;justify-content:space-between;align-items:baseline;padding:4px 0;}
+.totrow .label{font-size:13px;color:var(--text-muted);}
+.totrow .val{font-size:18px;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
+.totrow.big .val{font-size:24px;}
+.statuspill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:12px;font-size:12px;font-weight:600;}
+.statuspill .ic{width:8px;height:8px;border-radius:50%;}
+.s-green{background:var(--success-bg);color:var(--success);}.s-green .ic{background:var(--success);}
+.s-yellow{background:var(--warning-bg);color:var(--warning);}.s-yellow .ic{background:var(--warning);}
+.s-red{background:var(--danger-bg);color:var(--danger);}.s-red .ic{background:var(--danger);}
+.s-empty{background:var(--surface-2);color:var(--text-subtle);}.s-empty .ic{background:var(--text-subtle);}
+.alerts{margin-top:12px;display:flex;flex-direction:column;gap:6px;}
+.alert{display:flex;gap:8px;align-items:flex-start;font-size:12.5px;padding:8px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);}
+.alert.danger{background:var(--danger-bg);border-color:var(--danger);color:var(--text);}
+.alert.warn{background:var(--warning-bg);border-color:var(--warning);color:var(--text);}
+.alert.ok{background:var(--success-bg);border-color:var(--success);color:var(--text);}
+.alert b{font-weight:600;}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:7px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease;}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);padding:7px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease,border-color 150ms ease;}
+.btn-secondary:hover{background:var(--surface-2);border-color:var(--text-subtle);}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid transparent;padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text);}
+button:disabled{opacity:0.5;cursor:not-allowed;}
+.input{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;width:100%;}
+.input:focus{outline:none;border-color:var(--accent);background:var(--surface);}
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);}
+.rowflex{display:flex;gap:12px;flex-wrap:wrap;}
+.rowflex .field{flex:1;min-width:120px;}
+.collapse-head{display:flex;align-items:center;justify-content:space-between;cursor:pointer;}
+.collapse-head .chev{transition:transform 150ms ease;color:var(--text-subtle);}
+.collapsed .chev{transform:rotate(-90deg);}
+.collapse-body{margin-top:14px;}
+.collapsed .collapse-body{display:none;}
+.mini{font-size:12px;color:var(--text-muted);}
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px;}
+.kpi{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:10px 12px;}
+.kpi .v{font-size:20px;font-weight:700;font-family:ui-monospace,Menlo,monospace;}
+.kpi .l{font-size:11px;color:var(--text-muted);letter-spacing:0.02em;}
+.distrow{display:grid;grid-template-columns:120px 1fr auto;gap:8px;align-items:center;margin-bottom:6px;font-size:12px;}
+.bar{height:14px;background:var(--surface-2);border-radius:3px;overflow:hidden;border:1px solid var(--border);}
+.bar>span{display:block;height:100%;background:var(--accent);}
+.toast-wrap{position:fixed;top:14px;right:14px;z-index:300;display:flex;flex-direction:column;gap:8px;max-width:330px;}
+.toast{background:var(--surface);border:1px solid var(--border-strong);border-left-width:3px;border-radius:var(--radius-sm);padding:10px 12px;font-size:13px;display:flex;gap:8px;align-items:flex-start;animation:slidein 180ms ease;}
+.toast.success{border-left-color:var(--success);}.toast.error{border-left-color:var(--danger);}.toast.info{border-left-color:var(--info);}
+@keyframes slidein{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.drawer-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:200;opacity:0;pointer-events:none;transition:opacity 180ms ease;}
+.drawer-backdrop.open{opacity:1;pointer-events:auto;}
+.drawer{position:fixed;top:0;left:0;bottom:0;width:340px;max-width:88vw;background:var(--surface);border-right:1px solid var(--border-strong);z-index:201;transform:translateX(-100%);transition:transform 200ms ease;display:flex;flex-direction:column;}
+.drawer.open{transform:translateX(0);}
+.drawer-head{padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;}
+.drawer-body{overflow-y:auto;padding:16px;flex:1;}
+.tpl-card{border:1px solid var(--border);border-radius:var(--radius-sm);padding:12px;margin-bottom:10px;cursor:pointer;position:relative;overflow:hidden;transition:border-color 150ms ease,background 150ms ease;}
+.tpl-card:hover{border-color:var(--accent);background:var(--accent-bg);}
+.tpl-card.pulse{animation:pulse 600ms ease;}
+@keyframes pulse{0%{background:var(--accent-bg);}40%{background:var(--accent);}100%{background:var(--surface);}}
+.tpl-card .nm{font-size:15px;font-weight:600;}
+.tpl-card .meta{font-size:11px;color:var(--text-subtle);margin-top:3px;font-family:ui-monospace,Menlo,monospace;}
+.tpl-del{position:absolute;top:8px;right:8px;background:transparent;border:none;color:var(--text-subtle);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:4px;}
+.tpl-del:hover{color:var(--danger);background:var(--danger-bg);}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.4);display:flex;align-items:center;justify-content:center;z-index:250;padding:16px;}
+.modal{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:24px;max-width:560px;width:100%;max-height:90vh;overflow-y:auto;}
+@media(max-width:640px){.modal{max-width:100%;height:100%;max-height:100%;border-radius:0;}}
+.popmenu{position:fixed;z-index:260;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:6px;min-width:160px;}
+.popmenu button{display:block;width:100%;text-align:left;background:transparent;border:none;color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;}
+.popmenu button:hover{background:var(--surface-2);}
+.popmenu .pv{float:right;color:var(--text-subtle);font-family:ui-monospace,Menlo,monospace;}
+.empty{text-align:center;padding:24px 16px;color:var(--text-subtle);}
+.empty svg{opacity:0.14;}
+.cmp-table td,.cmp-table th{padding:7px 10px;border-bottom:1px solid var(--border);font-size:13px;}
+.cmp-table th{font-size:11px;text-transform:uppercase;color:var(--text-muted);text-align:left;letter-spacing:0.04em;}
+.cmp-table .numeric{text-align:right;font-family:ui-monospace,Menlo,monospace;}
+.btnbar{display:flex;flex-wrap:wrap;gap:8px;}
+.envwrap svg{width:100%;height:auto;display:block;}
+#printArea{display:none;}
+@media print{body *{visibility:hidden;}#printArea,#printArea *{visibility:visible;}#printArea{display:block;position:absolute;left:0;top:0;width:100%;padding:20px;color:#000;}}
+.logitem{border-bottom:1px solid var(--border);padding:10px 0;font-size:12px;}
+.logitem .lt{font-weight:600;font-size:13px;}
+</style>
+</head>
+<body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = 'fa98175a-559a-446d-a539-dfca7930296b';
+  var APP_TITLE = "Robinson Helicopter Weight & Balance Calculator with Flight Planning";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
+
+<div class='toast-wrap' id='toasts'></div>
+<div class='drawer-backdrop' id='drawerBackdrop'></div>
+<aside class='drawer' id='drawer'>
+  <div class='drawer-head'><div><div class='h2'>Templates &amp; Log</div><div class='sub' id='drawerModelLbl'></div></div><button class='iconbtn' id='closeDrawer' aria-label='Close'>&times;</button></div>
+  <div class='drawer-body'>
+    <div class='cap' style='margin-bottom:8px'>Quick Load Presets</div>
+    <div id='quickTpls'></div>
+    <div style='margin:18px 0 8px;display:flex;justify-content:space-between;align-items:center'><span class='cap'>Saved Configurations</span></div>
+    <div style='display:flex;gap:6px;margin-bottom:10px'><input class='input' id='saveTplName' placeholder='Name this load…'><button class='btn-secondary' id='saveTplBtn'>Save</button></div>
+    <div id='savedTpls'></div>
+    <div style='margin:18px 0 8px' class='cap'>Flight Log</div>
+    <div id='flightLog'></div>
+  </div>
+</aside>
+
+<div class='app'>
+  <header class='top'>
+    <button class='iconbtn' id='openDrawer' aria-label='Open templates'>&#9776;</button>
+    <div class='brand'><span class='dot'>RH</span><span>R-Series W&amp;B</span></div>
+    <div class='spacer'></div>
+    <div class='toggle-group' id='modelToggle'><button data-model='R22' class='active'>R22</button><button data-model='R44'>R44</button></div>
+    <button class='iconbtn' id='themeBtn' aria-label='Toggle theme'>&#9788;</button>
+  </header>
+
+  <div class='disclaimer'><span>&#9888;</span><span><b>Planning aid only.</b> Empty weight, arms and CG limits are representative Robinson defaults. Verify every value against this aircraft&#39;s current FAA-approved Rotorcraft Flight Manual and most recent weighing record before flight.</span></div>
+
+  <div class='grid'>
+    <div>
+      <div class='card'>
+        <div class='section-head'><div><div class='h1' id='acTitle'>R22 Beta II</div><div class='sub' id='acSpecLine'></div></div><button class='btn-ghost' id='clearBtn' title='Reset all weights'>Clear all</button></div>
+        <div id='stationList'></div>
+        <div class='totals' id='totalsBox'></div>
+      </div>
+      <div class='card'>
+        <div class='section-head'><div class='h2'>Load Distribution</div></div>
+        <div id='distrib'></div>
+      </div>
+    </div>
+    <div>
+      <div class='card'>
+        <div class='section-head'><div class='h2'>CG Envelope</div><span id='envStatus'></span></div>
+        <div class='envwrap' id='envelope'></div>
+        <div class='alerts' id='alerts'></div>
+      </div>
+      <div class='card'>
+        <div class='section-head'><div class='h2'>Flight Identification</div></div>
+        <div class='rowflex'>
+          <div class='field'><label for='tailNo'>Tail Number</label><input class='input' id='tailNo' placeholder='N-number'></div>
+          <div class='field'><label for='pilotNm'>Pilot in Command</label><input class='input' id='pilotNm' placeholder='Name'></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class='card collapsed' id='wxCard'>
+    <div class='collapse-head' data-collapse='wxCard'><div class='h2'>Weather &amp; Density Altitude</div><span class='chev'>&#9662;</span></div>
+    <div class='collapse-body'>
+      <div class='sub' style='margin-bottom:10px'>Enter observed conditions. Pressure &amp; density altitude are computed for performance planning. <span id='wxStamp' class='mono'></span></div>
+      <div class='rowflex'>
+        <div class='field'><label for='wxOat'>OAT (&deg;C)</label><input class='input' id='wxOat' inputmode='decimal' placeholder='e.g. 25'></div>
+        <div class='field'><label for='wxAlt'>Altimeter (inHg)</label><input class='input' id='wxAlt' inputmode='decimal' placeholder='29.92'></div>
+        <div class='field'><label for='wxElev'>Field Elevation (ft)</label><input class='input' id='wxElev' inputmode='numeric' placeholder='e.g. 1200'></div>
+      </div>
+      <button class='btn-secondary' id='wxRefresh' style='margin-top:10px'>Recompute</button>
+      <div class='kpis' id='wxKpis'></div>
+      <div class='alerts' id='wxAlerts'></div>
+    </div>
+  </div>
+
+  <div class='card collapsed' id='fuelCard'>
+    <div class='collapse-head' data-collapse='fuelCard'><div class='h2'>Fuel Planning &amp; Endurance</div><span class='chev'>&#9662;</span></div>
+    <div class='collapse-body'>
+      <div class='rowflex'>
+        <div class='field'><label for='burnRate'>Burn Rate (GPH)</label><input class='input' id='burnRate' inputmode='decimal'></div>
+        <div class='field'><label for='reserveMin'>Reserve (min)</label><input class='input' id='reserveMin' inputmode='numeric' value='20'></div>
+      </div>
+      <div class='kpis' id='fuelKpis'></div>
+      <div class='sub' style='margin-top:8px'>Reserve per 14 CFR 91.151 day-VFR minimum is 20 minutes. Endurance excludes startup, taxi and warm-up allowance.</div>
+    </div>
+  </div>
+
+  <div class='card collapsed' id='perfCard'>
+    <div class='collapse-head' data-collapse='perfCard'><div class='h2'>Performance Notes</div><span class='chev'>&#9662;</span></div>
+    <div class='collapse-body'><div id='perfBody'></div></div>
+  </div>
+
+  <div class='card'>
+    <div class='section-head'><div class='h2'>Export &amp; Records</div></div>
+    <div class='btnbar'>
+      <button class='btn-primary' id='printBtn'>Print / PDF W&amp;B Sheet</button>
+      <button class='btn-secondary' id='csvBtn'>Export CSV</button>
+      <button class='btn-secondary' id='logBtn'>Log this calculation</button>
+      <button class='btn-secondary' id='compareBtn'>Compare to template</button>
+    </div>
+  </div>
+</div>
+
+<div id='printArea'></div>
+<div id='modalRoot'></div>
+<div id='popRoot'></div>
+
+<script>
+'use strict';
+(function(){
+  var AIRCRAFT={
+    R22:{name:'R22 Beta II',maxGross:1370,minGross:920,defEmptyW:855,defEmptyArm:95.0,fuelDensity:6.0,burn:9,
+      stations:[
+        {id:'pilot',name:'Pilot',arm:64.6,type:'occupant'},
+        {id:'pax',name:'Passenger',arm:64.6,type:'occupant'},
+        {id:'mainfuel',name:'Main Fuel',arm:86.0,type:'fuel',maxGal:19.8},
+        {id:'auxfuel',name:'Auxiliary Fuel',arm:84.6,type:'fuel',maxGal:10.9},
+        {id:'baggage',name:'Under-seat Baggage',arm:64.6,type:'baggage',max:53}
+      ],
+      fwd:[{w:920,arm:92.4},{w:1100,arm:92.4},{w:1370,arm:96.0}],
+      aft:[{w:920,arm:99.6},{w:1370,arm:99.6}]
+    },
+    R44:{name:'R44 Raven II',maxGross:2500,minGross:1500,defEmptyW:1500,defEmptyArm:106.0,fuelDensity:6.0,burn:15,
+      stations:[
+        {id:'pilot',name:'Pilot (front L)',arm:49.5,type:'occupant'},
+        {id:'copilot',name:'Front Passenger (R)',arm:49.5,type:'occupant'},
+        {id:'rearL',name:'Rear Passenger (L)',arm:79.5,type:'occupant'},
+        {id:'rearR',name:'Rear Passenger (R)',arm:79.5,type:'occupant'},
+        {id:'mainfuel',name:'Main Fuel',arm:106.0,type:'fuel',maxGal:30.6},
+        {id:'auxfuel',name:'Auxiliary Fuel',arm:106.0,type:'fuel',maxGal:18.3},
+        {id:'baggage',name:'Baggage Area',arm:79.5,type:'baggage',max:300}
+      ],
+      fwd:[{w:1500,arm:92.5},{w:2200,arm:92.5},{w:2500,arm:95.5}],
+      aft:[{w:1500,arm:99.0},{w:2500,arm:99.0}]
+    }
+  };
+  var QUICK={
+    R22:[
+      {name:'Solo Training',w:{pilot:190,mainfuel:80}},
+      {name:'Dual Instruction',w:{pilot:190,pax:190,mainfuel:60}},
+      {name:'Cross-Country',w:{pilot:190,mainfuel:119,auxfuel:65,baggage:25}}
+    ],
+    R44:[
+      {name:'Solo',w:{pilot:190,mainfuel:120}},
+      {name:'Dual Instruction',w:{pilot:190,copilot:190,mainfuel:100}},
+      {name:'Family / 4 POB',w:{pilot:190,copilot:179,rearL:150,rearR:150,mainfuel:140,baggage:50}},
+      {name:'Cross-Country',w:{pilot:190,copilot:179,mainfuel:184,auxfuel:110,baggage:80}}
+    ]
+  };
+  var state={
+    model:'R22',
+    weights:{R22:{},R44:{}},
+    empty:{R22:{w:AIRCRAFT.R22.defEmptyW,arm:AIRCRAFT.R22.defEmptyArm},R44:{w:AIRCRAFT.R44.defEmptyW,arm:AIRCRAFT.R44.defEmptyArm}},
+    tail:'',pilot:'',
+    wx:{oat:'',alt:'',elev:'',stamp:null},
+    burn:{rate:AIRCRAFT.R22.burn,reserve:20},
+    templates:[],log:[],
+    lastDeleted:null
+  };
+  var $=function(id){return document.getElementById(id);};
+  var fmt0=new Intl.NumberFormat('en-US',{maximumFractionDigits:0});
+  var fmt1=new Intl.NumberFormat('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});
+  function M(){return AIRCRAFT[state.model];}
+  function emp(){return state.empty[state.model];}
+  function wts(){return state.weights[state.model];}
+
+  // ---- theme ----
+  var prefDark=window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches;
+  document.documentElement.dataset.theme=prefDark?'dark':'light';
+  $('themeBtn').addEventListener('click',function(){var d=document.documentElement.dataset.theme==='dark';document.documentElement.dataset.theme=d?'light':'dark';this.innerHTML=d?'&#9788;':'&#9790;';});
+  $('themeBtn').innerHTML=prefDark?'&#9790;':'&#9788;';
+
+  // ---- toast ----
+  function toast(msg,type){type=type||'info';var w=$('toasts');var t=document.createElement('div');t.className='toast '+type;var ic=type==='success'?'&#10003;':type==='error'?'&#10005;':'&#8226;';t.innerHTML='<span style="font-weight:700">'+ic+'</span><span>'+msg+'</span>';w.appendChild(t);setTimeout(function(){t.style.transition='opacity 300ms';t.style.opacity='0';setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},300);},4200);}
+
+  // ---- compute ----
+  function interp(pts,w){if(w<=pts[0].w)return pts[0].arm;if(w>=pts[pts.length-1].w)return pts[pts.length-1].arm;for(var i=0;i<pts.length-1;i++){if(w>=pts[i].w&&w<=pts[i+1].w){var t=(w-pts[i].w)/(pts[i+1].w-pts[i].w);return pts[i].arm+t*(pts[i+1].arm-pts[i].arm);}}return pts[pts.length-1].arm;}
+  function compute(){
+    var m=M();var e=emp();var w=wts();
+    var tw=Number(e.w)||0;var mom=(Number(e.w)||0)*(Number(e.arm)||0);
+    var rows=[{name:'Empty Weight',weight:Number(e.w)||0,arm:Number(e.arm)||0,moment:(Number(e.w)||0)*(Number(e.arm)||0)}];
+    m.stations.forEach(function(s){var v=Number(w[s.id])||0;tw+=v;mom+=v*s.arm;rows.push({name:s.name,weight:v,arm:s.arm,moment:v*s.arm,type:s.type,id:s.id});});
+    var cg=tw>0?mom/tw:0;
+    var fwd=interp(m.fwd,tw),aft=interp(m.aft,tw);
+    var hasLoad=false;m.stations.forEach(function(s){if(Number(w[s.id])>0)hasLoad=true;});
+    var over=tw>m.maxGross;var near=tw>=0.95*m.maxGross&&!over;
+    var cgOut=hasLoad&&(cg<fwd-0.001||cg>aft+0.001);var cgNear=hasLoad&&!cgOut&&(cg<fwd+0.5||cg>aft-0.5);
+    var status='empty';
+    if(hasLoad){if(over||cgOut)status='red';else if(near||cgNear)status='yellow';else status='green';}
+    return {rows:rows,tw:tw,mom:mom,cg:cg,fwd:fwd,aft:aft,over:over,near:near,cgOut:cgOut,cgNear:cgNear,status:status,hasLoad:hasLoad,m:m};
+  }
+
+  // ---- render stations ----
+  function renderStations(){
+    var m=M();var w=wts();var html='';
+    var e=emp();
+    html+="<div class='stationrow'><div><div class='st-name'>Aircraft Empty Weight</div><div class='st-sub'>From weighing record</div></div>";
+    html+="<div class='stepper'><button data-emp='w' data-d='-10'>&minus;</button><input data-empf='w' inputmode='decimal' value='"+(e.w||'')+"'><button data-emp='w' data-d='10'>+</button></div>";
+    html+="<div class='st-arm'><input class='input' style='width:64px;padding:5px;text-align:right' data-empf='arm' inputmode='decimal' value='"+(e.arm||'')+"'></div></div>";
+    m.stations.forEach(function(s){
+      var val=(w[s.id]!==undefined&&w[s.id]!=='')?w[s.id]:'';
+      var sub='arm '+fmt1.format(s.arm)+' in';
+      var arm=fmt1.format(s.arm)+'\"';
+      if(s.type==='fuel'){var gal=val?(Number(val)/m.fuelDensity):0;sub='max '+fmt1.format(s.maxGal)+' gal'+(val?' \u00b7 '+fmt1.format(gal)+' gal':'');}
+      if(s.type==='baggage'){sub='max '+s.max+' lb';}
+      html+="<div class='stationrow'><div><div class='st-name'>"+s.name+" <button class='presetbtn' data-preset='"+s.id+"'>presets</button></div><div class='st-sub'>"+sub+"</div></div>";
+      html+="<div class='stepper'><button data-step='"+s.id+"' data-d='-10'>&minus;</button><input data-w='"+s.id+"' inputmode='decimal' placeholder='0' value='"+val+"'><button data-step='"+s.id+"' data-d='10'>+</button></div>";
+      html+="<div class='st-arm'>"+arm+"</div></div>";
+    });
+    $('stationList').innerHTML=html;
+  }
+
+  function renderTotals(c){
+    var pct=c.m.maxGross?(c.tw/c.m.maxGross*100):0;
+    var sLbl={green:'Within limits',yellow:'Caution',red:'Out of limits',empty:'No load entered'}[c.status];
+    var html='';
+    html+="<div style='display:flex;justify-content:space-between;align-items:center;margin-bottom:6px'><span class='statuspill s-"+c.status+"'><span class='ic'></span>"+sLbl+"</span><span class='sub'>"+fmt0.format(pct)+"% of MGW</span></div>";
+    html+="<div class='totrow big'><span class='label'>Total Weight</span><span class='val' style='color:"+(c.over?'var(--danger)':'var(--text)')+"'>"+fmt0.format(c.tw)+" lb</span></div>";
+    html+="<div class='totrow'><span class='label'>Max Gross Weight</span><span class='val' style='font-size:14px;color:var(--text-muted)'>"+fmt0.format(c.m.maxGross)+" lb</span></div>";
+    html+="<div class='totrow big'><span class='label'>CG Position</span><span class='val' style='color:"+(c.cgOut?'var(--danger)':'var(--text)')+"'>"+(c.hasLoad?fmt1.format(c.cg)+'\"':'&mdash;')+"</span></div>";
+    html+="<div class='totrow'><span class='label'>Limits at this weight</span><span class='val' style='font-size:13px;color:var(--text-muted)'>"+fmt1.format(c.fwd)+" &ndash; "+fmt1.format(c.aft)+"\"</span></div>";
+    $('totalsBox').innerHTML=html;
+  }
+
+  function renderAlerts(c){
+    var a=[];
+    if(!c.hasLoad){$('alerts').innerHTML="<div class='alert'><span>&#9432;</span><span>Enter occupant and fuel weights to evaluate the load.</span></div>";return;}
+    if(c.over)a.push({t:'danger',h:'<b>Maximum gross weight exceeded</b> by '+fmt0.format(c.tw-c.m.maxGross)+' lb. Flight is not authorized until weight is reduced.'});
+    else if(c.near)a.push({t:'warn',h:'<b>Approaching max gross</b> ('+fmt0.format(c.tw/c.m.maxGross*100)+'%). Confirm performance margins for conditions.'});
+    if(c.cg<c.fwd-0.001)a.push({t:'danger',h:'<b>CG forward of limit</b> by '+fmt1.format(c.fwd-c.cg)+' in. Add aft load or reduce forward weight.'});
+    else if(c.cg>c.aft+0.001)a.push({t:'danger',h:'<b>CG aft of limit</b> by '+fmt1.format(c.cg-c.aft)+' in. Add forward load or reduce aft weight.'});
+    else if(c.cgNear)a.push({t:'warn',h:'<b>CG near a limit.</b> Within '+fmt1.format(Math.min(c.cg-c.fwd,c.aft-c.cg))+' in of an envelope boundary.'});
+    var m=M();m.stations.forEach(function(s){var v=Number(wts()[s.id])||0;if(s.type==='baggage'&&v>s.max)a.push({t:'danger',h:'<b>'+s.name+' over limit:</b> '+fmt0.format(v)+' lb exceeds '+s.max+' lb max.'});if(s.type==='fuel'&&v>s.maxGal*m.fuelDensity+0.5)a.push({t:'danger',h:'<b>'+s.name+' over capacity:</b> '+fmt1.format(v/m.fuelDensity)+' gal exceeds '+fmt1.format(s.maxGal)+' gal.'});});
+    if(a.length===0)a.push({t:'ok',h:'<b>Within all weight and CG limits.</b> Load is compliant for the conditions entered.'});
+    $('alerts').innerHTML=a.map(function(x){return "<div class='alert "+x.t+"'><span>"+(x.t==='ok'?'&#10003;':x.t==='warn'?'&#9888;':'&#9888;')+"</span><span>"+x.h+"</span></div>";}).join('');
+  }
+
+  function renderEnvelope(c){
+    var m=c.m;var arms=[],ws=[];m.fwd.concat(m.aft).forEach(function(p){arms.push(p.arm);ws.push(p.w);});
+    var armMin=Math.min.apply(null,arms)-2,armMax=Math.max.apply(null,arms)+2;
+    var wMin=Math.min.apply(null,ws)-120,wMax=m.maxGross+150;
+    var W=340,H=300,pl=44,pb=34,pt=12,pr=14;
+    function X(a){return pl+(a-armMin)/(armMax-armMin)*(W-pl-pr);}
+    function Y(w){return (H-pb)-(w-wMin)/(wMax-wMin)*(H-pb-pt);}
+    var poly=[];m.fwd.forEach(function(p){poly.push(X(p.arm)+','+Y(p.w));});for(var i=m.aft.length-1;i>=0;i--){poly.push(X(m.aft[i].arm)+','+Y(m.aft[i].w));}
+    var colMap={green:'var(--success)',yellow:'var(--warning)',red:'var(--danger)',empty:'var(--text-subtle)'};
+    var s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="CG envelope">';
+    // grid + axes
+    s+='<line x1="'+pl+'" y1="'+pt+'" x2="'+pl+'" y2="'+(H-pb)+'" stroke="var(--border-strong)"/>';
+    s+='<line x1="'+pl+'" y1="'+(H-pb)+'" x2="'+(W-pr)+'" y2="'+(H-pb)+'" stroke="var(--border-strong)"/>';
+    var wstep=(m.maxGross-m.minGross)<=600?100:200;
+    for(var ww=Math.ceil(wMin/wstep)*wstep;ww<wMax;ww+=wstep){if(ww<wMin)continue;var yy=Y(ww);s+='<line x1="'+pl+'" y1="'+yy+'" x2="'+(W-pr)+'" y2="'+yy+'" stroke="var(--border)"/>';s+='<text x="'+(pl-6)+'" y="'+(yy+3)+'" text-anchor="end" font-size="9" fill="var(--text-subtle)">'+ww+'</text>';}
+    for(var aa=Math.ceil(armMin);aa<=armMax;aa+=2){var xx=X(aa);s+='<text x="'+xx+'" y="'+(H-pb+13)+'" text-anchor="middle" font-size="9" fill="var(--text-subtle)">'+aa+'</text>';}
+    s+='<text x="'+((pl+W-pr)/2)+'" y="'+(H-4)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)">CG arm (in)</text>';
+    s+='<text x="12" y="'+((pt+H-pb)/2)+'" text-anchor="middle" font-size="10" fill="var(--text-muted)" transform="rotate(-90 12 '+((pt+H-pb)/2)+')">Weight (lb)</text>';
+    s+='<polygon points="'+poly.join(' ')+'" fill="var(--accent-bg)" stroke="var(--accent)" stroke-width="1.5"/>';
+    // MGW line
+    s+='<line x1="'+pl+'" y1="'+Y(m.maxGross)+'" x2="'+(W-pr)+'" y2="'+Y(m.maxGross)+'" stroke="var(--danger)" stroke-dasharray="4 3" stroke-width="1"/>';
+    if(c.hasLoad){var ew=Number(emp().w)||0,earm=Number(emp().arm)||0;var ex=X(Math.max(armMin,Math.min(armMax,earm))),ey=Y(Math.max(wMin,Math.min(wMax,ew)));var cx=X(Math.max(armMin,Math.min(armMax,c.cg))),cy=Y(Math.max(wMin,Math.min(wMax,c.tw)));s+='<line x1="'+cx+'" y1="'+pt+'" x2="'+cx+'" y2="'+(H-pb)+'" stroke="'+colMap[c.status]+'" stroke-width="0.5" stroke-dasharray="2 2"/>';if(ew>0){s+='<line x1="'+ex+'" y1="'+ey+'" x2="'+cx+'" y2="'+cy+'" stroke="var(--text-muted)" stroke-width="1.3" stroke-dasharray="3 2"/>';s+='<circle cx="'+ex+'" cy="'+ey+'" r="4" fill="var(--surface)" stroke="var(--text-muted)" stroke-width="1.5"/>';s+='<text x="'+(ex-7)+'" y="'+(ey+3)+'" text-anchor="end" font-size="9" fill="var(--text-muted)">Empty</text>';}s+='<circle cx="'+cx+'" cy="'+cy+'" r="8" fill="'+colMap[c.status]+'" fill-opacity="0.25"/><circle cx="'+cx+'" cy="'+cy+'" r="4.5" fill="'+colMap[c.status]+'" stroke="var(--surface)" stroke-width="1.5"><animate attributeName="r" from="4.5" to="5.5" dur="0.2s"/></circle>';s+='<text x="'+(cx+7)+'" y="'+(cy-6)+'" font-size="9" font-weight="600" fill="'+colMap[c.status]+'">T/O</text>';}
+    s+='</svg>';
+    if(c.hasLoad){var lcol={green:'var(--success)',yellow:'var(--warning)',red:'var(--danger)',empty:'var(--text-subtle)'}[c.status];s+="<div style='display:flex;gap:16px;flex-wrap:wrap;margin-top:8px;font-size:11px;color:var(--text-muted)'><span style='display:inline-flex;align-items:center;gap:6px'><span style='width:9px;height:9px;border-radius:50%;background:var(--surface);border:1.5px solid var(--text-muted)'></span>Empty weight "+fmt0.format(Number(emp().w)||0)+" lb @ "+fmt1.format(Number(emp().arm)||0)+'\u201d</span>'+"<span style='display:inline-flex;align-items:center;gap:6px'><span style='width:9px;height:9px;border-radius:50%;background:"+lcol+"'></span>Takeoff "+fmt0.format(c.tw)+" lb @ "+fmt1.format(c.cg)+'\u201d</span>'+"<span style='display:inline-flex;align-items:center;gap:6px'><span style='width:14px;height:0;border-top:1.3px dashed var(--text-muted)'></span>Loading path</span></div>";}
+    $('envelope').innerHTML=s;
+    var sLbl={green:'Within envelope',yellow:'Caution',red:'Out of envelope',empty:'No load'}[c.status];
+    $('envStatus').innerHTML="<span class='statuspill s-"+c.status+"'><span class='ic'></span>"+sLbl+"</span>";
+  }
+
+  function renderDistrib(c){
+    var rows=c.rows.filter(function(r){return r.name!=='Empty Weight';});
+    var max=Math.max(1,Math.max.apply(null,rows.map(function(r){return r.weight;})));
+    var any=rows.some(function(r){return r.weight>0;});
+    if(!any){$('distrib').innerHTML="<div class='empty'><svg width='40' height='40' viewBox='0 0 24 24' fill='currentColor'><path d='M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z'/></svg><div style='margin-top:8px'>No load placed yet</div></div>";return;}
+    var html='';rows.forEach(function(r){var pct=r.weight/max*100;html+="<div class='distrow'><span>"+r.name+"</span><div class='bar'><span style='width:"+pct+"%'></span></div><span class='mono' style='color:var(--text-muted)'>"+fmt0.format(r.weight)+" lb</span></div>";});
+    $('distrib').innerHTML=html;
+  }
+
+  // ---- weather / density alt ----
+  function computeWx(){
+    var oat=state.wx.oat===''?null:Number(state.wx.oat);
+    var alt=state.wx.alt===''?29.92:Number(state.wx.alt);
+    var elev=state.wx.elev===''?null:Number(state.wx.elev);
+    if(elev===null||oat===null||isNaN(oat)||isNaN(elev)){return null;}
+    if(isNaN(alt))alt=29.92;
+    var pa=elev+(29.92-alt)*1000;
+    var isa=15-2*(pa/1000);
+    var da=pa+120*(oat-isa);
+    return {pa:pa,da:da,isa:isa,oat:oat,elev:elev,alt:alt};
+  }
+  function renderWx(){
+    var w=computeWx();
+    if(!w){$('wxKpis').innerHTML='';$('wxAlerts').innerHTML="<div class='alert'><span>&#9432;</span><span>Enter OAT and field elevation to compute density altitude.</span></div>";return;}
+    $('wxKpis').innerHTML=
+      "<div class='kpi'><div class='v'>"+fmt0.format(w.pa)+"</div><div class='l'>Pressure Alt (ft)</div></div>"+
+      "<div class='kpi'><div class='v' style='color:"+(w.da>8000?'var(--danger)':w.da>6000?'var(--warning)':'var(--text)')+"'>"+fmt0.format(w.da)+"</div><div class='l'>Density Alt (ft)</div></div>"+
+      "<div class='kpi'><div class='v'>"+fmt0.format(w.isa)+"&deg;</div><div class='l'>ISA Temp (&deg;C)</div></div>"+
+      "<div class='kpi'><div class='v'>"+(w.oat-w.isa>=0?'+':'')+fmt0.format(w.oat-w.isa)+"&deg;</div><div class='l'>ISA Deviation</div></div>";
+    var al=[];
+    if(w.da>8000)al.push({t:'danger',h:'<b>High density altitude ('+fmt0.format(w.da)+' ft).</b> Significant performance loss. Hover and climb performance may be marginal &mdash; consult the RFM performance charts.'});
+    else if(w.da>6000)al.push({t:'warn',h:'<b>Elevated density altitude ('+fmt0.format(w.da)+' ft).</b> Reduced power available. Recompute hover ceiling for current weight.'});
+    else al.push({t:'ok',h:'<b>Density altitude '+fmt0.format(w.da)+' ft.</b> Within normal performance band.'});
+    $('wxAlerts').innerHTML=al.map(function(x){return "<div class='alert "+x.t+"'><span>"+(x.t==='ok'?'&#10003;':'&#9888;')+"</span><span>"+x.h+"</span></div>";}).join('');
+  }
+
+  // ---- fuel ----
+  function renderFuel(c){
+    var m=M();var fuelLb=0;m.stations.forEach(function(s){if(s.type==='fuel')fuelLb+=Number(wts()[s.id])||0;});
+    var gal=fuelLb/m.fuelDensity;
+    var rate=Number(state.burn.rate)||m.burn;var resMin=Number(state.burn.reserve)||0;
+    var resGal=rate*(resMin/60);
+    var usable=Math.max(0,gal-resGal);
+    var endTotal=rate>0?gal/rate:0;var endUsable=rate>0?usable/rate:0;
+    function hm(h){if(h<=0)return '0:00';var hh=Math.floor(h);var mm=Math.round((h-hh)*60);if(mm===60){hh++;mm=0;}return hh+':' +(mm<10?'0':'')+mm;}
+    $('fuelKpis').innerHTML=
+      "<div class='kpi'><div class='v'>"+fmt1.format(gal)+"</div><div class='l'>Fuel aboard (gal)</div></div>"+
+      "<div class='kpi'><div class='v'>"+fmt0.format(fuelLb)+"</div><div class='l'>Fuel weight (lb)</div></div>"+
+      "<div class='kpi'><div class='v'>"+hm(endUsable)+"</div><div class='l'>Endurance to reserve</div></div>"+
+      "<div class='kpi'><div class='v'>"+hm(endTotal)+"</div><div class='l'>Total dry-tanks</div></div>"+
+      "<div class='kpi'><div class='v'>"+fmt1.format(resGal)+"</div><div class='l'>Reserve (gal)</div></div>";
+  }
+
+  function renderPerf(c){
+    var w=computeWx();var m=M();
+    var html='';
+    if(!w){html+="<div class='alert'><span>&#9432;</span><span>Enter weather data above to estimate performance impact.</span></div>";}
+    else{
+      var hogeNote;
+      if(w.da>9000)hogeNote='Out-of-ground-effect hover likely unavailable at gross weight. Plan running takeoff.';
+      else if(w.da>6000)hogeNote='OGE hover margin reduced. Verify against RFM HOGE chart for '+fmt0.format(c.tw||m.maxGross)+' lb.';
+      else hogeNote='OGE hover normally available within weight limits at this density altitude.';
+      html+="<div class='kpis'>";
+      html+="<div class='kpi'><div class='v'>"+fmt0.format(w.da)+"</div><div class='l'>Planning DA (ft)</div></div>";
+      html+="<div class='kpi'><div class='v'>"+fmt0.format(c.tw||0)+"</div><div class='l'>Takeoff weight (lb)</div></div>";
+      html+="</div>";
+      html+="<div class='alert "+(w.da>6000?'warn':'ok')+"' style='margin-top:10px'><span>"+(w.da>6000?'&#9888;':'&#10003;')+"</span><span><b>Hover ceiling: </b>"+hogeNote+"</span></div>";
+      html+="<div class='alert' style='margin-top:6px'><span>&#9432;</span><span>Takeoff distance over a 50-ft obstacle increases substantially with density altitude and weight. Always confirm against the published Section 5 performance charts in the RFM for this aircraft.</span></div>";
+    }
+    $('perfBody').innerHTML=html;
+  }
+
+  // ---- master render ----
+  function recompute(){
+    try{
+      var c=compute();
+      renderTotals(c);renderAlerts(c);renderEnvelope(c);renderDistrib(c);renderFuel(c);renderPerf(c);
+      $('acTitle').textContent=c.m.name;
+      $('acSpecLine').textContent='MGW '+fmt0.format(c.m.maxGross)+' lb \u00b7 CG '+fmt1.format(c.m.fwd[0].arm)+'\u2013'+fmt1.format(c.m.aft[0].arm)+'\u201d \u00b7 burn ~'+c.m.burn+' gph';
+    }catch(e){console.error(e);toast('Calculation error: '+(e.message||e),'error');}
+  }
+
+  // ---- station input events ----
+  $('stationList').addEventListener('input',function(ev){
+    var t=ev.target;
+    if(t.dataset.w!==undefined){var v=t.value.replace(/[^0-9.]/g,'');wts()[t.dataset.w]=v;recompute();renderStationSubsOnly();}
+    if(t.dataset.empf!==undefined){var vv=t.value.replace(/[^0-9.]/g,'');emp()[t.dataset.empf]=vv;recompute();}
+  });
+  function renderStationSubsOnly(){
+    // update fuel gal sub-labels without rerendering inputs (avoid focus loss)
+    var m=M();var w=wts();
+    var rows=$('stationList').querySelectorAll('.stationrow');
+  }
+  $('stationList').addEventListener('click',function(ev){
+    var t=ev.target;
+    if(t.dataset.step!==undefined){var id=t.dataset.step;var d=Number(t.dataset.d);var cur=Number(wts()[id])||0;var nv=Math.max(0,cur+d);wts()[id]=String(nv);renderStations();recompute();}
+    if(t.dataset.emp!==undefined){var f=t.dataset.emp;var dd=Number(t.dataset.d);var ce=Number(emp()[f])||0;emp()[f]=String(Math.max(0,ce+dd));renderStations();recompute();}
+    if(t.dataset.preset!==undefined){openPreset(t.dataset.preset,t);}
+  });
+
+  // long-press presets on weight inputs
+  var lpTimer=null;
+  $('stationList').addEventListener('touchstart',function(ev){var t=ev.target;if(t.dataset.w!==undefined){lpTimer=setTimeout(function(){openPreset(t.dataset.w,t);},550);}},{passive:true});
+  $('stationList').addEventListener('touchend',function(){if(lpTimer){clearTimeout(lpTimer);lpTimer=null;}});
+
+  function openPreset(stId,anchor){
+    var m=M();var st=m.stations.filter(function(s){return s.id===stId;})[0];if(!st)return;
+    var opts=[];
+    if(st.type==='occupant')opts=[['Avg Adult',190],['Adult Male',200],['Adult Female',179],['Teen',130],['Child',80],['Clear',0]];
+    else if(st.type==='fuel'){var f=m.fuelDensity;opts=[['Full',Math.round(st.maxGal*f)],['3/4',Math.round(st.maxGal*f*0.75)],['Half',Math.round(st.maxGal*f*0.5)],['1/4',Math.round(st.maxGal*f*0.25)],['Clear',0]];}
+    else opts=[['Light 25',25],['Typical 50',50],['Max '+st.max,st.max],['Clear',0]];
+    var pr=$('popRoot');pr.innerHTML='';
+    var menu=document.createElement('div');menu.className='popmenu';
+    opts.forEach(function(o){var b=document.createElement('button');b.innerHTML=o[0]+"<span class='pv'>"+o[1]+" lb</span>";b.addEventListener('click',function(){wts()[stId]=o[1]===0?'':String(o[1]);renderStations();recompute();pr.innerHTML='';toast(st.name+' set to '+o[1]+' lb','success');});menu.appendChild(b);});
+    pr.appendChild(menu);
+    var r=anchor.getBoundingClientRect();var top=r.bottom+4,left=r.left;if(left+170>window.innerWidth)left=window.innerWidth-178;if(top+220>window.innerHeight)top=Math.max(8,r.top-220);menu.style.top=top+'px';menu.style.left=left+'px';
+    setTimeout(function(){document.addEventListener('click',closePop,{once:true});},10);
+    function closePop(e){if(!menu.contains(e.target))pr.innerHTML='';}
+  }
+
+  // ---- model toggle ----
+  $('modelToggle').addEventListener('click',function(ev){var b=ev.target.closest('button');if(!b)return;var mod=b.dataset.model;if(mod===state.model)return;state.model=mod;state.burn.rate=AIRCRAFT[mod].burn;
+    Array.prototype.forEach.call(this.children,function(x){x.classList.toggle('active',x.dataset.model===mod);});
+    $('burnRate').value=state.burn.rate;$('drawerModelLbl').textContent=AIRCRAFT[mod].name;
+    renderStations();recompute();renderQuick();renderSaved();toast('Switched to '+AIRCRAFT[mod].name,'info');});
+
+  $('clearBtn').addEventListener('click',function(){state.weights[state.model]={};renderStations();recompute();toast('All weights cleared','info');});
+
+  // ---- collapses ----
+  document.querySelectorAll('[data-collapse]').forEach(function(h){h.addEventListener('click',function(){$(this.dataset.collapse).classList.toggle('collapsed');}.bind(h));});
+
+  // ---- weather inputs ----
+  function bindWx(id,key){$(id).addEventListener('input',function(){state.wx[key]=this.value;renderWx();renderPerf(compute());});}
+  bindWx('wxOat','oat');bindWx('wxAlt','alt');bindWx('wxElev','elev');
+  $('wxRefresh').addEventListener('click',function(){state.wx.stamp=new Date();$('wxStamp').textContent='Updated '+state.wx.stamp.toLocaleTimeString();renderWx();renderPerf(compute());toast('Weather computation refreshed','success');});
+  $('burnRate').addEventListener('input',function(){state.burn.rate=this.value.replace(/[^0-9.]/g,'');recompute();});
+  $('reserveMin').addEventListener('input',function(){state.burn.reserve=this.value.replace(/[^0-9]/g,'');recompute();});
+  $('burnRate').value=state.burn.rate;
+  $('tailNo').addEventListener('input',function(){state.tail=this.value;});
+  $('pilotNm').addEventListener('input',function(){state.pilot=this.value;});
+
+  // ---- drawer ----
+  function openDrawer(){$('drawer').classList.add('open');$('drawerBackdrop').classList.add('open');}
+  function closeDrawer(){$('drawer').classList.remove('open');$('drawerBackdrop').classList.remove('open');}
+  $('openDrawer').addEventListener('click',openDrawer);$('closeDrawer').addEventListener('click',closeDrawer);$('drawerBackdrop').addEventListener('click',closeDrawer);
+  $('drawerModelLbl').textContent=AIRCRAFT[state.model].name;
+
+  function applyLoad(wobj,label){state.weights[state.model]={};Object.keys(wobj).forEach(function(k){state.weights[state.model][k]=String(wobj[k]);});renderStations();recompute();toast('Applied: '+label,'success');}
+
+  function renderQuick(){var list=QUICK[state.model]||[];$('quickTpls').innerHTML=list.map(function(t,i){var lbl=Object.keys(t.w).map(function(k){return fmt0.format(t.w[k]);}).reduce(function(a,b){return a+Number(b);},0);return "<div class='tpl-card' data-quick='"+i+"'><div class='nm'>"+t.name+"</div><div class='meta'>~"+fmt0.format(lbl)+" lb total load</div></div>";}).join('');}
+  $('quickTpls').addEventListener('click',function(ev){var c=ev.target.closest('[data-quick]');if(!c)return;var t=QUICK[state.model][Number(c.dataset.quick)];c.classList.remove('pulse');void c.offsetWidth;c.classList.add('pulse');applyLoad(t.w,t.name);});
+
+  function renderSaved(){var list=state.templates.filter(function(t){return t.model===state.model;});if(list.length===0){$('savedTpls').innerHTML="<div class='sub' style='padding:6px 0'>No saved configurations for this model yet. Build a load and tap Save.</div>";return;}
+    $('savedTpls').innerHTML=list.map(function(t){return "<div class='tpl-card' data-tpl='"+t.id+"'><button class='tpl-del' data-del='"+t.id+"' aria-label='Delete'>&times;</button><div class='nm'>"+t.name+"</div><div class='meta'>"+fmt0.format(t.tw)+" lb \u00b7 CG "+fmt1.format(t.cg)+"\u201d \u00b7 "+t.ago+"</div></div>";}).join('');}
+  $('savedTpls').addEventListener('click',function(ev){var del=ev.target.closest('[data-del]');if(del){ev.stopPropagation();deleteTpl(del.dataset.del);return;}var c=ev.target.closest('[data-tpl]');if(!c)return;var t=state.templates.filter(function(x){return x.id===c.dataset.tpl;})[0];if(!t)return;c.classList.remove('pulse');void c.offsetWidth;c.classList.add('pulse');applyLoad(t.weights,t.name);});
+
+  $('saveTplBtn').addEventListener('click',function(){var nm=$('saveTplName').value.trim();if(!nm){toast('Enter a name for the configuration','error');return;}var c=compute();if(!c.hasLoad){toast('Nothing to save \u2014 enter weights first','error');return;}var w={};M().stations.forEach(function(s){var v=Number(wts()[s.id])||0;if(v>0)w[s.id]=v;});state.templates.unshift({id:'t'+Date.now(),name:nm,model:state.model,weights:w,tw:c.tw,cg:c.cg,ago:'just now',ts:Date.now()});$('saveTplName').value='';renderSaved();toast('Saved configuration: '+nm,'success');});
+
+  function deleteTpl(id){var idx=-1;state.templates.forEach(function(t,i){if(t.id===id)idx=i;});if(idx<0)return;state.lastDeleted={item:state.templates[idx],idx:idx};state.templates.splice(idx,1);renderSaved();var w=$('toasts');var t=document.createElement('div');t.className='toast info';t.innerHTML="<span>Deleted &lsquo;"+state.lastDeleted.item.name+"&rsquo;</span> <button class='btn-ghost' style='padding:2px 8px'>Undo</button>";t.querySelector('button').addEventListener('click',function(){if(state.lastDeleted){state.templates.splice(state.lastDeleted.idx,0,state.lastDeleted.item);state.lastDeleted=null;renderSaved();}if(t.parentNode)t.parentNode.removeChild(t);});w.appendChild(t);setTimeout(function(){if(t.parentNode)t.parentNode.removeChild(t);},5000);}
+
+  function renderLog(){if(state.log.length===0){$('flightLog').innerHTML="<div class='sub' style='padding:6px 0'>No logged calculations. Use &lsquo;Log this calculation&rsquo; to keep a record.</div>";return;}
+    $('flightLog').innerHTML=state.log.map(function(l){var sc={green:'var(--success)',yellow:'var(--warning)',red:'var(--danger)'}[l.status]||'var(--text-subtle)';return "<div class='logitem'><div class='lt'>"+(l.tail||'(no tail)')+" &middot; "+l.model+" <span style='color:"+sc+"'>\u25cf</span></div><div class='sub mono'>"+fmt0.format(l.tw)+" lb \u00b7 CG "+fmt1.format(l.cg)+"\u201d \u00b7 "+l.time+"</div></div>";}).join('');}
+  $('logBtn').addEventListener('click',function(){var c=compute();if(!c.hasLoad){toast('Enter a load before logging','error');return;}state.log.unshift({tail:state.tail,model:state.model,tw:c.tw,cg:c.cg,status:c.status,time:new Date().toLocaleString()});renderLog();toast('Calculation logged','success');});
+
+  // ---- compare ----
+  $('compareBtn').addEventListener('click',function(){var list=state.templates.filter(function(t){return t.model===state.model;}).concat((QUICK[state.model]||[]).map(function(q){return {name:q.name+' (preset)',weights:q.w,model:state.model,preset:true};}));if(list.length===0){toast('No templates to compare. Save one first.','error');return;}openCompare(list);});
+  function openCompare(list){var root=$('modalRoot');var c=compute();
+    var opts=list.map(function(t,i){return "<option value='"+i+"'>"+t.name+"</option>";}).join('');
+    root.innerHTML="<div class='modal-backdrop' id='mb'><div class='modal'><div class='section-head'><div class='h2'>Compare to template</div><button class='iconbtn' id='mClose'>&times;</button></div><div class='field' style='margin-bottom:12px'><label>Template</label><select class='input' id='cmpSel'>"+opts+"</select></div><div id='cmpOut'></div></div></div>";
+    function draw(){var t=list[Number($('cmpSel').value)];var m=M();var cw={};m.stations.forEach(function(s){cw[s.id]=t.weights[s.id]||0;});var tw=Number(emp().w)||0,mom=(Number(emp().w)||0)*(Number(emp().arm)||0);m.stations.forEach(function(s){tw+=Number(cw[s.id])||0;mom+=(Number(cw[s.id])||0)*s.arm;});var tcg=tw>0?mom/tw:0;var tfwd=interp(m.fwd,tw),taft=interp(m.aft,tw);var tStatus=(tw>m.maxGross||tcg<tfwd||tcg>taft)?'OUT':'OK';
+      var rows='';m.stations.forEach(function(s){var a=Number(wts()[s.id])||0;var b=Number(cw[s.id])||0;rows+="<tr><td>"+s.name+"</td><td class='numeric'>"+fmt0.format(a)+"</td><td class='numeric'>"+fmt0.format(b)+"</td><td class='numeric' style='color:"+((b-a)===0?'var(--text-subtle)':'var(--text)')+"'>"+((b-a)>0?'+':'')+fmt0.format(b-a)+"</td></tr>";});
+      $('cmpOut').innerHTML="<table class='cmp-table' style='width:100%;border-collapse:collapse'><thead><tr><th>Station</th><th class='numeric'>Current</th><th class='numeric'>Template</th><th class='numeric'>&Delta;</th></tr></thead><tbody>"+rows+"<tr style='font-weight:700'><td>Total / CG</td><td class='numeric'>"+fmt0.format(c.tw)+" / "+fmt1.format(c.cg)+"</td><td class='numeric'>"+fmt0.format(tw)+" / "+fmt1.format(tcg)+"</td><td class='numeric'>"+(tw-c.tw>0?'+':'')+fmt0.format(tw-c.tw)+"</td></tr></tbody></table><div class='alert "+(tStatus==='OK'?'ok':'danger')+"' style='margin-top:12px'><span>"+(tStatus==='OK'?'&#10003;':'&#9888;')+"</span><span>Template load is <b>"+tStatus+"</b> of limits (CG "+fmt1.format(tcg)+"\u201d, limits "+fmt1.format(tfwd)+"\u2013"+fmt1.format(taft)+"\u201d).</span></div>";}
+    $('cmpSel').addEventListener('change',draw);draw();
+    $('mClose').addEventListener('click',function(){root.innerHTML='';});$('mb').addEventListener('click',function(e){if(e.target.id==='mb')root.innerHTML='';});
+  }
+
+  // ---- export ----
+  function csvSafe(v){v=String(v);if(v.indexOf(',')!==-1||v.indexOf('\"')!==-1||v.indexOf('\
+')!==-1){return '\"'+v.split('\"').join('\"\"')+'\"';}return v;}
+  $('csvBtn').addEventListener('click',function(){var c=compute();var lines=[];lines.push(['Robinson W&B Sheet'].map(csvSafe).join(','));lines.push(['Aircraft',c.m.name].map(csvSafe).join(','));lines.push(['Tail',state.tail||''].map(csvSafe).join(','));lines.push(['Pilot',state.pilot||''].map(csvSafe).join(','));lines.push(['Generated',new Date().toLocaleString()].map(csvSafe).join(','));lines.push('');lines.push(['Station','Weight (lb)','Arm (in)','Moment'].map(csvSafe).join(','));c.rows.forEach(function(r){lines.push([r.name,fmt0.format(r.weight),fmt1.format(r.arm),fmt0.format(r.moment)].map(csvSafe).join(','));});lines.push(['TOTAL',fmt0.format(c.tw),fmt1.format(c.cg),fmt0.format(c.mom)].map(csvSafe).join(','));lines.push('');lines.push(['CG limits at weight',fmt1.format(c.fwd)+' - '+fmt1.format(c.aft)].map(csvSafe).join(','));lines.push(['Status',c.status.toUpperCase()].map(csvSafe).join(','));
+    var blob=new Blob([lines.join('\
+')],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='wb-'+(state.tail||state.model)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);toast('CSV exported','success');});
+
+  $('printBtn').addEventListener('click',function(){var c=compute();var wx=computeWx();var rows=c.rows.map(function(r){return '<tr><td style="padding:5px;border-bottom:1px solid #ccc">'+r.name+'</td><td style="padding:5px;border-bottom:1px solid #ccc;text-align:right">'+fmt0.format(r.weight)+'</td><td style="padding:5px;border-bottom:1px solid #ccc;text-align:right">'+fmt1.format(r.arm)+'</td><td style="padding:5px;border-bottom:1px solid #ccc;text-align:right">'+fmt0.format(r.moment)+'</td></tr>';}).join('');
+    var html='<h2 style="margin:0 0 4px">Weight &amp; Balance Sheet</h2><div style="font-size:12px;color:#555;margin-bottom:12px">'+c.m.name+' &middot; Generated '+new Date().toLocaleString()+'</div>';
+    html+='<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:8px"><tr><td style="padding:3px"><b>Tail Number:</b> '+(state.tail||'____________')+'</td><td style="padding:3px"><b>PIC:</b> '+(state.pilot||'____________')+'</td></tr></table>';
+    html+='<table style="width:100%;font-size:12px;border-collapse:collapse;margin-bottom:12px"><thead><tr><th style="text-align:left;padding:5px;border-bottom:2px solid #000">Station</th><th style="text-align:right;padding:5px;border-bottom:2px solid #000">Weight (lb)</th><th style="text-align:right;padding:5px;border-bottom:2px solid #000">Arm (in)</th><th style="text-align:right;padding:5px;border-bottom:2px solid #000">Moment</th></tr></thead><tbody>'+rows+'<tr style="font-weight:700"><td style="padding:5px;border-top:2px solid #000">TOTAL</td><td style="padding:5px;border-top:2px solid #000;text-align:right">'+fmt0.format(c.tw)+'</td><td style="padding:5px;border-top:2px solid #000;text-align:right">'+fmt1.format(c.cg)+'</td><td style="padding:5px;border-top:2px solid #000;text-align:right">'+fmt0.format(c.mom)+'</td></tr></tbody></table>';
+    html+='<div style="font-size:12px;margin-bottom:6px"><b>Max Gross:</b> '+fmt0.format(c.m.maxGross)+' lb &nbsp; <b>CG limits @ weight:</b> '+fmt1.format(c.fwd)+'&ndash;'+fmt1.format(c.aft)+' in &nbsp; <b>Result:</b> '+c.status.toUpperCase()+'</div>';
+    if(wx)html+='<div style="font-size:12px;margin-bottom:6px"><b>Pressure Alt:</b> '+fmt0.format(wx.pa)+' ft &nbsp; <b>Density Alt:</b> '+fmt0.format(wx.da)+' ft</div>';
+    html+='<div style="font-size:11px;color:#666;margin-top:18px">Values are a planning aid. Verify against the FAA-approved Rotorcraft Flight Manual and current weighing record.</div>';
+    html+='<div style="margin-top:40px;font-size:12px">Pilot signature: ______________________________  Date: ______________</div>';
+    $('printArea').innerHTML=html;window.print();toast('Print dialog opened','info');});
+
+  // ---- init ----
+  function initSubLabels(){}
+  renderStations();renderQuick();renderSaved();renderLog();renderWx();recompute();
+})();
+</script>
+</body></html>
