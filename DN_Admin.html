@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.4.1 #39</span>
+  <span class="topbar-version" title="DN_Admin build">v1.5.0 #40</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4911,6 +4911,117 @@ async function openBuildAdvisor(reqId) {
   });
 }
 
+// ════════════════════════════════════════════════════════════════════════
+// STREAMING MESSAGES (v1.5.0 #40) — calls the Anthropic Messages API with
+// stream:true and reassembles the SSE events back into the same {content,
+// stop_reason, usage} shape the non-streaming path produced, so the rest of
+// the build pipeline is unchanged. Aborts only when the stream goes idle for
+// idleMs (a genuine stall) — long healthy generations are never clock-killed.
+// Returns { ok:true, status:200, data } | { ok:false, status, errText }.
+// Throws on network error or idle-abort (caller maps abort → stream_idle_timeout).
+// ════════════════════════════════════════════════════════════════════════
+async function streamAnthropicMessage(reqBody, apiKey, idleMs) {
+  const controller = new AbortController();
+  let idleTimer = null;
+  const armIdle = function() {
+    if (idleTimer) clearTimeout(idleTimer);
+    idleTimer = setTimeout(function() { try { controller.abort(); } catch(_) {} }, idleMs);
+  };
+  armIdle();
+  let resp;
+  try {
+    resp = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+        'content-type': 'application/json'
+      },
+      body: JSON.stringify(reqBody),
+      signal: controller.signal
+    });
+  } catch (e) { if (idleTimer) clearTimeout(idleTimer); throw e; }
+
+  if (!resp.ok) {
+    if (idleTimer) clearTimeout(idleTimer);
+    const errText = await resp.text().catch(function() { return ''; });
+    return { ok: false, status: resp.status, errText: errText };
+  }
+  if (!resp.body || !resp.body.getReader) {
+    // Fallback: server ignored stream:true and returned a normal JSON body.
+    if (idleTimer) clearTimeout(idleTimer);
+    const data = await resp.json().catch(function() { return null; });
+    if (data && data.content) return { ok: true, status: 200, data: { content: data.content, stop_reason: data.stop_reason, usage: data.usage || {} } };
+    return { ok: false, status: resp.status, errText: 'No stream body and no parseable JSON.' };
+  }
+
+  const reader = resp.body.getReader();
+  const decoder = new TextDecoder();
+  let buf = '';
+  const blocks = [];
+  let stopReason = null;
+  const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+
+  function handle(evt) {
+    const ty = evt && evt.type;
+    if (ty === 'message_start' && evt.message && evt.message.usage) {
+      const u = evt.message.usage;
+      usage.input_tokens = u.input_tokens || 0;
+      usage.cache_read_input_tokens = u.cache_read_input_tokens || 0;
+      usage.cache_creation_input_tokens = u.cache_creation_input_tokens || 0;
+      usage.output_tokens = u.output_tokens || 0;
+    } else if (ty === 'content_block_start') {
+      const cb = evt.content_block || {};
+      blocks[evt.index] = { type: cb.type, text: cb.text || '', thinking: cb.thinking || '', signature: cb.signature || '', id: cb.id, name: cb.name, input: cb.input || {}, _json: '', raw: cb };
+    } else if (ty === 'content_block_delta') {
+      const b = blocks[evt.index]; if (!b) return;
+      const d = evt.delta || {};
+      if (d.type === 'text_delta') b.text += (d.text || '');
+      else if (d.type === 'thinking_delta') b.thinking += (d.thinking || '');
+      else if (d.type === 'signature_delta') b.signature = d.signature || b.signature;
+      else if (d.type === 'input_json_delta') b._json += (d.partial_json || '');
+    } else if (ty === 'content_block_stop') {
+      const b = blocks[evt.index];
+      if (b && b.type === 'tool_use') { try { b.input = b._json ? JSON.parse(b._json) : (b.input || {}); } catch(_) { b.input = b.input || {}; } }
+    } else if (ty === 'message_delta') {
+      if (evt.delta && evt.delta.stop_reason) stopReason = evt.delta.stop_reason;
+      if (evt.usage && typeof evt.usage.output_tokens === 'number') usage.output_tokens = evt.usage.output_tokens;
+    } else if (ty === 'error') {
+      throw new Error('stream error: ' + JSON.stringify(evt.error || evt));
+    }
+  }
+
+  try {
+    while (true) {
+      const r = await reader.read();
+      armIdle();
+      if (r.done) break;
+      buf += decoder.decode(r.value, { stream: true });
+      let nl;
+      while ((nl = buf.indexOf('\n\n')) >= 0) {
+        const rawEvt = buf.slice(0, nl);
+        buf = buf.slice(nl + 2);
+        let dataStr = '';
+        rawEvt.split('\n').forEach(function(line) { if (line.indexOf('data:') === 0) dataStr += line.slice(5).trim(); });
+        if (!dataStr) continue;
+        let evt; try { evt = JSON.parse(dataStr); } catch(_) { continue; }
+        handle(evt);
+      }
+    }
+  } finally { if (idleTimer) clearTimeout(idleTimer); }
+
+  const content = [];
+  for (let i = 0; i < blocks.length; i++) {
+    const b = blocks[i]; if (!b) continue;
+    if (b.type === 'text') content.push({ type: 'text', text: b.text });
+    else if (b.type === 'thinking') content.push({ type: 'thinking', thinking: b.thinking, signature: b.signature });
+    else if (b.type === 'tool_use') content.push({ type: 'tool_use', id: b.id, name: b.name, input: b.input || {} });
+    else if (b.raw) content.push(b.raw);  // redacted_thinking or any future block type — pass through verbatim
+  }
+  return { ok: true, status: 200, data: { content: content, stop_reason: stopReason, usage: usage } };
+}
+
 async function buildRequest(reqId) {
   const req = allReqs.find(function(r) { return r.id === reqId; });
   if (!req) return;
@@ -5079,7 +5190,8 @@ async function buildRequest(reqId) {
     // tool result adds to context, then the agent has to emit ~100KB of HTML on top
     // of all of it; this naturally takes 6-12 minutes on Opus 4.7 and the old cap
     // was firing before the model could finish).
-    const BUILD_TIMEOUT_MS    = 20 * 60 * 1000;  // v1.3.6 #36 — 15→20 min headroom for long Opus 4.8 + effort builds (until streaming lands).
+    const BUILD_TIMEOUT_MS    = 20 * 60 * 1000;  // (legacy; superseded by streaming idle-timeout in v1.5.0 #40)
+    const STREAM_IDLE_MS      = 90 * 1000;        // v1.5.0 #40 — abort only if the stream emits nothing for 90s (a true stall).
     const HEARTBEAT_EVERY_MS  = 60 * 1000;
     const MAX_TOOL_ROUNDS     = 6;
     const MAX_5XX_RETRIES     = 2;     // v1.3.2 #32 — retry same model on transient 5xx
@@ -5118,9 +5230,6 @@ async function buildRequest(reqId) {
 
       while (true) {
         const iterStartedAt = Date.now();
-        const controller = new AbortController();
-        const timeoutHandle = setTimeout(function(){ try { controller.abort(); } catch(_){} }, BUILD_TIMEOUT_MS);
-
         let iterResp;
         // v1.3.0 #30 — apply the chosen intensity via adaptive thinking + effort.
         // Only Opus/Sonnet support effort; for other models it is omitted.
@@ -5128,7 +5237,8 @@ async function buildRequest(reqId) {
           model: tryModel,
           max_tokens: 128000,
           messages: messages,
-          tools: BUILD_AGENT_TOOLS
+          tools: BUILD_AGENT_TOOLS,
+          stream: true   // v1.5.0 #40 — stream the response so we use an idle-based abort, not a flat clock.
         };
         // v1.3.1 #31 — `effort` belongs inside output_config (NOT top-level, which the
         // API rejects with "effort: Extra inputs are not permitted"). Adaptive thinking
@@ -5137,31 +5247,22 @@ async function buildRequest(reqId) {
           _reqBody.thinking = { type: 'adaptive' };
           _reqBody.output_config = { effort: buildEffort };
         }
+        // v1.5.0 #40 — streamed request. streamAnthropicMessage returns {ok,status,errText,data}
+        // and aborts only when the stream goes idle for STREAM_IDLE_MS (a true stall), so a long
+        // but healthy generation is never killed by a flat timeout.
         try {
-          iterResp = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            headers: {
-              'x-api-key': apiKey,
-              'anthropic-version': '2023-06-01',
-              'anthropic-dangerous-direct-browser-access': 'true',
-              'content-type': 'application/json'
-            },
-            body: JSON.stringify(_reqBody),
-            signal: controller.signal
-          });
+          iterResp = await streamAnthropicMessage(_reqBody, apiKey, STREAM_IDLE_MS);
         } catch (fetchErr) {
-          clearTimeout(timeoutHandle);
-          if (fetchErr && (fetchErr.name === 'AbortError' || /abort/i.test(fetchErr.message || ''))) {
-            throw new Error('Build aborted: no response within ' + (BUILD_TIMEOUT_MS/60000) + ' minutes on ' + tryModel + (toolRound > 0 ? ' (tool-round ' + toolRound + ')' : '') + ' (stream_idle_timeout).');
+          if (fetchErr && (fetchErr.name === 'AbortError' || /abort|idle/i.test(fetchErr.message || ''))) {
+            throw new Error('Build aborted: streamed output stalled for ' + (STREAM_IDLE_MS/1000) + 's on ' + tryModel + (toolRound > 0 ? ' (tool-round ' + toolRound + ')' : '') + ' (stream_idle_timeout).');
           }
           throw fetchErr;
         }
-        clearTimeout(timeoutHandle);
 
         if (!iterResp.ok) {
           // Fall back to the next model ONLY on the first iteration with this model
           // (no conversation state to lose). Mid-conversation 5xx becomes a real error.
-          const errText = await iterResp.text().catch(function(){ return ''; });
+          const errText = iterResp.errText || '';
           // v1.3.2 #32 — Transient 5xx (overloaded_error / "temporarily unavailable"):
           // retry the SAME model a couple of times with escalating backoff before falling
           // to the next model. These blips self-heal, so retrying beats burning the chain.
@@ -5199,7 +5300,7 @@ async function buildRequest(reqId) {
           throw new Error('API error (' + iterResp.status + ') on ' + tryModel + (toolRound > 0 ? ' during tool-round ' + toolRound : '') + ': ' + errText.slice(0, 300));
         }
 
-        const data = await iterResp.json();
+        const data = iterResp.data;
         messages.push({ role: 'assistant', content: data.content });
         // v1.3.0 #30 — accumulate usage across round-trips.
         if (data.usage) {
@@ -5777,22 +5878,14 @@ async function attemptValidationAutofix(brokenHtml, errors, model, apiKey, build
     'Replace any literal newline inside quotes or a regex with \\n, and do not use new RegExp() with a multi-line string for CSV — use a regex literal like /[",\\n]/ or plain string methods. ' +
     'Verify the entire document parses before returning.\n\n' +
     'HTML:\n```html\n' + brokenHtml + '\n```';
-  const body = { model: model, max_tokens: 128000, messages: [{ role: 'user', content: prompt }] };
+  const body = { model: model, max_tokens: 128000, messages: [{ role: 'user', content: prompt }], stream: true };
   if (buildEffort && dnModelSupportsEffort(model)) { body.thinking = { type: 'adaptive' }; body.output_config = { effort: buildEffort }; }
-  const ctrl = new AbortController();
-  const to = setTimeout(function(){ try { ctrl.abort(); } catch(_){} }, 15 * 60 * 1000);
-  let resp;
-  try {
-    resp = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true', 'content-type': 'application/json' },
-      body: JSON.stringify(body),
-      signal: ctrl.signal
-    });
-  } catch (e) { clearTimeout(to); console.warn('autofix fetch failed:', e); return null; }
-  clearTimeout(to);
-  if (!resp.ok) { console.warn('autofix API error', resp.status); return null; }
-  const data = await resp.json();
+  // v1.5.0 #40 — stream the corrective pass too (same idle-abort, no flat clock).
+  let res;
+  try { res = await streamAnthropicMessage(body, apiKey, 90 * 1000); }
+  catch (e) { console.warn('autofix stream failed:', e); return null; }
+  if (!res.ok) { console.warn('autofix API error', res.status); return null; }
+  const data = res.data;
   if (usageTotal && data && data.usage) {
     usageTotal.input_tokens += (data.usage.input_tokens || 0);
     usageTotal.output_tokens += (data.usage.output_tokens || 0);
