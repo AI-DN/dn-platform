@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.3.7 #37</span>
+  <span class="topbar-version" title="DN_Admin build">v1.4.0 #38</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1136,6 +1136,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
     <button class="btn-sm" id="btn-users" onclick="openUsersPanel()" title="User management" style="display:none;">👥 Users</button>
     <button class="btn-sm" id="btn-access-requests" onclick="openAccessRequestsPanel()" title="Pending access requests" style="display:none;">📥 Access Requests<span class="btn-pending-badge" id="ar-pending-badge" style="display:none;">0</span></button>
     <button class="btn-sm" id="btn-app-access" onclick="openAppAccessPanel()" title="App access — per-app grants" style="display:none;">🔑 App Access</button>
+    <button class="btn-sm" id="btn-activity" onclick="openActivityPanel()" title="Ecosystem activity & usage" style="display:none;">📊 Activity</button>
     <button class="btn-settings-gear" id="btn-settings-gear" onclick="toggleSettingsPanel()" title="Settings (API keys, GitHub)" aria-label="Settings">⚙</button>
     <a class="btn-sm" href="index.html">← Platform</a>
   </div>
@@ -1196,6 +1197,22 @@ body.chat-open .board-wrap { padding-right: 420px; }
       </div>
       <div class="users-status" id="users-status">Loading...</div>
       <div class="users-list" id="users-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Activity overlay (admin-only) — v1.4.0 #38 -->
+<div class="users-overlay" id="activity-overlay" onclick="if(event.target===this)closeActivityPanel()">
+  <div class="users-panel">
+    <div class="users-panel-head">
+      <div>
+        <div class="users-panel-title">Ecosystem activity</div>
+        <div class="users-panel-sub">Who's using Intent &amp; Admin, who contributes, and usage trends.</div>
+      </div>
+      <button class="users-panel-close" onclick="closeActivityPanel()" aria-label="Close">×</button>
+    </div>
+    <div class="users-panel-body" id="activity-body">
+      <div class="users-status">Loading…</div>
     </div>
   </div>
 </div>
@@ -2018,6 +2035,7 @@ async function initAuth() {
   // v1.0.2 #3 — surface admin buttons immediately on load (was: only on settings open)
   if (typeof showUsersButtonIfAdmin === 'function') showUsersButtonIfAdmin();
   if (typeof showAppAccessButtonIfAdmin === 'function') showAppAccessButtonIfAdmin();
+  if (typeof showActivityButtonIfAdmin === 'function') showActivityButtonIfAdmin();
   if (!canAccessAdmin()) { showAccessDeniedGate(); return false; }
   supaClient.auth.onAuthStateChange(function(event, sess) {
     if (event === 'SIGNED_OUT') { currentSession = null; currentProfile = null; location.reload(); }
@@ -2147,6 +2165,169 @@ async function openUsersPanel() {
 
 function closeUsersPanel() {
   document.getElementById('users-overlay').classList.remove('open');
+}
+
+// ════════════════════════════════════════════════════════════════════════
+// ECOSYSTEM ACTIVITY (v1.4.0 #38) — admin-only observability over the shared
+// activity_log + profiles + requests. Two sections: usage trends + people.
+// ════════════════════════════════════════════════════════════════════════
+const ACTIVITY_NOISE = ['build_heartbeat','build_round_complete','build_tool_call','build_retry','build_autofix_attempt'];
+const ACTIVITY_WINDOW_DAYS = 90;
+const ACTIVITY_QUESTION_ACTIONS = { answered_question:1, needs_input_response:1, user_iteration:1, asked_user:1, flagged_needs_input:1 };
+const ACTIVITY_CONTRIB_ACTIONS = { epic_approved:1, improvement_capability_added:1, feature_capability_added:1, bug_capability_added:1 };
+
+function showActivityButtonIfAdmin() {
+  const btn = document.getElementById('btn-activity');
+  if (btn) btn.style.display = isAdmin() ? '' : 'none';
+}
+function closeActivityPanel() {
+  const o = document.getElementById('activity-overlay');
+  if (o) o.classList.remove('open');
+}
+async function openActivityPanel() {
+  if (!isAdmin()) { alert('Admins only.'); return; }
+  const o = document.getElementById('activity-overlay');
+  if (o) o.classList.add('open');
+  const body = document.getElementById('activity-body');
+  if (body) body.innerHTML = '<div class="users-status">Loading activity…</div>';
+  try { await loadActivityData(); }
+  catch (e) { if (body) body.innerHTML = '<div class="users-status">Could not load activity: ' + esc(e.message || String(e)) + '</div>'; }
+}
+
+async function loadActivityData() {
+  const sinceISO = new Date(Date.now() - ACTIVITY_WINDOW_DAYS * 864e5).toISOString();
+  const evUrl = surl('activity_log?select=created_at,actor,actor_name,action,request_id&created_at=gte.' + encodeURIComponent(sinceISO) + '&action=not.in.(' + ACTIVITY_NOISE.join(',') + ')&order=created_at.desc&limit=4000');
+  const grab = function(p) { return fetch(p, { headers: hdrs() }).then(function(r){ return r.ok ? r.json() : []; }).catch(function(){ return []; }); };
+  const res = await Promise.all([
+    grab(evUrl),
+    grab(surl('profiles?select=id,full_name,email,is_admin,can_access_admin,can_access_intent,created_at')),
+    grab(surl('requests?select=id,submitted_by,creator_user_id,status,created_at'))
+  ]);
+  renderActivity(Array.isArray(res[0]) ? res[0] : [], Array.isArray(res[1]) ? res[1] : [], Array.isArray(res[2]) ? res[2] : []);
+}
+
+function _activityRoleLabel(p) {
+  if (!p) return '—';
+  if (p.is_admin) return 'Admin';
+  var bits = [];
+  if (p.can_access_admin) bits.push('Operator');
+  if (p.can_access_intent) bits.push('Intent');
+  return bits.length ? bits.join(' + ') : 'No access';
+}
+function _activityAgo(ms) {
+  var s = Math.floor(ms / 1000);
+  if (s < 60) return s + 's ago';
+  var m = Math.floor(s / 60); if (m < 60) return m + 'm ago';
+  var h = Math.floor(m / 60); if (h < 24) return h + 'h ago';
+  var d = Math.floor(h / 24); if (d < 30) return d + 'd ago';
+  return Math.floor(d / 30) + 'mo ago';
+}
+
+function renderActivity(events, profiles, reqs) {
+  const body = document.getElementById('activity-body');
+  if (!body) return;
+  const now = Date.now();
+
+  // ---- People aggregation (keyed by actor_name) ----
+  const people = {};
+  function personFor(name) {
+    const key = (name || '(unknown)').trim().toLowerCase();
+    if (!people[key]) people[key] = { name: name || '(unknown)', total:0, intent:0, admin:0, questions:0, contributions:0, requests:0, last:0, role:'—' };
+    return people[key];
+  }
+  events.forEach(function(e) {
+    const p = personFor(e.actor_name);
+    p.total++;
+    if (e.actor === 'intent_user' || e.actor === 'intent_agent') p.intent++;
+    if (e.actor === 'admin') p.admin++;
+    if (ACTIVITY_QUESTION_ACTIONS[e.action]) p.questions++;
+    if (ACTIVITY_CONTRIB_ACTIONS[e.action]) p.contributions++;
+    const t = Date.parse(e.created_at || '') || 0;
+    if (t > p.last) p.last = t;
+  });
+  reqs.forEach(function(r) { if (r.submitted_by) personFor(r.submitted_by).requests++; });
+  const profByName = {};
+  profiles.forEach(function(pr) {
+    if (pr.full_name) profByName[pr.full_name.trim().toLowerCase()] = pr;
+    if (pr.email) profByName[pr.email.trim().toLowerCase()] = pr;
+  });
+  Object.keys(people).forEach(function(k) {
+    const pr = profByName[k] || profByName[(people[k].name || '').trim().toLowerCase()];
+    if (pr) people[k].role = _activityRoleLabel(pr);
+  });
+  profiles.forEach(function(pr) {
+    const key = (pr.full_name || pr.email || '').trim().toLowerCase();
+    if (key && !people[key] && (pr.can_access_intent || pr.can_access_admin || pr.is_admin)) {
+      people[key] = { name: pr.full_name || pr.email, total:0, intent:0, admin:0, questions:0, contributions:0, requests:0, last:0, role:_activityRoleLabel(pr) };
+    }
+  });
+  const peopleArr = Object.keys(people).map(function(k) { return people[k]; })
+    .sort(function(a, b) { return (b.last - a.last) || (b.total - a.total); });
+
+  // ---- Usage trends (last 30 days) ----
+  const cut30 = now - 30 * 864e5;
+  const ev30 = events.filter(function(e) { return (Date.parse(e.created_at) || 0) >= cut30; });
+  const activeIntentSet = {};
+  ev30.forEach(function(e) { if (e.actor === 'intent_user' && e.actor_name) activeIntentSet[e.actor_name.toLowerCase()] = 1; });
+  const totals = {
+    activeIntent: Object.keys(activeIntentSet).length,
+    reqs30: reqs.filter(function(r) { return (Date.parse(r.created_at) || 0) >= cut30; }).length,
+    epics30: ev30.filter(function(e) { return e.action === 'epic_approved'; }).length,
+    shipped30: ev30.filter(function(e) { return e.action === 'shipped'; }).length,
+    builds30: ev30.filter(function(e) { return e.action === 'build_started'; }).length,
+    questions30: ev30.filter(function(e) { return ACTIVITY_QUESTION_ACTIONS[e.action]; }).length
+  };
+
+  // daily bar chart (last 30 days)
+  const dayBuckets = {};
+  for (var i = 29; i >= 0; i--) { dayBuckets[new Date(now - i * 864e5).toISOString().slice(0, 10)] = 0; }
+  events.forEach(function(e) { var k = (e.created_at || '').slice(0, 10); if (k in dayBuckets) dayBuckets[k]++; });
+  const dayKeys = Object.keys(dayBuckets);
+  var maxDay = 1;
+  dayKeys.forEach(function(k) { if (dayBuckets[k] > maxDay) maxDay = dayBuckets[k]; });
+  const chartW = 680, chartH = 120, pad = 3, bw = (chartW - dayKeys.length * pad) / dayKeys.length;
+  var bars = '';
+  dayKeys.forEach(function(k, idx) {
+    var v = dayBuckets[k], bh = Math.round((v / maxDay) * (chartH - 20)), x = idx * (bw + pad), y = chartH - bh - 14;
+    bars += '<rect x="' + x.toFixed(1) + '" y="' + y + '" width="' + bw.toFixed(1) + '" height="' + bh + '" rx="2" fill="#47D1FF" opacity="0.85"><title>' + k + ': ' + v + ' events</title></rect>';
+  });
+  const lbl = 'font-size:9px;fill:#7a8099;';
+  const svg = '<svg viewBox="0 0 ' + chartW + ' ' + chartH + '" width="100%" preserveAspectRatio="none" style="max-height:130px;display:block;">' + bars +
+    '<text x="0" y="' + (chartH - 2) + '" style="' + lbl + '">' + dayKeys[0] + '</text>' +
+    '<text x="' + chartW + '" y="' + (chartH - 2) + '" text-anchor="end" style="' + lbl + '">' + dayKeys[dayKeys.length - 1] + '</text></svg>';
+
+  function card(label, val) {
+    return '<div style="flex:1;min-width:120px;background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px 14px;">' +
+      '<div style="font-size:22px;font-weight:700;color:#e8eaf0;">' + val + '</div>' +
+      '<div style="font-size:11px;color:#8089a3;margin-top:2px;">' + label + '</div></div>';
+  }
+
+  var html = '';
+  html += '<div class="users-toolbar" style="justify-content:space-between;"><div style="font-size:12px;color:#8089a3;">Last ' + ACTIVITY_WINDOW_DAYS + ' days · ' + events.length + ' meaningful events · ' + peopleArr.length + ' people</div><button class="users-reload" onclick="loadActivityData()">↻ Reload</button></div>';
+  html += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#47D1FF;margin:16px 0 8px;">Usage trends — last 30 days</div>';
+  html += '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">' +
+    card('Active Intent users', totals.activeIntent) + card('Requests created', totals.reqs30) +
+    card('Epics approved', totals.epics30) + card('Apps shipped', totals.shipped30) +
+    card('Builds run', totals.builds30) + card('Questions / iterations', totals.questions30) + '</div>';
+  html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;margin-bottom:22px;"><div style="font-size:11px;color:#8089a3;margin-bottom:6px;">Daily activity (events/day)</div>' + svg + '</div>';
+
+  html += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#47D1FF;margin:8px 0 8px;">People &amp; contributors</div>';
+  html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;"><thead><tr style="text-align:left;color:#8089a3;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.1);">' +
+    '<th style="padding:6px 8px;">Person</th><th style="padding:6px 8px;">Role</th><th style="padding:6px 8px;">Requests</th><th style="padding:6px 8px;">Contribs</th><th style="padding:6px 8px;">Questions</th><th style="padding:6px 8px;">Events</th><th style="padding:6px 8px;">Last active</th></tr></thead><tbody>';
+  if (peopleArr.length === 0) html += '<tr><td colspan="7" style="padding:10px 8px;color:#7a8099;">No activity in this window.</td></tr>';
+  peopleArr.forEach(function(p) {
+    var last = p.last ? _activityAgo(now - p.last) : '—';
+    html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+      '<td style="padding:6px 8px;color:#e8eaf0;">' + esc(p.name) + '</td>' +
+      '<td style="padding:6px 8px;color:#9aa1bd;">' + esc(p.role || '—') + '</td>' +
+      '<td style="padding:6px 8px;">' + (p.requests || 0) + '</td>' +
+      '<td style="padding:6px 8px;">' + (p.contributions || 0) + '</td>' +
+      '<td style="padding:6px 8px;">' + (p.questions || 0) + '</td>' +
+      '<td style="padding:6px 8px;">' + (p.total || 0) + '</td>' +
+      '<td style="padding:6px 8px;color:#9aa1bd;">' + last + '</td></tr>';
+  });
+  html += '</tbody></table>';
+  body.innerHTML = html;
 }
 
 async function loadUsers() {
@@ -2842,6 +3023,7 @@ window.addEventListener('load', async function() {
   // T7 — surface admin buttons + pending-request badge as soon as profile is known
   if (typeof showUsersButtonIfAdmin === 'function') showUsersButtonIfAdmin();
   if (typeof showAppAccessButtonIfAdmin === 'function') showAppAccessButtonIfAdmin();
+  if (typeof showActivityButtonIfAdmin === 'function') showActivityButtonIfAdmin();
   if (typeof showAccessRequestsButtonIfAdmin === 'function') showAccessRequestsButtonIfAdmin();
   if (typeof refreshAccessRequestsBadge === 'function') refreshAccessRequestsBadge();
 });
@@ -2866,6 +3048,7 @@ function openSettingsPanel() {
     showAppAccessButtonIfAdmin();
     // T7 — show Access Requests button only for admins
     showAccessRequestsButtonIfAdmin();
+    if (typeof showActivityButtonIfAdmin === 'function') showActivityButtonIfAdmin();
     refreshAccessRequestsBadge();
   }
   document.getElementById('settings-overlay').classList.add('open');
