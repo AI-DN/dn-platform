@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.8.0 #43</span>
+  <span class="topbar-version" title="DN_Admin build">v1.9.0 #44</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -1206,7 +1206,10 @@ body.chat-open .board-wrap { padding-right: 420px; }
 <div id="build-monitor" style="display:none;position:fixed;top:0;right:0;width:400px;max-width:92vw;height:100vh;background:#0a0e20;border-left:1px solid rgba(255,255,255,0.1);box-shadow:-8px 0 30px rgba(0,0,0,0.5);z-index:240;flex-direction:column;font-family:inherit;">
   <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,0.08);flex:0 0 auto;">
     <span style="font-family:'Syne',system-ui,sans-serif;font-weight:700;font-size:14px;color:#47D1FF;">Build monitor</span>
-    <button onclick="closeBuildMonitor()" title="Close" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:#9aa1bd;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+    <div style="display:flex;gap:6px;">
+      <button onclick="toggleBuildMonitorWide()" title="Expand / restore width" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:#9aa1bd;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:13px;line-height:1;">⤢</button>
+      <button onclick="closeBuildMonitor()" title="Close" style="background:transparent;border:1px solid rgba(255,255,255,0.15);color:#9aa1bd;border-radius:6px;width:26px;height:26px;cursor:pointer;font-size:14px;line-height:1;">×</button>
+    </div>
   </div>
   <div id="build-monitor-body" style="flex:1 1 auto;overflow:auto;padding:12px 14px;"></div>
 </div>
@@ -4962,8 +4965,26 @@ function dnSetBuild(reqId, patch) {
   refreshBuildMonitorBadge();
 }
 function selectBuildMonitor(id) { _monitorSelected = id; renderBuildMonitor(true); }
-function openBuildMonitor() { _bmUserClosed = false; var p = document.getElementById('build-monitor'); if (p) p.style.display = 'flex'; try { localStorage.setItem('dn_bm_open', '1'); } catch(_) {} renderBuildMonitor(true); }
+function openBuildMonitor() {
+  _bmUserClosed = false;
+  var p = document.getElementById('build-monitor');
+  if (p) { p.style.display = 'flex'; try { if (localStorage.getItem('dn_bm_wide') === '1') { p.style.width = 'min(1100px, 95vw)'; p.setAttribute('data-wide', '1'); } } catch(_) {} }
+  try { localStorage.setItem('dn_bm_open', '1'); } catch(_) {}
+  renderBuildMonitor(true);
+}
 function closeBuildMonitor() { _bmUserClosed = true; var p = document.getElementById('build-monitor'); if (p) p.style.display = 'none'; try { localStorage.setItem('dn_bm_open', '0'); } catch(_) {} }
+function toggleBuildMonitorWide() {
+  var p = document.getElementById('build-monitor'); if (!p) return;
+  if (p.getAttribute('data-wide') === '1') { p.style.width = '400px'; p.removeAttribute('data-wide'); try { localStorage.setItem('dn_bm_wide', '0'); } catch(_) {} }
+  else { p.style.width = 'min(1100px, 95vw)'; p.setAttribute('data-wide', '1'); try { localStorage.setItem('dn_bm_wide', '1'); } catch(_) {} }
+}
+// v1.9.0 #44 — append a milestone to a build's retained step/task list.
+function dnAddStep(reqId, label) {
+  var b = window.dnBuilds[reqId]; if (!b) return;
+  if (!b.steps) b.steps = [];
+  b.steps.push({ t: Date.now(), label: label });
+  renderBuildMonitor(true);
+}
 function toggleBuildMonitor() { var p = document.getElementById('build-monitor'); if (!p) return; if (p.style.display === 'flex') closeBuildMonitor(); else openBuildMonitor(); }
 function clearFinishedBuilds() {
   Object.keys(window.dnBuilds).forEach(function(k){ var s = window.dnBuilds[k].status; if (s === 'done' || s === 'failed') delete window.dnBuilds[k]; });
@@ -5025,6 +5046,7 @@ function renderBuildMonitor(force) {
     detail = '<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">' +
       '<div id="bm-phase" style="font-size:12px;color:#cdd3e6;font-weight:600;">' + esc(_bmPhaseText(s)) + '</div>' +
       '<div id="bm-stats" style="font-size:11px;color:#8089a3;margin-top:3px;min-height:13px;">' + esc(_bmStatsText(s)) + '</div>' +
+      ((s.steps && s.steps.length) ? (_bmSectionHead('steps', 'Steps') + '<div id="bm-steps" style="margin:6px 0 0;max-height:22vh;overflow:auto;background:#070b18;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:8px 10px;font-size:11px;color:#aeb4cc;line-height:1.7;">' + s.steps.map(function(stp){ return '<div>• ' + esc(stp.label) + '</div>'; }).join('') + '</div>') : '') +
       (hasThink ? (_bmSectionHead('think', 'Reasoning') + '<pre id="bm-think" style="' + _bmPreCss + 'color:#9aa6c7;">' + esc(s.thinkText) + '</pre>') : '') +
       _bmSectionHead('out', 'Output (app code)') + '<pre id="bm-out" style="' + _bmPreCss + 'color:#9fd2ff;">' + esc(s.outText || '') + '</pre>' +
       '</div>';
@@ -5243,6 +5265,7 @@ async function buildRequest(reqId) {
   _buildQueueTail = new Promise(function(res) { _releaseTurn = res; });
   try { await _prevTurn; } catch(_) {}
   dnSetBuild(reqId, { status: 'building', startedAt: Date.now() });
+  dnAddStep(reqId, 'Build started');
 
   // Mark building
   req.qa_status = 'building';
@@ -5468,6 +5491,7 @@ async function buildRequest(reqId) {
             description: 'Round ' + (toolRound + 1) + ' on ' + tryModel + ' · ' + _roundElapsedSec + 's · stop_reason=' + (data.stop_reason || 'unknown') + (data.usage ? ' · in=' + (data.usage.input_tokens || 0) + ' out=' + (data.usage.output_tokens || 0) : '')
           });
         } catch(_) {}
+        dnAddStep(reqId, 'Round ' + (toolRound + 1) + ' complete · ' + (data.stop_reason || ''));
 
         if (data.stop_reason !== 'tool_use') {
           // Final round — extract this data, exit both loops
@@ -5496,6 +5520,7 @@ async function buildRequest(reqId) {
               description: tu.name + '(' + JSON.stringify(tu.input || {}).slice(0, 220) + ')'
             });
           } catch(_){}
+          dnAddStep(reqId, 'Tool: ' + tu.name);
           let toolResult;
           if (tu.name === 'fetch_url') {
             toolResult = await executeFetchUrlTool(tu.input || {});
@@ -5582,12 +5607,14 @@ async function buildRequest(reqId) {
     // errors. If any are found, mark the build as failed and surface the errors.
     // This catches duplicate identifier declarations, undefined function
     // references, and other syntax/runtime issues before the build is shipped.
+    dnAddStep(reqId, 'Validating generated app…');
     let validationErrors = await validateBuiltArtifact(html);
     // v1.3.5 #35 — AUTO-CORRECT: before bouncing a build back to the admin, give the agent ONE
     // corrective pass with the exact JS errors fed back in. Most validation failures are a single
     // mechanical bug (e.g. a raw newline in a string/regex literal) that the agent fixes reliably
     // when told precisely what broke. Only if it STILL fails do we mark build_failed.
     if (validationErrors.length > 0) {
+      dnAddStep(reqId, 'Auto-correcting ' + validationErrors.length + ' JS error(s)…');
       try {
         await logActivity({ request_id: reqId, actor: 'admin', actor_name: 'admin', action: 'build_autofix_attempt',
           description: 'Validation found ' + validationErrors.length + ' JS error(s) on ' + (usedBuildModel || '?') + ' — attempting one auto-correct pass.' });
@@ -5637,6 +5664,7 @@ async function buildRequest(reqId) {
         qa_notes: failNotes
       });
       Object.assign(req, { artifact_html: html, artifact_version: failVersion, qa_status: 'build_failed', qa_notes: failNotes });
+      dnAddStep(reqId, 'Validation failed — ' + validationErrors.length + ' JS error(s)');
       dnSetBuild(reqId, { status: 'failed', error: 'validation — ' + validationErrors.length + ' JS error(s)', finishedAt: Date.now() });
       await logActivity({
         request_id: reqId,
@@ -5688,7 +5716,8 @@ async function buildRequest(reqId) {
       description: (isRebuild ? 'Rebuild' : 'Build') + ' v' + newVersion + ' complete (' + Math.round(html.length / 1024) + ' KB)' + _costStr
     });
 
-    dnSetBuild(reqId, { status: 'done', finishedAt: Date.now(), version: newVersion });
+    dnAddStep(reqId, 'Completed ✓ v' + newVersion);
+    dnSetBuild(reqId, { status: 'done', finishedAt: Date.now(), version: newVersion, outText: html });
     renderMonolithicView(req);
     window._buildInFlightReqId = null;
   } catch(e) {
@@ -5723,6 +5752,7 @@ async function buildRequest(reqId) {
     catch (pErr) { console.error('Rollback patch failed (row may show building until reload/orphan-recovery):', pErr); }
     renderMonolithicView(req);
     window._buildInFlightReqId = null;
+    dnAddStep(reqId, 'Failed: ' + (errMsg || 'error').slice(0, 80));
     dnSetBuild(reqId, { status: 'failed', error: (errMsg || 'error').slice(0, 200), finishedAt: Date.now() });
     alert('Build failed: ' + e.message + '\n\nThe request has been reset to Improvement Requested — you can rebuild it.');
   } finally {
