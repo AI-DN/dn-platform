@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.5.0 #40</span>
+  <span class="topbar-version" title="DN_Admin build">v1.6.0 #41</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4247,7 +4247,11 @@ function renderMonolithicView(req) {
     actions += '<button class="mono-btn mono-btn-warning" onclick="openNeedsInputModal()">Mark as needs input</button>';
     actions += '<button class="mono-btn mono-btn-secondary" onclick="openRejectModal()">Reject</button>';
   } else if (status === 'building') {
-    actions = '<div class="mono-building"><span class="mono-spinner"></span>Building... this may take 30-60 seconds</div>';
+    // v1.6.0 #41 — live stream view: phase line, running stats, and a typing tail
+    // that updates from the model's streamed output as the build happens.
+    actions = '<div class="mono-building"><span class="mono-spinner"></span><span id="build-stream-phase">Starting build…</span></div>' +
+      '<div id="build-stream-stats" style="font-size:11px;color:#8089a3;margin-top:6px;min-height:14px;"></div>' +
+      '<pre id="build-stream-tail" style="margin:10px 0 0;max-height:260px;overflow:auto;background:#0a1024;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px 12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:11px;line-height:1.55;color:#9fd2ff;white-space:pre-wrap;word-break:break-word;"></pre>';
   } else if (status === 'build_failed') {
     actions = '<button class="mono-btn mono-btn-primary" onclick="openSendBackModal(\'' + req.id + '\')">Send back to fix errors</button>' +
               '<button class="mono-btn mono-btn-secondary" onclick="previewArtifact_mono(\'' + req.id + '\')">Preview broken artifact</button>' +
@@ -4920,7 +4924,7 @@ async function openBuildAdvisor(reqId) {
 // Returns { ok:true, status:200, data } | { ok:false, status, errText }.
 // Throws on network error or idle-abort (caller maps abort → stream_idle_timeout).
 // ════════════════════════════════════════════════════════════════════════
-async function streamAnthropicMessage(reqBody, apiKey, idleMs) {
+async function streamAnthropicMessage(reqBody, apiKey, idleMs, onProgress) {
   const controller = new AbortController();
   let idleTimer = null;
   const armIdle = function() {
@@ -4962,6 +4966,9 @@ async function streamAnthropicMessage(reqBody, apiKey, idleMs) {
   const blocks = [];
   let stopReason = null;
   const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
+  // v1.6.0 #41 — live progress state fed to onProgress for the on-screen stream view.
+  let _outChars = 0, _thinkChars = 0, _phase = 'start', _tool = '', _tail = '';
+  function _emit() { if (typeof onProgress === 'function') { try { onProgress({ phase: _phase, outChars: _outChars, thinkChars: _thinkChars, toolName: _tool, tail: _tail }); } catch(_) {} } }
 
   function handle(evt) {
     const ty = evt && evt.type;
@@ -4974,13 +4981,18 @@ async function streamAnthropicMessage(reqBody, apiKey, idleMs) {
     } else if (ty === 'content_block_start') {
       const cb = evt.content_block || {};
       blocks[evt.index] = { type: cb.type, text: cb.text || '', thinking: cb.thinking || '', signature: cb.signature || '', id: cb.id, name: cb.name, input: cb.input || {}, _json: '', raw: cb };
+      if (cb.type === 'tool_use') { _phase = 'tool'; _tool = cb.name || ''; }
+      else if (cb.type === 'thinking') { _phase = 'thinking'; }
+      else if (cb.type === 'text') { _phase = 'writing'; }
+      _emit();
     } else if (ty === 'content_block_delta') {
       const b = blocks[evt.index]; if (!b) return;
       const d = evt.delta || {};
-      if (d.type === 'text_delta') b.text += (d.text || '');
-      else if (d.type === 'thinking_delta') b.thinking += (d.thinking || '');
+      if (d.type === 'text_delta') { b.text += (d.text || ''); _outChars += (d.text || '').length; _phase = 'writing'; _tail = (_tail + (d.text || '')).slice(-700); }
+      else if (d.type === 'thinking_delta') { b.thinking += (d.thinking || ''); _thinkChars += (d.thinking || '').length; _phase = 'thinking'; _tail = (_tail + (d.thinking || '')).slice(-700); }
       else if (d.type === 'signature_delta') b.signature = d.signature || b.signature;
-      else if (d.type === 'input_json_delta') b._json += (d.partial_json || '');
+      else if (d.type === 'input_json_delta') { b._json += (d.partial_json || ''); _phase = 'tool'; }
+      _emit();
     } else if (ty === 'content_block_stop') {
       const b = blocks[evt.index];
       if (b && b.type === 'tool_use') { try { b.input = b._json ? JSON.parse(b._json) : (b.input || {}); } catch(_) { b.input = b.input || {}; } }
@@ -5218,6 +5230,25 @@ async function buildRequest(reqId) {
       } catch(_) {}
     }, HEARTBEAT_EVERY_MS);
 
+    // v1.6.0 #41 — paint the streamed build progress onto the Building card (throttled ~8fps).
+    var _streamPaintAt = 0;
+    function onBuildProgress(p) {
+      var nowt = Date.now();
+      if (p.phase !== 'tool' && (nowt - _streamPaintAt) < 120) return;
+      _streamPaintAt = nowt;
+      var ph = document.getElementById('build-stream-phase');
+      var stt = document.getElementById('build-stream-stats');
+      var tl = document.getElementById('build-stream-tail');
+      if (ph) ph.textContent = (p.phase === 'thinking' ? 'Thinking…' : p.phase === 'tool' ? ('Calling tool' + (p.toolName ? ': ' + p.toolName : '') + '…') : p.phase === 'writing' ? 'Writing the app…' : 'Working…');
+      if (stt) {
+        var parts = [];
+        if (p.thinkChars) parts.push('~' + Math.round(p.thinkChars / 4).toLocaleString() + ' thinking tokens');
+        if (p.outChars) parts.push((Math.round(p.outChars / 1024 * 10) / 10) + ' KB generated');
+        stt.textContent = parts.join('  ·  ');
+      }
+      if (tl && p.tail) { tl.textContent = p.tail; tl.scrollTop = tl.scrollHeight; }
+    }
+
     for (let mi = 0; mi < buildChain.length; mi++) {
       const tryModel = buildChain[mi];
       currentTryModel = tryModel;
@@ -5251,7 +5282,7 @@ async function buildRequest(reqId) {
         // and aborts only when the stream goes idle for STREAM_IDLE_MS (a true stall), so a long
         // but healthy generation is never killed by a flat timeout.
         try {
-          iterResp = await streamAnthropicMessage(_reqBody, apiKey, STREAM_IDLE_MS);
+          iterResp = await streamAnthropicMessage(_reqBody, apiKey, STREAM_IDLE_MS, onBuildProgress);
         } catch (fetchErr) {
           if (fetchErr && (fetchErr.name === 'AbortError' || /abort|idle/i.test(fetchErr.message || ''))) {
             throw new Error('Build aborted: streamed output stalled for ' + (STREAM_IDLE_MS/1000) + 's on ' + tryModel + (toolRound > 0 ? ' (tool-round ' + toolRound + ')' : '') + ' (stream_idle_timeout).');
