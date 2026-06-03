@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.4.0 #38</span>
+  <span class="topbar-version" title="DN_Admin build">v1.4.1 #39</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -2201,7 +2201,7 @@ async function loadActivityData() {
   const res = await Promise.all([
     grab(evUrl),
     grab(surl('profiles?select=id,full_name,email,is_admin,can_access_admin,can_access_intent,created_at')),
-    grab(surl('requests?select=id,submitted_by,creator_user_id,status,created_at'))
+    grab(surl('requests?select=id,title,submitted_by,creator_user_id,status,created_at'))
   ]);
   renderActivity(Array.isArray(res[0]) ? res[0] : [], Array.isArray(res[1]) ? res[1] : [], Array.isArray(res[2]) ? res[2] : []);
 }
@@ -2310,6 +2310,39 @@ function renderActivity(events, profiles, reqs) {
     card('Epics approved', totals.epics30) + card('Apps shipped', totals.shipped30) +
     card('Builds run', totals.builds30) + card('Questions / iterations', totals.questions30) + '</div>';
   html += '<div style="background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px;margin-bottom:22px;"><div style="font-size:11px;color:#8089a3;margin-bottom:6px;">Daily activity (events/day)</div>' + svg + '</div>';
+
+  // ---- App usage (app_opened events grouped by request_id) ----
+  const _titleById = {};
+  reqs.forEach(function(r) { _titleById[r.id] = r; });
+  const apps = {};
+  events.forEach(function(e) {
+    if (e.action !== 'app_opened' || !e.request_id) return;
+    if (!apps[e.request_id]) apps[e.request_id] = { opens:0, users:{}, last:0 };
+    var a = apps[e.request_id];
+    a.opens++;
+    if (e.actor_name) a.users[e.actor_name.toLowerCase()] = 1;
+    var t = Date.parse(e.created_at || '') || 0; if (t > a.last) a.last = t;
+  });
+  const appsArr = Object.keys(apps).map(function(k) {
+    var a = apps[k]; var r = _titleById[k];
+    a.title = (r && r.title) || (k.slice(0, 8) + '…'); a.uniqueUsers = Object.keys(a.users).length; return a;
+  }).sort(function(x, y) { return (y.opens - x.opens) || (y.last - x.last); });
+
+  html += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#47D1FF;margin:8px 0 8px;">App usage — opens (last ' + ACTIVITY_WINDOW_DAYS + ' days)</div>';
+  if (appsArr.length === 0) {
+    html += '<div style="font-size:12px;color:#7a8099;background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.07);border-radius:10px;padding:12px 14px;margin-bottom:22px;line-height:1.5;">No app-open events yet. Shipped apps begin reporting once they are rebuilt on v1.4.1+ — per-app opens, unique users, and last-opened will appear here as people use them.</div>';
+  } else {
+    html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-bottom:22px;"><thead><tr style="text-align:left;color:#8089a3;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.1);">' +
+      '<th style="padding:6px 8px;">App</th><th style="padding:6px 8px;">Opens</th><th style="padding:6px 8px;">Unique users</th><th style="padding:6px 8px;">Last opened</th></tr></thead><tbody>';
+    appsArr.forEach(function(a) {
+      html += '<tr style="border-bottom:1px solid rgba(255,255,255,0.05);">' +
+        '<td style="padding:6px 8px;color:#e8eaf0;">' + esc(a.title) + '</td>' +
+        '<td style="padding:6px 8px;">' + a.opens + '</td>' +
+        '<td style="padding:6px 8px;">' + a.uniqueUsers + '</td>' +
+        '<td style="padding:6px 8px;color:#9aa1bd;">' + _activityAgo(now - a.last) + '</td></tr>';
+    });
+    html += '</tbody></table>';
+  }
 
   html += '<div style="font-family:Syne,sans-serif;font-weight:700;font-size:14px;color:#47D1FF;margin:8px 0 8px;">People &amp; contributors</div>';
   html += '<table style="width:100%;border-collapse:collapse;font-size:12.5px;"><thead><tr style="text-align:left;color:#8089a3;font-size:11px;border-bottom:1px solid rgba(255,255,255,0.1);">' +
@@ -6090,7 +6123,7 @@ DN_HOUSE_STYLE.trim() + '\n' +
     '  function reveal(){ var s=document.getElementById(\'dn-auth-style\'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }\n' +
     '  if (!window.supabase || !window.supabase.createClient) { gateBox(\'<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>\'); return; }\n' +
     '  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });\n' +
-    '  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf(\'access_token\')!==-1){ try { history.replaceState(null,\'\',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ \'apikey\':SUPABASE_KEY, \'Authorization\':\'Bearer \'+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+\'/rest/v1/profiles?select=is_admin&id=eq.\'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+\'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.\'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+\'/rest/v1/app_access?select=request_id&request_id=eq.\'+APP_REQUEST_ID+\'&user_id=eq.\'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); } else { showDenied(session.user.email); } } catch(e){ console.error(\'DN auth gate failed:\',e); gateBox(\'<div style="color:#f05060;font-size:13px">Auth check failed: \'+(e.message||e)+\'</div>\'); } })();\n' +
+    '  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf(\'access_token\')!==-1){ try { history.replaceState(null,\'\',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ \'apikey\':SUPABASE_KEY, \'Authorization\':\'Bearer \'+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+\'/rest/v1/profiles?select=is_admin&id=eq.\'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+\'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.\'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+\'/rest/v1/app_access?select=request_id&request_id=eq.\'+APP_REQUEST_ID+\'&user_id=eq.\'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); try{ var _lk=\'dn_open_\'+APP_REQUEST_ID; var _last=0; try{_last=+(sessionStorage.getItem(_lk)||0);}catch(e){} if(Date.now()-_last>1800000){ try{sessionStorage.setItem(_lk,String(Date.now()));}catch(e){} fetch(SUPABASE_URL+\'/rest/v1/activity_log\',{method:\'POST\',headers:{\'apikey\':SUPABASE_KEY,\'Authorization\':\'Bearer \'+session.access_token,\'Content-Type\':\'application/json\',\'Prefer\':\'return=minimal\'},body:JSON.stringify({request_id:APP_REQUEST_ID,actor:\'end_user\',actor_name:(session.user.email||session.user.id),action:\'app_opened\',description:\'Opened \'+APP_TITLE})}).catch(function(){}); } }catch(e){} } else { showDenied(session.user.email); } } catch(e){ console.error(\'DN auth gate failed:\',e); gateBox(\'<div style="color:#f05060;font-size:13px">Auth check failed: \'+(e.message||e)+\'</div>\'); } })();\n' +
     '})();\n' +
     '<\/script>\n' +
     '<!-- ===== END DN Platform Auth Gate ===== -->';
