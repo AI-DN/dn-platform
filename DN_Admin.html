@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.7.0 #42</span>
+  <span class="topbar-version" title="DN_Admin build">v1.8.0 #43</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4953,11 +4953,12 @@ function refreshBuildMonitorBadge() {
   if (b) { b.textContent = n; b.style.display = n > 0 ? '' : 'none'; }
 }
 function dnSetBuild(reqId, patch) {
-  var b = window.dnBuilds[reqId] || { reqId: reqId, tail: '', phase: '', outChars: 0, thinkChars: 0 };
+  var b = window.dnBuilds[reqId] || { reqId: reqId, thinkText: '', outText: '', phase: '', outChars: 0, thinkChars: 0 };
   for (var k in patch) b[k] = patch[k];
   window.dnBuilds[reqId] = b;
   if (!_monitorSelected || !window.dnBuilds[_monitorSelected]) _monitorSelected = reqId;
-  renderBuildMonitor(patch.hasOwnProperty('status'));
+  if (patch.hasOwnProperty('status')) renderBuildMonitor(true);   // structural change → full render
+  else paintStreamLive(reqId);                                    // progress → light, scroll-preserving update
   refreshBuildMonitorBadge();
 }
 function selectBuildMonitor(id) { _monitorSelected = id; renderBuildMonitor(true); }
@@ -4969,6 +4970,35 @@ function clearFinishedBuilds() {
   if (!window.dnBuilds[_monitorSelected]) _monitorSelected = null;
   renderBuildMonitor(true); refreshBuildMonitorBadge();
 }
+// v1.8.0 #43 — split reasoning vs output into separate scrollable sections, keep full
+// history, and preserve the user's scroll position (only stick to bottom if already there).
+function _bmPhaseText(s) {
+  return s.status === 'queued' ? 'Queued — waiting for an earlier build to finish…'
+    : s.status === 'failed' ? ('Failed: ' + (s.error || 'unknown'))
+    : s.status === 'done' ? ('Completed ✓  (v' + (s.version || '') + ')')
+    : (s.phase === 'thinking' ? 'Thinking…' : s.phase === 'tool' ? ('Calling tool' + (s.toolName ? ': ' + s.toolName : '') + '…') : s.phase === 'writing' ? 'Writing the app…' : 'Working…');
+}
+function _bmStatsText(s) {
+  var st = [];
+  if (s.thinkChars) st.push('~' + Math.round(s.thinkChars / 4).toLocaleString() + ' thinking tokens');
+  if (s.outChars) st.push((Math.round(s.outChars / 1024 * 10) / 10) + ' KB code');
+  return st.join('  ·  ');
+}
+var _bmPreCss = 'margin:6px 0 0;max-height:38vh;overflow:auto;background:#070b18;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;white-space:pre-wrap;word-break:break-word;';
+function _bmSectionHead(which, label) {
+  return '<div onclick="toggleBmSection(\'' + which + '\')" style="cursor:pointer;font-size:11px;color:#9fb0d8;margin-top:12px;text-transform:uppercase;letter-spacing:0.05em;user-select:none;">▾ ' + label + '</div>';
+}
+function toggleBmSection(which) {
+  var el = document.getElementById('bm-' + which);
+  if (el) el.style.display = (el.style.display === 'none') ? '' : 'none';
+}
+function _bmStick(el, text) {
+  if (!el) return;
+  var atBottom = (el.scrollHeight - el.scrollTop - el.clientHeight) < 40;
+  if (el.textContent !== text) el.textContent = text;
+  if (atBottom) el.scrollTop = el.scrollHeight;
+}
+
 function renderBuildMonitor(force) {
   var nowt = Date.now();
   if (!force && (nowt - _monitorPaintAt) < 100) return;
@@ -4991,16 +5021,29 @@ function renderBuildMonitor(force) {
   var s = window.dnBuilds[_monitorSelected];
   var detail = '';
   if (s) {
-    var phase = s.status === 'queued' ? 'Queued — waiting for an earlier build to finish…' : s.status === 'failed' ? ('Failed: ' + esc(s.error || 'unknown')) : s.status === 'done' ? ('Completed ✓  (v' + (s.version || '') + ')') : (s.phase === 'thinking' ? 'Thinking…' : s.phase === 'tool' ? ('Calling tool' + (s.toolName ? ': ' + esc(s.toolName) : '') + '…') : s.phase === 'writing' ? 'Writing the app…' : 'Working…');
-    var st = []; if (s.thinkChars) st.push('~' + Math.round(s.thinkChars / 4).toLocaleString() + ' thinking tokens'); if (s.outChars) st.push((Math.round(s.outChars / 1024 * 10) / 10) + ' KB generated');
+    var hasThink = !!(s.thinkText && s.thinkText.length);
     detail = '<div style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.08);padding-top:10px;">' +
-      '<div style="font-size:12px;color:#cdd3e6;font-weight:600;">' + phase + '</div>' +
-      '<div style="font-size:11px;color:#8089a3;margin-top:3px;min-height:13px;">' + st.join('  ·  ') + '</div>' +
-      (s.tail ? ('<pre id="bm-tail" style="margin:8px 0 0;max-height:calc(100vh - 250px);overflow:auto;background:#070b18;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:10px;font-family:ui-monospace,Menlo,monospace;font-size:11px;line-height:1.5;color:#9fd2ff;white-space:pre-wrap;word-break:break-word;">' + esc(s.tail) + '</pre>') : '') + '</div>';
+      '<div id="bm-phase" style="font-size:12px;color:#cdd3e6;font-weight:600;">' + esc(_bmPhaseText(s)) + '</div>' +
+      '<div id="bm-stats" style="font-size:11px;color:#8089a3;margin-top:3px;min-height:13px;">' + esc(_bmStatsText(s)) + '</div>' +
+      (hasThink ? (_bmSectionHead('think', 'Reasoning') + '<pre id="bm-think" style="' + _bmPreCss + 'color:#9aa6c7;">' + esc(s.thinkText) + '</pre>') : '') +
+      _bmSectionHead('out', 'Output (app code)') + '<pre id="bm-out" style="' + _bmPreCss + 'color:#9fd2ff;">' + esc(s.outText || '') + '</pre>' +
+      '</div>';
   }
   var finished = ids.some(function(id){ var st = window.dnBuilds[id].status; return st === 'done' || st === 'failed'; });
   body.innerHTML = list + detail + (finished ? '<div style="margin-top:10px;text-align:right;"><button onclick="clearFinishedBuilds()" style="background:transparent;border:1px solid rgba(255,255,255,0.12);color:#8089a3;border-radius:6px;padding:4px 10px;font:inherit;font-size:11px;cursor:pointer;">Clear finished</button></div>' : '');
-  var pre = document.getElementById('bm-tail'); if (pre) pre.scrollTop = pre.scrollHeight;
+  var t = document.getElementById('bm-think'); if (t) t.scrollTop = t.scrollHeight;
+  var o = document.getElementById('bm-out'); if (o) o.scrollTop = o.scrollHeight;
+}
+
+function paintStreamLive(reqId) {
+  if (reqId !== _monitorSelected) return;
+  var s = window.dnBuilds[reqId]; if (!s) return;
+  var ph = document.getElementById('bm-phase'); if (ph) ph.textContent = _bmPhaseText(s);
+  var stt = document.getElementById('bm-stats'); if (stt) stt.textContent = _bmStatsText(s);
+  var th = document.getElementById('bm-think');
+  if (s.thinkText && s.thinkText.length && !th) { renderBuildMonitor(true); return; }  // reasoning section just appeared
+  if (th) _bmStick(th, s.thinkText || '');
+  _bmStick(document.getElementById('bm-out'), s.outText || '');
 }
 
 async function streamAnthropicMessage(reqBody, apiKey, idleMs, onProgress) {
@@ -5046,8 +5089,9 @@ async function streamAnthropicMessage(reqBody, apiKey, idleMs, onProgress) {
   let stopReason = null;
   const usage = { input_tokens: 0, output_tokens: 0, cache_read_input_tokens: 0, cache_creation_input_tokens: 0 };
   // v1.6.0 #41 — live progress state fed to onProgress for the on-screen stream view.
-  let _outChars = 0, _thinkChars = 0, _phase = 'start', _tool = '', _tail = '';
-  function _emit() { if (typeof onProgress === 'function') { try { onProgress({ phase: _phase, outChars: _outChars, thinkChars: _thinkChars, toolName: _tool, tail: _tail }); } catch(_) {} } }
+  let _outChars = 0, _thinkChars = 0, _phase = 'start', _tool = '', _thinkText = '', _outText = '';
+  function _cap(s) { return s.length > 250000 ? s.slice(-250000) : s; }
+  function _emit() { if (typeof onProgress === 'function') { try { onProgress({ phase: _phase, outChars: _outChars, thinkChars: _thinkChars, toolName: _tool, thinkText: _thinkText, outText: _outText }); } catch(_) {} } }
 
   function handle(evt) {
     const ty = evt && evt.type;
@@ -5067,8 +5111,8 @@ async function streamAnthropicMessage(reqBody, apiKey, idleMs, onProgress) {
     } else if (ty === 'content_block_delta') {
       const b = blocks[evt.index]; if (!b) return;
       const d = evt.delta || {};
-      if (d.type === 'text_delta') { b.text += (d.text || ''); _outChars += (d.text || '').length; _phase = 'writing'; _tail = (_tail + (d.text || '')).slice(-700); }
-      else if (d.type === 'thinking_delta') { b.thinking += (d.thinking || ''); _thinkChars += (d.thinking || '').length; _phase = 'thinking'; _tail = (_tail + (d.thinking || '')).slice(-700); }
+      if (d.type === 'text_delta') { b.text += (d.text || ''); _outChars += (d.text || '').length; _phase = 'writing'; _outText = _cap(_outText + (d.text || '')); }
+      else if (d.type === 'thinking_delta') { b.thinking += (d.thinking || ''); _thinkChars += (d.thinking || '').length; _phase = 'thinking'; _thinkText = _cap(_thinkText + (d.thinking || '')); }
       else if (d.type === 'signature_delta') b.signature = d.signature || b.signature;
       else if (d.type === 'input_json_delta') { b._json += (d.partial_json || ''); _phase = 'tool'; }
       _emit();
@@ -5320,7 +5364,7 @@ async function buildRequest(reqId) {
 
     // v1.7.0 #42 — stream progress flows into the Build Monitor panel (per-build buffer).
     function onBuildProgress(p) {
-      dnSetBuild(reqId, { phase: p.phase, outChars: p.outChars, thinkChars: p.thinkChars, toolName: p.toolName, tail: p.tail });
+      dnSetBuild(reqId, { phase: p.phase, outChars: p.outChars, thinkChars: p.thinkChars, toolName: p.toolName, thinkText: p.thinkText, outText: p.outText });
     }
 
     for (let mi = 0; mi < buildChain.length; mi++) {
