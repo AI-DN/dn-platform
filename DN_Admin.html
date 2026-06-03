@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.3.5 #35</span>
+  <span class="topbar-version" title="DN_Admin build">v1.3.6 #36</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -4547,8 +4547,11 @@ function dnEstimateBuildTokens(req, caps, previousHtml, qaNotes, attachments) {
   return { inTok: inTok, baseOutTok: baseOutTok, isRebuild: isRebuild, complexity: complexity, capCount: (caps || []).length };
 }
 function dnHeuristicRecommend(est) {
+  // v1.3.6 #36 — cap the AUTO recommendation at 'medium'. high/xhigh make Opus 4.8 think much
+  // longer and can blow past the non-streaming build timeout; the admin can still pick higher
+  // levels manually in the matrix. (Revisit once streaming lands.)
   if (est.complexity === 'low') return { model: 'claude-sonnet-4-6', effort: 'medium' };
-  if (est.complexity === 'high') return { model: 'claude-opus-4-8', effort: 'xhigh' };
+  if (est.complexity === 'high') return { model: 'claude-opus-4-8', effort: 'medium' };
   return { model: 'claude-opus-4-8', effort: 'medium' };
 }
 async function dnGetBuildAdvice(req, caps, est) {
@@ -4577,7 +4580,9 @@ async function dnGetBuildAdvice(req, caps, est) {
     const j = JSON.parse(m[0]);
     const modelMap = { opus: 'claude-opus-4-8', sonnet: 'claude-sonnet-4-6', haiku: 'claude-haiku-4-5-20251001' };
     const model = modelMap[(j.model || '').toLowerCase()] || null;
-    const effort = (DN_EFFORT_OUT_MULT[j.effort] != null && j.effort) ? j.effort : 'medium';
+    var _eff = (DN_EFFORT_OUT_MULT[j.effort] != null && j.effort) ? j.effort : 'medium';
+    // v1.3.6 #36 — clamp the AUTO recommendation to medium (build-timeout safety); manual picks unaffected.
+    const effort = (_eff === 'high' || _eff === 'xhigh' || _eff === 'max') ? 'medium' : _eff;
     return { model: model, effort: effort, note: j.note || '', complexity: j.complexity || est.complexity };
   } catch (_) { return null; }
 }
@@ -4858,7 +4863,7 @@ async function buildRequest(reqId) {
     // tool result adds to context, then the agent has to emit ~100KB of HTML on top
     // of all of it; this naturally takes 6-12 minutes on Opus 4.7 and the old cap
     // was firing before the model could finish).
-    const BUILD_TIMEOUT_MS    = 15 * 60 * 1000;
+    const BUILD_TIMEOUT_MS    = 20 * 60 * 1000;  // v1.3.6 #36 — 15→20 min headroom for long Opus 4.8 + effort builds (until streaming lands).
     const HEARTBEAT_EVERY_MS  = 60 * 1000;
     const MAX_TOOL_ROUNDS     = 6;
     const MAX_5XX_RETRIES     = 2;     // v1.3.2 #32 — retry same model on transient 5xx
@@ -5803,7 +5808,8 @@ function buildMonolithicPrompt(req, caps, previousHtml, qaNotes) {
 'Do NOT use fetch_url to:\n' +
 '  - "Browse" or "search" the web. The tool only fetches the exact URL you give it.\n' +
 '  - Substitute for missing user input. If no URL was provided, REFUSE (see REFUSAL FORMAT).\n' +
-'  - Loop endlessly. You have a hard cap of 6 tool calls per build; stay well under that.\n\n' +
+'  - Loop endlessly. You have a hard cap of 6 tool calls per build; stay well under that.\n' +
+'  - Make probing, test, or connectivity-check calls. Do NOT HEAD or GET a base URL (e.g. a Supabase project root, "https://example.com", or a "checking" placeholder) just to verify reachability — that wastes an entire round-trip and slows the build. Only call fetch_url for a SPECIFIC data-source URL whose JSON shape you must inspect. If no such URL is in play, make ZERO tool calls and go straight to emitting the HTML.\n\n' +
 'Calling sequence: respond with a `tool_use` content block. The result will come back in the next user turn as a `tool_result` block. After you have the data you need, emit the final HTML in the OUTPUT FORMAT specified below.\n\n' +
 'When fetch_url succeeds, treat the returned data as authoritative for that point in time. Mirror its field names and structure exactly in your generated runtime fetch() code so the app parses what the live API actually sends.\n\n' +
 
