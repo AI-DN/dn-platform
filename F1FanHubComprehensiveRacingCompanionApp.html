@@ -390,6 +390,8 @@ const TEAMS = {
   'lotus-racing': { color: '#FFB800', name: 'Lotus Racing', engine: 'Various', founded: 1958 },
   'team_lotus': { color: '#FFB800', name: 'Team Lotus', engine: 'Various', founded: 1958 },
 };
+const TEAM_CAR_SLUG = { red_bull:'red-bull-racing', mclaren:'mclaren', ferrari:'ferrari', mercedes:'mercedes', aston_martin:'aston-martin', alpine:'alpine', williams:'williams', rb:'rb', sauber:'kick-sauber', haas:'haas' };
+Object.keys(TEAM_CAR_SLUG).forEach(function(k){ if(TEAMS[k]) TEAMS[k].carImg='https://media.formula1.com/content/dam/fom-website/teams/2024/'+TEAM_CAR_SLUG[k]+'.png'; });
 
 const DRIVER_INFO = {
   'max_verstappen': { slug: 'max-verstappen', twitter: 'Max33Verstappen', instagram: 'maxverstappen1' },
@@ -441,7 +443,9 @@ function raceDate(r){ const t=r.time||'00:00:00Z'; return new Date(r.date+'T'+(t
 function teamStrip(id){ return `<span class="team-strip" style="background:${teamColor(id)}"></span>`; }
 function posBadge(p){ const n=parseInt(p); return `<span class="pos p${n<=3?n:''}">${p}</span>`; }
 function driverInitials(d){ return ((d.givenName||'?')[0]+(d.familyName||'?')[0]).toUpperCase(); }
-function driverAvatar(d,size){ size=size||44; const initials=driverInitials(d); return `<div class="driver-avatar" style="width:${size}px;height:${size}px"><span style="font-size:${Math.round(size*0.32)}px">${initials}</span></div>`; }
+function f1HeadshotUrl(d){ const info=driverInfo(d)||{}; if(info.img) return info.img; const first=(d.givenName||'').replace(/[^A-Za-z]/g,''); const last=(d.familyName||'').replace(/[^A-Za-z]/g,''); if(!first||!last) return null; const code=(first.slice(0,3)+last.slice(0,3)).toUpperCase(); const L=first[0].toUpperCase(); return `https://www.formula1.com/content/dam/fom-website/drivers/${L}/${code}01_${first}_${last}/${code.toLowerCase()}01.png`; }
+function driverAvatar(d,size){ size=size||44; const initials=driverInitials(d); const url=f1HeadshotUrl(d); const fs=Math.round(size*0.32); if(url){ return `<div class="driver-avatar" style="width:${size}px;height:${size}px"><img src="${url}" alt="${(d.givenName||'')+' '+(d.familyName||'')}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center;font-size:${fs}px">${initials}</span></div>`; } return `<div class="driver-avatar" style="width:${size}px;height:${size}px"><span style="font-size:${fs}px">${initials}</span></div>`; }
+function driverPortrait(d, borderColor){ const initials=driverInitials(d); const url=f1HeadshotUrl(d); const inner = url ? `<img src="${url}" alt="${(d.givenName||'')+' '+(d.familyName||'')}" loading="lazy" style="width:100%;height:100%;object-fit:cover;object-position:center top" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'"><span style="display:none;width:100%;height:100%;align-items:center;justify-content:center">${initials}</span>` : `<span>${initials}</span>`; return `<div class="driver-portrait" style="border-color:${borderColor}">${inner}</div>`; }
 
 /* TOASTS */
 function toast(msg, kind){
@@ -1196,12 +1200,13 @@ function renderMap(){
   `;
   root.innerHTML = html;
   $$('[data-map-mode]').forEach(b => b.addEventListener('click', () => { state.mapMode = b.dataset.mapMode; render(); }));
-  setTimeout(initMap, 50);
+  requestAnimationFrame(function(){ setTimeout(initMap, 60); });
 }
 
 function initMap(){
   const el = document.getElementById('world-map');
-  if (!el || !window.L) return;
+  if (!el) return;
+  if (!window.L) { el.innerHTML = '<div style="padding:32px;text-align:center;color:var(--text-muted);font-size:13px"><div class="spinner" style="margin:0 auto 8px"></div>Loading map engine…</div>'; setTimeout(initMap, 400); return; }
   if (state.mapInstance) { try { state.mapInstance.remove(); } catch(e){} state.mapInstance = null; }
   const map = L.map(el, { worldCopyJump: true, scrollWheelZoom: true }).setView([25, 15], 2);
   state.mapInstance = map;
@@ -1232,7 +1237,7 @@ function initMap(){
       L.marker(t.hq, { icon }).addTo(map).bindPopup(popup);
     });
   }
-  setTimeout(() => { try { map.invalidateSize(); } catch(e){} }, 100);
+  [50,150,350,700].forEach(function(t){ setTimeout(function(){ try { map.invalidateSize(); } catch(e){} }, t); });
 }
 
 window.__f1Open = function(type, id){ if (type === 'race') openRace(id); else if (type === 'team') openTeam(id); else if (type === 'driver') openDriver(id); };
@@ -1633,7 +1638,7 @@ function openDriverCareer(driverId, driverObj, career){
       <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
     <div style="display:flex;gap:14px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
-      <div class="driver-portrait" style="border-color:${teamColor(lastTeam.constructorId)}"><span>${driverInitials(driverObj)}</span></div>
+      ${driverPortrait(driverObj, teamColor(lastTeam.constructorId))}
       <div style="flex:1">
         <div style="font-size:18px;font-weight:700;letter-spacing:-0.01em">${driverObj.givenName} ${driverObj.familyName}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${flag(driverObj.nationality)}${driverObj.nationality || '—'}${driverObj.dateOfBirth ? ' · b.' + driverObj.dateOfBirth : ''}</div>
@@ -1678,7 +1683,7 @@ function openDriver(driverId){
       <button class="btn-ghost btn-icon" id="close-modal" aria-label="Close"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"/></svg></button>
     </div>
     <div style="display:flex;gap:14px;align-items:center;padding-bottom:14px;border-bottom:1px solid var(--border);margin-bottom:14px">
-      <div class="driver-portrait" style="border-color:${teamColor(con.constructorId)}"><span>${driverInitials(drv)}</span></div>
+      ${driverPortrait(drv, teamColor(con.constructorId))}
       <div style="flex:1">
         <div style="font-size:18px;font-weight:700;letter-spacing:-0.01em">${drv.givenName} ${drv.familyName}</div>
         <div style="font-size:12px;color:var(--text-muted);margin-top:2px">${flag(drv.nationality)}${drv.nationality}${drv.permanentNumber ? ' · #' + drv.permanentNumber : ''}${drv.code ? ' · ' + drv.code : ''}</div>
@@ -1732,6 +1737,7 @@ function openTeam(teamId){
     <div style="font-size:12px;color:var(--text-muted);margin-bottom:14px">
       ${flag(c.nationality)}${c.nationality || ''}${td.hqCity ? ' · 📍 ' + td.hqCity : ''}${td.founded ? ' · est. ' + td.founded : ''}${td.engine ? ' · ' + td.engine + ' power unit' : ''}
     </div>
+    ${td.carImg ? `<div style="margin-bottom:14px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-md);padding:10px;text-align:center"><img src="${td.carImg}" alt="${c.name} car" loading="lazy" style="max-width:100%;height:auto;max-height:130px;object-fit:contain" onerror="this.parentElement.style.display='none'"><div style="font-size:10px;color:var(--text-subtle);margin-top:4px;text-transform:uppercase;letter-spacing:0.04em">2024 Challenger</div></div>` : ''}
     ${standing ? `<div class="kpi-grid">
       <div class="kpi"><div class="kpi-label">${data.season} pts</div><div class="kpi-value">${standing.points}</div><div class="kpi-delta">P${idx+1} constructors</div></div>
       <div class="kpi"><div class="kpi-label">${data.season} wins</div><div class="kpi-value">${standing.wins}</div><div class="kpi-delta">${data.season}</div></div>
