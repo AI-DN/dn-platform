@@ -1470,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.14 #30</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.15 #31</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -2824,6 +2824,7 @@ window.addEventListener('load', async () => {
   recentActivity = await loadRecentActivity();
   findPendingQuestions();
   startChat();
+  restoreEpicDraftIfAny();  // v1.4.15 #31 — bring back any unsaved epic from a prior hang/refresh
 });
 
 function showFileWarning() {
@@ -3189,20 +3190,26 @@ async function logTurn(reqId, type, role, content) {
 async function saveToSupabase(payload) {
   const url = localStorage.getItem('dn_supa_url');
   const key = localStorage.getItem('dn_supa_key');
-  if (!url || !key) return null;
-  try {
-    const r = await fetch(url + '/rest/v1/requests', {
+  if (!url || !key) throw new Error('No database configured — open Settings (gear icon).');
+  // v1.4.15 #31 — always send a FRESH token; on an auth failure refresh once and retry; and
+  // surface the real HTTP error instead of silently returning null (which looked like a hang).
+  async function attempt() {
+    let jwt = getJwt(key);
+    try { const sg = await supaClient.auth.getSession(); if (sg && sg.data && sg.data.session) { currentSession = sg.data.session; jwt = sg.data.session.access_token; } } catch(_) {}
+    return fetch(url + '/rest/v1/requests', {
       method: 'POST',
-      headers: {
-        'apikey': key, 'Authorization': 'Bearer ' + getJwt(key),
-        'Content-Type': 'application/json', 'Prefer': 'return=representation'
-      },
+      headers: { 'apikey': key, 'Authorization': 'Bearer ' + jwt, 'Content-Type': 'application/json', 'Prefer': 'return=representation' },
       body: JSON.stringify(payload)
     });
-    if (!r.ok) { console.warn('Supabase save failed:', await r.text()); return null; }
-    const rows = await r.json();
-    return rows && rows[0] ? rows[0] : null;
-  } catch(e) { console.warn('Supabase save failed:', e); return null; }
+  }
+  let r = await attempt();
+  if (r.status === 401 || r.status === 403) {
+    try { await supaClient.auth.refreshSession(); } catch(_) {}
+    r = await attempt();
+  }
+  if (!r.ok) { const t = await r.text().catch(function(){ return ''; }); throw new Error('HTTP ' + r.status + (t ? ' — ' + t.slice(0, 180) : '')); }
+  const rows = await r.json().catch(function(){ return null; });
+  return rows && rows[0] ? rows[0] : null;
 }
 
 // ── Mode switching ────────────────────────────────────────────────────────────
@@ -3525,8 +3532,35 @@ function parseEpic(text) {
   return result;
 }
 
+// v1.4.15 #31 — Draft persistence so a failed submit / refresh never loses a formulated epic.
+const DN_EPIC_DRAFT_KEY = 'dn_epic_draft';
+function saveEpicDraft() {
+  try {
+    if (!epicData) return;
+    localStorage.setItem(DN_EPIC_DRAFT_KEY, JSON.stringify({ epic: epicData, chat: chatHistory || [], mode: currentMode, dataContext: pendingDataContext || null, at: Date.now() }));
+  } catch(_) {}
+}
+function clearEpicDraft() { try { localStorage.removeItem(DN_EPIC_DRAFT_KEY); } catch(_) {} }
+function getEpicDraft() {
+  try { var d = JSON.parse(localStorage.getItem(DN_EPIC_DRAFT_KEY) || 'null'); return (d && d.epic && (Date.now() - (d.at || 0) < 7 * 864e5)) ? d : null; } catch(_) { return null; }
+}
+function restoreEpicDraftIfAny() {
+  if (epicData) return;
+  var d = getEpicDraft(); if (!d) return;
+  epicData = d.epic;
+  if (Array.isArray(d.chat)) chatHistory = d.chat;
+  if (d.mode) currentMode = d.mode;
+  if (d.dataContext) pendingDataContext = d.dataContext;
+  try { renderEpicCard(); } catch(_) {}
+  try {
+    var win = document.getElementById('chat-window');
+    if (win) { var n = document.createElement('div'); n.style.cssText = 'font-size:12px;color:#47D1FF;background:rgba(71,209,255,0.10);border:1px solid rgba(71,209,255,0.3);border-radius:8px;padding:8px 12px;margin:8px 0;'; n.textContent = '↩ Restored your unsaved epic from last time — review and submit, or revise.'; win.insertBefore(n, win.firstChild); }
+  } catch(_) {}
+}
+
 function renderEpicCard() {
   if (!epicData) return;
+  saveEpicDraft();  // v1.4.15 #31 — persist the moment an epic is shown
   const win = document.getElementById('chat-window');
   const wrap = document.createElement('div');
   wrap.className = 'epic-wrap'; wrap.id = 'epic-card-wrap';
@@ -3579,6 +3613,9 @@ async function approveEpic() {
   if (reviseBtn) reviseBtn.disabled = true;
 
   try {
+    // v1.4.15 #31 — refresh the session up front so the insert carries a CURRENT token and the
+    // correct creator_user_id (a stale cached token was the cause of silent submit failures).
+    try { const sg = await supaClient.auth.getSession(); if (sg && sg.data && sg.data.session) currentSession = sg.data.session; } catch(_) {}
     const caps = (epicData.Capabilities || []).map(function(c) { return { title: c, description: '' }; });
     const payload = {
       submitted_by: currentUser,
@@ -3604,6 +3641,7 @@ async function approveEpic() {
       throw new Error('Save returned no record. Check your connection in settings (gear icon).');
     }
     epicData._reqId = inserted.id;
+    clearEpicDraft();  // v1.4.15 #31 — submitted successfully, drop the local draft
     await logActivity({
       request_id: inserted.id,
       actor: 'intent_user',
