@@ -67,7 +67,9 @@ tbody tr.clk:hover{background:var(--surface-2);}
 .badge-info{background:var(--info-bg);color:var(--info);}
 .badge-neutral{background:var(--surface-2);color:var(--text-muted);}
 .tierA{background:var(--accent-bg);color:var(--accent);}
-.flag{font-size:18px;line-height:1;display:inline-block;transition:filter 400ms ease,opacity 400ms ease;}
+.flag{line-height:1;display:inline-flex;align-items:center;transition:filter 400ms ease,opacity 400ms ease;}
+.flag img,img.flagimg{width:21px;height:16px;border-radius:2px;object-fit:cover;vertical-align:middle;display:inline-block;border:1px solid var(--border);}
+.flagx{font-size:16px;}
 .flag.elim{filter:grayscale(1);opacity:0.35;}
 .flagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
 .fchip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;}
@@ -159,10 +161,13 @@ document.getElementById('themeBtn').addEventListener('click', function(){ var t=
 
 // ---------- Flag helpers ----------
 var ISO={Brazil:'BR',France:'FR',Argentina:'AR',England:'GB',Spain:'ES',Germany:'DE',Portugal:'PT',Netherlands:'NL',Belgium:'BE',Croatia:'HR',Uruguay:'UY',Denmark:'DK',Switzerland:'CH',USA:'US','United States':'US',Mexico:'MX',Japan:'JP',Senegal:'SN',Morocco:'MA',Colombia:'CO','Korea Republic':'KR','South Korea':'KR',Serbia:'RS',Poland:'PL',Italy:'IT',Ecuador:'EC',Canada:'CA',Australia:'AU',Ghana:'GH',Cameroon:'CM',Tunisia:'TN',Nigeria:'NG',Egypt:'EG',Algeria:'DZ','Saudi Arabia':'SA',Qatar:'QA',Iran:'IR','Costa Rica':'CR',Panama:'PA',Jamaica:'JM',Peru:'PE',Chile:'CL',Paraguay:'PY',Wales:'GB',Scotland:'GB',Sweden:'SE',Norway:'NO',Austria:'AT',Turkey:'TR',Greece:'GR',Ukraine:'UA','New Zealand':'NZ',Ireland:'IE',Russia:'RU'};
-function flagFor(name){ var iso=ISO[name]; if(!iso) return '🏳️'; return iso.toUpperCase().replace(/./g,function(c){return String.fromCodePoint(127397+c.charCodeAt(0));}); }
+var FLAGCODE={England:'gb-eng',Scotland:'gb-sct',Wales:'gb-wls'};
+function flagFor(name){ var iso=ISO[name]; if(!iso) return '<span class="flagx" title="'+esc(name)+'">🏳️</span>'; var lc=(FLAGCODE[name]||iso).toLowerCase(); return '<img class="flagimg" loading="lazy" src="https://flagcdn.com/24x18/'+lc+'.png" srcset="https://flagcdn.com/48x36/'+lc+'.png 2x" width="24" height="18" alt="'+esc(name)+' flag" title="'+esc(name)+'" onerror="this.replaceWith(document.createTextNode(String.fromCodePoint(127397+(this.alt.charCodeAt(0))) ));this.onerror=null;">'; }
 
 // ---------- State ----------
-var S={emp:[],countries:[],synds:[],fixtures:[],audit:[],adminName:null,tab:'leaderboard',apiUrl:'',expand:{}};
+var DEFAULT_API='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
+var SAMPLE_API='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2022/worldcup.json';
+var S={emp:[],countries:[],synds:[],fixtures:[],audit:[],adminName:null,tab:'leaderboard',apiUrl:DEFAULT_API,expand:{}};
 var STAGE_PTS={group:3,r16:5,quarter:10,semi:15,final:20};
 var STAGE_LABEL={group:'Group',r16:'Round of 16',quarter:'Quarter-final',semi:'Semi-final',final:'Final'};
 var ADMIN_PASS='dnworldcup';
@@ -190,7 +195,8 @@ function recompute(){
     var hg=Number(f.homeGoals)||0, ag=Number(f.awayGoals)||0;
     if(oh) oh.goals+=hg; if(oa) oa.goals+=ag;
     var winner=null, loser=null;
-    if(hg>ag){winner=f.home;loser=f.away;} else if(ag>hg){winner=f.away;loser=f.home;}
+    if(f.winner==='home'){winner=f.home;loser=f.away;} else if(f.winner==='away'){winner=f.away;loser=f.home;}
+    else if(hg>ag){winner=f.home;loser=f.away;} else if(ag>hg){winner=f.away;loser=f.home;}
     if(winner){ var ow=ownerOf(winner); if(ow) ow.points+=(STAGE_PTS[f.stage]||0); }
     if(f.stage!=='group' && loser){ var lc=S.countries.find(function(x){return x.name===loser;}); if(lc) lc.eliminated=true; }
   });
@@ -421,7 +427,7 @@ function adminFixtures(){
   return h;
 }
 function adminApi(){
-  return '<div class="card"><strong>World Cup API integration</strong><p class="muted" style="font-size:13px">Enter a results endpoint that returns JSON. The platform will attempt to map matches automatically. Manual entry remains the fallback if the API is unavailable.</p><label class="cap">API endpoint URL</label><input class="input" id="apiUrl" placeholder="https://api.example.com/worldcup/matches" value="'+esc(S.apiUrl)+'" style="margin:6px 0 10px"/><div class="row"><button class="btn-primary" id="fetchApi">Fetch results</button><span class="muted" id="apiStatus"></span></div><p class="subtle" style="font-size:11px;margin-top:10px">Expected per-match fields (flexible): home / away / homeScore / awayScore / stage / date. Only countries already in your pool are matched.</p></div>';
+  return '<div class="card"><strong>OpenFootball World Cup 2026 integration</strong><p class="muted" style="font-size:13px">Pulls real fixtures &amp; scores from the OpenFootball <span class="mono">worldcup.json</span> dataset (team1 / team2 / score.ft format). Group, Round of 16, quarter, semi and final matches map automatically; penalty shoot-outs decide knockout winners. Manual overrides in the Fixtures tab always win — synced rows you have corrected are never overwritten.</p><label class="cap">API endpoint URL</label><input class="input" id="apiUrl" placeholder="'+esc(DEFAULT_API)+'" value="'+esc(S.apiUrl)+'" style="margin:6px 0 10px"/><div class="row"><button class="btn-primary" id="fetchApi">Fetch results</button><button class="btn-secondary" id="apiDefault">Use 2026 feed</button><button class="btn-ghost" id="api2022">Load 2022 sample feed</button><span class="muted" id="apiStatus"></span></div><p class="subtle" style="font-size:11px;margin-top:10px">Only countries already in your pool are matched (aliases such as “South Korea” ↔ “Korea Republic” and “USA” ↔ “United States” are handled). If the 2026 feed is not yet published the request reports an error — no placeholder data is ever inserted.</p></div>';
 }
 function adminAudit(){
   if(S.audit.length===0) return '<div class="card">'+emptyState('No activity yet','Admin actions — uploads, generation, reveals, overrides — are logged here.')+'</div>';
@@ -454,23 +460,37 @@ function fetchApi(){
   st.textContent='Fetching…';
   fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
     var arr = Array.isArray(data)?data:(data.matches||data.results||data.data||data.fixtures||[]);
+    if((!Array.isArray(arr)||!arr.length)&&Array.isArray(data.rounds)){ arr=[]; data.rounds.forEach(function(r){ if(Array.isArray(r.matches)) arr=arr.concat(r.matches); }); }
     if(!Array.isArray(arr)||!arr.length) throw new Error('No matches array found in response');
     var added=0;
+    var ALIAS={'South Korea':'Korea Republic','Korea Republic':'South Korea','USA':'United States','United States':'USA','IR Iran':'Iran','Iran':'IR Iran','Republic of Ireland':'Ireland'};
+    function findCountry(nm){ if(!nm) return null; var c=S.countries.find(function(x){return x.name===nm;}); if(c) return c; if(ALIAS[nm]){ c=S.countries.find(function(x){return x.name===ALIAS[nm];}); if(c) return c; } return null; }
+    function mapStage(m){ var r=((m.stage||m.round||m.group||'')+'').toLowerCase(); if(m.group||r.indexOf('group')!==-1||r.indexOf('matchday')!==-1) return 'group'; if(r.indexOf('third')!==-1||r.indexOf('3rd')!==-1||r.indexOf('play-off')!==-1) return null; if(r.indexOf('16')!==-1) return 'r16'; if(r.indexOf('quart')!==-1) return 'quarter'; if(r.indexOf('semi')!==-1) return 'semi'; if(r.indexOf('final')!==-1) return 'final'; if(r.indexOf('round of')!==-1) return 'r16'; return 'group'; }
     arr.forEach(function(m){
-      var home=m.home||m.homeTeam||m.home_team||(m.teams&&m.teams.home&&m.teams.home.name);
-      var away=m.away||m.awayTeam||m.away_team||(m.teams&&m.teams.away&&m.teams.away.name);
+      var home=m.home||m.homeTeam||m.home_team||m.team1||(m.teams&&m.teams.home&&m.teams.home.name);
+      var away=m.away||m.awayTeam||m.away_team||m.team2||(m.teams&&m.teams.away&&m.teams.away.name);
       if(typeof home==='object'&&home) home=home.name; if(typeof away==='object'&&away) away=away.name;
       if(!home||!away) return;
-      if(!S.countries.find(function(c){return c.name===home;})||!S.countries.find(function(c){return c.name===away;})) return;
-      var hg=m.homeScore!=null?m.homeScore:(m.home_score!=null?m.home_score:(m.score&&m.score.home));
-      var ag=m.awayScore!=null?m.awayScore:(m.away_score!=null?m.away_score:(m.score&&m.score.away));
-      var stage=(m.stage||m.round||'group').toString().toLowerCase();
-      if(stage.indexOf('16')!==-1) stage='r16'; else if(stage.indexOf('quart')!==-1) stage='quarter'; else if(stage.indexOf('semi')!==-1) stage='semi'; else if(stage.indexOf('final')!==-1) stage='final'; else stage='group';
-      var dt=m.date?Date.parse(m.date):Date.now(); if(isNaN(dt)) dt=Date.now();
+      var hc=findCountry(home), ac=findCountry(away);
+      if(!hc||!ac) return;
+      home=hc.name; away=ac.name;
+      var stage=mapStage(m); if(!stage) return;
+      var hg=null, ag=null, winner=null;
+      if(m.score){
+        var ft=m.score.ft, et=m.score.et, pen=m.score.p;
+        if(Array.isArray(ft)){ hg=ft[0]; ag=ft[1]; } else { hg=(m.score.home!=null?m.score.home:null); ag=(m.score.away!=null?m.score.away:null); }
+        if(Array.isArray(et)){ if(et[0]!=null&&et[1]!=null){ hg=et[0]; ag=et[1]; } }
+        if(Array.isArray(pen)){ winner=pen[0]>pen[1]?'home':(pen[1]>pen[0]?'away':null); }
+      } else {
+        hg=m.homeScore!=null?m.homeScore:(m.home_score!=null?m.home_score:null);
+        ag=m.awayScore!=null?m.awayScore:(m.away_score!=null?m.away_score:null);
+      }
+      var dt=m.date?Date.parse(m.date+(m.time?('T'+m.time):'')):Date.now(); if(isNaN(dt)) dt=Date.now();
+      var fin = (hg!=null&&ag!=null);
+      if(!winner&&fin){ winner=Number(hg)>Number(ag)?'home':(Number(ag)>Number(hg)?'away':null); }
       var ex=S.fixtures.find(function(f){return f.home===home&&f.away===away&&f.stage===stage;});
-      var final = (hg!=null&&ag!=null);
-      if(ex){ if(final){ex.homeGoals=Number(hg);ex.awayGoals=Number(ag);ex.status='final';} ex.date=dt; }
-      else { S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt,homeGoals:final?Number(hg):null,awayGoals:final?Number(ag):null,status:final?'final':'scheduled'}); added++; }
+      if(ex){ if(ex.overrideBy){ return; } if(fin){ex.homeGoals=Number(hg);ex.awayGoals=Number(ag);ex.status='final';ex.winner=winner;} ex.date=dt; }
+      else { S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt,homeGoals:fin?Number(hg):null,awayGoals:fin?Number(ag):null,status:fin?'final':'scheduled',winner:fin?winner:null}); added++; }
     });
     log('api','Fetched API results from '+url+' ('+added+' new fixtures)');
     toast('API sync complete · '+added+' new fixtures','success');
@@ -516,6 +536,8 @@ function bind(){
   on('addFix','click',function(){ var home=document.getElementById('fHome').value, away=document.getElementById('fAway').value, stage=document.getElementById('fStage').value, dt=document.getElementById('fDate').value, hg=document.getElementById('fHG').value, ag=document.getElementById('fAG').value; if(!home||!away){ toast('Select both teams','error'); return; } if(home===away){ toast('Teams must differ','error'); return; } var final=(hg!==''&&ag!==''); S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt?Date.parse(dt):Date.now(),homeGoals:final?parseInt(hg,10):null,awayGoals:final?parseInt(ag,10):null,status:final?'final':'scheduled'}); log('fixture','Added fixture '+home+' v '+away+' ('+STAGE_LABEL[stage]+')'); toast('Fixture added','success'); render(); });
   // api
   on('fetchApi','click',fetchApi);
+  on('apiDefault','click',function(){ S.apiUrl=DEFAULT_API; render(); });
+  on('api2022','click',function(){ S.apiUrl=SAMPLE_API; render(); });
   var au=document.getElementById('apiUrl'); if(au) au.onchange=function(){ S.apiUrl=au.value; };
 }
 
