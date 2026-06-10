@@ -48,11 +48,13 @@ textarea.input{resize:vertical;min-height:72px;font-family:ui-monospace,Menlo,mo
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
 .matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;}
-.matrix>.synd-card{display:flex;flex-direction:column;min-height:280px;}
-.synd-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px;}
-.synd-head .editname{flex:1;min-width:0;font-size:15px;}
-.synd-card .member-list{margin-top:4px;}
-.synd-tiers{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:8px;}
+.matrix>.synd-card{display:flex;flex-direction:column;min-height:300px;min-width:0;overflow:hidden;}
+.synd-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px;min-width:0;}
+.synd-head .editname{flex:1;min-width:0;font-size:15px;max-width:100%;}
+.synd-head .synd-name{flex:1;min-width:0;font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.synd-flags{margin-top:8px;}
+.synd-card .member-list{margin-top:4px;min-width:0;}
+.synd-tiers{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:8px;min-width:0;}
 .synd-hidden{align-items:center;justify-content:center;text-align:center;opacity:0.7;gap:6px;}
 table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;}
 thead th{text-align:left;font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px;border-bottom:1px solid var(--border);}
@@ -71,8 +73,10 @@ tbody tr.clk:hover{background:var(--surface-2);}
 .flag img,img.flagimg{width:21px;height:16px;border-radius:2px;object-fit:cover;vertical-align:middle;display:inline-block;border:1px solid var(--border);}
 .flagx{font-size:16px;}
 .flag.elim{filter:grayscale(1);opacity:0.35;}
-.flagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
-.fchip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;}
+.flagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;min-width:0;}
+.fchip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;max-width:100%;min-width:0;overflow:hidden;}
+.fchip .fct{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.fchip .flag{flex:0 0 auto;}
 .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
 .modal{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:24px;max-width:520px;width:100%;max-height:90vh;overflow:auto;}
 .toasts{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px;}
@@ -89,16 +93,16 @@ tbody tr.clk:hover{background:var(--surface-2);}
 .rankbubble.r1{background:var(--accent-bg);color:var(--accent);}
 .section-title{font-size:20px;font-weight:600;letter-spacing:-0.005em;margin-bottom:4px;}
 .eyebrow{margin-bottom:18px;}
-.divider{height:1px;background:var(--border);margin:16px 0;}
+.divider{height:1px;background:var(--border);margin:10px 0;}
 .scene{perspective:1200px;}
-.flipcard{position:relative;width:100%;max-width:520px;margin:0 auto;height:340px;transition:transform 700ms cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d;}
+.flipcard{position:relative;width:100%;max-width:520px;margin:0 auto;height:360px;transition:transform 700ms cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d;}
 .flipcard.flipped{transform:rotateY(180deg);}
-.face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--surface);padding:28px;display:flex;flex-direction:column;}
+.face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--surface);padding:24px;display:flex;flex-direction:column;overflow:hidden;}
 .face.back{transform:rotateY(180deg);}
-.face .big{font-size:28px;font-weight:600;letter-spacing:-0.01em;}
+.face .big{font-size:26px;font-weight:600;letter-spacing:-0.01em;}
 .confetti{font-size:40px;text-align:center;}
-.member-list{display:flex;flex-wrap:wrap;gap:6px;}
-.member{font-size:12px;padding:2px 8px;background:var(--surface-2);border-radius:10px;color:var(--text-muted);}
+.member-list{display:flex;flex-wrap:wrap;gap:6px;min-width:0;}
+.member{font-size:12px;padding:2px 8px;background:var(--surface-2);border-radius:10px;color:var(--text-muted);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .detailbox{background:var(--surface-2);padding:14px;border-radius:var(--radius-sm);}
 .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
 .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;}
@@ -108,6 +112,8 @@ tbody tr.clk:hover{background:var(--surface-2);}
 .tabs2 button.active{color:var(--accent);border-bottom-color:var(--accent);}
 .editname{border:1px solid transparent;background:transparent;color:inherit;font:inherit;font-weight:600;padding:2px 4px;border-radius:4px;cursor:text;}
 .editname:hover{border-color:var(--border-strong);background:var(--surface-2);}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border-strong);border-top-color:var(--accent);border-radius:50%;animation:rot 700ms linear infinite;vertical-align:middle;}
+@keyframes rot{to{transform:rotate(360deg);}}
 @media(max-width:1024px){.matrix{grid-template-columns:repeat(2,1fr);}.kpis{grid-template-columns:repeat(2,1fr);}}
 @media(max-width:640px){.wrap{padding:16px 12px 48px;}.matrix{grid-template-columns:1fr;}.grid2{grid-template-columns:1fr;}.kpis{grid-template-columns:repeat(2,1fr);}.hide-sm{display:none;}}
 </style>
@@ -154,25 +160,23 @@ tbody tr.clk:hover{background:var(--surface-2);}
 (function(){
 'use strict';
 
-// ---------- Theme ----------
 var initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
 document.documentElement.dataset.theme = initialTheme;
 document.getElementById('themeBtn').addEventListener('click', function(){ var t=document.documentElement.dataset.theme==='dark'?'light':'dark'; document.documentElement.dataset.theme=t; });
 
-// ---------- Flag helpers ----------
-var ISO={Brazil:'BR',France:'FR',Argentina:'AR',England:'GB',Spain:'ES',Germany:'DE',Portugal:'PT',Netherlands:'NL',Belgium:'BE',Croatia:'HR',Uruguay:'UY',Denmark:'DK',Switzerland:'CH',USA:'US','United States':'US',Mexico:'MX',Japan:'JP',Senegal:'SN',Morocco:'MA',Colombia:'CO','Korea Republic':'KR','South Korea':'KR',Serbia:'RS',Poland:'PL',Italy:'IT',Ecuador:'EC',Canada:'CA',Australia:'AU',Ghana:'GH',Cameroon:'CM',Tunisia:'TN',Nigeria:'NG',Egypt:'EG',Algeria:'DZ','Saudi Arabia':'SA',Qatar:'QA',Iran:'IR','Costa Rica':'CR',Panama:'PA',Jamaica:'JM',Peru:'PE',Chile:'CL',Paraguay:'PY',Wales:'GB',Scotland:'GB',Sweden:'SE',Norway:'NO',Austria:'AT',Turkey:'TR',Greece:'GR',Ukraine:'UA','New Zealand':'NZ',Ireland:'IE',Russia:'RU'};
-var FLAGCODE={England:'gb-eng',Scotland:'gb-sct',Wales:'gb-wls'};
-function flagFor(name){ var iso=ISO[name]; if(!iso) return '<span class="flagx" title="'+esc(name)+'">🏳️</span>'; var lc=(FLAGCODE[name]||iso).toLowerCase(); return '<img class="flagimg" loading="lazy" src="https://flagcdn.com/24x18/'+lc+'.png" srcset="https://flagcdn.com/48x36/'+lc+'.png 2x" width="24" height="18" alt="'+esc(name)+' flag" title="'+esc(name)+'" onerror="this.replaceWith(document.createTextNode(String.fromCodePoint(127397+(this.alt.charCodeAt(0))) ));this.onerror=null;">'; }
+// ---------- Flag map (covers all WC2026 nations + common others) ----------
+var ISO={'Argentina':'AR','France':'FR','Spain':'ES','England':'gb-eng','Brazil':'BR','Portugal':'PT','Netherlands':'NL','Germany':'DE','Belgium':'BE','Croatia':'HR','Uruguay':'UY','Morocco':'MA','USA':'US','United States':'US','Mexico':'MX','Japan':'JP','Senegal':'SN','Switzerland':'CH','Colombia':'CO','Ecuador':'EC','Australia':'AU','Canada':'CA','Austria':'AT','South Korea':'KR','Korea Republic':'KR','Egypt':'EG','South Africa':'ZA','Czech Republic':'CZ','Czechia':'CZ','Qatar':'QA','Bosnia & Herzegovina':'BA','Bosnia and Herzegovina':'BA','Haiti':'HT','Scotland':'gb-sct','Paraguay':'PY','Turkey':'TR','Türkiye':'TR','Curaçao':'CW','Curacao':'CW','Ivory Coast':'CI','Cote d Ivoire':'CI','Sweden':'SE','Tunisia':'TN','Iran':'IR','IR Iran':'IR','New Zealand':'NZ','Cape Verde':'CV','Cabo Verde':'CV','Saudi Arabia':'SA','Iraq':'IQ','Norway':'NO','Algeria':'DZ','Jordan':'JO','DR Congo':'CD','Congo DR':'CD','Uzbekistan':'UZ','Ghana':'GH','Panama':'PA','Wales':'gb-wls','Denmark':'DK','Serbia':'RS','Poland':'PL','Italy':'IT','Cameroon':'CM','Nigeria':'NG','Costa Rica':'CR','Peru':'PE','Chile':'CL','Greece':'GR','Ukraine':'UA','Ireland':'IE','Republic of Ireland':'IE','Russia':'RU'};
+function flagFor(name){ var iso=ISO[name]; if(!iso) return '<span class="flagx" title="'+esc(name)+'">🏳️</span>'; var lc=iso.toLowerCase(); return '<img class="flagimg" loading="lazy" src="https://flagcdn.com/24x18/'+lc+'.png" srcset="https://flagcdn.com/48x36/'+lc+'.png 2x" width="24" height="18" alt="'+esc(name)+'" title="'+esc(name)+'" onerror="this.style.display=\'none\';this.onerror=null;">'; }
 
 // ---------- State ----------
 var DEFAULT_API='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2026/worldcup.json';
 var SAMPLE_API='https://raw.githubusercontent.com/openfootball/worldcup.json/master/2022/worldcup.json';
-var S={emp:[],countries:[],synds:[],fixtures:[],audit:[],adminName:null,tab:'leaderboard',apiUrl:DEFAULT_API,expand:{}};
-var STAGE_PTS={group:3,r16:5,quarter:10,semi:15,final:20};
-var STAGE_LABEL={group:'Group',r16:'Round of 16',quarter:'Quarter-final',semi:'Semi-final',final:'Final'};
+var S={emp:[],countries:[],synds:[],fixtures:[],audit:[],adminName:null,tab:'leaderboard',apiUrl:DEFAULT_API,expand:{},fixturesLoading:false};
+var STAGE_PTS={group:3,r32:4,r16:5,quarter:10,semi:15,final:20};
+var STAGE_LABEL={group:'Group',r32:'Round of 32',r16:'Round of 16',quarter:'Quarter-final',semi:'Semi-final',final:'Final'};
 var ADMIN_PASS='dnworldcup';
 var ADMINS=['Mahaan Jyoti','Isabella Manganello'];
-var FUNNY=['The Goal Diggers','Net Profits','Bench Warmers United','Kick It Like Brexit','Mighty Ducks of Anaheim','Sons of Pitches','Throw-In Towels','Yellow Card Sharks','Offside Eyes','The Hangovers','Extra Time Lords','Penalty Box Office','Cleat Sheet','Corner Office Kicks','Tackle & Grease','The Vuvuzelas'];
+var FUNNY=['The Goal Diggers','Net Profits','Bench Warmers United','Kick It Like Brexit','Sons of Pitches','Throw-In Towels','Yellow Card Sharks','Offside Eyes','The Hangovers','Extra Time Lords','Penalty Box Office','Cleat Sheet','Corner Office Kicks','Tackle & Grease','The Vuvuzelas','Group Stage Fright'];
 
 // ---------- Utils ----------
 function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
@@ -186,7 +190,7 @@ function fmtDate(ts){ var d=new Date(ts); return d.toLocaleDateString('en-US',{m
 function parseCSV(text){ var lines=text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim()!=='';}); var rows=[]; for(var i=0;i<lines.length;i++){ var line=lines[i]; var out=[]; var cur=''; var q=false; for(var c=0;c<line.length;c++){ var ch=line[c]; if(q){ if(ch==='"'){ if(line[c+1]==='"'){cur+='"';c++;} else q=false; } else cur+=ch; } else { if(ch==='"') q=true; else if(ch===','){ out.push(cur); cur=''; } else cur+=ch; } } out.push(cur); rows.push(out.map(function(x){return x.trim();})); } return rows; }
 function looksHeader(r,keys){ var j=r.join(' ').toLowerCase(); for(var i=0;i<keys.length;i++){ if(j.indexOf(keys[i])!==-1) return true; } return false; }
 
-// ---------- Recompute scoring ----------
+// ---------- Scoring ----------
 function recompute(){
   S.synds.forEach(function(s){ s.points=0; s.goals=0; });
   S.countries.forEach(function(c){ c.eliminated = !!c.elimManual; });
@@ -203,45 +207,58 @@ function recompute(){
 }
 function ranked(){ recompute(); return S.synds.slice().sort(function(a,b){ return (b.points-a.points)||(b.goals-a.goals)||a.name.localeCompare(b.name); }); }
 
-// ---------- Generation ----------
-function generateSyndicates(){
-  if(S.emp.length<8){ toast('Need at least 8 employees to form 8 syndicates','error'); return; }
+// ---------- Default / demo dataset (real WC2026) ----------
+function wcCountries(){
+  var A=['Argentina','France','Spain','England','Brazil','Portugal','Netherlands','Germany'];
+  var B=['Belgium','Croatia','Uruguay','Morocco','USA','Mexico','Japan','Senegal','Switzerland','Colombia','Ecuador','Australia','Canada','Austria','South Korea','Egypt'];
+  var C=['South Africa','Czech Republic','Qatar','Bosnia & Herzegovina','Haiti','Scotland','Paraguay','Turkey','Curaçao','Ivory Coast','Sweden','Tunisia','Iran','New Zealand','Cape Verde','Saudi Arabia','Iraq','Norway','Algeria','Jordan','DR Congo','Uzbekistan','Ghana','Panama'];
+  var out=[];
+  A.forEach(function(n){out.push({name:n,tier:'A',eliminated:false,elimManual:false});});
+  B.forEach(function(n){out.push({name:n,tier:'B',eliminated:false,elimManual:false});});
+  C.forEach(function(n){out.push({name:n,tier:'C',eliminated:false,elimManual:false});});
+  return out;
+}
+function wcEmployees(n){
+  var FN=['Alex','Sam','Jordan','Taylor','Casey','Morgan','Riley','Jamie','Avery','Quinn','Cameron','Drew','Reese','Skyler','Devon','Harper','Rowan','Emerson','Finley','Hayden','Kendall','Logan','Parker','Sawyer','Blake','Charlie','Dakota','Eden','Frankie','Gray','Hollis','Jules','Kai','Lane','Marlowe','Noor','Oakley','Phoenix','Remy','Sage','Tatum','Wren','Zion','Briar'];
+  var LN=['Smith','Jones','Brown','Patel','Khan','Garcia','Muller','Rossi','Nguyen','Kim','Okafor','Silva','Dubois','Novak','Hansen','Costa'];
+  var depts=['Engineering','Sales','Marketing','Finance','HR','Operations','Product','Support'];
+  var out=[];
+  for(var i=0;i<n;i++){ var nm=FN[i%FN.length]+' '+LN[(i*5)%LN.length]; out.push({name:nm,email:(FN[i%FN.length]+'.'+LN[(i*5)%LN.length]).toLowerCase()+(i+1)+'@dn.com',dept:depts[i%depts.length]}); }
+  return out;
+}
+function buildSyndicates(reveal){
   var tA=S.countries.filter(function(c){return c.tier==='A';});
   var tB=S.countries.filter(function(c){return c.tier==='B';});
   var tC=S.countries.filter(function(c){return c.tier==='C';});
-  if(tA.length<8||tB.length<16||tC.length<24){ toast('Need >=8 Tier A, >=16 Tier B, >=24 Tier C countries (have '+tA.length+'/'+tB.length+'/'+tC.length+')','error'); return; }
+  if(S.emp.length<8){ toast('Need at least 8 employees','error'); return false; }
+  if(tA.length<8||tB.length<16||tC.length<24){ toast('Need >=8 Tier A, >=16 Tier B, >=24 Tier C countries (have '+tA.length+'/'+tB.length+'/'+tC.length+')','error'); return false; }
   var names=shuffle(FUNNY).slice(0,8);
   var emp=shuffle(S.emp);
   var sA=shuffle(tA), sB=shuffle(tB), sC=shuffle(tC);
   var synds=[];
-  for(var i=0;i<8;i++){ synds.push({id:'syn'+i,name:names[i],members:[],countries:[],revealed:false,points:0,goals:0}); }
+  for(var i=0;i<8;i++){ synds.push({id:'syn'+i,name:names[i],members:[],countries:[],revealed:!!reveal,_flipped:!!reveal,points:0,goals:0}); }
   emp.forEach(function(e,i){ synds[i%8].members.push(e); });
   for(var k=0;k<8;k++){ synds[k].countries.push(sA[k].name); synds[k].countries.push(sB[k*2].name); synds[k].countries.push(sB[k*2+1].name); synds[k].countries.push(sC[k*3].name); synds[k].countries.push(sC[k*3+1].name); synds[k].countries.push(sC[k*3+2].name); }
   S.synds=synds;
-  log('generate','Generated 8 syndicates ('+emp.length+' employees, portfolios assigned)');
-  toast('Generated 8 syndicates with portfolios','success');
+  return true;
+}
+function loadDefaults(){
+  S.countries=wcCountries();
+  S.emp=wcEmployees(88);
+  buildSyndicates(true);
+  S.audit=[{ts:Date.now(),who:'system',action:'seed',desc:'Loaded embedded World Cup 2026 dataset (88 employees, 48 countries, 8 syndicates revealed)'}];
+}
+function loadDemo(){
+  S.countries=wcCountries();
+  S.emp=wcEmployees(48);
+  S.synds=[];
+  log('demo','Reloaded demo dataset (48 employees, 48 countries) — generate to assign');
+  toast('Demo data loaded — generate syndicates next','success');
   render();
 }
 
-// ---------- Demo data ----------
-function loadDemo(){
-  var Ac=['Brazil','France','Argentina','England','Spain','Germany','Portugal','Netherlands'];
-  var Bc=['Belgium','Croatia','Uruguay','Denmark','Switzerland','USA','Mexico','Japan','Senegal','Morocco','Colombia','Korea Republic','Serbia','Poland','Italy','Ecuador'];
-  var Cc=['Canada','Australia','Ghana','Cameroon','Tunisia','Nigeria','Egypt','Algeria','Saudi Arabia','Qatar','Iran','Costa Rica','Panama','Jamaica','Peru','Chile','Paraguay','Wales','Scotland','Sweden','Norway','Austria','Turkey','Greece'];
-  S.countries=[];
-  Ac.forEach(function(n){S.countries.push({name:n,tier:'A',eliminated:false,elimManual:false});});
-  Bc.forEach(function(n){S.countries.push({name:n,tier:'B',eliminated:false,elimManual:false});});
-  Cc.forEach(function(n){S.countries.push({name:n,tier:'C',eliminated:false,elimManual:false});});
-  var FNn=['Alex','Sam','Jordan','Taylor','Casey','Morgan','Riley','Jamie','Avery','Quinn','Cameron','Drew','Reese','Skyler','Devon','Harper','Rowan','Emerson','Finley','Hayden','Kendall','Logan','Parker','Sawyer'];
-  var LNn=['Smith','Jones','Brown','Patel','Khan','Garcia','Muller','Rossi','Nguyen','Kim','Okafor','Silva','Dubois','Novak','Hansen','Costa'];
-  var depts=['Engineering','Sales','Marketing','Finance','HR','Operations','Product','Support'];
-  S.emp=[];
-  for(var i=0;i<48;i++){ var nm=FNn[i%FNn.length]+' '+LNn[(i*7)%LNn.length]; S.emp.push({name:nm+(i>=FNn.length?' '+(Math.floor(i/FNn.length)+1):''),email:nm.toLowerCase().replace(/ /g,'.')+i+'@dn.com',dept:depts[i%depts.length]}); }
-  S.synds=[]; S.fixtures=[];
-  log('demo','Loaded demo dataset: 48 employees, 48 countries');
-  toast('Demo data loaded (48 employees, 48 countries)','success');
-  render();
-}
+// ---------- Generate (admin button) ----------
+function generateSyndicates(){ if(buildSyndicates(false)){ log('generate','Generated 8 syndicates ('+S.emp.length+' employees, portfolios assigned)'); toast('Generated 8 syndicates with portfolios','success'); render(); } }
 
 // ---------- Reveal ----------
 function revealNext(){
@@ -270,13 +287,14 @@ function render(){
   bind();
 }
 function emptyState(title,hint){ return '<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg><h3>'+esc(title)+'</h3><p class="muted">'+esc(hint)+'</p></div>'; }
+function countryFlag(c,withTip){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="flag '+(co&&co.eliminated?'elim':'')+'" title="'+esc(c)+(co&&co.eliminated?' (eliminated)':'')+'">'+flagFor(c)+'</span>'; }
 
 // ---------- Leaderboard ----------
 function revealedSynds(){ return S.synds.filter(function(s){return s.revealed;}); }
 function viewLeaderboard(){
   var rs=ranked();
   var revealedAll=S.synds.length>0 && S.synds.every(function(s){return s.revealed;});
-  var h='<div class="eyebrow"><div class="cap">Live Standings</div><div class="section-title">Leaderboard</div></div>';
+  var h='<div class="eyebrow"><div class="cap">Live Standings · World Cup 2026</div><div class="section-title">Leaderboard</div></div>';
   if(S.synds.length===0){ return h+'<div class="card">'+emptyState('No syndicates yet','Admin must upload data and generate syndicates before the leaderboard appears.')+'</div>'; }
   var champ=rs[0];
   if(revealedAll && champ && champ.points>0 && S.fixtures.some(function(f){return f.stage==='final'&&f.status==='final';})){
@@ -289,7 +307,7 @@ function viewLeaderboard(){
   h+='<table><thead><tr><th style="width:40px">#</th><th>Syndicate</th><th class="numeric">Points</th><th class="hide-sm">Members</th><th class="hide-sm">Portfolio</th><th class="numeric">Goals</th></tr></thead><tbody>';
   rs.forEach(function(s,i){
     var nameCell = s.revealed ? esc(s.name) : '<span class="muted">??? Hidden</span>';
-    var flags = s.revealed ? s.countries.map(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="flag '+(co&&co.eliminated?'elim':'')+'" title="'+esc(c)+(co&&co.eliminated?' (eliminated)':'')+'">'+flagFor(c)+'</span>'; }).join('') : '<span class="subtle">—</span>';
+    var flags = s.revealed ? s.countries.map(function(c){ return countryFlag(c); }).join('') : '<span class="subtle">—</span>';
     h+='<tr class="clk" data-syn="'+s.id+'"><td><span class="rankbubble '+(i===0?'r1':'')+'">'+(i+1)+'</span></td><td>'+nameCell+'</td><td class="numeric"><span class="pts">'+s.points+'</span></td><td class="hide-sm">'+s.members.length+'</td><td class="hide-sm"><div class="flagrow">'+flags+'</div></td><td class="numeric muted">'+s.goals+'</td></tr>';
     if(S.expand['lb-'+s.id] && s.revealed){ h+='<tr><td colspan="6" style="background:var(--surface-2)">'+syndDetail(s)+'</td></tr>'; }
   });
@@ -302,7 +320,7 @@ function syndDetail(s){
     var co=S.countries.find(function(x){return x.name===c;});
     var fixForC=S.fixtures.filter(function(f){return f.status==='final'&&(f.home===c||f.away===c);});
     var res=fixForC.map(function(f){ var us=f.home===c?f.homeGoals:f.awayGoals; var th=f.home===c?f.awayGoals:f.homeGoals; var opp=f.home===c?f.away:f.home; var w=us>th?'W':(us<th?'L':'D'); return '<span class="badge badge-'+(w==='W'?'success':w==='L'?'danger':'neutral')+'" title="'+STAGE_LABEL[f.stage]+' vs '+esc(opp)+'">'+w+' '+us+'-'+th+'</span>'; }).join(' ');
-    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;flex-wrap:wrap"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span><strong style="font-size:13px">'+esc(c)+'</strong><span class="badge '+(co.tier==='A'?'tierA':'badge-neutral')+'">Tier '+co.tier+'</span>'+(co&&co.eliminated?'<span class="badge badge-danger">Eliminated</span>':'')+' <span style="margin-left:auto">'+(res||'<span class="subtle">No results yet</span>')+'</span></div>';
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;flex-wrap:wrap">'+countryFlag(c)+'<strong style="font-size:13px">'+esc(c)+'</strong><span class="badge '+(co.tier==='A'?'tierA':'badge-neutral')+'">Tier '+co.tier+'</span>'+(co&&co.eliminated?'<span class="badge badge-danger">Eliminated</span>':'')+' <span style="margin-left:auto">'+(res||'<span class="subtle">No results yet</span>')+'</span></div>';
   }).join('');
   return '<div class="detailbox"><div class="grid2"><div><div class="cap" style="margin-bottom:8px">Roster ('+s.members.length+')</div><div class="member-list">'+roster+'</div></div><div><div class="cap" style="margin-bottom:8px">Country performance</div>'+perf+'</div></div></div>';
 }
@@ -314,10 +332,11 @@ function viewMatrix(){
   h+='<div class="matrix">';
   S.synds.forEach(function(s){
     if(!s.revealed){ h+='<div class="card synd-card synd-hidden"><div class="confetti">🔒</div><div style="font-weight:600">Hidden Syndicate</div><div class="muted" style="font-size:12px">Revealed at the live ceremony</div></div>'; return; }
-    var nameEl = S.adminName ? '<input class="editname" data-edit="'+s.id+'" value="'+esc(s.name)+'"/>' : '<div style="font-weight:600;font-size:15px;flex:1;min-width:0">'+esc(s.name)+'</div>';
-    var members=s.members.map(function(m){return '<span class="member">'+esc(m.name)+'</span>';}).join('');
-    function tierGroup(t){ var cs=s.countries.filter(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return co&&co.tier===t; }); if(!cs.length) return ''; return '<div><span class="cap">Tier '+t+'</span><div class="flagrow" style="margin-top:4px">'+cs.map(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="fchip"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span>'+esc(c)+'</span>'; }).join('')+'</div></div>'; }
-    h+='<div class="card synd-card"><div class="synd-head">'+nameEl+'<span class="badge badge-neutral">'+s.points+' pts</span></div><div class="divider" style="margin:10px 0"></div><span class="cap">Members ('+s.members.length+')</span><div class="member-list">'+members+'</div><div class="synd-tiers">'+tierGroup('A')+tierGroup('B')+tierGroup('C')+'</div></div>';
+    var nameEl = S.adminName ? '<input class="editname" data-edit="'+s.id+'" value="'+esc(s.name)+'"/>' : '<div class="synd-name">'+esc(s.name)+'</div>';
+    var headFlags=s.countries.map(function(c){ return countryFlag(c); }).join('');
+    var members=s.members.map(function(m){return '<span class="member" title="'+esc(m.name)+' · '+esc(m.dept)+'">'+esc(m.name)+'</span>';}).join('');
+    function tierGroup(t){ var cs=s.countries.filter(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return co&&co.tier===t; }); if(!cs.length) return ''; return '<div style="min-width:0"><span class="cap">Tier '+t+'</span><div class="flagrow" style="margin-top:4px">'+cs.map(function(c){ return '<span class="fchip">'+countryFlag(c)+'<span class="fct">'+esc(c)+'</span></span>'; }).join('')+'</div></div>'; }
+    h+='<div class="card synd-card"><div class="synd-head">'+nameEl+'<span class="badge badge-neutral">'+s.points+' pts</span></div><div class="flagrow synd-flags">'+headFlags+'</div><div class="divider"></div><span class="cap">Members ('+s.members.length+')</span><div class="member-list">'+members+'</div><div class="synd-tiers">'+tierGroup('A')+tierGroup('B')+tierGroup('C')+'</div></div>';
   });
   h+='</div>';
   return h;
@@ -325,16 +344,15 @@ function viewMatrix(){
 
 // ---------- Fixtures ----------
 function viewFixtures(){
-  var h='<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px"><div><div class="cap">Match calendar</div><div class="section-title">Fixtures &amp; Scores</div></div><div class="row"><select class="input" id="stageFilter" style="width:auto"><option value="">All stages</option>'+Object.keys(STAGE_LABEL).map(function(k){return '<option value="'+k+'">'+STAGE_LABEL[k]+'</option>';}).join('')+'</select></div></div>';
-  if(S.fixtures.length===0){ return h+'<div class="card">'+emptyState('No fixtures yet','Admins can add match fixtures and results, or fetch them from the World Cup API in the Admin panel.')+'</div>'; }
+  var h='<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px"><div><div class="cap">Match calendar · OpenFootball 2026</div><div class="section-title">Fixtures &amp; Scores</div></div><div class="row"><select class="input" id="stageFilter" style="width:auto"><option value="">All stages</option>'+Object.keys(STAGE_LABEL).map(function(k){return '<option value="'+k+'">'+STAGE_LABEL[k]+'</option>';}).join('')+'</select></div></div>';
+  if(S.fixturesLoading && S.fixtures.length===0){ return h+'<div class="card" style="text-align:center;padding:48px"><span class="spin"></span> <span class="muted">Loading fixtures from OpenFootball World Cup 2026…</span></div>'; }
+  if(S.fixtures.length===0){ return h+'<div class="card">'+emptyState('No fixtures yet','Admins can add fixtures manually, or fetch them from the OpenFootball API in the Admin → API tab.')+'</div>'; }
   var sf=S._stageFilter||'';
   var list=S.fixtures.filter(function(f){return !sf||f.stage===sf;}).slice().sort(function(a,b){return a.date-b.date;});
   h+='<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Date</th><th>Match</th><th class="hide-sm">Stage</th><th class="numeric">Score</th><th>Status</th></tr></thead><tbody>';
   list.forEach(function(f){
-    var hc=S.countries.find(function(x){return x.name===f.home;});
-    var ac=S.countries.find(function(x){return x.name===f.away;});
     var score = f.status==='final' ? f.homeGoals+' – '+f.awayGoals : '<span class="subtle">vs</span>';
-    h+='<tr class="clk" data-fix="'+f.id+'"><td class="muted">'+fmtDate(f.date)+'</td><td><span class="flag '+(hc&&hc.eliminated?'elim':'')+'">'+flagFor(f.home)+'</span> '+esc(f.home)+' <span class="subtle">v</span> '+esc(f.away)+' <span class="flag '+(ac&&ac.eliminated?'elim':'')+'">'+flagFor(f.away)+'</span></td><td class="hide-sm"><span class="badge badge-neutral">'+STAGE_LABEL[f.stage]+'</span></td><td class="numeric">'+score+'</td><td>'+(f.status==='final'?'<span class="badge badge-success">Final</span>':'<span class="badge badge-warning">Scheduled</span>')+'</td></tr>';
+    h+='<tr class="clk" data-fix="'+f.id+'"><td class="muted">'+fmtDate(f.date)+'</td><td>'+countryFlag(f.home)+' '+esc(f.home)+' <span class="subtle">v</span> '+esc(f.away)+' '+countryFlag(f.away)+'</td><td class="hide-sm"><span class="badge badge-neutral">'+STAGE_LABEL[f.stage]+'</span></td><td class="numeric">'+score+'</td><td>'+(f.status==='final'?'<span class="badge badge-success">Final</span>':'<span class="badge badge-warning">Scheduled</span>')+'</td></tr>';
     if(S.expand['fx-'+f.id]){ h+='<tr><td colspan="5" style="background:var(--surface-2)">'+fixDetail(f)+'</td></tr>'; }
   });
   h+='</tbody></table></div>';
@@ -342,9 +360,9 @@ function viewFixtures(){
 }
 function fixDetail(f){
   var oh=ownerOf(f.home), oa=ownerOf(f.away);
-  var winner=null; if(f.status==='final'){ if(f.homeGoals>f.awayGoals)winner=f.home; else if(f.awayGoals>f.homeGoals)winner=f.away; }
+  var winner=null; if(f.status==='final'){ if(f.winner==='home')winner=f.home; else if(f.winner==='away')winner=f.away; else if(f.homeGoals>f.awayGoals)winner=f.home; else if(f.awayGoals>f.homeGoals)winner=f.away; }
   var pts=STAGE_PTS[f.stage]||0;
-  var rows=[[f.home,oh],[f.away,oa]].map(function(p){ var c=p[0],o=p[1]; var got = (f.status==='final'&&winner===c)?pts:0; return '<div style="display:flex;justify-content:space-between;padding:4px 0"><span><span class="flag">'+flagFor(c)+'</span> '+esc(c)+' <span class="subtle">→ '+(o?esc(o.revealed?o.name:'Hidden syndicate'):'unassigned')+'</span></span><span>'+(f.status==='final'?'<span class="badge '+(got>0?'badge-success':'badge-neutral')+'">'+(got>0?'+'+got+' pts':'0 pts')+'</span>':'<span class="subtle">pending</span>')+'</span></div>'; }).join('');
+  var rows=[[f.home,oh],[f.away,oa]].map(function(p){ var c=p[0],o=p[1]; var got = (f.status==='final'&&winner===c)?pts:0; return '<div style="display:flex;justify-content:space-between;padding:4px 0;gap:8px"><span>'+countryFlag(c)+' '+esc(c)+' <span class="subtle">→ '+(o?esc(o.revealed?o.name:'Hidden syndicate'):'unassigned')+'</span></span><span>'+(f.status==='final'?'<span class="badge '+(got>0?'badge-success':'badge-neutral')+'">'+(got>0?'+'+got+' pts':'0 pts')+'</span>':'<span class="subtle">pending</span>')+'</span></div>'; }).join('');
   var ov = f.overrideBy ? '<div class="muted" style="font-size:12px;margin-top:8px">Manual override by '+esc(f.overrideBy)+' on '+fmtDate(f.overrideAt)+'</div>' : '';
   return '<div class="detailbox"><div class="cap" style="margin-bottom:6px">'+STAGE_LABEL[f.stage]+' · '+pts+' pts to the winner</div>'+rows+ov+(S.adminName?'<div style="margin-top:10px"><button class="btn-secondary" data-override="'+f.id+'">Override score</button></div>':'')+'</div>';
 }
@@ -362,7 +380,7 @@ function findResultHTML(){
   S.synds.forEach(function(s){ s.members.forEach(function(m){ if(m.name.toLowerCase().indexOf(q)!==-1 || (m.email&&m.email.toLowerCase().indexOf(q)!==-1)){ found=s; fm=m; } }); });
   if(!found){ var inEmp=S.emp.find(function(e){return e.name.toLowerCase().indexOf(q)!==-1||(e.email&&e.email.toLowerCase().indexOf(q)!==-1);}); if(inEmp&&S.synds.length===0) return '<div class="card" style="background:var(--surface-2)"><strong>'+esc(inEmp.name)+'</strong><p class="muted">Syndicates have not been generated yet. Check back after the draw.</p></div>'; return '<p class="muted">No match found. Check spelling or ask an admin.</p>'; }
   if(!found.revealed){ return '<div class="card" style="background:var(--surface-2)"><strong>'+esc(fm.name)+'</strong><p class="muted">You are in a syndicate, but it has not been revealed yet. Watch the live ceremony!</p></div>'; }
-  var flags=found.countries.map(function(c){var co=S.countries.find(function(x){return x.name===c;});return '<span class="fchip"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span>'+esc(c)+'</span>';}).join('');
+  var flags=found.countries.map(function(c){return '<span class="fchip">'+countryFlag(c)+'<span class="fct">'+esc(c)+'</span></span>';}).join('');
   return '<div class="card" style="background:var(--accent-bg);border-color:var(--accent)"><div class="muted" style="font-size:12px">'+esc(fm.name)+' · '+esc(fm.dept)+'</div><div style="font-size:20px;font-weight:600;margin:4px 0">'+esc(found.name)+'</div><div class="muted">'+found.points+' pts · '+found.goals+' goals · '+found.members.length+' members</div><div class="flagrow" style="margin-top:10px">'+flags+'</div></div>';
 }
 
@@ -372,17 +390,16 @@ function viewReveal(){
   if(S.synds.length===0){ return h+'<div class="card">'+emptyState('Nothing to reveal','Generate syndicates in the Admin panel first.')+'</div>'; }
   var revealedN=revealedSynds().length;
   h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px"><div><div style="font-weight:600">'+revealedN+' of '+S.synds.length+' syndicates revealed</div><div class="muted" style="font-size:12px">Each reveal is permanent — there is no undo.</div></div>';
-  if(S.adminName){ h+='<button class="btn-primary" id="revealBtn" '+(revealedN>=S.synds.length?'disabled':'')+'>'+(revealedN>=S.synds.length?'All revealed':'Reveal Next Syndicate')+'</button>'; } else { h+='<span class="badge badge-info">Sign in as admin to control reveals</span>'; }
+  if(S.adminName){ h+='<div class="row"><button class="btn-secondary" id="regenBtn">Re-draw &amp; hide all</button><button class="btn-primary" id="revealBtn" '+(revealedN>=S.synds.length?'disabled':'')+'>'+(revealedN>=S.synds.length?'All revealed':'Reveal Next Syndicate')+'</button></div>'; } else { h+='<span class="badge badge-info">Sign in as admin to control reveals</span>'; }
   h+='</div>';
-  // show most recent revealed as flip cards
   var rev=S.synds.filter(function(s){return s.revealed;});
   if(rev.length===0){ h+='<div class="card" style="text-align:center;padding:48px"><div class="confetti">🎬</div><h3 style="font-weight:600">The stage is set</h3><p class="muted">No syndicates revealed yet. '+(S.adminName?'Hit "Reveal Next Syndicate" to begin.':'Awaiting the ceremony.')+'</p></div>'; return h; }
   h+='<div class="matrix">';
   rev.forEach(function(s){
-    var front='<div class="face front"><div style="margin:auto;text-align:center"><div class="confetti">⚽</div><div class="big">'+esc(s.name)+'</div><div class="muted">Tap revealed — flipping…</div></div></div>';
+    var front='<div class="face front"><div style="margin:auto;text-align:center"><div class="confetti">⚽</div><div class="big">'+esc(s.name)+'</div><div class="muted">Revealed — flipping…</div></div></div>';
     var members=s.members.map(function(m){return '<span class="member">'+esc(m.name)+'</span>';}).join('');
-    var flags=s.countries.map(function(c){var co=S.countries.find(function(x){return x.name===c;});return '<span class="fchip"><span class="flag">'+flagFor(c)+'</span>'+esc(c)+' <span class="subtle">'+(co?co.tier:'')+'</span></span>';}).join('');
-    var back='<div class="face back"><div style="font-weight:600;font-size:18px;margin-bottom:8px">'+esc(s.name)+'</div><span class="cap">Members ('+s.members.length+')</span><div class="member-list" style="margin:6px 0">'+members+'</div><span class="cap">Country portfolio</span><div class="flagrow" style="margin-top:6px">'+flags+'</div></div>';
+    var flags=s.countries.map(function(c){var co=S.countries.find(function(x){return x.name===c;});return '<span class="fchip">'+countryFlag(c)+'<span class="fct">'+esc(c)+' '+(co?co.tier:'')+'</span></span>';}).join('');
+    var back='<div class="face back"><div style="font-weight:600;font-size:18px;margin-bottom:8px">'+esc(s.name)+'</div><span class="cap">Members ('+s.members.length+')</span><div class="member-list" style="margin:6px 0;max-height:90px;overflow:auto">'+members+'</div><span class="cap">Country portfolio</span><div class="flagrow" style="margin-top:6px">'+flags+'</div></div>';
     h+='<div class="scene"><div class="flipcard '+(s._flipped?'flipped':'')+'" id="flip-'+s.id+'">'+front+back+'</div></div>';
   });
   h+='</div>';
@@ -406,9 +423,10 @@ function viewAdmin(){
 }
 function adminData(){
   var tc={A:0,B:0,C:0}; S.countries.forEach(function(c){tc[c.tier]=(tc[c.tier]||0)+1;});
-  return '<div class="grid2"><div class="card"><div class="cap">Employees</div><div class="pts tnum">'+S.emp.length+'</div><p class="muted" style="font-size:12px">CSV columns: name, email, department</p><textarea class="input" id="empCsv" placeholder="name,email,department&#10;Alex Smith,alex@dn.com,Engineering"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="empPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="empFile" accept=".csv,.txt" hidden/></label></div></div>'+
+  return '<div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:var(--info)"><strong>Embedded dataset is persistent.</strong><p class="muted" style="font-size:12px;margin:4px 0 0">The app ships pre-loaded with the real World Cup 2026 nations, an 88-person roster and 8 generated syndicates, so data is always present on every load. Re-uploading below replaces the in-session data.</p></div>'+
+  '<div class="grid2"><div class="card"><div class="cap">Employees</div><div class="pts tnum">'+S.emp.length+'</div><p class="muted" style="font-size:12px">CSV columns: name, email, department</p><textarea class="input" id="empCsv" placeholder="name,email,department&#10;Alex Smith,alex@dn.com,Engineering"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="empPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="empFile" accept=".csv,.txt" hidden/></label></div></div>'+
   '<div class="card"><div class="cap">Countries</div><div class="pts tnum">'+S.countries.length+' <span class="muted" style="font-size:13px">(A '+tc.A+' · B '+tc.B+' · C '+tc.C+')</span></div><p class="muted" style="font-size:12px">CSV columns: country, tier (A/B/C)</p><textarea class="input" id="cntCsv" placeholder="country,tier&#10;Brazil,A&#10;Belgium,B"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="cntPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="cntFile" accept=".csv,.txt" hidden/></label></div></div></div>'+
-  '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Quick start</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Load a sample dataset (48 employees, 48 countries) to explore the platform.</p></div><div class="row"><button class="btn-secondary" id="demoBtn">Load demo data</button><button class="btn-danger" id="resetBtn">Reset all</button></div></div>';
+  '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Reset</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Reload the embedded WC2026 demo dataset or clear everything.</p></div><div class="row"><button class="btn-secondary" id="demoBtn">Reload demo data</button><button class="btn-secondary" id="seedBtn">Restore full default (with syndicates)</button><button class="btn-danger" id="resetBtn">Clear all</button></div></div>';
 }
 function adminGenerate(){
   var ready=S.emp.length>=8 && S.countries.filter(function(c){return c.tier==='A';}).length>=8;
@@ -427,7 +445,7 @@ function adminFixtures(){
   return h;
 }
 function adminApi(){
-  return '<div class="card"><strong>OpenFootball World Cup 2026 integration</strong><p class="muted" style="font-size:13px">Pulls real fixtures &amp; scores from the OpenFootball <span class="mono">worldcup.json</span> dataset (team1 / team2 / score.ft format). Group, Round of 16, quarter, semi and final matches map automatically; penalty shoot-outs decide knockout winners. Manual overrides in the Fixtures tab always win — synced rows you have corrected are never overwritten.</p><label class="cap">API endpoint URL</label><input class="input" id="apiUrl" placeholder="'+esc(DEFAULT_API)+'" value="'+esc(S.apiUrl)+'" style="margin:6px 0 10px"/><div class="row"><button class="btn-primary" id="fetchApi">Fetch results</button><button class="btn-secondary" id="apiDefault">Use 2026 feed</button><button class="btn-ghost" id="api2022">Load 2022 sample feed</button><span class="muted" id="apiStatus"></span></div><p class="subtle" style="font-size:11px;margin-top:10px">Only countries already in your pool are matched (aliases such as “South Korea” ↔ “Korea Republic” and “USA” ↔ “United States” are handled). If the 2026 feed is not yet published the request reports an error — no placeholder data is ever inserted.</p></div>';
+  return '<div class="card"><strong>OpenFootball World Cup 2026 integration</strong><p class="muted" style="font-size:13px">Default feed: <span class="mono">openfootball/worldcup.json · 2026/worldcup.json</span>. It is fetched automatically on page load. Parses the <span class="mono">team1 / team2 / group / round / score.ft</span> format — group, Round of 32/16, quarter, semi and final matches map automatically; penalty shoot-outs decide knockout winners. Manual overrides always win — synced rows you have corrected are never overwritten.</p><label class="cap">API endpoint URL</label><input class="input" id="apiUrl" placeholder="'+esc(DEFAULT_API)+'" value="'+esc(S.apiUrl)+'" style="margin:6px 0 10px"/><div class="row"><button class="btn-primary" id="fetchApi">Fetch results</button><button class="btn-secondary" id="apiDefault">Use 2026 feed</button><button class="btn-ghost" id="api2022">Load 2022 sample feed</button><span class="muted" id="apiStatus"></span></div><p class="subtle" style="font-size:11px;margin-top:10px">Only countries already in your pool are matched (aliases such as “South Korea” ↔ “Korea Republic” and “USA” ↔ “United States” are handled). Knockout placeholders (e.g. “W74”, “2A”) are skipped until real teams qualify. If a feed is unreachable the request reports an error — no placeholder data is ever inserted.</p></div>';
 }
 function adminAudit(){
   if(S.audit.length===0) return '<div class="card">'+emptyState('No activity yet','Admin actions — uploads, generation, reveals, overrides — are logged here.')+'</div>';
@@ -441,11 +459,11 @@ function adminAudit(){
 function openOverride(fid){
   var f=S.fixtures.find(function(x){return x.id===fid;}); if(!f) return;
   var root=document.getElementById('modalRoot');
-  root.innerHTML='<div class="modal-backdrop" id="mbk"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:16px;font-weight:600">Override score</h2><button class="btn-ghost" id="mclose">✕</button></div><p class="muted" style="font-size:13px">'+esc(f.home)+' v '+esc(f.away)+' · '+STAGE_LABEL[f.stage]+'</p><div class="detailbox" style="margin-bottom:12px"><div class="cap">Current (API / recorded)</div><div class="tnum" style="font-size:18px;font-weight:600">'+(f.status==='final'?f.homeGoals+' – '+f.awayGoals:'Not recorded')+'</div></div><div class="row" style="align-items:flex-end"><div style="width:90px"><label class="cap">'+esc(f.home)+'</label><input class="input" id="ovH" type="number" min="0" value="'+(f.status==='final'?f.homeGoals:'')+'"/></div><div style="width:90px"><label class="cap">'+esc(f.away)+'</label><input class="input" id="ovA" type="number" min="0" value="'+(f.status==='final'?f.awayGoals:'')+'"/></div></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn-secondary" id="ovCancel">Cancel</button><button class="btn-primary" id="ovSave">Save override</button></div></div></div>';
+  root.innerHTML='<div class="modal-backdrop" id="mbk"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:16px;font-weight:600">Override score</h2><button class="btn-ghost" id="mclose">✕</button></div><p class="muted" style="font-size:13px">'+esc(f.home)+' v '+esc(f.away)+' · '+STAGE_LABEL[f.stage]+'</p><div class="detailbox" style="margin-bottom:12px"><div class="cap">Current (API / recorded)</div><div class="tnum" style="font-size:18px;font-weight:600">'+(f.status==='final'?f.homeGoals+' – '+f.awayGoals:'Not recorded')+'</div></div><div class="row" style="align-items:flex-end"><div style="width:100px"><label class="cap">'+esc(f.home)+'</label><input class="input" id="ovH" type="number" min="0" value="'+(f.status==='final'?f.homeGoals:'')+'"/></div><div style="width:100px"><label class="cap">'+esc(f.away)+'</label><input class="input" id="ovA" type="number" min="0" value="'+(f.status==='final'?f.awayGoals:'')+'"/></div></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn-secondary" id="ovCancel">Cancel</button><button class="btn-primary" id="ovSave">Save override</button></div></div></div>';
   function close(){ root.innerHTML=''; }
   document.getElementById('mclose').onclick=close; document.getElementById('ovCancel').onclick=close;
   document.getElementById('mbk').onclick=function(e){ if(e.target.id==='mbk') close(); };
-  document.getElementById('ovSave').onclick=function(){ var hg=document.getElementById('ovH').value, ag=document.getElementById('ovA').value; if(hg===''||ag===''){ toast('Enter both scores','error'); return; } f.homeGoals=parseInt(hg,10); f.awayGoals=parseInt(ag,10); f.status='final'; f.overrideBy=S.adminName; f.overrideAt=Date.now(); log('override','Override '+f.home+' '+f.homeGoals+'-'+f.awayGoals+' '+f.away+' ('+STAGE_LABEL[f.stage]+')'); toast('Score override saved','success'); close(); render(); };
+  document.getElementById('ovSave').onclick=function(){ var hg=document.getElementById('ovH').value, ag=document.getElementById('ovA').value; if(hg===''||ag===''){ toast('Enter both scores','error'); return; } f.homeGoals=parseInt(hg,10); f.awayGoals=parseInt(ag,10); f.status='final'; f.winner=f.homeGoals>f.awayGoals?'home':(f.awayGoals>f.homeGoals?'away':null); f.overrideBy=S.adminName; f.overrideAt=Date.now(); log('override','Override '+f.home+' '+f.homeGoals+'-'+f.awayGoals+' '+f.away+' ('+STAGE_LABEL[f.stage]+')'); toast('Score override saved','success'); close(); render(); };
 }
 
 // ---------- Import handlers ----------
@@ -454,18 +472,18 @@ function importCountries(text){ var rows=parseCSV(text); if(!rows.length){ toast
 function readFile(input,cb){ var f=input.files&&input.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ cb(String(r.result)); }; r.onerror=function(){ toast('Could not read file','error'); }; r.readAsText(f); }
 
 // ---------- API fetch ----------
-function fetchApi(){
-  var url=document.getElementById('apiUrl').value.trim(); S.apiUrl=url; var st=document.getElementById('apiStatus');
+var ALIAS={'South Korea':'Korea Republic','Korea Republic':'South Korea','USA':'United States','United States':'USA','IR Iran':'Iran','Iran':'IR Iran','Republic of Ireland':'Ireland','Türkiye':'Turkey','Turkey':'Türkiye','Czechia':'Czech Republic','Czech Republic':'Czechia','Curacao':'Curaçao','Curaçao':'Curacao'};
+function findCountry(nm){ if(!nm) return null; var c=S.countries.find(function(x){return x.name===nm;}); if(c) return c; if(ALIAS[nm]){ c=S.countries.find(function(x){return x.name===ALIAS[nm];}); if(c) return c; } return null; }
+function mapStage(m){ var r=((m.round||m.stage||'')+'').toLowerCase(); if(m.group||r.indexOf('matchday')!==-1||r.indexOf('group')!==-1) return 'group'; if(r.indexOf('third')!==-1||r.indexOf('3rd')!==-1||r.indexOf('play-off')!==-1||r.indexOf('play off')!==-1) return null; if(r.indexOf('32')!==-1) return 'r32'; if(r.indexOf('16')!==-1) return 'r16'; if(r.indexOf('quart')!==-1) return 'quarter'; if(r.indexOf('semi')!==-1) return 'semi'; if(r.indexOf('final')!==-1) return 'final'; if(r.indexOf('round of')!==-1) return 'r16'; return 'group'; }
+function doFetch(url,statusEl,silent){
   if(!url){ toast('Enter an API URL first','error'); return; }
-  st.textContent='Fetching…';
+  S.apiUrl=url; S.fixturesLoading=true; if(statusEl) statusEl.innerHTML='<span class="spin"></span> Fetching…';
+  if(S.tab==='fixtures') render();
   fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
     var arr = Array.isArray(data)?data:(data.matches||data.results||data.data||data.fixtures||[]);
     if((!Array.isArray(arr)||!arr.length)&&Array.isArray(data.rounds)){ arr=[]; data.rounds.forEach(function(r){ if(Array.isArray(r.matches)) arr=arr.concat(r.matches); }); }
     if(!Array.isArray(arr)||!arr.length) throw new Error('No matches array found in response');
-    var added=0;
-    var ALIAS={'South Korea':'Korea Republic','Korea Republic':'South Korea','USA':'United States','United States':'USA','IR Iran':'Iran','Iran':'IR Iran','Republic of Ireland':'Ireland'};
-    function findCountry(nm){ if(!nm) return null; var c=S.countries.find(function(x){return x.name===nm;}); if(c) return c; if(ALIAS[nm]){ c=S.countries.find(function(x){return x.name===ALIAS[nm];}); if(c) return c; } return null; }
-    function mapStage(m){ var r=((m.stage||m.round||m.group||'')+'').toLowerCase(); if(m.group||r.indexOf('group')!==-1||r.indexOf('matchday')!==-1) return 'group'; if(r.indexOf('third')!==-1||r.indexOf('3rd')!==-1||r.indexOf('play-off')!==-1) return null; if(r.indexOf('16')!==-1) return 'r16'; if(r.indexOf('quart')!==-1) return 'quarter'; if(r.indexOf('semi')!==-1) return 'semi'; if(r.indexOf('final')!==-1) return 'final'; if(r.indexOf('round of')!==-1) return 'r16'; return 'group'; }
+    var added=0, updated=0;
     arr.forEach(function(m){
       var home=m.home||m.homeTeam||m.home_team||m.team1||(m.teams&&m.teams.home&&m.teams.home.name);
       var away=m.away||m.awayTeam||m.away_team||m.team2||(m.teams&&m.teams.away&&m.teams.away.name);
@@ -485,71 +503,66 @@ function fetchApi(){
         hg=m.homeScore!=null?m.homeScore:(m.home_score!=null?m.home_score:null);
         ag=m.awayScore!=null?m.awayScore:(m.away_score!=null?m.away_score:null);
       }
-      var dt=m.date?Date.parse(m.date+(m.time?('T'+m.time):'')):Date.now(); if(isNaN(dt)) dt=Date.now();
+      var dt=m.date?Date.parse(m.date+(m.time?('T'+String(m.time).replace(/ .*/,'')):'')):Date.now(); if(isNaN(dt)) dt=(m.date?Date.parse(m.date):Date.now()); if(isNaN(dt)) dt=Date.now();
       var fin = (hg!=null&&ag!=null);
       if(!winner&&fin){ winner=Number(hg)>Number(ag)?'home':(Number(ag)>Number(hg)?'away':null); }
       var ex=S.fixtures.find(function(f){return f.home===home&&f.away===away&&f.stage===stage;});
-      if(ex){ if(ex.overrideBy){ return; } if(fin){ex.homeGoals=Number(hg);ex.awayGoals=Number(ag);ex.status='final';ex.winner=winner;} ex.date=dt; }
+      if(ex){ if(ex.overrideBy){ return; } if(fin){ex.homeGoals=Number(hg);ex.awayGoals=Number(ag);ex.status='final';ex.winner=winner;updated++;} ex.date=dt; }
       else { S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt,homeGoals:fin?Number(hg):null,awayGoals:fin?Number(ag):null,status:fin?'final':'scheduled',winner:fin?winner:null}); added++; }
     });
-    log('api','Fetched API results from '+url+' ('+added+' new fixtures)');
-    toast('API sync complete · '+added+' new fixtures','success');
+    S.fixturesLoading=false;
+    log('api','Synced from '+url+' ('+added+' new, '+updated+' updated)');
+    toast('OpenFootball sync · '+added+' new, '+updated+' updated fixtures','success');
     render();
-  }).catch(function(e){ if(st)st.textContent=''; toast('API fetch failed: '+(e.message||e),'error'); log('api','API fetch failed: '+(e.message||e)); });
+  }).catch(function(e){ S.fixturesLoading=false; if(statusEl)statusEl.textContent=''; toast('API fetch failed: '+(e.message||e),'error'); log('api','API fetch failed: '+(e.message||e)); render(); });
 }
 
 // ---------- Bind ----------
 function bind(){
   var v=document.getElementById('view');
   function on(sel,ev,fn){ var el=document.getElementById(sel); if(el) el.addEventListener(ev,fn); }
-  // leaderboard
   Array.prototype.forEach.call(v.querySelectorAll('tr[data-syn]'),function(tr){ tr.onclick=function(){ var id=tr.getAttribute('data-syn'); S.expand['lb-'+id]=!S.expand['lb-'+id]; render(); }; });
   on('csvBtn','click',function(){ exportCsv(); });
-  // matrix edit
   Array.prototype.forEach.call(v.querySelectorAll('input[data-edit]'),function(inp){ inp.onclick=function(e){e.stopPropagation();}; inp.onchange=function(){ var id=inp.getAttribute('data-edit'); var s=S.synds.find(function(x){return x.id===id;}); if(s){ var old=s.name; s.name=inp.value.trim()||old; log('rename','Renamed "'+old+'" to "'+s.name+'"'); toast('Syndicate renamed','success'); } }; });
-  // fixtures rows
   Array.prototype.forEach.call(v.querySelectorAll('tr[data-fix]'),function(tr){ tr.onclick=function(){ var id=tr.getAttribute('data-fix'); S.expand['fx-'+id]=!S.expand['fx-'+id]; render(); }; });
   var sfEl=document.getElementById('stageFilter'); if(sfEl){ sfEl.value=S._stageFilter||''; sfEl.onchange=function(){ S._stageFilter=sfEl.value; render(); }; }
   Array.prototype.forEach.call(v.querySelectorAll('[data-override]'),function(b){ b.onclick=function(e){ e.stopPropagation(); openOverride(b.getAttribute('data-override')); }; });
   Array.prototype.forEach.call(v.querySelectorAll('[data-delfix]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-delfix'); S.fixtures=S.fixtures.filter(function(f){return f.id!==id;}); log('fixture','Deleted a fixture'); toast('Fixture deleted','info'); render(); }; });
-  // find
   on('findBtn','click',function(){ S._findQ=document.getElementById('findInput').value.trim(); render(); });
   var fi=document.getElementById('findInput'); if(fi) fi.onkeydown=function(e){ if(e.key==='Enter'){ S._findQ=fi.value.trim(); render(); } };
-  // reveal
   on('revealBtn','click',revealNext);
-  // admin login
+  on('regenBtn','click',function(){ if(buildSyndicates(false)){ log('generate','Re-drew syndicates (all hidden for ceremony)'); toast('Syndicates re-drawn and hidden','info'); render(); } });
   on('adminLoginBtn','click',function(){ var nm=document.getElementById('adminSelect').value; var pw=document.getElementById('adminPass').value; if(!nm){ toast('Select an admin','error'); return; } if(pw!==ADMIN_PASS){ toast('Incorrect password','error'); return; } S.adminName=nm; log('login','Admin signed in'); toast('Welcome, '+nm,'success'); render(); });
   var ap=document.getElementById('adminPass'); if(ap) ap.onkeydown=function(e){ if(e.key==='Enter') document.getElementById('adminLoginBtn').click(); };
   on('adminLogout','click',function(){ log('logout','Admin signed out'); S.adminName=null; toast('Signed out','info'); render(); });
   Array.prototype.forEach.call(v.querySelectorAll('[data-sub]'),function(b){ b.onclick=function(){ S._adminSub=b.getAttribute('data-sub'); render(); }; });
-  // data upload
   on('empPaste','click',function(){ importEmployees(document.getElementById('empCsv').value); });
   on('cntPaste','click',function(){ importCountries(document.getElementById('cntCsv').value); });
   on('empFile','change',function(){ readFile(this,importEmployees); });
   on('cntFile','change',function(){ readFile(this,importCountries); });
   on('demoBtn','click',loadDemo);
-  on('resetBtn','click',function(){ S.emp=[];S.countries=[];S.synds=[];S.fixtures=[];S.expand={}; log('reset','Reset all data'); toast('All data reset','info'); render(); });
-  // generate
+  on('seedBtn','click',function(){ loadDefaults(); toast('Default WC2026 dataset restored','success'); render(); });
+  on('resetBtn','click',function(){ S.emp=[];S.countries=[];S.synds=[];S.fixtures=[];S.expand={}; log('reset','Cleared all data'); toast('All data cleared','info'); render(); });
   on('genBtn','click',generateSyndicates);
   on('goReveal','click',function(){ setTab('reveal'); });
-  // fixtures admin
-  on('addFix','click',function(){ var home=document.getElementById('fHome').value, away=document.getElementById('fAway').value, stage=document.getElementById('fStage').value, dt=document.getElementById('fDate').value, hg=document.getElementById('fHG').value, ag=document.getElementById('fAG').value; if(!home||!away){ toast('Select both teams','error'); return; } if(home===away){ toast('Teams must differ','error'); return; } var final=(hg!==''&&ag!==''); S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt?Date.parse(dt):Date.now(),homeGoals:final?parseInt(hg,10):null,awayGoals:final?parseInt(ag,10):null,status:final?'final':'scheduled'}); log('fixture','Added fixture '+home+' v '+away+' ('+STAGE_LABEL[stage]+')'); toast('Fixture added','success'); render(); });
-  // api
-  on('fetchApi','click',fetchApi);
+  on('addFix','click',function(){ var home=document.getElementById('fHome').value, away=document.getElementById('fAway').value, stage=document.getElementById('fStage').value, dt=document.getElementById('fDate').value, hg=document.getElementById('fHG').value, ag=document.getElementById('fAG').value; if(!home||!away){ toast('Select both teams','error'); return; } if(home===away){ toast('Teams must differ','error'); return; } var fin=(hg!==''&&ag!==''); var win=fin?(parseInt(hg,10)>parseInt(ag,10)?'home':(parseInt(ag,10)>parseInt(hg,10)?'away':null)):null; S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt?Date.parse(dt):Date.now(),homeGoals:fin?parseInt(hg,10):null,awayGoals:fin?parseInt(ag,10):null,status:fin?'final':'scheduled',winner:win}); log('fixture','Added fixture '+home+' v '+away+' ('+STAGE_LABEL[stage]+')'); toast('Fixture added','success'); render(); });
+  on('fetchApi','click',function(){ doFetch(document.getElementById('apiUrl').value.trim(),document.getElementById('apiStatus'),false); });
   on('apiDefault','click',function(){ S.apiUrl=DEFAULT_API; render(); });
   on('api2022','click',function(){ S.apiUrl=SAMPLE_API; render(); });
   var au=document.getElementById('apiUrl'); if(au) au.onchange=function(){ S.apiUrl=au.value; };
 }
 
 function exportCsv(){
-  var rs=ranked(); function q(x){ x=String(x==null?'':x); if(x.indexOf(',')!==-1||x.indexOf('"')!==-1||x.indexOf('\n')!==-1){ return '"'+x.replace(/"/g,'""')+'"'; } return x; }
+  var rs=ranked(); function q(x){ x=String(x==null?'':x); if(/[",\n]/.test(x)){ return '"'+x.replace(/"/g,'""')+'"'; } return x; }
   var lines=['Rank,Syndicate,Points,Members,Goals,Countries'];
   rs.forEach(function(s,i){ lines.push([i+1,q(s.revealed?s.name:'Hidden'),s.points,s.members.length,s.goals,q(s.revealed?s.countries.join(' / '):'')].join(',')); });
   var blob=new Blob([lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='leaderboard.csv'; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); toast('Leaderboard exported','success');
 }
 
-// initial
+// ---------- Boot ----------
+loadDefaults();
 render();
+doFetch(DEFAULT_API,null,true);
 })();
 </script>
 </body>
