@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>DN World Cup Syndicate Contest Platform</title>
+<!-- ===== DN Platform Favicon v1.0 ===== -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>DW</text></svg>">
+<meta name="theme-color" content="#07091a">
+<style>
+:root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f5f5f5;--text:#18181b;--text-muted:#52525b;--text-subtle:#a1a1aa;--border:rgba(0,0,0,0.08);--border-strong:rgba(0,0,0,0.16);--accent:#5e6ad2;--accent-hover:#4f59c4;--accent-bg:rgba(94,106,210,0.08);--success:#16a34a;--success-bg:rgba(22,163,74,0.08);--warning:#d97706;--warning-bg:rgba(217,119,6,0.08);--danger:#dc2626;--danger-bg:rgba(220,38,38,0.08);--info:#0284c7;--info-bg:rgba(2,132,199,0.08);--radius-sm:4px;--radius-md:6px;--radius-lg:8px;}
+[data-theme='dark']{--bg:#09090b;--surface:#131316;--surface-2:#1c1c20;--text:#fafafa;--text-muted:#a1a1aa;--text-subtle:#71717a;--border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);--accent:#7b85e3;--accent-hover:#8d96e8;--accent-bg:rgba(123,133,227,0.10);--success:#22c55e;--success-bg:rgba(34,197,94,0.10);--warning:#f59e0b;--warning-bg:rgba(245,158,11,0.10);--danger:#ef4444;--danger-bg:rgba(239,68,68,0.10);--info:#38bdf8;--info-bg:rgba(56,189,248,0.10);}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;}
+h1,h2,h3{margin:0;}
+button{font-family:inherit;}
+.tnum{font-variant-numeric:tabular-nums;}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;}
+.muted{color:var(--text-muted);}
+.subtle{color:var(--text-subtle);}
+.cap{font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);}
+.hdr{position:sticky;top:0;z-index:40;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:16px;padding:10px 20px;flex-wrap:wrap;}
+.brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:15px;letter-spacing:-0.005em;}
+.brand .dot{width:22px;height:22px;border-radius:6px;background:#47d1ff;color:#071a2e;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:11px;}
+.nav{display:flex;gap:2px;flex-wrap:wrap;}
+.nav button{background:transparent;border:1px solid transparent;color:var(--text-muted);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease,color 150ms ease;}
+.nav button:hover{background:var(--surface-2);color:var(--text);}
+.nav button.active{background:var(--accent-bg);color:var(--accent);}
+.spacer{flex:1;}
+.iconbtn{background:transparent;border:1px solid var(--border-strong);color:var(--text-muted);width:32px;height:32px;border-radius:var(--radius-sm);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background 150ms ease;}
+.iconbtn:hover{background:var(--surface-2);color:var(--text);}
+.wrap{max-width:1200px;margin:0 auto;padding:24px 20px 64px;}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:7px 13px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease;}
+.btn-primary:hover{background:var(--accent-hover);}
+.btn-primary:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);padding:7px 13px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease,border-color 150ms ease;}
+.btn-secondary:hover{background:var(--surface-2);border-color:var(--text-subtle);}
+.btn-secondary:disabled{opacity:0.5;cursor:not-allowed;}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid transparent;padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text);}
+.btn-danger{background:var(--danger-bg);color:var(--danger);border:1px solid var(--danger-bg);padding:7px 13px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;}
+.input,select.input,textarea.input{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;transition:border-color 150ms ease,background 150ms ease;width:100%;}
+.input:focus{outline:none;border-color:var(--accent);background:var(--surface);}
+.input::placeholder{color:var(--text-subtle);}
+textarea.input{resize:vertical;min-height:72px;font-family:ui-monospace,Menlo,monospace;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;}
+thead th{text-align:left;font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px;border-bottom:1px solid var(--border);}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);}
+tbody tr.clk{cursor:pointer;}
+tbody tr.clk:hover{background:var(--surface-2);}
+.numeric{text-align:right;font-family:ui-monospace,Menlo,monospace;}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500;}
+.badge-success{background:var(--success-bg);color:var(--success);}
+.badge-warning{background:var(--warning-bg);color:var(--warning);}
+.badge-danger{background:var(--danger-bg);color:var(--danger);}
+.badge-info{background:var(--info-bg);color:var(--info);}
+.badge-neutral{background:var(--surface-2);color:var(--text-muted);}
+.tierA{background:var(--accent-bg);color:var(--accent);}
+.flag{font-size:18px;line-height:1;display:inline-block;transition:filter 400ms ease,opacity 400ms ease;}
+.flag.elim{filter:grayscale(1);opacity:0.35;}
+.flagrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center;}
+.fchip{display:inline-flex;align-items:center;gap:4px;padding:2px 6px;border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;}
+.modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px;}
+.modal{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:24px;max-width:520px;width:100%;max-height:90vh;overflow:auto;}
+.toasts{position:fixed;top:16px;right:16px;z-index:200;display:flex;flex-direction:column;gap:8px;}
+.toast{background:var(--surface);border:1px solid var(--border-strong);border-left:3px solid var(--text-subtle);border-radius:var(--radius-sm);padding:10px 14px;font-size:13px;min-width:240px;max-width:340px;animation:slidein 180ms ease;}
+.toast.success{border-left-color:var(--success);}
+.toast.error{border-left-color:var(--danger);}
+.toast.info{border-left-color:var(--info);}
+@keyframes slidein{from{opacity:0;transform:translateX(12px);}to{opacity:1;transform:none;}}
+.empty{text-align:center;padding:48px 24px;color:var(--text-muted);}
+.empty svg{opacity:0.14;margin-bottom:12px;}
+.empty h3{font-size:16px;font-weight:600;color:var(--text);margin-bottom:6px;}
+.pts{font-size:20px;font-weight:600;letter-spacing:-0.005em;}
+.rankbubble{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:6px;font-size:12px;font-weight:600;background:var(--surface-2);color:var(--text-muted);}
+.rankbubble.r1{background:var(--accent-bg);color:var(--accent);}
+.section-title{font-size:20px;font-weight:600;letter-spacing:-0.005em;margin-bottom:4px;}
+.eyebrow{margin-bottom:18px;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.scene{perspective:1200px;}
+.flipcard{position:relative;width:100%;max-width:520px;margin:0 auto;height:340px;transition:transform 700ms cubic-bezier(.2,.7,.2,1);transform-style:preserve-3d;}
+.flipcard.flipped{transform:rotateY(180deg);}
+.face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--border-strong);border-radius:var(--radius-lg);background:var(--surface);padding:28px;display:flex;flex-direction:column;}
+.face.back{transform:rotateY(180deg);}
+.face .big{font-size:28px;font-weight:600;letter-spacing:-0.01em;}
+.confetti{font-size:40px;text-align:center;}
+.member-list{display:flex;flex-wrap:wrap;gap:6px;}
+.member{font-size:12px;padding:2px 8px;background:var(--surface-2);border-radius:10px;color:var(--text-muted);}
+.detailbox{background:var(--surface-2);padding:14px;border-radius:var(--radius-sm);}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:14px;}
+.kpi .v{font-size:24px;font-weight:600;letter-spacing:-0.01em;}
+.tabs2{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:16px;flex-wrap:wrap;}
+.tabs2 button{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--text-muted);padding:8px 12px;font-size:13px;font-weight:500;cursor:pointer;margin-bottom:-1px;}
+.tabs2 button.active{color:var(--accent);border-bottom-color:var(--accent);}
+.editname{border:1px solid transparent;background:transparent;color:inherit;font:inherit;font-weight:600;padding:2px 4px;border-radius:4px;cursor:text;}
+.editname:hover{border-color:var(--border-strong);background:var(--surface-2);}
+@media(max-width:1024px){.matrix{grid-template-columns:repeat(2,1fr);}.kpis{grid-template-columns:repeat(2,1fr);}}
+@media(max-width:640px){.wrap{padding:16px 12px 48px;}.matrix{grid-template-columns:1fr;}.grid2{grid-template-columns:1fr;}.kpis{grid-template-columns:repeat(2,1fr);}.hide-sm{display:none;}}
+</style>
+</head>
+<body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = 'a6b409d0-d4b1-47ce-aaa4-d54cd4438037';
+  var APP_TITLE = "DN World Cup Syndicate Contest Platform";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); try{ var _lk='dn_open_'+APP_REQUEST_ID; var _last=0; try{_last=+(sessionStorage.getItem(_lk)||0);}catch(e){} if(Date.now()-_last>1800000){ try{sessionStorage.setItem(_lk,String(Date.now()));}catch(e){} fetch(SUPABASE_URL+'/rest/v1/activity_log',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({request_id:APP_REQUEST_ID,actor:'end_user',actor_name:(session.user.email||session.user.id),action:'app_opened',description:'Opened '+APP_TITLE})}).catch(function(){}); } }catch(e){} } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
+
+<div class='hdr'>
+  <div class='brand'><span class='dot'>DW</span><span>World Cup Syndicate Contest</span></div>
+  <nav class='nav' id='nav'></nav>
+  <div class='spacer'></div>
+  <button class='iconbtn' id='themeBtn' aria-label='Toggle theme' title='Toggle theme'>◐</button>
+</div>
+<div class='wrap' id='view'></div>
+<div class='toasts' id='toasts'></div>
+<div id='modalRoot'></div>
+
+<script>
+(function(){
+'use strict';
+
+// ---------- Theme ----------
+var initialTheme = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+document.documentElement.dataset.theme = initialTheme;
+document.getElementById('themeBtn').addEventListener('click', function(){ var t=document.documentElement.dataset.theme==='dark'?'light':'dark'; document.documentElement.dataset.theme=t; });
+
+// ---------- Flag helpers ----------
+var ISO={Brazil:'BR',France:'FR',Argentina:'AR',England:'GB',Spain:'ES',Germany:'DE',Portugal:'PT',Netherlands:'NL',Belgium:'BE',Croatia:'HR',Uruguay:'UY',Denmark:'DK',Switzerland:'CH',USA:'US','United States':'US',Mexico:'MX',Japan:'JP',Senegal:'SN',Morocco:'MA',Colombia:'CO','Korea Republic':'KR','South Korea':'KR',Serbia:'RS',Poland:'PL',Italy:'IT',Ecuador:'EC',Canada:'CA',Australia:'AU',Ghana:'GH',Cameroon:'CM',Tunisia:'TN',Nigeria:'NG',Egypt:'EG',Algeria:'DZ','Saudi Arabia':'SA',Qatar:'QA',Iran:'IR','Costa Rica':'CR',Panama:'PA',Jamaica:'JM',Peru:'PE',Chile:'CL',Paraguay:'PY',Wales:'GB',Scotland:'GB',Sweden:'SE',Norway:'NO',Austria:'AT',Turkey:'TR',Greece:'GR',Ukraine:'UA','New Zealand':'NZ',Ireland:'IE',Russia:'RU'};
+function flagFor(name){ var iso=ISO[name]; if(!iso) return '🏳️'; return iso.toUpperCase().replace(/./g,function(c){return String.fromCodePoint(127397+c.charCodeAt(0));}); }
+
+// ---------- State ----------
+var S={emp:[],countries:[],synds:[],fixtures:[],audit:[],adminName:null,tab:'leaderboard',apiUrl:'',expand:{}};
+var STAGE_PTS={group:3,r16:5,quarter:10,semi:15,final:20};
+var STAGE_LABEL={group:'Group',r16:'Round of 16',quarter:'Quarter-final',semi:'Semi-final',final:'Final'};
+var ADMIN_PASS='dnworldcup';
+var ADMINS=['Mahaan Jyoti','Isabella Manganello'];
+var FUNNY=['The Goal Diggers','Net Profits','Bench Warmers United','Kick It Like Brexit','Mighty Ducks of Anaheim','Sons of Pitches','Throw-In Towels','Yellow Card Sharks','Offside Eyes','The Hangovers','Extra Time Lords','Penalty Box Office','Cleat Sheet','Corner Office Kicks','Tackle & Grease','The Vuvuzelas'];
+
+// ---------- Utils ----------
+function esc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function toast(msg,type){ var t=document.createElement('div'); t.className='toast '+(type||'info'); t.textContent=msg; document.getElementById('toasts').appendChild(t); setTimeout(function(){ t.style.opacity='0'; t.style.transition='opacity 300ms'; setTimeout(function(){ if(t.parentNode) t.parentNode.removeChild(t); },300); },4500); }
+function log(action,desc){ S.audit.unshift({ts:Date.now(),who:S.adminName||'system',action:action,desc:desc}); }
+function ownerOf(country){ for(var i=0;i<S.synds.length;i++){ if(S.synds[i].countries.indexOf(country)!==-1) return S.synds[i]; } return null; }
+function shuffle(a){ a=a.slice(); for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i];a[i]=a[j];a[j]=t; } return a; }
+function fmtDate(ts){ var d=new Date(ts); return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+', '+d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
+
+// ---------- CSV ----------
+function parseCSV(text){ var lines=text.replace(/\r/g,'').split('\n').filter(function(l){return l.trim()!=='';}); var rows=[]; for(var i=0;i<lines.length;i++){ var line=lines[i]; var out=[]; var cur=''; var q=false; for(var c=0;c<line.length;c++){ var ch=line[c]; if(q){ if(ch==='"'){ if(line[c+1]==='"'){cur+='"';c++;} else q=false; } else cur+=ch; } else { if(ch==='"') q=true; else if(ch===','){ out.push(cur); cur=''; } else cur+=ch; } } out.push(cur); rows.push(out.map(function(x){return x.trim();})); } return rows; }
+function looksHeader(r,keys){ var j=r.join(' ').toLowerCase(); for(var i=0;i<keys.length;i++){ if(j.indexOf(keys[i])!==-1) return true; } return false; }
+
+// ---------- Recompute scoring ----------
+function recompute(){
+  S.synds.forEach(function(s){ s.points=0; s.goals=0; });
+  S.countries.forEach(function(c){ c.eliminated = !!c.elimManual; });
+  S.fixtures.filter(function(f){return f.status==='final';}).forEach(function(f){
+    var oh=ownerOf(f.home), oa=ownerOf(f.away);
+    var hg=Number(f.homeGoals)||0, ag=Number(f.awayGoals)||0;
+    if(oh) oh.goals+=hg; if(oa) oa.goals+=ag;
+    var winner=null, loser=null;
+    if(hg>ag){winner=f.home;loser=f.away;} else if(ag>hg){winner=f.away;loser=f.home;}
+    if(winner){ var ow=ownerOf(winner); if(ow) ow.points+=(STAGE_PTS[f.stage]||0); }
+    if(f.stage!=='group' && loser){ var lc=S.countries.find(function(x){return x.name===loser;}); if(lc) lc.eliminated=true; }
+  });
+}
+function ranked(){ recompute(); return S.synds.slice().sort(function(a,b){ return (b.points-a.points)||(b.goals-a.goals)||a.name.localeCompare(b.name); }); }
+
+// ---------- Generation ----------
+function generateSyndicates(){
+  if(S.emp.length<8){ toast('Need at least 8 employees to form 8 syndicates','error'); return; }
+  var tA=S.countries.filter(function(c){return c.tier==='A';});
+  var tB=S.countries.filter(function(c){return c.tier==='B';});
+  var tC=S.countries.filter(function(c){return c.tier==='C';});
+  if(tA.length<8||tB.length<16||tC.length<24){ toast('Need >=8 Tier A, >=16 Tier B, >=24 Tier C countries (have '+tA.length+'/'+tB.length+'/'+tC.length+')','error'); return; }
+  var names=shuffle(FUNNY).slice(0,8);
+  var emp=shuffle(S.emp);
+  var sA=shuffle(tA), sB=shuffle(tB), sC=shuffle(tC);
+  var synds=[];
+  for(var i=0;i<8;i++){ synds.push({id:'syn'+i,name:names[i],members:[],countries:[],revealed:false,points:0,goals:0}); }
+  emp.forEach(function(e,i){ synds[i%8].members.push(e); });
+  for(var k=0;k<8;k++){ synds[k].countries.push(sA[k].name); synds[k].countries.push(sB[k*2].name); synds[k].countries.push(sB[k*2+1].name); synds[k].countries.push(sC[k*3].name); synds[k].countries.push(sC[k*3+1].name); synds[k].countries.push(sC[k*3+2].name); }
+  S.synds=synds;
+  log('generate','Generated 8 syndicates ('+emp.length+' employees, portfolios assigned)');
+  toast('Generated 8 syndicates with portfolios','success');
+  render();
+}
+
+// ---------- Demo data ----------
+function loadDemo(){
+  var Ac=['Brazil','France','Argentina','England','Spain','Germany','Portugal','Netherlands'];
+  var Bc=['Belgium','Croatia','Uruguay','Denmark','Switzerland','USA','Mexico','Japan','Senegal','Morocco','Colombia','Korea Republic','Serbia','Poland','Italy','Ecuador'];
+  var Cc=['Canada','Australia','Ghana','Cameroon','Tunisia','Nigeria','Egypt','Algeria','Saudi Arabia','Qatar','Iran','Costa Rica','Panama','Jamaica','Peru','Chile','Paraguay','Wales','Scotland','Sweden','Norway','Austria','Turkey','Greece'];
+  S.countries=[];
+  Ac.forEach(function(n){S.countries.push({name:n,tier:'A',eliminated:false,elimManual:false});});
+  Bc.forEach(function(n){S.countries.push({name:n,tier:'B',eliminated:false,elimManual:false});});
+  Cc.forEach(function(n){S.countries.push({name:n,tier:'C',eliminated:false,elimManual:false});});
+  var FNn=['Alex','Sam','Jordan','Taylor','Casey','Morgan','Riley','Jamie','Avery','Quinn','Cameron','Drew','Reese','Skyler','Devon','Harper','Rowan','Emerson','Finley','Hayden','Kendall','Logan','Parker','Sawyer'];
+  var LNn=['Smith','Jones','Brown','Patel','Khan','Garcia','Muller','Rossi','Nguyen','Kim','Okafor','Silva','Dubois','Novak','Hansen','Costa'];
+  var depts=['Engineering','Sales','Marketing','Finance','HR','Operations','Product','Support'];
+  S.emp=[];
+  for(var i=0;i<48;i++){ var nm=FNn[i%FNn.length]+' '+LNn[(i*7)%LNn.length]; S.emp.push({name:nm+(i>=FNn.length?' '+(Math.floor(i/FNn.length)+1):''),email:nm.toLowerCase().replace(/ /g,'.')+i+'@dn.com',dept:depts[i%depts.length]}); }
+  S.synds=[]; S.fixtures=[];
+  log('demo','Loaded demo dataset: 48 employees, 48 countries');
+  toast('Demo data loaded (48 employees, 48 countries)','success');
+  render();
+}
+
+// ---------- Reveal ----------
+function revealNext(){
+  var next=S.synds.find(function(s){return !s.revealed;});
+  if(!next){ toast('All syndicates already revealed','info'); return; }
+  next.revealed=true; next._flipped=false;
+  log('reveal','Revealed syndicate: '+next.name);
+  toast('Revealing '+next.name+'...','info');
+  render();
+  setTimeout(function(){ var el=document.getElementById('flip-'+next.id); if(el){ el.classList.add('flipped'); next._flipped=true; } },900);
+}
+
+// ---------- Render dispatch ----------
+var NAV=[['leaderboard','Leaderboard'],['matrix','Syndicate Matrix'],['fixtures','Fixtures'],['find','Find Me'],['reveal','Reveal'],['admin','Admin']];
+function setTab(t){ S.tab=t; render(); window.scrollTo(0,0); }
+function render(){
+  var nav=document.getElementById('nav'); nav.innerHTML=NAV.map(function(n){ return '<button class="'+(S.tab===n[0]?'active':'')+'" data-t="'+n[0]+'">'+n[1]+(n[0]==='admin'&&S.adminName?' •':'')+'</button>'; }).join('');
+  Array.prototype.forEach.call(nav.querySelectorAll('button'),function(b){ b.onclick=function(){ setTab(b.getAttribute('data-t')); }; });
+  var v=document.getElementById('view');
+  if(S.tab==='leaderboard') v.innerHTML=viewLeaderboard();
+  else if(S.tab==='matrix') v.innerHTML=viewMatrix();
+  else if(S.tab==='fixtures') v.innerHTML=viewFixtures();
+  else if(S.tab==='find') v.innerHTML=viewFind();
+  else if(S.tab==='reveal') v.innerHTML=viewReveal();
+  else if(S.tab==='admin') v.innerHTML=viewAdmin();
+  bind();
+}
+function emptyState(title,hint){ return '<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg><h3>'+esc(title)+'</h3><p class="muted">'+esc(hint)+'</p></div>'; }
+
+// ---------- Leaderboard ----------
+function revealedSynds(){ return S.synds.filter(function(s){return s.revealed;}); }
+function viewLeaderboard(){
+  var rs=ranked();
+  var revealedAll=S.synds.length>0 && S.synds.every(function(s){return s.revealed;});
+  var h='<div class="eyebrow"><div class="cap">Live Standings</div><div class="section-title">Leaderboard</div></div>';
+  if(S.synds.length===0){ return h+'<div class="card">'+emptyState('No syndicates yet','Admin must upload data and generate syndicates before the leaderboard appears.')+'</div>'; }
+  var champ=rs[0];
+  if(revealedAll && champ && champ.points>0 && S.fixtures.some(function(f){return f.stage==='final'&&f.status==='final';})){
+    h+='<div class="card" style="text-align:center;margin-bottom:16px;border-color:var(--accent);background:var(--accent-bg)"><div class="confetti">🏆</div><div class="big" style="font-size:24px;font-weight:600">'+esc(champ.name)+' win the contest!</div><div class="muted">'+champ.points+' points · '+champ.goals+' goals</div></div>';
+  }
+  var totalEmp=S.synds.reduce(function(a,s){return a+s.members.length;},0);
+  var totalPts=S.synds.reduce(function(a,s){return a+s.points;},0);
+  h+='<div class="kpis"><div class="kpi"><div class="cap">Syndicates</div><div class="v tnum">'+S.synds.length+'</div></div><div class="kpi"><div class="cap">Employees</div><div class="v tnum">'+totalEmp+'</div></div><div class="kpi"><div class="cap">Points awarded</div><div class="v tnum">'+totalPts+'</div></div><div class="kpi"><div class="cap">Revealed</div><div class="v tnum">'+revealedSynds().length+' / '+S.synds.length+'</div></div></div>';
+  h+='<div class="card" style="padding:0;overflow:hidden"><div style="display:flex;justify-content:space-between;align-items:center;padding:12px 16px"><div class="cap">Ranked by points, then goals</div><button class="btn-ghost" id="csvBtn">Export CSV</button></div>';
+  h+='<table><thead><tr><th style="width:40px">#</th><th>Syndicate</th><th class="numeric">Points</th><th class="hide-sm">Members</th><th class="hide-sm">Portfolio</th><th class="numeric">Goals</th></tr></thead><tbody>';
+  rs.forEach(function(s,i){
+    var nameCell = s.revealed ? esc(s.name) : '<span class="muted">??? Hidden</span>';
+    var flags = s.revealed ? s.countries.map(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="flag '+(co&&co.eliminated?'elim':'')+'" title="'+esc(c)+(co&&co.eliminated?' (eliminated)':'')+'">'+flagFor(c)+'</span>'; }).join('') : '<span class="subtle">—</span>';
+    h+='<tr class="clk" data-syn="'+s.id+'"><td><span class="rankbubble '+(i===0?'r1':'')+'">'+(i+1)+'</span></td><td>'+nameCell+'</td><td class="numeric"><span class="pts">'+s.points+'</span></td><td class="hide-sm">'+s.members.length+'</td><td class="hide-sm"><div class="flagrow">'+flags+'</div></td><td class="numeric muted">'+s.goals+'</td></tr>';
+    if(S.expand['lb-'+s.id] && s.revealed){ h+='<tr><td colspan="6" style="background:var(--surface-2)">'+syndDetail(s)+'</td></tr>'; }
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function syndDetail(s){
+  var roster=s.members.map(function(m){ return '<div class="member">'+esc(m.name)+' <span class="subtle">· '+esc(m.dept)+'</span></div>'; }).join('');
+  var perf=s.countries.map(function(c){
+    var co=S.countries.find(function(x){return x.name===c;});
+    var fixForC=S.fixtures.filter(function(f){return f.status==='final'&&(f.home===c||f.away===c);});
+    var res=fixForC.map(function(f){ var us=f.home===c?f.homeGoals:f.awayGoals; var th=f.home===c?f.awayGoals:f.homeGoals; var opp=f.home===c?f.away:f.home; var w=us>th?'W':(us<th?'L':'D'); return '<span class="badge badge-'+(w==='W'?'success':w==='L'?'danger':'neutral')+'" title="'+STAGE_LABEL[f.stage]+' vs '+esc(opp)+'">'+w+' '+us+'-'+th+'</span>'; }).join(' ');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;flex-wrap:wrap"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span><strong style="font-size:13px">'+esc(c)+'</strong><span class="badge '+(co.tier==='A'?'tierA':'badge-neutral')+'">Tier '+co.tier+'</span>'+(co&&co.eliminated?'<span class="badge badge-danger">Eliminated</span>':'')+' <span style="margin-left:auto">'+(res||'<span class="subtle">No results yet</span>')+'</span></div>';
+  }).join('');
+  return '<div class="detailbox"><div class="grid2"><div><div class="cap" style="margin-bottom:8px">Roster ('+s.members.length+')</div><div class="member-list">'+roster+'</div></div><div><div class="cap" style="margin-bottom:8px">Country performance</div>'+perf+'</div></div></div>';
+}
+
+// ---------- Matrix ----------
+function viewMatrix(){
+  var h='<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px"><div><div class="cap">All 8 teams</div><div class="section-title">Syndicate Matrix</div></div>'+(S.adminName?'<span class="badge badge-info">Admin mode · click a name to edit</span>':'')+'</div>';
+  if(S.synds.length===0){ return h+'<div class="card">'+emptyState('No syndicates yet','Generate syndicates from the Admin panel to populate the matrix.')+'</div>'; }
+  h+='<div class="matrix">';
+  S.synds.forEach(function(s){
+    if(!s.revealed){ h+='<div class="card" style="text-align:center;opacity:0.7"><div class="confetti">🔒</div><div style="font-weight:600">Hidden Syndicate</div><div class="muted" style="font-size:12px">Revealed at the live ceremony</div></div>'; return; }
+    var nameEl = S.adminName ? '<input class="editname" data-edit="'+s.id+'" value="'+esc(s.name)+'" style="width:100%;font-size:15px"/>' : '<div style="font-weight:600;font-size:15px">'+esc(s.name)+'</div>';
+    var members=s.members.map(function(m){return '<span class="member">'+esc(m.name)+'</span>';}).join('');
+    function tierGroup(t){ var cs=s.countries.filter(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return co&&co.tier===t; }); if(!cs.length) return ''; return '<div style="margin-top:6px"><span class="cap">Tier '+t+'</span><div class="flagrow" style="margin-top:4px">'+cs.map(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="fchip"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span>'+esc(c)+'</span>'; }).join('')+'</div></div>'; }
+    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'+nameEl+'<span class="badge badge-neutral">'+s.points+' pts</span></div><div class="divider" style="margin:10px 0"></div><span class="cap">Members ('+s.members.length+')</span><div class="member-list" style="margin-top:4px">'+members+'</div>'+tierGroup('A')+tierGroup('B')+tierGroup('C')+'</div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+// ---------- Fixtures ----------
+function viewFixtures(){
+  var h='<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px"><div><div class="cap">Match calendar</div><div class="section-title">Fixtures &amp; Scores</div></div><div class="row"><select class="input" id="stageFilter" style="width:auto"><option value="">All stages</option>'+Object.keys(STAGE_LABEL).map(function(k){return '<option value="'+k+'">'+STAGE_LABEL[k]+'</option>';}).join('')+'</select></div></div>';
+  if(S.fixtures.length===0){ return h+'<div class="card">'+emptyState('No fixtures yet','Admins can add match fixtures and results, or fetch them from the World Cup API in the Admin panel.')+'</div>'; }
+  var sf=S._stageFilter||'';
+  var list=S.fixtures.filter(function(f){return !sf||f.stage===sf;}).slice().sort(function(a,b){return a.date-b.date;});
+  h+='<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>Date</th><th>Match</th><th class="hide-sm">Stage</th><th class="numeric">Score</th><th>Status</th></tr></thead><tbody>';
+  list.forEach(function(f){
+    var hc=S.countries.find(function(x){return x.name===f.home;});
+    var ac=S.countries.find(function(x){return x.name===f.away;});
+    var score = f.status==='final' ? f.homeGoals+' – '+f.awayGoals : '<span class="subtle">vs</span>';
+    h+='<tr class="clk" data-fix="'+f.id+'"><td class="muted">'+fmtDate(f.date)+'</td><td><span class="flag '+(hc&&hc.eliminated?'elim':'')+'">'+flagFor(f.home)+'</span> '+esc(f.home)+' <span class="subtle">v</span> '+esc(f.away)+' <span class="flag '+(ac&&ac.eliminated?'elim':'')+'">'+flagFor(f.away)+'</span></td><td class="hide-sm"><span class="badge badge-neutral">'+STAGE_LABEL[f.stage]+'</span></td><td class="numeric">'+score+'</td><td>'+(f.status==='final'?'<span class="badge badge-success">Final</span>':'<span class="badge badge-warning">Scheduled</span>')+'</td></tr>';
+    if(S.expand['fx-'+f.id]){ h+='<tr><td colspan="5" style="background:var(--surface-2)">'+fixDetail(f)+'</td></tr>'; }
+  });
+  h+='</tbody></table></div>';
+  return h;
+}
+function fixDetail(f){
+  var oh=ownerOf(f.home), oa=ownerOf(f.away);
+  var winner=null; if(f.status==='final'){ if(f.homeGoals>f.awayGoals)winner=f.home; else if(f.awayGoals>f.homeGoals)winner=f.away; }
+  var pts=STAGE_PTS[f.stage]||0;
+  var rows=[[f.home,oh],[f.away,oa]].map(function(p){ var c=p[0],o=p[1]; var got = (f.status==='final'&&winner===c)?pts:0; return '<div style="display:flex;justify-content:space-between;padding:4px 0"><span><span class="flag">'+flagFor(c)+'</span> '+esc(c)+' <span class="subtle">→ '+(o?esc(o.revealed?o.name:'Hidden syndicate'):'unassigned')+'</span></span><span>'+(f.status==='final'?'<span class="badge '+(got>0?'badge-success':'badge-neutral')+'">'+(got>0?'+'+got+' pts':'0 pts')+'</span>':'<span class="subtle">pending</span>')+'</span></div>'; }).join('');
+  var ov = f.overrideBy ? '<div class="muted" style="font-size:12px;margin-top:8px">Manual override by '+esc(f.overrideBy)+' on '+fmtDate(f.overrideAt)+'</div>' : '';
+  return '<div class="detailbox"><div class="cap" style="margin-bottom:6px">'+STAGE_LABEL[f.stage]+' · '+pts+' pts to the winner</div>'+rows+ov+(S.adminName?'<div style="margin-top:10px"><button class="btn-secondary" data-override="'+f.id+'">Override score</button></div>':'')+'</div>';
+}
+
+// ---------- Find Me ----------
+function viewFind(){
+  var h='<div class="eyebrow"><div class="cap">Personal lookup</div><div class="section-title">Find Me</div></div>';
+  h+='<div class="card" style="max-width:520px"><label class="cap" for="findInput">Your name or email</label><div class="row" style="margin-top:6px"><input class="input" id="findInput" placeholder="e.g. Alex Smith" value="'+esc(S._findQ||'')+'"/><button class="btn-primary" id="findBtn">Find</button></div><div id="findResult" style="margin-top:16px">'+findResultHTML()+'</div></div>';
+  return h;
+}
+function findResultHTML(){
+  if(!S._findQ) return '<p class="muted">Type your name to discover which syndicate you belong to.</p>';
+  var q=S._findQ.toLowerCase();
+  var found=null, fm=null;
+  S.synds.forEach(function(s){ s.members.forEach(function(m){ if(m.name.toLowerCase().indexOf(q)!==-1 || (m.email&&m.email.toLowerCase().indexOf(q)!==-1)){ found=s; fm=m; } }); });
+  if(!found){ var inEmp=S.emp.find(function(e){return e.name.toLowerCase().indexOf(q)!==-1||(e.email&&e.email.toLowerCase().indexOf(q)!==-1);}); if(inEmp&&S.synds.length===0) return '<div class="card" style="background:var(--surface-2)"><strong>'+esc(inEmp.name)+'</strong><p class="muted">Syndicates have not been generated yet. Check back after the draw.</p></div>'; return '<p class="muted">No match found. Check spelling or ask an admin.</p>'; }
+  if(!found.revealed){ return '<div class="card" style="background:var(--surface-2)"><strong>'+esc(fm.name)+'</strong><p class="muted">You are in a syndicate, but it has not been revealed yet. Watch the live ceremony!</p></div>'; }
+  var flags=found.countries.map(function(c){var co=S.countries.find(function(x){return x.name===c;});return '<span class="fchip"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span>'+esc(c)+'</span>';}).join('');
+  return '<div class="card" style="background:var(--accent-bg);border-color:var(--accent)"><div class="muted" style="font-size:12px">'+esc(fm.name)+' · '+esc(fm.dept)+'</div><div style="font-size:20px;font-weight:600;margin:4px 0">'+esc(found.name)+'</div><div class="muted">'+found.points+' pts · '+found.goals+' goals · '+found.members.length+' members</div><div class="flagrow" style="margin-top:10px">'+flags+'</div></div>';
+}
+
+// ---------- Reveal ----------
+function viewReveal(){
+  var h='<div class="eyebrow"><div class="cap">Live ceremony</div><div class="section-title">Reveal Ceremony</div></div>';
+  if(S.synds.length===0){ return h+'<div class="card">'+emptyState('Nothing to reveal','Generate syndicates in the Admin panel first.')+'</div>'; }
+  var revealedN=revealedSynds().length;
+  h+='<div class="card" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-bottom:16px"><div><div style="font-weight:600">'+revealedN+' of '+S.synds.length+' syndicates revealed</div><div class="muted" style="font-size:12px">Each reveal is permanent — there is no undo.</div></div>';
+  if(S.adminName){ h+='<button class="btn-primary" id="revealBtn" '+(revealedN>=S.synds.length?'disabled':'')+'>'+(revealedN>=S.synds.length?'All revealed':'Reveal Next Syndicate')+'</button>'; } else { h+='<span class="badge badge-info">Sign in as admin to control reveals</span>'; }
+  h+='</div>';
+  // show most recent revealed as flip cards
+  var rev=S.synds.filter(function(s){return s.revealed;});
+  if(rev.length===0){ h+='<div class="card" style="text-align:center;padding:48px"><div class="confetti">🎬</div><h3 style="font-weight:600">The stage is set</h3><p class="muted">No syndicates revealed yet. '+(S.adminName?'Hit "Reveal Next Syndicate" to begin.':'Awaiting the ceremony.')+'</p></div>'; return h; }
+  h+='<div class="matrix">';
+  rev.forEach(function(s){
+    var front='<div class="face front"><div style="margin:auto;text-align:center"><div class="confetti">⚽</div><div class="big">'+esc(s.name)+'</div><div class="muted">Tap revealed — flipping…</div></div></div>';
+    var members=s.members.map(function(m){return '<span class="member">'+esc(m.name)+'</span>';}).join('');
+    var flags=s.countries.map(function(c){var co=S.countries.find(function(x){return x.name===c;});return '<span class="fchip"><span class="flag">'+flagFor(c)+'</span>'+esc(c)+' <span class="subtle">'+(co?co.tier:'')+'</span></span>';}).join('');
+    var back='<div class="face back"><div style="font-weight:600;font-size:18px;margin-bottom:8px">'+esc(s.name)+'</div><span class="cap">Members ('+s.members.length+')</span><div class="member-list" style="margin:6px 0">'+members+'</div><span class="cap">Country portfolio</span><div class="flagrow" style="margin-top:6px">'+flags+'</div></div>';
+    h+='<div class="scene"><div class="flipcard '+(s._flipped?'flipped':'')+'" id="flip-'+s.id+'">'+front+back+'</div></div>';
+  });
+  h+='</div>';
+  return h;
+}
+
+// ---------- Admin ----------
+function viewAdmin(){
+  if(!S.adminName){
+    return '<div class="eyebrow"><div class="cap">Restricted</div><div class="section-title">Admin Sign-in</div></div><div class="card" style="max-width:420px"><label class="cap">Admin name</label><select class="input" id="adminSelect" style="margin:6px 0 12px"><option value="">Select admin…</option>'+ADMINS.map(function(a){return '<option>'+a+'</option>';}).join('')+'</select><label class="cap">Password</label><input class="input" id="adminPass" type="password" placeholder="Enter password" style="margin:6px 0 12px"/><button class="btn-primary" id="adminLoginBtn" style="width:100%">Sign in</button><p class="subtle" style="font-size:11px;margin-top:10px">Authorized: Mahaan Jyoti, Isabella Manganello</p></div>';
+  }
+  var st=S._adminSub||'data';
+  var h='<div class="eyebrow" style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:8px"><div><div class="cap">Signed in as '+esc(S.adminName)+'</div><div class="section-title">Admin Panel</div></div><button class="btn-ghost" id="adminLogout">Sign out</button></div>';
+  h+='<div class="tabs2">'+[['data','Data Upload'],['generate','Generate'],['fixtures','Fixtures &amp; Scoring'],['api','API'],['audit','Audit Log']].map(function(t){return '<button class="'+(st===t[0]?'active':'')+'" data-sub="'+t[0]+'">'+t[1]+'</button>';}).join('')+'</div>';
+  if(st==='data') h+=adminData();
+  else if(st==='generate') h+=adminGenerate();
+  else if(st==='fixtures') h+=adminFixtures();
+  else if(st==='api') h+=adminApi();
+  else if(st==='audit') h+=adminAudit();
+  return h;
+}
+function adminData(){
+  var tc={A:0,B:0,C:0}; S.countries.forEach(function(c){tc[c.tier]=(tc[c.tier]||0)+1;});
+  return '<div class="grid2"><div class="card"><div class="cap">Employees</div><div class="pts tnum">'+S.emp.length+'</div><p class="muted" style="font-size:12px">CSV columns: name, email, department</p><textarea class="input" id="empCsv" placeholder="name,email,department&#10;Alex Smith,alex@dn.com,Engineering"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="empPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="empFile" accept=".csv,.txt" hidden/></label></div></div>'+
+  '<div class="card"><div class="cap">Countries</div><div class="pts tnum">'+S.countries.length+' <span class="muted" style="font-size:13px">(A '+tc.A+' · B '+tc.B+' · C '+tc.C+')</span></div><p class="muted" style="font-size:12px">CSV columns: country, tier (A/B/C)</p><textarea class="input" id="cntCsv" placeholder="country,tier&#10;Brazil,A&#10;Belgium,B"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="cntPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="cntFile" accept=".csv,.txt" hidden/></label></div></div></div>'+
+  '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Quick start</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Load a sample dataset (48 employees, 48 countries) to explore the platform.</p></div><div class="row"><button class="btn-secondary" id="demoBtn">Load demo data</button><button class="btn-danger" id="resetBtn">Reset all</button></div></div>';
+}
+function adminGenerate(){
+  var ready=S.emp.length>=8 && S.countries.filter(function(c){return c.tier==='A';}).length>=8;
+  return '<div class="card"><strong>Random syndicate generation</strong><p class="muted" style="font-size:13px">Distributes employees evenly across 8 teams, assigns funny names, and gives each exactly 1 Tier A, 2 Tier B, and 3 Tier C countries.</p><div class="row"><button class="btn-primary" id="genBtn" '+(ready?'':'disabled')+'>'+(S.synds.length?'Re-generate (resets reveals)':'Generate Syndicates')+'</button>'+(S.synds.length?'<span class="badge badge-success">'+S.synds.length+' syndicates exist</span>':'')+'</div>'+(ready?'':'<p class="subtle" style="font-size:12px;margin-top:8px">Need 8+ employees and a full pool of 8 A / 16 B / 24 C countries.</p>')+'</div>'+(S.synds.length?'<div class="card" style="margin-top:16px"><div class="cap" style="margin-bottom:8px">Reveal control</div><div class="row"><button class="btn-secondary" id="goReveal">Open reveal ceremony</button><span class="muted">'+revealedSynds().length+' / '+S.synds.length+' revealed</span></div></div>':'');
+}
+function adminFixtures(){
+  var opts=S.countries.map(function(c){return '<option>'+esc(c.name)+'</option>';}).join('');
+  var h='<div class="card"><strong>Add / update fixture</strong><div class="row" style="margin-top:10px;align-items:flex-end"><div style="min-width:140px;flex:1"><label class="cap">Home</label><select class="input" id="fHome"><option value="">Select…</option>'+opts+'</select></div><div style="min-width:140px;flex:1"><label class="cap">Away</label><select class="input" id="fAway"><option value="">Select…</option>'+opts+'</select></div><div style="width:120px"><label class="cap">Stage</label><select class="input" id="fStage">'+Object.keys(STAGE_LABEL).map(function(k){return '<option value="'+k+'">'+STAGE_LABEL[k]+'</option>';}).join('')+'</select></div></div><div class="row" style="margin-top:10px;align-items:flex-end"><div style="width:160px"><label class="cap">Date</label><input class="input" id="fDate" type="date"/></div><div style="width:80px"><label class="cap">Home goals</label><input class="input" id="fHG" type="number" min="0" placeholder="-"/></div><div style="width:80px"><label class="cap">Away goals</label><input class="input" id="fAG" type="number" min="0" placeholder="-"/></div><button class="btn-primary" id="addFix">Add fixture</button></div><p class="subtle" style="font-size:11px;margin-top:8px">Leave goals blank for a scheduled match. Enter both to mark it final and award points.</p></div>';
+  h+='<div class="card" style="margin-top:16px;padding:0;overflow:hidden"><div style="padding:12px 16px" class="cap">'+S.fixtures.length+' fixtures</div>';
+  if(S.fixtures.length===0){ h+=emptyState('No fixtures','Add fixtures above or fetch from the API tab.'); } else {
+    h+='<table><thead><tr><th>Match</th><th>Stage</th><th class="numeric">Score</th><th></th></tr></thead><tbody>';
+    S.fixtures.slice().sort(function(a,b){return a.date-b.date;}).forEach(function(f){ h+='<tr><td>'+esc(f.home)+' v '+esc(f.away)+'</td><td>'+STAGE_LABEL[f.stage]+'</td><td class="numeric">'+(f.status==='final'?f.homeGoals+'-'+f.awayGoals:'<span class="subtle">—</span>')+'</td><td class="numeric"><button class="btn-ghost" data-override="'+f.id+'">Override</button> <button class="btn-ghost" data-delfix="'+f.id+'">Delete</button></td></tr>'; });
+    h+='</tbody></table>';
+  }
+  h+='</div>';
+  return h;
+}
+function adminApi(){
+  return '<div class="card"><strong>World Cup API integration</strong><p class="muted" style="font-size:13px">Enter a results endpoint that returns JSON. The platform will attempt to map matches automatically. Manual entry remains the fallback if the API is unavailable.</p><label class="cap">API endpoint URL</label><input class="input" id="apiUrl" placeholder="https://api.example.com/worldcup/matches" value="'+esc(S.apiUrl)+'" style="margin:6px 0 10px"/><div class="row"><button class="btn-primary" id="fetchApi">Fetch results</button><span class="muted" id="apiStatus"></span></div><p class="subtle" style="font-size:11px;margin-top:10px">Expected per-match fields (flexible): home / away / homeScore / awayScore / stage / date. Only countries already in your pool are matched.</p></div>';
+}
+function adminAudit(){
+  if(S.audit.length===0) return '<div class="card">'+emptyState('No activity yet','Admin actions — uploads, generation, reveals, overrides — are logged here.')+'</div>';
+  var h='<div class="card" style="padding:0;overflow:hidden"><table><thead><tr><th>When</th><th>Who</th><th>Action</th><th>Detail</th></tr></thead><tbody>';
+  S.audit.forEach(function(a){ h+='<tr><td class="muted">'+fmtDate(a.ts)+'</td><td>'+esc(a.who)+'</td><td><span class="badge badge-neutral">'+esc(a.action)+'</span></td><td>'+esc(a.desc)+'</td></tr>'; });
+  h+='</tbody></table></div>';
+  return h;
+}
+
+// ---------- Override modal ----------
+function openOverride(fid){
+  var f=S.fixtures.find(function(x){return x.id===fid;}); if(!f) return;
+  var root=document.getElementById('modalRoot');
+  root.innerHTML='<div class="modal-backdrop" id="mbk"><div class="modal"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><h2 style="font-size:16px;font-weight:600">Override score</h2><button class="btn-ghost" id="mclose">✕</button></div><p class="muted" style="font-size:13px">'+esc(f.home)+' v '+esc(f.away)+' · '+STAGE_LABEL[f.stage]+'</p><div class="detailbox" style="margin-bottom:12px"><div class="cap">Current (API / recorded)</div><div class="tnum" style="font-size:18px;font-weight:600">'+(f.status==='final'?f.homeGoals+' – '+f.awayGoals:'Not recorded')+'</div></div><div class="row" style="align-items:flex-end"><div style="width:90px"><label class="cap">'+esc(f.home)+'</label><input class="input" id="ovH" type="number" min="0" value="'+(f.status==='final'?f.homeGoals:'')+'"/></div><div style="width:90px"><label class="cap">'+esc(f.away)+'</label><input class="input" id="ovA" type="number" min="0" value="'+(f.status==='final'?f.awayGoals:'')+'"/></div></div><div class="row" style="margin-top:16px;justify-content:flex-end"><button class="btn-secondary" id="ovCancel">Cancel</button><button class="btn-primary" id="ovSave">Save override</button></div></div></div>';
+  function close(){ root.innerHTML=''; }
+  document.getElementById('mclose').onclick=close; document.getElementById('ovCancel').onclick=close;
+  document.getElementById('mbk').onclick=function(e){ if(e.target.id==='mbk') close(); };
+  document.getElementById('ovSave').onclick=function(){ var hg=document.getElementById('ovH').value, ag=document.getElementById('ovA').value; if(hg===''||ag===''){ toast('Enter both scores','error'); return; } f.homeGoals=parseInt(hg,10); f.awayGoals=parseInt(ag,10); f.status='final'; f.overrideBy=S.adminName; f.overrideAt=Date.now(); log('override','Override '+f.home+' '+f.homeGoals+'-'+f.awayGoals+' '+f.away+' ('+STAGE_LABEL[f.stage]+')'); toast('Score override saved','success'); close(); render(); };
+}
+
+// ---------- Import handlers ----------
+function importEmployees(text){ var rows=parseCSV(text); if(!rows.length){ toast('No rows found','error'); return; } if(looksHeader(rows[0],['name','email','department','dept'])) rows.shift(); var out=[]; rows.forEach(function(r){ if(r[0]) out.push({name:r[0],email:r[1]||'',dept:r[2]||'General'}); }); if(!out.length){ toast('No valid employee rows','error'); return; } S.emp=out; log('upload','Uploaded '+out.length+' employees'); toast('Imported '+out.length+' employees','success'); render(); }
+function importCountries(text){ var rows=parseCSV(text); if(!rows.length){ toast('No rows found','error'); return; } if(looksHeader(rows[0],['country','tier','name'])) rows.shift(); var out=[]; rows.forEach(function(r){ if(r[0]){ var t=(r[1]||'C').trim().toUpperCase(); if(t!=='A'&&t!=='B'&&t!=='C') t='C'; out.push({name:r[0],tier:t,eliminated:false,elimManual:false}); } }); if(!out.length){ toast('No valid country rows','error'); return; } S.countries=out; log('upload','Uploaded '+out.length+' countries'); toast('Imported '+out.length+' countries','success'); render(); }
+function readFile(input,cb){ var f=input.files&&input.files[0]; if(!f) return; var r=new FileReader(); r.onload=function(){ cb(String(r.result)); }; r.onerror=function(){ toast('Could not read file','error'); }; r.readAsText(f); }
+
+// ---------- API fetch ----------
+function fetchApi(){
+  var url=document.getElementById('apiUrl').value.trim(); S.apiUrl=url; var st=document.getElementById('apiStatus');
+  if(!url){ toast('Enter an API URL first','error'); return; }
+  st.textContent='Fetching…';
+  fetch(url).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.json(); }).then(function(data){
+    var arr = Array.isArray(data)?data:(data.matches||data.results||data.data||data.fixtures||[]);
+    if(!Array.isArray(arr)||!arr.length) throw new Error('No matches array found in response');
+    var added=0;
+    arr.forEach(function(m){
+      var home=m.home||m.homeTeam||m.home_team||(m.teams&&m.teams.home&&m.teams.home.name);
+      var away=m.away||m.awayTeam||m.away_team||(m.teams&&m.teams.away&&m.teams.away.name);
+      if(typeof home==='object'&&home) home=home.name; if(typeof away==='object'&&away) away=away.name;
+      if(!home||!away) return;
+      if(!S.countries.find(function(c){return c.name===home;})||!S.countries.find(function(c){return c.name===away;})) return;
+      var hg=m.homeScore!=null?m.homeScore:(m.home_score!=null?m.home_score:(m.score&&m.score.home));
+      var ag=m.awayScore!=null?m.awayScore:(m.away_score!=null?m.away_score:(m.score&&m.score.away));
+      var stage=(m.stage||m.round||'group').toString().toLowerCase();
+      if(stage.indexOf('16')!==-1) stage='r16'; else if(stage.indexOf('quart')!==-1) stage='quarter'; else if(stage.indexOf('semi')!==-1) stage='semi'; else if(stage.indexOf('final')!==-1) stage='final'; else stage='group';
+      var dt=m.date?Date.parse(m.date):Date.now(); if(isNaN(dt)) dt=Date.now();
+      var ex=S.fixtures.find(function(f){return f.home===home&&f.away===away&&f.stage===stage;});
+      var final = (hg!=null&&ag!=null);
+      if(ex){ if(final){ex.homeGoals=Number(hg);ex.awayGoals=Number(ag);ex.status='final';} ex.date=dt; }
+      else { S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt,homeGoals:final?Number(hg):null,awayGoals:final?Number(ag):null,status:final?'final':'scheduled'}); added++; }
+    });
+    log('api','Fetched API results from '+url+' ('+added+' new fixtures)');
+    toast('API sync complete · '+added+' new fixtures','success');
+    render();
+  }).catch(function(e){ if(st)st.textContent=''; toast('API fetch failed: '+(e.message||e),'error'); log('api','API fetch failed: '+(e.message||e)); });
+}
+
+// ---------- Bind ----------
+function bind(){
+  var v=document.getElementById('view');
+  function on(sel,ev,fn){ var el=document.getElementById(sel); if(el) el.addEventListener(ev,fn); }
+  // leaderboard
+  Array.prototype.forEach.call(v.querySelectorAll('tr[data-syn]'),function(tr){ tr.onclick=function(){ var id=tr.getAttribute('data-syn'); S.expand['lb-'+id]=!S.expand['lb-'+id]; render(); }; });
+  on('csvBtn','click',function(){ exportCsv(); });
+  // matrix edit
+  Array.prototype.forEach.call(v.querySelectorAll('input[data-edit]'),function(inp){ inp.onclick=function(e){e.stopPropagation();}; inp.onchange=function(){ var id=inp.getAttribute('data-edit'); var s=S.synds.find(function(x){return x.id===id;}); if(s){ var old=s.name; s.name=inp.value.trim()||old; log('rename','Renamed "'+old+'" to "'+s.name+'"'); toast('Syndicate renamed','success'); } }; });
+  // fixtures rows
+  Array.prototype.forEach.call(v.querySelectorAll('tr[data-fix]'),function(tr){ tr.onclick=function(){ var id=tr.getAttribute('data-fix'); S.expand['fx-'+id]=!S.expand['fx-'+id]; render(); }; });
+  var sfEl=document.getElementById('stageFilter'); if(sfEl){ sfEl.value=S._stageFilter||''; sfEl.onchange=function(){ S._stageFilter=sfEl.value; render(); }; }
+  Array.prototype.forEach.call(v.querySelectorAll('[data-override]'),function(b){ b.onclick=function(e){ e.stopPropagation(); openOverride(b.getAttribute('data-override')); }; });
+  Array.prototype.forEach.call(v.querySelectorAll('[data-delfix]'),function(b){ b.onclick=function(){ var id=b.getAttribute('data-delfix'); S.fixtures=S.fixtures.filter(function(f){return f.id!==id;}); log('fixture','Deleted a fixture'); toast('Fixture deleted','info'); render(); }; });
+  // find
+  on('findBtn','click',function(){ S._findQ=document.getElementById('findInput').value.trim(); render(); });
+  var fi=document.getElementById('findInput'); if(fi) fi.onkeydown=function(e){ if(e.key==='Enter'){ S._findQ=fi.value.trim(); render(); } };
+  // reveal
+  on('revealBtn','click',revealNext);
+  // admin login
+  on('adminLoginBtn','click',function(){ var nm=document.getElementById('adminSelect').value; var pw=document.getElementById('adminPass').value; if(!nm){ toast('Select an admin','error'); return; } if(pw!==ADMIN_PASS){ toast('Incorrect password','error'); return; } S.adminName=nm; log('login','Admin signed in'); toast('Welcome, '+nm,'success'); render(); });
+  var ap=document.getElementById('adminPass'); if(ap) ap.onkeydown=function(e){ if(e.key==='Enter') document.getElementById('adminLoginBtn').click(); };
+  on('adminLogout','click',function(){ log('logout','Admin signed out'); S.adminName=null; toast('Signed out','info'); render(); });
+  Array.prototype.forEach.call(v.querySelectorAll('[data-sub]'),function(b){ b.onclick=function(){ S._adminSub=b.getAttribute('data-sub'); render(); }; });
+  // data upload
+  on('empPaste','click',function(){ importEmployees(document.getElementById('empCsv').value); });
+  on('cntPaste','click',function(){ importCountries(document.getElementById('cntCsv').value); });
+  on('empFile','change',function(){ readFile(this,importEmployees); });
+  on('cntFile','change',function(){ readFile(this,importCountries); });
+  on('demoBtn','click',loadDemo);
+  on('resetBtn','click',function(){ S.emp=[];S.countries=[];S.synds=[];S.fixtures=[];S.expand={}; log('reset','Reset all data'); toast('All data reset','info'); render(); });
+  // generate
+  on('genBtn','click',generateSyndicates);
+  on('goReveal','click',function(){ setTab('reveal'); });
+  // fixtures admin
+  on('addFix','click',function(){ var home=document.getElementById('fHome').value, away=document.getElementById('fAway').value, stage=document.getElementById('fStage').value, dt=document.getElementById('fDate').value, hg=document.getElementById('fHG').value, ag=document.getElementById('fAG').value; if(!home||!away){ toast('Select both teams','error'); return; } if(home===away){ toast('Teams must differ','error'); return; } var final=(hg!==''&&ag!==''); S.fixtures.push({id:'fx'+Date.now()+'_'+Math.random().toString(36).slice(2,6),home:home,away:away,stage:stage,date:dt?Date.parse(dt):Date.now(),homeGoals:final?parseInt(hg,10):null,awayGoals:final?parseInt(ag,10):null,status:final?'final':'scheduled'}); log('fixture','Added fixture '+home+' v '+away+' ('+STAGE_LABEL[stage]+')'); toast('Fixture added','success'); render(); });
+  // api
+  on('fetchApi','click',fetchApi);
+  var au=document.getElementById('apiUrl'); if(au) au.onchange=function(){ S.apiUrl=au.value; };
+}
+
+function exportCsv(){
+  var rs=ranked(); function q(x){ x=String(x==null?'':x); if(x.indexOf(',')!==-1||x.indexOf('"')!==-1||x.indexOf('\n')!==-1){ return '"'+x.replace(/"/g,'""')+'"'; } return x; }
+  var lines=['Rank,Syndicate,Points,Members,Goals,Countries'];
+  rs.forEach(function(s,i){ lines.push([i+1,q(s.revealed?s.name:'Hidden'),s.points,s.members.length,s.goals,q(s.revealed?s.countries.join(' / '):'')].join(',')); });
+  var blob=new Blob([lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='leaderboard.csv'; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); toast('Leaderboard exported','success');
+}
+
+// initial
+render();
+})();
+</script>
+</body>
+</html>
