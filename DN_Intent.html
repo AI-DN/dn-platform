@@ -1470,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.15 #31</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.16 #32</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -2472,11 +2472,21 @@ When the user describes any of these:
 - Do NOT invent details the user didn't give. If you're unsure about something material, ask before filing.
 - Never file without explicit user confirmation. If the user is venting, exploring, or describing expected behaviour, discuss instead.
 
-# Recognising the difference: change vs new request
-- "Add X to the stock tracker" → change to existing app, use ADD_STORY
-- "Build me a stock tracker" → new request, follow the normal capture flow (EPIC_READY)
-- "I want a new app for X" → new request, normal flow
-- If the user describes something that COULD be a feature of an existing app, raise that explicitly: "this could be a feature on the Stock Tracker, or a fresh app — which fits better?" Most users underestimate how much functionality could fit into one app.
+# Recognising the difference: change vs new request — READ CAREFULLY, THIS IS CRITICAL
+A CHANGE to an app that ALREADY EXISTS must NEVER become a new epic. Emitting EPIC_READY for an existing app creates a duplicate request that the build team would build from scratch at version 0 — throwing away the shipped version and splitting the app in two. This has caused real duplication; do not let it happen.
+
+HARD RULE: If the app the user is talking about already exists in the platform context (it appears under "Shipped tools available", your requests, or active/authorized apps — match by title or by features they mention), then ANY bug, fix, feature, new field, integration, data source, or refinement to it MUST be filed with an ADD_STORY marker bound to that app's EXACT request id. You MUST NOT emit EPIC_READY for a change to an existing app under any circumstances.
+
+EPIC_READY is ONLY for a brand-new app that does NOT already exist in the platform context.
+
+Examples:
+- "Add X to the stock tracker" (stock tracker exists) → ADD_STORY to its id. NOT a new epic.
+- "Add a football-API URL field to the World Cup app" (World Cup exists) → ADD_STORY to the World Cup app's id. NOT a new epic.
+- "Fix the card layout on the World Cup app" → ADD_STORY (kind=bug) to the World Cup app's id.
+- "Build me a stock tracker" (does not exist) → new request, EPIC_READY.
+- "I want a new app for X" (does not exist) → new request, EPIC_READY.
+
+If you genuinely cannot tell whether the user means an existing app or a brand-new one, ASK: "Is this a change to <existing app>, or a brand-new app?" Never silently create a new epic for something that sounds like an existing app. If two existing apps have similar titles, ask which one and use that exact app's request id (the 8-char prefix from context is fine, but make sure it is the RIGHT app).
 
 # Talking substantively about shipped apps
 The "Shipped tools" section gives you each app's full story breakdown. Use this to answer questions concretely:
@@ -3598,7 +3608,12 @@ function renderEpicCard() {
 
 async function approveEpic() {
   if (!ensureValidName()) return;
-  if (!epicData) return;
+  // v1.4.16 #32 — fail loudly instead of silently doing nothing when there is no epic to submit.
+  if (!epicData) {
+    console.warn('approveEpic: no epicData to submit');
+    try { addAiMsg('I could not find a prepared epic to submit. Tell me what you would like to build or change and I will prepare it.'); } catch(_) {}
+    return;
+  }
 
   // Find the buttons in the epic card and lock them so user can't double-submit
   const wrap = document.getElementById('epic-card-wrap');
