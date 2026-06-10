@@ -47,7 +47,13 @@ textarea.input{resize:vertical;min-height:72px;font-family:ui-monospace,Menlo,mo
 .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px;}
 .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;}
+.matrix{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;align-items:stretch;}
+.matrix>.synd-card{display:flex;flex-direction:column;min-height:280px;}
+.synd-head{display:flex;justify-content:space-between;align-items:center;gap:8px;min-height:28px;}
+.synd-head .editname{flex:1;min-width:0;font-size:15px;}
+.synd-card .member-list{margin-top:4px;}
+.synd-tiers{margin-top:auto;padding-top:12px;display:flex;flex-direction:column;gap:8px;}
+.synd-hidden{align-items:center;justify-content:center;text-align:center;opacity:0.7;gap:6px;}
 table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums;}
 thead th{text-align:left;font-size:11px;font-weight:500;letter-spacing:0.04em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px;border-bottom:1px solid var(--border);}
 tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text);}
@@ -301,11 +307,11 @@ function viewMatrix(){
   if(S.synds.length===0){ return h+'<div class="card">'+emptyState('No syndicates yet','Generate syndicates from the Admin panel to populate the matrix.')+'</div>'; }
   h+='<div class="matrix">';
   S.synds.forEach(function(s){
-    if(!s.revealed){ h+='<div class="card" style="text-align:center;opacity:0.7"><div class="confetti">🔒</div><div style="font-weight:600">Hidden Syndicate</div><div class="muted" style="font-size:12px">Revealed at the live ceremony</div></div>'; return; }
-    var nameEl = S.adminName ? '<input class="editname" data-edit="'+s.id+'" value="'+esc(s.name)+'" style="width:100%;font-size:15px"/>' : '<div style="font-weight:600;font-size:15px">'+esc(s.name)+'</div>';
+    if(!s.revealed){ h+='<div class="card synd-card synd-hidden"><div class="confetti">🔒</div><div style="font-weight:600">Hidden Syndicate</div><div class="muted" style="font-size:12px">Revealed at the live ceremony</div></div>'; return; }
+    var nameEl = S.adminName ? '<input class="editname" data-edit="'+s.id+'" value="'+esc(s.name)+'"/>' : '<div style="font-weight:600;font-size:15px;flex:1;min-width:0">'+esc(s.name)+'</div>';
     var members=s.members.map(function(m){return '<span class="member">'+esc(m.name)+'</span>';}).join('');
-    function tierGroup(t){ var cs=s.countries.filter(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return co&&co.tier===t; }); if(!cs.length) return ''; return '<div style="margin-top:6px"><span class="cap">Tier '+t+'</span><div class="flagrow" style="margin-top:4px">'+cs.map(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="fchip"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span>'+esc(c)+'</span>'; }).join('')+'</div></div>'; }
-    h+='<div class="card"><div style="display:flex;justify-content:space-between;align-items:center;gap:8px">'+nameEl+'<span class="badge badge-neutral">'+s.points+' pts</span></div><div class="divider" style="margin:10px 0"></div><span class="cap">Members ('+s.members.length+')</span><div class="member-list" style="margin-top:4px">'+members+'</div>'+tierGroup('A')+tierGroup('B')+tierGroup('C')+'</div>';
+    function tierGroup(t){ var cs=s.countries.filter(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return co&&co.tier===t; }); if(!cs.length) return ''; return '<div><span class="cap">Tier '+t+'</span><div class="flagrow" style="margin-top:4px">'+cs.map(function(c){ var co=S.countries.find(function(x){return x.name===c;}); return '<span class="fchip"><span class="flag '+(co&&co.eliminated?'elim':'')+'">'+flagFor(c)+'</span>'+esc(c)+'</span>'; }).join('')+'</div></div>'; }
+    h+='<div class="card synd-card"><div class="synd-head">'+nameEl+'<span class="badge badge-neutral">'+s.points+' pts</span></div><div class="divider" style="margin:10px 0"></div><span class="cap">Members ('+s.members.length+')</span><div class="member-list">'+members+'</div><div class="synd-tiers">'+tierGroup('A')+tierGroup('B')+tierGroup('C')+'</div></div>';
   });
   h+='</div>';
   return h;
