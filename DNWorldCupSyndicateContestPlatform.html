@@ -7,6 +7,7 @@
 <!-- ===== DN Platform Favicon v1.0 ===== -->
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>DW</text></svg>">
 <meta name="theme-color" content="#07091a">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{--bg:#fafafa;--surface:#ffffff;--surface-2:#f5f5f5;--text:#18181b;--text-muted:#52525b;--text-subtle:#a1a1aa;--border:rgba(0,0,0,0.08);--border-strong:rgba(0,0,0,0.16);--accent:#5e6ad2;--accent-hover:#4f59c4;--accent-bg:rgba(94,106,210,0.08);--success:#16a34a;--success-bg:rgba(22,163,74,0.08);--warning:#d97706;--warning-bg:rgba(217,119,6,0.08);--danger:#dc2626;--danger-bg:rgba(220,38,38,0.08);--info:#0284c7;--info-bg:rgba(2,132,199,0.08);--radius-sm:4px;--radius-md:6px;--radius-lg:8px;}
 [data-theme='dark']{--bg:#09090b;--surface:#131316;--surface-2:#1c1c20;--text:#fafafa;--text-muted:#a1a1aa;--text-subtle:#71717a;--border:rgba(255,255,255,0.08);--border-strong:rgba(255,255,255,0.14);--accent:#7b85e3;--accent-hover:#8d96e8;--accent-bg:rgba(123,133,227,0.10);--success:#22c55e;--success-bg:rgba(34,197,94,0.10);--warning:#f59e0b;--warning-bg:rgba(245,158,11,0.10);--danger:#ef4444;--danger-bg:rgba(239,68,68,0.10);--info:#38bdf8;--info-bg:rgba(56,189,248,0.10);}
@@ -426,6 +427,7 @@ function adminData(){
   return '<div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:var(--info)"><strong>Embedded dataset is persistent.</strong><p class="muted" style="font-size:12px;margin:4px 0 0">The app ships pre-loaded with the real World Cup 2026 nations, an 88-person roster and 8 generated syndicates, so data is always present on every load. Re-uploading below replaces the in-session data.</p></div>'+
   '<div class="grid2"><div class="card"><div class="cap">Employees</div><div class="pts tnum">'+S.emp.length+'</div><p class="muted" style="font-size:12px">CSV columns: name, email, department</p><textarea class="input" id="empCsv" placeholder="name,email,department&#10;Alex Smith,alex@dn.com,Engineering"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="empPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="empFile" accept=".csv,.txt" hidden/></label></div></div>'+
   '<div class="card"><div class="cap">Countries</div><div class="pts tnum">'+S.countries.length+' <span class="muted" style="font-size:13px">(A '+tc.A+' · B '+tc.B+' · C '+tc.C+')</span></div><p class="muted" style="font-size:12px">CSV columns: country, tier (A/B/C)</p><textarea class="input" id="cntCsv" placeholder="country,tier&#10;Brazil,A&#10;Belgium,B"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="cntPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="cntFile" accept=".csv,.txt" hidden/></label></div></div></div>'+
+  '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Save / Restore contest</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Download the full contest state (employees, countries, syndicate assignments &amp; scores) as an .xlsx file, then re-import it any time to continue across sessions.</p></div><div class="row"><button class="btn-primary" id="exportState">Export .xlsx</button><label class="btn-secondary" style="cursor:pointer">Import .xlsx<input type="file" id="importState" accept=".xlsx,.xls,.csv" hidden/></label></div></div>'+
   '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Reset</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Reload the embedded WC2026 demo dataset or clear everything.</p></div><div class="row"><button class="btn-secondary" id="demoBtn">Reload demo data</button><button class="btn-secondary" id="seedBtn">Restore full default (with syndicates)</button><button class="btn-danger" id="resetBtn">Clear all</button></div></div>';
 }
 function adminGenerate(){
@@ -540,6 +542,8 @@ function bind(){
   on('cntPaste','click',function(){ importCountries(document.getElementById('cntCsv').value); });
   on('empFile','change',function(){ readFile(this,importEmployees); });
   on('cntFile','change',function(){ readFile(this,importCountries); });
+  on('exportState','click',exportState);
+  on('importState','change',function(){ importState(this); });
   on('demoBtn','click',loadDemo);
   on('seedBtn','click',function(){ loadDefaults(); toast('Default WC2026 dataset restored','success'); render(); });
   on('resetBtn','click',function(){ S.emp=[];S.countries=[];S.synds=[];S.fixtures=[];S.expand={}; log('reset','Cleared all data'); toast('All data cleared','info'); render(); });
@@ -557,6 +561,48 @@ function exportCsv(){
   var lines=['Rank,Syndicate,Points,Members,Goals,Countries'];
   rs.forEach(function(s,i){ lines.push([i+1,q(s.revealed?s.name:'Hidden'),s.points,s.members.length,s.goals,q(s.revealed?s.countries.join(' / '):'')].join(',')); });
   var blob=new Blob([lines.join('\n')],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='leaderboard.csv'; a.click(); setTimeout(function(){URL.revokeObjectURL(a.href);},1000); toast('Leaderboard exported','success');
+}
+
+// ---------- Save / Restore full state (xlsx) ----------
+function exportState(){
+  if(typeof XLSX==='undefined'){ toast('Spreadsheet library not loaded yet — try again','error'); return; }
+  try{
+    var wb=XLSX.utils.book_new();
+    var emp=[['name','email','department']].concat(S.emp.map(function(e){return [e.name,e.email,e.dept];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(emp),'Employees');
+    var cnt=[['country','tier','elimManual']].concat(S.countries.map(function(c){return [c.name,c.tier,c.elimManual?1:0];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cnt),'Countries');
+    var syn=[['id','name','revealed','members','countries']].concat(S.synds.map(function(s){return [s.id,s.name,s.revealed?1:0,JSON.stringify(s.members),JSON.stringify(s.countries)];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(syn),'Syndicates');
+    var fx=[['id','home','away','stage','date','homeGoals','awayGoals','status','winner','overrideBy','overrideAt']].concat(S.fixtures.map(function(f){return [f.id,f.home,f.away,f.stage,f.date,(f.homeGoals==null?'':f.homeGoals),(f.awayGoals==null?'':f.awayGoals),f.status,(f.winner||''),(f.overrideBy||''),(f.overrideAt||'')];}));
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(fx),'Fixtures');
+    XLSX.writeFile(wb,'dn-worldcup-contest.xlsx');
+    log('export','Exported full contest state to xlsx ('+S.emp.length+' emp, '+S.countries.length+' countries, '+S.synds.length+' syndicates, '+S.fixtures.length+' fixtures)');
+    toast('Contest state exported','success');
+  }catch(e){ toast('Export failed: '+(e.message||e),'error'); }
+}
+function importState(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  if(typeof XLSX==='undefined'){ toast('Spreadsheet library not loaded yet — try again','error'); input.value=''; return; }
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var wb=XLSX.read(r.result,{type:'array'});
+      function sheet(n){ var ws=wb.Sheets[n]; return ws?XLSX.utils.sheet_to_json(ws,{header:1}):[]; }
+      function truthy(x){ return x==1||x==='1'||x===true||String(x).toLowerCase()==='true'; }
+      var emp=sheet('Employees'); if(emp.length>1){ S.emp=emp.slice(1).filter(function(rw){return rw[0];}).map(function(rw){return {name:String(rw[0]),email:String(rw[1]||''),dept:String(rw[2]||'General')};}); }
+      var cnt=sheet('Countries'); if(cnt.length>1){ S.countries=cnt.slice(1).filter(function(rw){return rw[0];}).map(function(rw){var t=String(rw[1]||'C').toUpperCase();if(t!=='A'&&t!=='B'&&t!=='C')t='C';return {name:String(rw[0]),tier:t,eliminated:false,elimManual:truthy(rw[2])};}); }
+      var syn=sheet('Syndicates'); S.synds=syn.slice(1).filter(function(rw){return rw[0];}).map(function(rw){var rev=truthy(rw[2]);return {id:String(rw[0]),name:String(rw[1]),revealed:rev,_flipped:rev,points:0,goals:0,members:JSON.parse(rw[3]||'[]'),countries:JSON.parse(rw[4]||'[]')};});
+      var fx=sheet('Fixtures'); S.fixtures=fx.slice(1).filter(function(rw){return rw[0];}).map(function(rw){return {id:String(rw[0]),home:String(rw[1]),away:String(rw[2]),stage:String(rw[3]),date:Number(rw[4])||Date.now(),homeGoals:(rw[5]===''||rw[5]==null)?null:Number(rw[5]),awayGoals:(rw[6]===''||rw[6]==null)?null:Number(rw[6]),status:String(rw[7]||'scheduled'),winner:rw[8]?String(rw[8]):null,overrideBy:rw[9]?String(rw[9]):null,overrideAt:rw[10]?Number(rw[10]):null};});
+      S.expand={};
+      log('import','Restored contest state from file ('+S.emp.length+' emp, '+S.countries.length+' countries, '+S.synds.length+' syndicates, '+S.fixtures.length+' fixtures)');
+      toast('Contest state restored from file','success');
+      render();
+    }catch(e){ toast('Import failed: '+(e.message||e),'error'); }
+    input.value='';
+  };
+  r.onerror=function(){ toast('Could not read file','error'); input.value=''; };
+  r.readAsArrayBuffer(f);
 }
 
 // ---------- Boot ----------
