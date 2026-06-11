@@ -424,10 +424,10 @@ function viewAdmin(){
 }
 function adminData(){
   var tc={A:0,B:0,C:0}; S.countries.forEach(function(c){tc[c.tier]=(tc[c.tier]||0)+1;});
-  return '<div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:var(--info)"><strong>Embedded dataset is persistent.</strong><p class="muted" style="font-size:12px;margin:4px 0 0">The app ships pre-loaded with the real World Cup 2026 nations, an 88-person roster and 8 generated syndicates, so data is always present on every load. Re-uploading below replaces the in-session data.</p></div>'+
+  return '<div class="card" style="margin-bottom:16px;background:var(--info-bg);border-color:var(--info)"><strong>Local file storage — no database.</strong><p class="muted" style="font-size:12px;margin:4px 0 0">Persistence is handled entirely with local files. Use <span class="mono">Save syndicates.json</span> below after any change (uploads, name edits, portfolio assignments, scores) to write the contest state to your workspace, then <span class="mono">Load syndicates.json</span> on startup to restore it. If no file is loaded, the embedded WC2026 demo dataset is used as a fallback.</p></div>'+
   '<div class="grid2"><div class="card"><div class="cap">Employees</div><div class="pts tnum">'+S.emp.length+'</div><p class="muted" style="font-size:12px">CSV columns: name, email, department</p><textarea class="input" id="empCsv" placeholder="name,email,department&#10;Alex Smith,alex@dn.com,Engineering"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="empPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="empFile" accept=".csv,.txt" hidden/></label></div></div>'+
   '<div class="card"><div class="cap">Countries</div><div class="pts tnum">'+S.countries.length+' <span class="muted" style="font-size:13px">(A '+tc.A+' · B '+tc.B+' · C '+tc.C+')</span></div><p class="muted" style="font-size:12px">CSV columns: country, tier (A/B/C)</p><textarea class="input" id="cntCsv" placeholder="country,tier&#10;Brazil,A&#10;Belgium,B"></textarea><div class="row" style="margin-top:8px"><button class="btn-primary" id="cntPaste">Import pasted CSV</button><label class="btn-secondary" style="cursor:pointer">Upload file<input type="file" id="cntFile" accept=".csv,.txt" hidden/></label></div></div></div>'+
-  '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Save / Restore contest</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Download the full contest state (employees, countries, syndicate assignments &amp; scores) as an .xlsx file, then re-import it any time to continue across sessions.</p></div><div class="row"><button class="btn-primary" id="exportState">Export .xlsx</button><label class="btn-secondary" style="cursor:pointer">Import .xlsx<input type="file" id="importState" accept=".xlsx,.xls,.csv" hidden/></label></div></div>'+
+  '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Local file storage</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Persist the full contest (employees, countries, syndicate assignments &amp; scores) to a local <span class="mono">syndicates.json</span> file — no Supabase, no database. Re-load it on any device to continue. An <span class="mono">.xlsx</span> workbook export is also available for spreadsheets.</p></div><div class="row"><button class="btn-primary" id="exportJson">Save syndicates.json</button><label class="btn-secondary" style="cursor:pointer">Load syndicates.json<input type="file" id="importJson" accept=".json" hidden/></label><button class="btn-secondary" id="exportState">Export .xlsx</button><label class="btn-secondary" style="cursor:pointer">Import .xlsx<input type="file" id="importState" accept=".xlsx,.xls,.csv" hidden/></label></div></div>'+
   '<div class="card" style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><strong>Reset</strong><p class="muted" style="font-size:12px;margin:2px 0 0">Reload the embedded WC2026 demo dataset or clear everything.</p></div><div class="row"><button class="btn-secondary" id="demoBtn">Reload demo data</button><button class="btn-secondary" id="seedBtn">Restore full default (with syndicates)</button><button class="btn-danger" id="resetBtn">Clear all</button></div></div>';
 }
 function adminGenerate(){
@@ -544,6 +544,8 @@ function bind(){
   on('cntFile','change',function(){ readFile(this,importCountries); });
   on('exportState','click',exportState);
   on('importState','change',function(){ importState(this); });
+  on('exportJson','click',exportStateJSON);
+  on('importJson','change',function(){ importStateJSON(this); });
   on('demoBtn','click',loadDemo);
   on('seedBtn','click',function(){ loadDefaults(); toast('Default WC2026 dataset restored','success'); render(); });
   on('resetBtn','click',function(){ S.emp=[];S.countries=[];S.synds=[];S.fixtures=[];S.expand={}; log('reset','Cleared all data'); toast('All data cleared','info'); render(); });
@@ -603,6 +605,53 @@ function importState(input){
   };
   r.onerror=function(){ toast('Could not read file','error'); input.value=''; };
   r.readAsArrayBuffer(f);
+}
+
+// ---------- Local file storage (JSON) ----------
+function buildStateObj(){
+  return {
+    version:1,
+    savedAt:Date.now(),
+    employees:S.emp,
+    countries:S.countries.map(function(c){return {name:c.name,tier:c.tier,elimManual:!!c.elimManual};}),
+    syndicates:S.synds.map(function(s){return {id:s.id,name:s.name,revealed:!!s.revealed,members:s.members,countries:s.countries};}),
+    fixtures:S.fixtures.map(function(f){return {id:f.id,home:f.home,away:f.away,stage:f.stage,date:f.date,homeGoals:f.homeGoals,awayGoals:f.awayGoals,status:f.status,winner:f.winner||null,overrideBy:f.overrideBy||null,overrideAt:f.overrideAt||null};}),
+    audit:S.audit
+  };
+}
+function exportStateJSON(){
+  try{
+    var data=JSON.stringify(buildStateObj(),null,2);
+    var blob=new Blob([data],{type:'application/json'});
+    var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='syndicates.json'; a.click();
+    setTimeout(function(){URL.revokeObjectURL(a.href);},1000);
+    log('save','Saved contest state to local file syndicates.json ('+S.emp.length+' emp, '+S.countries.length+' countries, '+S.synds.length+' syndicates, '+S.fixtures.length+' fixtures)');
+    toast('Saved to syndicates.json','success');
+  }catch(e){ toast('Save failed: '+(e.message||e),'error'); }
+}
+function applyStateObj(o){
+  if(o.employees) S.emp=o.employees.map(function(e){return {name:String(e.name),email:String(e.email||''),dept:String(e.dept||e.department||'General')};});
+  if(o.countries) S.countries=o.countries.map(function(c){var t=String(c.tier||'C').toUpperCase();if(t!=='A'&&t!=='B'&&t!=='C')t='C';return {name:String(c.name),tier:t,eliminated:false,elimManual:!!c.elimManual};});
+  if(o.syndicates) S.synds=o.syndicates.map(function(s){return {id:String(s.id),name:String(s.name),revealed:!!s.revealed,_flipped:!!s.revealed,points:0,goals:0,members:s.members||[],countries:s.countries||[]};});
+  if(o.fixtures) S.fixtures=o.fixtures.map(function(f){return {id:String(f.id),home:String(f.home),away:String(f.away),stage:String(f.stage),date:Number(f.date)||Date.now(),homeGoals:(f.homeGoals==null?null:Number(f.homeGoals)),awayGoals:(f.awayGoals==null?null:Number(f.awayGoals)),status:String(f.status||'scheduled'),winner:f.winner||null,overrideBy:f.overrideBy||null,overrideAt:f.overrideAt||null};});
+  if(o.audit&&Array.isArray(o.audit)) S.audit=o.audit;
+  S.expand={};
+}
+function importStateJSON(input){
+  var f=input.files&&input.files[0]; if(!f) return;
+  var r=new FileReader();
+  r.onload=function(){
+    try{
+      var o=JSON.parse(String(r.result));
+      applyStateObj(o);
+      log('load','Loaded contest state from local file '+f.name+' ('+S.emp.length+' emp, '+S.synds.length+' syndicates)');
+      toast('Loaded from '+f.name,'success');
+      render();
+    }catch(e){ toast('Load failed: '+(e.message||e),'error'); }
+    input.value='';
+  };
+  r.onerror=function(){ toast('Could not read file','error'); input.value=''; };
+  r.readAsText(f);
 }
 
 // ---------- Boot ----------
