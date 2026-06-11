@@ -1123,7 +1123,7 @@ body.chat-open .board-wrap { padding-right: 420px; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Admin</span>
-  <span class="topbar-version" title="DN_Admin build">v1.9.1 #45</span>
+  <span class="topbar-version" title="DN_Admin build">v1.9.2 #46</span>
   <div class="topbar-right">
     <span class="badge-count" id="needs-action-badge" style="display:none"></span>
     <div class="db-status">
@@ -6061,8 +6061,7 @@ async function attemptValidationAutofix(brokenHtml, errors, model, apiKey, build
     'Fix ONLY these errors and return the COMPLETE corrected document as {"html":"<!DOCTYPE html>..."}. ' +
     'Do not add features or change anything unrelated — preserve all existing functionality, structure, and styling.\n\n' +
     'ERRORS:\n' + errSummary + '\n\n' +
-    'Most common cause on this platform: a string or regex literal that contains a RAW line break. ' +
-    'Replace any literal newline inside quotes or a regex with \\n, and do not use new RegExp() with a multi-line string for CSV — use a regex literal like /[",\\n]/ or plain string methods. ' +
+    'Most common causes on this platform: (1) a /.../ regex literal containing a forward slash — it breaks when the app is JSON-encoded ("Invalid regular expression: missing /"); rewrite it as new RegExp("...") with a string pattern. (2) a raw line break inside a string or regex — replace it with the \\n escape. Prefer the RegExp constructor and string methods (indexOf/includes/split) over regex literals. ' +
     'Verify the entire document parses before returning.\n\n' +
     'HTML:\n```html\n' + brokenHtml + '\n```';
   const body = { model: model, max_tokens: 128000, messages: [{ role: 'user', content: prompt }], stream: true };
@@ -6461,7 +6460,7 @@ DN_HOUSE_STYLE.trim() + '\n' +
 '- The HTML must include a complete <!DOCTYPE html> declaration and run standalone when opened in a browser.\n' +
 '- The UI must conform to the DN House Style above. That includes: light AND dark mode with toggle, neutral palette + ONE accent, sharp corners, hairline borders, Inter typography with proper scale, tabular numerics, real empty states, real loading states, toast notifications, theme toggle in the header.\n' +
 "- Handle errors gracefully. Validate inputs. Don't let runtime errors crash the page.\n" +
-'- CRITICAL JS SYNTAX RULE: never put a raw line break inside a string or regex literal. To represent a newline, use the escape \\n (e.g. "a\\nb", or the regex /[",\\n]/). Do NOT split a quoted string or a /.../ regex across two source lines. For CSV/TSV export, build the special-character test with a regex literal like /[",\\n]/ (or plain string methods such as indexOf) — do NOT use new RegExp() with a multi-line string. This exact mistake (a raw newline in a literal) has repeatedly produced "Invalid or unexpected token" and "Invalid regular expression: missing /" errors that fail validation, so be especially careful in any CSV/export, clipboard, or template-building code.\n' +
+'- CRITICAL JS SYNTAX RULE: do NOT use /.../ regex literals anywhere. This app ships as a JSON string, so a forward slash inside a regex literal terminates it early and throws "Invalid regular expression: missing /" at runtime. ALWAYS build regexes with the RegExp constructor and a string pattern, e.g. new RegExp("https?://", "g") — forward slashes need no escaping there and any regex backslash is doubled inside the string. Also never put a raw line break inside any string or regex; use the \\n escape. These two mistakes have repeatedly failed builds (CSV/export, URL, date, and template code), so prefer the RegExp constructor and string methods (indexOf, includes, split, replaceAll) throughout.\n' +
 '- Before submitting your output, mentally validate: (a) the JavaScript parses with no duplicate identifier declarations, (b) every onclick handler references a function that is actually defined, (c) no string or regex literal contains a raw line break (use \\n), (d) the page renders something meaningful in its empty state.\n\n';
 
   if (isRebuild) {
