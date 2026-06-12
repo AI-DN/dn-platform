@@ -1,0 +1,780 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8'>
+<meta name='viewport' content='width=device-width, initial-scale=1'>
+<title>DN Global Time Tracking & Resource Management</title>
+<!-- ===== DN Platform Favicon v1.0 ===== -->
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='6' fill='%2347d1ff'/><text x='16' y='22' text-anchor='middle' font-family='system-ui,-apple-system,sans-serif' font-weight='800' font-size='14' fill='%23071a2e'>DG</text></svg>">
+<meta name="theme-color" content="#07091a">
+<style>
+:root{--bg:#fafafa;--surface:#fff;--surface-2:#f5f5f5;--text:#18181b;--text-muted:#52525b;--text-subtle:#a1a1aa;--border:rgba(0,0,0,.08);--border-strong:rgba(0,0,0,.16);--accent:#5e6ad2;--accent-hover:#4f59c4;--accent-bg:rgba(94,106,210,.08);--success:#16a34a;--success-bg:rgba(22,163,74,.08);--warning:#d97706;--warning-bg:rgba(217,119,6,.08);--danger:#dc2626;--danger-bg:rgba(220,38,38,.08);--info:#0284c7;--info-bg:rgba(2,132,199,.08);--radius-sm:4px;--radius-md:6px;--radius-lg:8px}
+[data-theme=dark]{--bg:#09090b;--surface:#131316;--surface-2:#1c1c20;--text:#fafafa;--text-muted:#a1a1aa;--text-subtle:#71717a;--border:rgba(255,255,255,.08);--border-strong:rgba(255,255,255,.14);--accent:#7b85e3;--accent-hover:#8d96e8;--accent-bg:rgba(123,133,227,.1);--success:#22c55e;--success-bg:rgba(34,197,94,.1);--warning:#f59e0b;--warning-bg:rgba(245,158,11,.1);--danger:#ef4444;--danger-bg:rgba(239,68,68,.1);--info:#38bdf8;--info-bg:rgba(56,189,248,.1)}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+.mono{font-family:ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums}
+.num{text-align:right;font-family:ui-monospace,'SF Mono',Menlo,monospace;font-variant-numeric:tabular-nums}
+.cap{font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted)}
+.muted{color:var(--text-muted)}.subtle{color:var(--text-subtle)}
+h1,h2,h3{margin:0}
+button{font-family:inherit}
+.btn-primary{background:var(--accent);color:#fff;border:1px solid var(--accent);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms ease}
+.btn-primary:hover{background:var(--accent-hover)}
+.btn-secondary{background:var(--surface);color:var(--text);border:1px solid var(--border-strong);padding:6px 12px;border-radius:var(--radius-sm);font-size:13px;font-weight:500;cursor:pointer;transition:background 150ms,border-color 150ms}
+.btn-secondary:hover{background:var(--surface-2);border-color:var(--text-subtle)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid transparent;padding:6px 10px;border-radius:var(--radius-sm);font-size:13px;cursor:pointer;transition:background 150ms,color 150ms}
+.btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.input{background:var(--surface-2);border:1px solid var(--border-strong);color:var(--text);padding:7px 10px;border-radius:var(--radius-sm);font-size:13px;font-family:inherit;transition:border-color 150ms,background 150ms}
+.input:focus{outline:none;border-color:var(--accent);background:var(--surface)}
+.input::placeholder{color:var(--text-subtle)}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-md);padding:16px}
+table{width:100%;border-collapse:collapse;font-size:13px;font-variant-numeric:tabular-nums}
+thead th{text-align:left;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);padding:8px 12px;border-bottom:1px solid var(--border);white-space:nowrap}
+tbody td{padding:8px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+tbody tr.clk{cursor:pointer}
+tbody tr.clk:hover{background:var(--surface-2)}
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:500}
+.badge-success{background:var(--success-bg);color:var(--success)}.badge-warning{background:var(--warning-bg);color:var(--warning)}.badge-danger{background:var(--danger-bg);color:var(--danger)}.badge-info{background:var(--info-bg);color:var(--info)}.badge-neutral{background:var(--surface-2);color:var(--text-muted)}
+.hdr{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:8px;font-weight:600}
+.brand .logo{width:26px;height:26px;border-radius:6px;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px}
+.spacer{flex:1}
+.pills{display:flex;gap:4px}
+.pill{padding:4px 10px;border-radius:12px;font-size:12px;font-weight:500;border:1px solid var(--border-strong);background:var(--surface);color:var(--text-muted);cursor:pointer;transition:all 150ms}
+.pill.on{background:var(--accent-bg);color:var(--accent);border-color:var(--accent)}
+.pill:disabled{cursor:not-allowed}
+.subnav{display:flex;gap:2px;padding:0 16px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:49px;z-index:19;overflow-x:auto}
+.tab{padding:10px 14px;font-size:13px;font-weight:500;color:var(--text-muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap;background:none;border-top:none;border-left:none;border-right:none}
+.tab.on{color:var(--text);border-bottom-color:var(--accent)}
+.tab:hover{color:var(--text)}
+main{padding:16px;max-width:1400px;margin:0 auto}
+.row{display:flex;align-items:center;gap:8px}
+.wrap{flex-wrap:wrap}
+.grid-kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px;margin-bottom:16px}
+.kpi .v{font-size:28px;font-weight:600;letter-spacing:-.01em;font-variant-numeric:tabular-nums}
+.kpi .l{margin-top:4px}
+.kpi .d{font-size:12px;margin-top:6px;font-variant-numeric:tabular-nums}
+.up{color:var(--success)}.down{color:var(--danger)}
+.gridwrap{overflow-x:auto;border:1px solid var(--border);border-radius:var(--radius-md);background:var(--surface)}
+table.entry{border-collapse:separate;border-spacing:0}
+table.entry th,table.entry td{padding:6px 10px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);font-size:13px}
+table.entry th{position:sticky;top:0;background:var(--surface-2);z-index:2}
+table.entry .frz{position:sticky;left:0;background:var(--surface);z-index:1;min-width:120px}
+table.entry th.frz{z-index:3;background:var(--surface-2)}
+table.entry .totcol{background:var(--surface-2);font-weight:600}
+table.entry input{width:62px;text-align:right;border:1px solid transparent;background:transparent;color:var(--text);font-family:ui-monospace,Menlo,monospace;font-size:13px;padding:3px 4px;border-radius:4px}
+table.entry input:focus{outline:none;border-color:var(--accent);background:var(--surface-2)}
+.daybad{font-size:11px;margin-left:6px}
+.toasts{position:fixed;top:16px;right:16px;display:flex;flex-direction:column;gap:8px;z-index:9999}
+.toast{background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:10px 14px;font-size:13px;display:flex;align-items:center;gap:8px;min-width:220px;animation:slin 150ms ease}
+@keyframes slin{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:none}}
+.dot{width:8px;height:8px;border-radius:50%}
+.ov{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;z-index:100}
+.slide{margin-left:auto;width:560px;max-width:96vw;height:100%;background:var(--surface);border-left:1px solid var(--border-strong);overflow-y:auto;animation:slx 180ms ease}
+@keyframes slx{from{transform:translateX(30px);opacity:.4}to{transform:none;opacity:1}}
+.modalc{margin:auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);padding:24px;max-width:520px;width:92vw}
+.cmdk{margin:80px auto auto;background:var(--surface);border:1px solid var(--border-strong);border-radius:var(--radius-md);width:560px;max-width:94vw;height:fit-content;max-height:70vh;overflow:hidden;display:flex;flex-direction:column}
+.cmdres{overflow-y:auto}
+.cmdrow{padding:8px 14px;cursor:pointer;display:flex;align-items:center;gap:8px;font-size:13px;border-bottom:1px solid var(--border)}
+.cmdrow:hover,.cmdrow.sel{background:var(--surface-2)}
+.sec{margin-bottom:24px}
+.sechd{display:flex;align-items:center;justify-content:between;gap:12px;margin-bottom:12px}
+.lbl{display:block;font-size:11px;font-weight:500;letter-spacing:.04em;text-transform:uppercase;color:var(--text-muted);margin-bottom:6px}
+.field{margin-bottom:14px}
+.field .input,.field select{width:100%}
+select.input{appearance:none}
+.heat{display:inline-block;width:100%;height:26px;border-radius:3px;text-align:center;line-height:26px;font-size:11px;font-variant-numeric:tabular-nums}
+.indent{padding-left:28px;border-left:2px solid var(--border);margin-left:6px}
+.empty{text-align:center;padding:48px 16px;color:var(--text-muted)}
+.empty svg{opacity:.14;margin-bottom:12px}
+.thread{border-left:2px solid var(--border);padding-left:12px;margin:8px 0}
+@media(max-width:640px){main{padding:12px}.hdr{flex-wrap:wrap}.slide{width:100%}.kpi .v{font-size:22px}}
+</style>
+</head>
+<body>
+<!-- ===== DN Platform Auth Gate v1.0 ===== -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style id="dn-auth-style">
+  html body > *:not(#dn-auth-overlay):not(script){display:none !important}
+  body{visibility:visible !important;background:#07091a !important}
+</style>
+<div id="dn-auth-overlay" style="position:fixed;inset:0;background:#07091a;display:flex;align-items:center;justify-content:center;z-index:99999;color:#e8eaf0;font-family:system-ui,-apple-system,sans-serif;padding:24px">
+  <div style="font-size:13px;color:#7a8099">Checking access…</div>
+</div>
+<script>
+(function(){
+  var SUPABASE_URL = 'https://qecxhohkclveludmorbv.supabase.co';
+  var SUPABASE_KEY = 'sb_publishable_dqszZlPGO2HjRcEDRD2Ufw_xpOqTB8s';
+  var APP_REQUEST_ID = '9ff5c608-28df-4c0c-833a-b6eee431e217';
+  var APP_TITLE = "DN Global Time Tracking & Resource Management System";
+  var o = document.getElementById('dn-auth-overlay');
+  function gateBox(html){ o.innerHTML = '<div style="max-width:420px;width:100%;padding:32px;background:#0c1024;border:1px solid rgba(255,255,255,0.1);border-radius:14px;box-shadow:0 10px 40px rgba(0,0,0,0.6)">' + html + '</div>'; }
+  function showSignIn(){ gateBox('<div style="font-weight:600;font-size:18px;color:#47d1ff;margin-bottom:6px">' + APP_TITLE + '</div><div style="font-size:13px;color:#b0b6c8;margin-bottom:22px">Sign in with your Digitata Networks account to continue.</div><button id=\'dn-signin-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">Sign in with Microsoft</button>'); document.getElementById('dn-signin-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Redirecting…'; try { await sb.auth.signInWithOAuth({ provider:'azure', options:{ scopes:'email', redirectTo: location.origin + location.pathname } }); } catch(e){ alert('Sign-in failed: ' + (e.message||e)); btn.disabled=false; btn.textContent='Sign in with Microsoft'; } }); }
+  function showDenied(email){ gateBox('<div style="font-weight:600;font-size:18px;color:#f05060;margin-bottom:6px">Access denied</div><div style="font-size:13px;color:#e8eaf0;margin-bottom:6px">You don\'t have access to <strong>' + APP_TITLE + '</strong>.</div><div style="font-size:12px;color:#7a8099;margin-bottom:18px">Signed in as <strong style="color:#e8eaf0">' + (email||'?') + '</strong>. Contact your DN admin to request access.</div><button id=\'dn-req-btn\' style="width:100%;padding:11px;background:#47d1ff;color:#07091a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;margin-bottom:8px">Request access</button><button id=\'dn-signout-btn\' style="width:100%;padding:11px;background:transparent;color:#e8eaf0;border:1px solid rgba(255,255,255,0.14);border-radius:8px;font-size:13px;cursor:pointer">Sign out</button>'); document.getElementById('dn-signout-btn').addEventListener('click', async function(){ try { await sb.auth.signOut(); } catch(e){} location.reload(); }); document.getElementById('dn-req-btn').addEventListener('click', async function(){ var btn=this; btn.disabled=true; btn.textContent='Sending…'; try { var session=(await sb.auth.getSession()).data.session; if(!session){ btn.textContent='Sign in first'; btn.disabled=false; return; } var resp = await fetch(SUPABASE_URL + '/rest/v1/access_requests', { method:'POST', headers:{ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token, 'Content-Type':'application/json', 'Prefer':'return=minimal' }, body: JSON.stringify({ request_id: APP_REQUEST_ID, user_id: session.user.id, status:'pending' }) }); if(resp.ok){ btn.textContent='✓ Request sent'; btn.style.background='#1d9e75'; btn.style.color='#e8eaf0'; } else { var tt = await resp.text(); if(tt.indexOf('duplicate')!==-1 || tt.indexOf('23505')!==-1){ btn.textContent='Already requested'; } else { btn.textContent='Failed: '+tt.slice(0,40); btn.disabled=false; } } } catch(e){ btn.textContent='Failed: '+(e.message||e).slice(0,40); btn.disabled=false; } }); }
+  function reveal(){ var s=document.getElementById('dn-auth-style'); if(s) s.remove(); if(o && o.parentNode) o.parentNode.removeChild(o); }
+  if (!window.supabase || !window.supabase.createClient) { gateBox('<div style="color:#f05060">Supabase SDK failed to load. Reload the page.</div>'); return; }
+  var sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, { auth:{ persistSession:true, autoRefreshToken:true, detectSessionInUrl:true } });
+  (async function(){ try { var sr=await sb.auth.getSession(); var session=sr && sr.data && sr.data.session; if(!session){ showSignIn(); return; } if(location.hash && location.hash.indexOf('access_token')!==-1){ try { history.replaceState(null,'',location.pathname+location.search); } catch(e){} } var userId=session.user.id; var headers={ 'apikey':SUPABASE_KEY, 'Authorization':'Bearer '+session.access_token }; var isAdmin=false,isCreator=false,isGranted=false; var checks=await Promise.all([ fetch(SUPABASE_URL+'/rest/v1/profiles?select=is_admin&id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/requests?select=creator_user_id,creator_access_revoked&id=eq.'+APP_REQUEST_ID,{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]), fetch(SUPABASE_URL+'/rest/v1/app_access?select=request_id&request_id=eq.'+APP_REQUEST_ID+'&user_id=eq.'+encodeURIComponent(userId),{headers}).then(r=>r.ok?r.json():[]).catch(()=>[]) ]); var prof=checks[0],reqRow=checks[1],grants=checks[2]; if(prof&&prof[0]) isAdmin=!!prof[0].is_admin; if(reqRow&&reqRow[0]) isCreator=(reqRow[0].creator_user_id===userId)&&!reqRow[0].creator_access_revoked; if(grants&&grants.length>0) isGranted=true; if(isAdmin||isCreator||isGranted){ reveal(); try{ var _lk='dn_open_'+APP_REQUEST_ID; var _last=0; try{_last=+(sessionStorage.getItem(_lk)||0);}catch(e){} if(Date.now()-_last>1800000){ try{sessionStorage.setItem(_lk,String(Date.now()));}catch(e){} fetch(SUPABASE_URL+'/rest/v1/activity_log',{method:'POST',headers:{'apikey':SUPABASE_KEY,'Authorization':'Bearer '+session.access_token,'Content-Type':'application/json','Prefer':'return=minimal'},body:JSON.stringify({request_id:APP_REQUEST_ID,actor:'end_user',actor_name:(session.user.email||session.user.id),action:'app_opened',description:'Opened '+APP_TITLE})}).catch(function(){}); } }catch(e){} } else { showDenied(session.user.email); } } catch(e){ console.error('DN auth gate failed:',e); gateBox('<div style="color:#f05060;font-size:13px">Auth check failed: '+(e.message||e)+'</div>'); } })();
+})();
+</script>
+<!-- ===== END DN Platform Auth Gate ===== -->
+
+<div class='app'>
+  <header class='hdr'>
+    <div class='brand'><div class='logo'>DG</div><span>DN&nbsp;Time</span></div>
+    <div class='pills' id='entityPills'></div>
+    <div class='spacer'></div>
+    <button class='btn-ghost' id='searchBtn'>Search&nbsp;<span class='subtle mono'>\u2318K</span></button>
+    <select class='input' id='roleSel' aria-label='Role view'>
+      <option value='employee'>Employee</option>
+      <option value='manager'>Manager</option>
+      <option value='finance'>Finance</option>
+      <option value='exec'>Executive</option>
+      <option value='admin'>Admin</option>
+    </select>
+    <button class='btn-ghost' id='themeBtn' aria-label='Toggle theme' title='Toggle theme'>\u25D0</button>
+  </header>
+  <nav class='subnav' id='subnav'></nav>
+  <main id='main'></main>
+</div>
+<div id='toasts' class='toasts'></div>
+<div id='ovroot'></div>
+
+<script>
+(function(){
+'use strict';
+var $=function(s,r){return (r||document).querySelector(s);};
+var $$=function(s,r){return Array.prototype.slice.call((r||document).querySelectorAll(s));};
+var esc=function(s){return String(s==null?'':s).replace(new RegExp('[&<>"]','g'),function(c){return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[c];});};
+
+/* ---------- formatting ---------- */
+var fmtMoney=function(n){if(n==null)return '\u2014';return '$'+Number(n).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});};
+var fmtH=function(n){if(n==null)return '\u2014';return Number(n).toLocaleString('en-US',{minimumFractionDigits:1,maximumFractionDigits:1});};
+var fmtPct=function(n){return (n>=0?'':'')+ (Number(n).toFixed(1))+'%';};
+var MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+var DOW=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+
+/* ---------- date helpers ---------- */
+function mondayOf(d){var x=new Date(d);var day=(x.getDay()+6)%7;x.setDate(x.getDate()-day);x.setHours(0,0,0,0);return x;}
+function addDays(d,n){var x=new Date(d);x.setDate(x.getDate()+n);return x;}
+function ymd(d){var y=d.getFullYear();var m=String(d.getMonth()+1);if(m.length<2)m='0'+m;var a=String(d.getDate());if(a.length<2)a='0'+a;return y+'-'+m+'-'+a;}
+function isoWeek(d){var x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()+3-((x.getDay()+6)%7));var w1=new Date(x.getFullYear(),0,4);return 1+Math.round(((x-w1)/86400000-3+((w1.getDay()+6)%7))/7);}
+function rangeLabel(ws){var we=addDays(ws,6);var a=MON[ws.getMonth()]+' '+ws.getDate();var b=(ws.getMonth()===we.getMonth()?we.getDate():MON[we.getMonth()]+' '+we.getDate());return a+'\u2013'+b+', '+we.getFullYear();}
+
+/* ---------- prng ---------- */
+function mulberry32(a){return function(){a|=0;a=a+0x6D2B79F5|0;var t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return ((t^t>>>14)>>>0)/4294967296;};}
+function shuffle(arr,r){var a=arr.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(r()*(i+1));var t=a[i];a[i]=a[j];a[j]=t;}return a;}
+
+/* ---------- domain data ---------- */
+var ENTITIES=['DNH','DNC','DNSA'];
+var ENTITY_NAME={DNH:'DN-Holdings',DNC:'DN-Corporation',DNSA:'DN-South Africa'};
+var CATEGORIES=['Development','Operations','Customer Experience','Overhead'];
+
+var PNL=[
+{id:'p1',name:'NetCM',cat:'Development'},
+{id:'p2',name:'NetAM',cat:'Development'},
+{id:'p3',name:'NetTOPO',cat:'Development'},
+{id:'p4',name:'AiDN',cat:'Development'},
+{id:'p5',name:'Flo',cat:'Development'},
+{id:'p6',name:'AiDN Studio',cat:'Development'},
+{id:'p7',name:'CeRC',cat:'Development'},
+{id:'p8',name:'Flexiplan',cat:'Development'},
+{id:'p9',name:'Field Services',cat:'Operations'},
+{id:'p10',name:'Network Operations',cat:'Operations'},
+{id:'p11',name:'Infrastructure',cat:'Operations'},
+{id:'p12',name:'Support Desk',cat:'Customer Experience'},
+{id:'p13',name:'Onboarding',cat:'Customer Experience'},
+{id:'p14',name:'Customer Success',cat:'Customer Experience'},
+{id:'p15',name:'Finance & Admin',cat:'Overhead'},
+{id:'p16',name:'People & HR',cat:'Overhead'},
+{id:'p17',name:'Leadership',cat:'Overhead'},
+{id:'leave',name:'Leave',cat:'Overhead'}
+];
+function pnlById(id){for(var i=0;i<PNL.length;i++)if(PNL[i].id===id)return PNL[i];return null;}
+function pnlBillable(p){return p.cat!=='Overhead';}
+
+var PROJECTS=[
+{id:'pr1',name:'NetCM Inventory Sync — VMO2',pnlId:'p1',entity:'DNH',customer:'VMO2',budget:1200,status:'active'},
+{id:'pr2',name:'NetCM Fault Correlation — MTN South Africa',pnlId:'p1',entity:'DNSA',customer:'MTN South Africa',budget:900,status:'active'},
+{id:'pr3',name:'NetAM Service Activation — Vodacom SA',pnlId:'p2',entity:'DNSA',customer:'Vodacom SA',budget:1100,status:'active'},
+{id:'pr4',name:'NetAM Order Orchestration — Globe Philippines',pnlId:'p2',entity:'DNC',customer:'Globe Philippines',budget:760,status:'active'},
+{id:'pr5',name:'NetTOPO Network Discovery — USCC',pnlId:'p3',entity:'DNC',customer:'USCC',budget:680,status:'active'},
+{id:'pr6',name:'NetTOPO Topology Engine — VMO2',pnlId:'p3',entity:'DNH',customer:'VMO2',budget:1100,status:'active'},
+{id:'pr7',name:'AiDN Anomaly Detection — MTN South Africa',pnlId:'p4',entity:'DNSA',customer:'MTN South Africa',budget:1450,status:'active'},
+{id:'pr8',name:'AiDN Predictive Maintenance — Vodacom SA',pnlId:'p4',entity:'DNSA',customer:'Vodacom SA',budget:2100,status:'active'},
+{id:'pr9',name:'Flo Workflow Automation — Globe Philippines',pnlId:'p5',entity:'DNC',customer:'Globe Philippines',budget:1800,status:'active'},
+{id:'pr10',name:'Flo Provisioning Pipeline — USCC',pnlId:'p5',entity:'DNC',customer:'USCC',budget:620,status:'active'},
+{id:'pr11',name:'AiDN Studio Model Ops — VMO2',pnlId:'p6',entity:'DNH',customer:'VMO2',budget:430,status:'active'},
+{id:'pr12',name:'AiDN Studio Assurance Dashboards — MTN South Africa',pnlId:'p6',entity:'DNSA',customer:'MTN South Africa',budget:1600,status:'active'},
+{id:'pr13',name:'CeRC Customer Records — Vodacom SA',pnlId:'p7',entity:'DNSA',customer:'Vodacom SA',budget:520,status:'active'},
+{id:'pr14',name:'CeRC Data Migration — Globe Philippines',pnlId:'p7',entity:'DNC',customer:'Globe Philippines',budget:740,status:'active'},
+{id:'pr15',name:'Flexiplan Capacity Planning — USCC',pnlId:'p8',entity:'DNC',customer:'USCC',budget:600,status:'active'},
+{id:'pr16',name:'Flexiplan RAN Optimisation — VMO2',pnlId:'p8',entity:'DNH',customer:'VMO2',budget:900,status:'active'},
+{id:'pr17',name:'Tower Maintenance Q3 — MTN South Africa',pnlId:'p9',entity:'DNSA',customer:'MTN South Africa',budget:1450,status:'active'},
+{id:'pr18',name:'Fibre Rollout — Vodacom SA',pnlId:'p9',entity:'DNSA',customer:'Vodacom SA',budget:2100,status:'active'},
+{id:'pr19',name:'NOC 24/7 Coverage — Globe Philippines',pnlId:'p10',entity:'DNC',customer:'Globe Philippines',budget:1800,status:'active'},
+{id:'pr20',name:'Data Centre Power Upgrade',pnlId:'p11',entity:'DNH',customer:'Internal',budget:620,status:'active'},
+{id:'pr21',name:'Cloud Cost Programme',pnlId:'p11',entity:'DNC',customer:'Internal',budget:430,status:'active'},
+{id:'pr22',name:'Tier-1 OSS Support — USCC',pnlId:'p12',entity:'DNSA',customer:'USCC',budget:1600,status:'active'},
+{id:'pr23',name:'Enterprise Onboarding — VMO2',pnlId:'p13',entity:'DNH',customer:'VMO2',budget:520,status:'active'},
+{id:'pr24',name:'Renewals & Health — Vodacom SA',pnlId:'p14',entity:'DNC',customer:'Vodacom SA',budget:740,status:'active'},
+{id:'pr25',name:'Finance Ops',pnlId:'p15',entity:'DNH',customer:'Internal',budget:600,status:'active'},
+{id:'pr26',name:'Recruiting Drive',pnlId:'p16',entity:'DNH',customer:'Internal',budget:300,status:'active'},
+{id:'pr27',name:'Exec & Strategy',pnlId:'p17',entity:'DNH',customer:'Internal',budget:400,status:'active'},
+{id:'pr28',name:'NetCM Legacy Billing (closed)',pnlId:'p1',entity:'DNC',customer:'USCC',budget:500,status:'archived'},
+{id:'leave',name:'Leave / Time Off',pnlId:'leave',entity:'ALL',customer:'',budget:0,status:'active'}
+];
+function projById(id){for(var i=0;i<PROJECTS.length;i++)if(PROJECTS[i].id===id)return PROJECTS[i];return null;}
+function breadcrumb(p){if(!p)return '';if(p.id==='leave')return 'Overhead > Leave';var pn=pnlById(p.pnlId);return pn.cat+' > '+pn.name+' > '+p.name;}
+
+var TEAMS=['Engineering','Field Ops','Customer Ex','Corporate'];
+var EMPLOYEES=[
+{id:'e1',name:'You (Demo User)',entity:'DNH',team:'Engineering',title:'Software Engineer',rate:62,cap:40,manager:'e9'},
+{id:'e2',name:'Amara Okafor',entity:'DNH',team:'Engineering',title:'Senior Engineer',rate:78,cap:40,manager:'e9'},
+{id:'e3',name:'Liam Botha',entity:'DNSA',team:'Field Ops',title:'Field Technician',rate:41,cap:40,manager:'e10'},
+{id:'e4',name:'Priya Naidoo',entity:'DNSA',team:'Field Ops',title:'Field Lead',rate:55,cap:40,manager:'e10'},
+{id:'e5',name:'Sofia Rossi',entity:'DNC',team:'Customer Ex',title:'Support Specialist',rate:38,cap:40,manager:'e11'},
+{id:'e6',name:'Marco Diaz',entity:'DNC',team:'Customer Ex',title:'Success Manager',rate:58,cap:40,manager:'e11'},
+{id:'e7',name:'Hannah Weber',entity:'DNH',team:'Engineering',title:'Data Scientist',rate:72,cap:40,manager:'e9'},
+{id:'e8',name:'Tariro Moyo',entity:'DNSA',team:'Field Ops',title:'NOC Engineer',rate:49,cap:40,manager:'e10'},
+{id:'e9',name:'David Chen',entity:'DNH',team:'Engineering',title:'Eng Manager',rate:95,cap:40,manager:'e12'},
+{id:'e10',name:'Nomvula Dube',entity:'DNSA',team:'Field Ops',title:'Ops Manager',rate:88,cap:40,manager:'e12'},
+{id:'e11',name:'Elena Petrova',entity:'DNC',team:'Customer Ex',title:'CX Manager',rate:84,cap:40,manager:'e12'},
+{id:'e12',name:'James Okonkwo',entity:'DNH',team:'Corporate',title:'COO',rate:140,cap:40,manager:null}
+];
+(function genEmployees(){
+  var fn=['Aisha','Bongani','Chen','Diego','Ethan','Fatima','Grace','Hugo','Ines','Jabu','Kabelo','Lerato','Mateo','Naledi','Omar','Pavel','Quinn','Rohan','Sipho','Thandi','Uche','Valentina','Wei','Xolani','Yusuf','Zinhle','Aaron','Bianca','Carlos','Dineo','Elena','Farai','Gugu','Henry','Isabel','Joseph','Karabo','Lindiwe','Musa','Nadia','Ola','Pieter','Refilwe','Samuel','Tebogo','Ursula','Vusi','Wendy','Yara','Zane'];
+  var ln=['Mokoena','Nkosi','Patel','Garcia','Smith','Khan','Dlamini','Botha','Naidoo','Rossi','Diaz','Weber','Moyo','Chen','Dube','Petrova','Okonkwo','Adeyemi','Santos','Mthembu','Vermeulen','Sithole','Ferreira','Maritz','Ndlovu','Reyes','Cruz','Mahlangu','Coetzee','Pillay','Govender','Nair','Marais','Zulu','Tshabalala','Mabaso','Jacobs','Pretorius','Singh','Hadebe'];
+  var titles={Engineering:['Software Engineer','Senior Engineer','QA Engineer','DevOps Engineer','Data Scientist','Solutions Architect','OSS Integration Engineer'],'Field Ops':['Field Technician','NOC Engineer','Network Engineer','Field Lead','Site Reliability Engineer'],'Customer Ex':['Support Specialist','Success Manager','Implementation Consultant','Onboarding Specialist','Account Engineer']};
+  var cfgs=[{team:'Engineering',entity:'DNH',mgr:'e9'},{team:'Engineering',entity:'DNC',mgr:'e9'},{team:'Field Ops',entity:'DNSA',mgr:'e10'},{team:'Field Ops',entity:'DNSA',mgr:'e10'},{team:'Customer Ex',entity:'DNC',mgr:'e11'},{team:'Customer Ex',entity:'DNSA',mgr:'e11'},{team:'Engineering',entity:'DNSA',mgr:'e9'},{team:'Customer Ex',entity:'DNH',mgr:'e11'}];
+  var r=mulberry32(99);var id=13;var seen={};
+  for(var i=0;i<68;i++){
+    var nm;var guard=0;do{var f=fn[Math.floor(r()*fn.length)];var l=ln[Math.floor(r()*ln.length)];nm=f+' '+l;guard++;}while(seen[nm]&&guard<20);seen[nm]=1;
+    var cfg=cfgs[Math.floor(r()*cfgs.length)];
+    var tArr=titles[cfg.team];var t=tArr[Math.floor(r()*tArr.length)];
+    var rate=35+Math.floor(r()*60);
+    EMPLOYEES.push({id:'e'+id,name:nm,entity:cfg.entity,team:cfg.team,title:t,rate:rate,cap:40,manager:cfg.mgr});
+    id++;
+  }
+})();
+function empById(id){for(var i=0;i<EMPLOYEES.length;i++)if(EMPLOYEES[i].id===id)return EMPLOYEES[i];return null;}
+
+/* ---------- seed entries ---------- */
+var ENTRIES=[];
+var AUDIT=[];
+var SUBMISSIONS={}; /* key empId|weekKey -> {status, comments:[]} */
+function weekKey(d){return ymd(mondayOf(d));}
+(function seed(){
+  var r=mulberry32(7);var id=1;var weeks=9;var base=mondayOf(new Date());
+  EMPLOYEES.forEach(function(emp){
+    var projs=PROJECTS.filter(function(p){return p.status==='active'&&p.id!=='leave'&&(p.entity===emp.entity);});
+    var mine=shuffle(projs,r).slice(0,2+Math.floor(r()*2));
+    if(mine.length===0)mine=[projs[0]||PROJECTS[0]];
+    for(var w=1;w<weeks;w++){
+      var ws=addDays(base,-7*w);
+      var wk=weekKey(ws);
+      for(var di=0;di<5;di++){
+        var date=ymd(addDays(ws,di));var rem=8;
+        mine.forEach(function(p,ix){
+          if(rem<=0)return;
+          var h=(ix===mine.length-1)?rem:Math.round(r()*rem*0.7*10)/10;
+          if(h<0)h=0;rem-=h;
+          if(h>0.05)ENTRIES.push({id:id++,empId:emp.id,date:date,projectId:p.id,hours:h,type:'work',by:emp.id,at:date+'T17:30'});
+        });
+      }
+      if(r()<0.18){var ld=ymd(addDays(ws,4));ENTRIES.push({id:id++,empId:emp.id,date:ld,projectId:'leave',hours:8,type:'leave',by:emp.id,at:ld+'T09:00'});}
+      SUBMISSIONS[emp.id+'|'+wk]={status:(w<=2?(r()<0.5?'submitted':'approved'):'approved'),comments:[]};
+    }
+    emp._projs=mine.map(function(p){return p.id;});
+  });
+})();
+function nextId(){var m=0;ENTRIES.forEach(function(e){if(e.id>m)m=e.id;});return m+1;}
+
+/* ---------- state ---------- */
+var state={
+  view:'entry',role:'employee',
+  currentEmp:'e1',
+  entities:['DNH'],
+  weekStart:mondayOf(new Date()),
+  manualAdds:{},
+  reportPeriod:'month',reportCompare:'none',reportSort:'cost',
+  resWeeks:6,
+  recents:[]
+};
+state.theme=(window.matchMedia&&window.matchMedia('(prefers-color-scheme: dark)').matches)?'dark':'light';
+document.documentElement.dataset.theme=state.theme;
+
+var ROLE_TABS={employee:['entry','reports'],manager:['entry','reports','resources','approvals'],finance:['reports','resources','export'],exec:['reports','resources'],admin:['entry','reports','resources','approvals','export','admin']};
+var TAB_LABEL={entry:'Time Entry',reports:'Reports',resources:'Resources',approvals:'Approvals',admin:'Admin',export:'Export'};
+
+/* ---------- toast ---------- */
+function toast(msg,kind){var t=document.createElement('div');t.className='toast';var col=kind==='error'?'var(--danger)':kind==='info'?'var(--info)':'var(--success)';var ico=kind==='error'?'\u2715':kind==='info'?'\u2139':'\u2713';t.innerHTML='<span class="dot" style="background:'+col+'"></span><span>'+esc(msg)+'</span>';$('#toasts').appendChild(t);setTimeout(function(){t.style.transition='opacity .3s';t.style.opacity='0';setTimeout(function(){t.remove();},300);},4200);}
+var saveTimer=null;function autosave(){clearTimeout(saveTimer);saveTimer=setTimeout(function(){toast('Saved \u2014 changes synced','success');},600);}
+
+/* ---------- entity selection ---------- */
+function roleCanMulti(){return state.role==='finance'||state.role==='admin'||state.role==='exec';}
+function activeEntities(){if(roleCanMulti())return state.entities.length?state.entities:ENTITIES.slice();return [empById(state.currentEmp).entity];}
+
+function renderEntities(){
+  var box=$('#entityPills');var multi=roleCanMulti();var act=activeEntities();
+  box.innerHTML=ENTITIES.map(function(e){var on=act.indexOf(e)>=0;return '<button class="pill'+(on?' on':'')+'" data-ent="'+e+'"'+(multi?'':(on?'':' disabled'))+' title="'+ENTITY_NAME[e]+'">'+e+'</button>';}).join('');
+  $$('[data-ent]',box).forEach(function(b){b.addEventListener('click',function(){if(!multi)return;var e=b.dataset.ent;var i=state.entities.indexOf(e);if(i>=0){if(state.entities.length>1)state.entities.splice(i,1);}else state.entities.push(e);renderEntities();render();});});
+}
+
+/* ---------- nav ---------- */
+function renderNav(){
+  var tabs=ROLE_TABS[state.role];
+  if(tabs.indexOf(state.view)<0)state.view=tabs[0];
+  $('#subnav').innerHTML=tabs.map(function(t){return '<button class="tab'+(t===state.view?' on':'')+'" data-tab="'+t+'">'+TAB_LABEL[t]+'</button>';}).join('');
+  $$('[data-tab]').forEach(function(b){b.addEventListener('click',function(){state.view=b.dataset.tab;renderNav();render();});});
+}
+
+/* =========================================================
+   TIME ENTRY VIEW
+========================================================= */
+function getWeekProjects(){
+  var wk=weekKey(state.weekStart);var emp=state.currentEmp;var set={};
+  ENTRIES.forEach(function(e){if(e.empId===emp){var d=new Date(e.date);if(weekKey(d)===wk)set[e.projectId]=1;}});
+  (state.manualAdds[wk]||[]).forEach(function(p){set[p]=1;});
+  var ids=Object.keys(set);
+  if(ids.length===0)return [];
+  ids.sort(function(a,b){if(a==='leave')return 1;if(b==='leave')return -1;return (projById(a).name<projById(b).name?-1:1);});
+  return ids;
+}
+function getHours(date,pid){for(var i=0;i<ENTRIES.length;i++){var e=ENTRIES[i];if(e.empId===state.currentEmp&&e.date===date&&e.projectId===pid)return e.hours;}return null;}
+function setHours(date,pid,val){
+  var v=parseFloat(val);if(isNaN(v)||v<0)v=0;v=Math.round(v*10)/10;
+  var found=null;for(var i=0;i<ENTRIES.length;i++){var e=ENTRIES[i];if(e.empId===state.currentEmp&&e.date===date&&e.projectId===pid){found=e;break;}}
+  if(v===0){if(found){ENTRIES=ENTRIES.filter(function(x){return x!==found;});AUDIT.unshift({who:state.currentEmp,act:'cleared',pid:pid,date:date,at:new Date().toISOString()});}}
+  else if(found){if(found.hours!==v){AUDIT.unshift({who:state.currentEmp,act:'edited '+found.hours+'\u2192'+v,pid:pid,date:date,at:new Date().toISOString()});}found.hours=v;found.at=new Date().toISOString();}
+  else{ENTRIES.push({id:nextId(),empId:state.currentEmp,date:date,projectId:pid,hours:v,type:(pid==='leave'?'leave':'work'),by:state.currentEmp,at:new Date().toISOString()});AUDIT.unshift({who:state.currentEmp,act:'entered '+v,pid:pid,date:date,at:new Date().toISOString()});}
+  autosave();
+}
+function renderEntry(){
+  var emp=empById(state.currentEmp);var ws=state.weekStart;var wk=weekKey(ws);var days=[];for(var i=0;i<7;i++)days.push(addDays(ws,i));
+  var projs=getWeekProjects();
+  var sub=SUBMISSIONS[emp.id+'|'+wk];var status=sub?sub.status:'draft';
+  var statusBadge=status==='approved'?'badge-success':status==='submitted'?'badge-info':status==='rejected'?'badge-danger':'badge-neutral';
+  var h='';
+  h+='<div class="row wrap" style="justify-content:space-between;margin-bottom:14px">';
+  h+='<div class="row wrap">';
+  h+='<button class="btn-secondary" id="prevW">\u2039</button>';
+  h+='<button class="btn-secondary" id="todayW">Today</button>';
+  h+='<button class="btn-secondary" id="nextW">\u203A</button>';
+  h+='<div style="margin-left:8px"><div style="font-size:16px;font-weight:600">'+rangeLabel(ws)+'</div><div class="cap">Fiscal week '+isoWeek(ws)+' \u00b7 '+esc(emp.name)+' \u00b7 '+emp.entity+'</div></div>';
+  h+='<span class="badge '+statusBadge+'" style="margin-left:10px">'+status+'</span>';
+  h+='</div>';
+  h+='<div class="row wrap">';
+  h+='<button class="btn-secondary" id="copyW">Copy structure to this week</button>';
+  h+='<button class="btn-secondary" id="addProj">+ Add project</button>';
+  h+='<button class="btn-primary" id="submitW">'+(status==='submitted'||status==='approved'?'Resubmit':'Submit week')+'</button>';
+  h+='</div></div>';
+
+  if(projs.length===0){
+    h+='<div class="card empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg><div style="font-weight:600;margin-bottom:4px">No time logged this week</div><div class="muted" style="margin-bottom:14px">Add a project to start logging hours, or copy last week\u2019s structure.</div><button class="btn-primary" id="addProj2">+ Add project</button></div>';
+    $('#main').innerHTML=h;bindEntryHead();var ap2=$('#addProj2');if(ap2)ap2.addEventListener('click',openAddProject);return;
+  }
+  h+='<div class="gridwrap"><table class="entry"><thead><tr>';
+  h+='<th class="frz">Day</th>';
+  projs.forEach(function(pid){var p=projById(pid);h+='<th title="'+esc(breadcrumb(p))+'"><div>'+esc(p.name)+'</div><div class="subtle" style="font-weight:400;font-size:10px;text-transform:none;letter-spacing:0">'+esc(p.id==='leave'?'Non-billable':pnlById(p.pnlId).name)+'</div></th>';});
+  h+='<th class="totcol" style="text-align:right">Total</th></tr></thead><tbody>';
+  days.forEach(function(d,di){
+    var date=ymd(d);var dtot=0;
+    h+='<tr><td class="frz"><div style="font-weight:500">'+DOW[di]+'</div><div class="subtle" style="font-size:11px">'+MON[d.getMonth()]+' '+d.getDate()+'</div></td>';
+    projs.forEach(function(pid){var v=getHours(date,pid);if(v)dtot+=v;h+='<td style="text-align:right"><input type="number" step="0.1" min="0" data-date="'+date+'" data-pid="'+pid+'" value="'+(v!=null?v:'')+'" placeholder="\u2013"></td>';});
+    var off=Math.abs(dtot-8)>0.05&&dtot>0;
+    h+='<td class="totcol num">'+(dtot>0?fmtH(dtot):'\u2014')+(off?'<span class="daybad badge '+(dtot>8?'badge-warning':'badge-neutral')+'">'+(dtot>8?'+':'')+fmtH(dtot-8)+'</span>':'')+'</td></tr>';
+  });
+  /* totals row */
+  var wtot=0;
+  h+='<tr style="font-weight:600"><td class="frz totcol">Week total</td>';
+  projs.forEach(function(pid){var pt=0;days.forEach(function(d){var v=getHours(ymd(d),pid);if(v)pt+=v;});wtot+=pt;h+='<td class="totcol num">'+(pt>0?fmtH(pt):'\u2014')+'</td>';});
+  h+='<td class="totcol num">'+fmtH(wtot)+'</td></tr>';
+  h+='</tbody></table></div>';
+  h+='<div class="muted" style="margin-top:10px;font-size:12px">Hours auto-save as you type. Enter in 0.1 increments \u2014 no rounding applied. Target 40.0h / week (8.0h / day).</div>';
+  $('#main').innerHTML=h;
+  bindEntryHead();
+  $$('table.entry input').forEach(function(inp){
+    inp.addEventListener('change',function(){setHours(inp.dataset.date,inp.dataset.pid,inp.value);renderEntry();});
+    inp.addEventListener('keydown',function(ev){if(ev.key==='Enter'){inp.blur();}if(ev.key==='Escape'){inp.value=(getHours(inp.dataset.date,inp.dataset.pid)||'');inp.blur();}});
+  });
+}
+function bindEntryHead(){
+  var pv=$('#prevW');if(pv)pv.addEventListener('click',function(){state.weekStart=addDays(state.weekStart,-7);renderEntry();});
+  var nx=$('#nextW');if(nx)nx.addEventListener('click',function(){state.weekStart=addDays(state.weekStart,7);renderEntry();});
+  var td=$('#todayW');if(td)td.addEventListener('click',function(){state.weekStart=mondayOf(new Date());renderEntry();});
+  var ap=$('#addProj');if(ap)ap.addEventListener('click',openAddProject);
+  var cp=$('#copyW');if(cp)cp.addEventListener('click',copyWeekStructure);
+  var sw=$('#submitW');if(sw)sw.addEventListener('click',submitWeek);
+}
+function submitWeek(){var wk=weekKey(state.weekStart);var k=state.currentEmp+'|'+wk;var tot=0;var days=[];for(var i=0;i<7;i++)days.push(ymd(addDays(state.weekStart,i)));ENTRIES.forEach(function(e){if(e.empId===state.currentEmp&&days.indexOf(e.date)>=0)tot+=e.hours;});if(tot<=0){toast('Nothing to submit \u2014 log hours first','error');return;}SUBMISSIONS[k]={status:'submitted',comments:(SUBMISSIONS[k]&&SUBMISSIONS[k].comments)||[]};toast('Week submitted for approval ('+fmtH(tot)+'h)','success');renderEntry();}
+function copyWeekStructure(){
+  var prev=addDays(state.weekStart,-7);var pwk=weekKey(prev);var set={};
+  ENTRIES.forEach(function(e){if(e.empId===state.currentEmp&&weekKey(new Date(e.date))===pwk)set[e.projectId]=1;});
+  (state.manualAdds[pwk]||[]).forEach(function(p){set[p]=1;});
+  var ids=Object.keys(set);if(ids.length===0){toast('Previous week has no structure to copy','error');return;}
+  var cwk=weekKey(state.weekStart);state.manualAdds[cwk]=(state.manualAdds[cwk]||[]).concat(ids);
+  toast('Copied '+ids.length+' project rows (hours zeroed)','success');renderEntry();
+}
+function openAddProject(){
+  var emp=empById(state.currentEmp);
+  var avail=PROJECTS.filter(function(p){return p.status==='active'&&(p.entity===emp.entity||p.entity==='ALL');});
+  var ov=document.createElement('div');ov.className='ov';
+  ov.innerHTML='<div class="modalc"><h2 style="font-size:16px;margin-bottom:4px">Add project to week</h2><div class="muted" style="font-size:13px;margin-bottom:12px">Type to search by project, P&amp;L center or category.</div><input class="input" id="projSearch" placeholder="Search projects\u2026" style="width:100%;margin-bottom:10px" autocomplete="off"><div id="projList" style="max-height:320px;overflow:auto"></div><div class="row" style="justify-content:flex-end;margin-top:14px"><button class="btn-secondary" id="closeAdd">Cancel</button></div></div>';
+  $('#ovroot').appendChild(ov);
+  function paint(q){
+    q=(q||'').toLowerCase();
+    var recents=state.recents.map(projById).filter(Boolean);
+    var list=avail.filter(function(p){if(!q)return true;return (p.name+' '+breadcrumb(p)).toLowerCase().indexOf(q)>=0;});
+    var html='';
+    if(!q&&recents.length){html+='<div class="cap" style="padding:6px 4px">Recent</div>';recents.slice(0,4).forEach(function(p){html+=rowHtml(p);});html+='<div class="cap" style="padding:6px 4px;margin-top:6px">All projects</div>';}
+    if(list.length===0)html+='<div class="muted" style="padding:14px">No matching projects.</div>';
+    list.forEach(function(p){html+=rowHtml(p);});
+    $('#projList').innerHTML=html;
+    $$('#projList [data-add]').forEach(function(b){b.addEventListener('click',function(){addProjectToWeek(b.dataset.add);ov.remove();});});
+  }
+  function rowHtml(p){return '<div class="cmdrow" data-add="'+p.id+'"><div><div style="font-weight:500">'+esc(p.name)+'</div><div class="subtle" style="font-size:11px">'+esc(breadcrumb(p))+' \u00b7 '+(p.entity==='ALL'?'all entities':p.entity)+'</div></div></div>';}
+  paint('');
+  $('#projSearch').addEventListener('input',function(){paint(this.value);});
+  $('#projSearch').focus();
+  $('#closeAdd').addEventListener('click',function(){ov.remove();});
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+}
+function addProjectToWeek(pid){var wk=weekKey(state.weekStart);if(!state.manualAdds[wk])state.manualAdds[wk]=[];if(state.manualAdds[wk].indexOf(pid)<0)state.manualAdds[wk].push(pid);state.recents=[pid].concat(state.recents.filter(function(x){return x!==pid;})).slice(0,8);toast('Added '+projById(pid).name,'info');renderEntry();}
+
+/* =========================================================
+   REPORTS
+========================================================= */
+function periodRange(period,offset){
+  offset=offset||0;var now=new Date();
+  if(period==='week'){var ws=mondayOf(addDays(now,offset*7));return [ws,addDays(ws,7)];}
+  if(period==='month'){var m=new Date(now.getFullYear(),now.getMonth()+offset,1);return [m,new Date(now.getFullYear(),now.getMonth()+offset+1,1)];}
+  var q=Math.floor(now.getMonth()/3)+offset;var y=now.getFullYear()+Math.floor(q/4);var qq=((q%4)+4)%4;return [new Date(y,qq*3,1),new Date(y,qq*3+3,1)];}
+function entriesIn(start,end){var ents=activeEntities();return ENTRIES.filter(function(e){var d=new Date(e.date);if(d<start||d>=end)return false;var emp=empById(e.empId);if(e.projectId==='leave')return true;return ents.indexOf(emp.entity)>=0||ents.indexOf(projById(e.projectId).entity)>=0;});}
+function rollup(start,end){
+  var ents=entriesIn(start,end);var byPnl={};var total={hours:0,cost:0,bill:0,billCost:0};
+  ents.forEach(function(e){var emp=empById(e.empId);var p=projById(e.projectId);var pn=pnlById(p.pnlId);var cost=e.hours*emp.rate;var bill=pnlBillable(pn);
+    if(!byPnl[pn.id])byPnl[pn.id]={pnl:pn,hours:0,cost:0,projects:{}};
+    byPnl[pn.id].hours+=e.hours;byPnl[pn.id].cost+=cost;
+    if(!byPnl[pn.id].projects[p.id])byPnl[pn.id].projects[p.id]={proj:p,hours:0,cost:0};
+    byPnl[pn.id].projects[p.id].hours+=e.hours;byPnl[pn.id].projects[p.id].cost+=cost;
+    total.hours+=e.hours;total.cost+=cost;if(bill){total.bill+=e.hours;total.billCost+=cost;}
+  });
+  return {byPnl:byPnl,total:total};
+}
+function renderReports(){
+  var pr=periodRange(state.reportPeriod,0);var cur=rollup(pr[0],pr[1]);
+  var cmpData=null,cmpLabel='';
+  if(state.reportCompare==='prev'){var pp=periodRange(state.reportPeriod,-1);cmpData=rollup(pp[0],pp[1]);cmpLabel='Prior '+state.reportPeriod;}
+  var totAvail=0;activeEntities().forEach(function(en){EMPLOYEES.forEach(function(emp){if(emp.entity===en)totAvail+=emp.cap;});});
+  var weeksInPeriod=state.reportPeriod==='week'?1:state.reportPeriod==='month'?4.33:13;
+  var capacity=totAvail*weeksInPeriod;
+  var util=capacity>0?(cur.total.bill/capacity*100):0;
+  var overhead=cur.total.hours>0?((cur.total.hours-cur.total.bill)/cur.total.hours*100):0;
+  /* completion */
+  var compWk=lastFullWeekCompletion();
+  var h='';
+  h+='<div class="row wrap" style="justify-content:space-between;margin-bottom:14px">';
+  h+='<div><div style="font-size:20px;font-weight:600">Financial Reports</div><div class="cap">'+activeEntities().join(' \u00b7 ')+' \u00b7 '+ymd(pr[0])+' \u2192 '+ymd(addDays(pr[1],-1))+'</div></div>';
+  h+='<div class="row wrap">';
+  h+='<select class="input" id="rpPeriod"><option value="week"'+(state.reportPeriod==='week'?' selected':'')+'>This Week</option><option value="month"'+(state.reportPeriod==='month'?' selected':'')+'>This Month</option><option value="quarter"'+(state.reportPeriod==='quarter'?' selected':'')+'>This Quarter</option></select>';
+  h+='<select class="input" id="rpCompare"><option value="none"'+(state.reportCompare==='none'?' selected':'')+'>No comparison</option><option value="prev"'+(state.reportCompare==='prev'?' selected':'')+'>vs Last Period</option><option value="budget"'+(state.reportCompare==='budget'?' selected':'')+'>vs Budget</option></select>';
+  h+='<button class="btn-secondary" id="rpExport">Export CSV</button>';
+  h+='</div></div>';
+  /* KPIs */
+  h+='<div class="grid-kpi">';
+  h+=kpi(fmtPct(util),'Utilization Rate',fmtH(cur.total.bill)+' / '+fmtH(capacity)+'h billable');
+  h+=kpi(fmtMoney(cur.total.cost),'Total Labor Cost',fmtH(cur.total.hours)+'h logged');
+  h+=kpi(fmtPct(overhead),'Overhead Ratio',fmtH(cur.total.hours-cur.total.bill)+'h non-billable');
+  h+=kpi(fmtPct(compWk.rate),'Timesheet Completion',compWk.done+' / '+compWk.exp+' last week');
+  h+='</div>';
+  /* distribution */
+  h+='<div class="card sec"><div class="cap" style="margin-bottom:10px">Cost distribution by category</div>';
+  var catTot={};CATEGORIES.forEach(function(c){catTot[c]=0;});Object.keys(cur.byPnl).forEach(function(k){catTot[cur.byPnl[k].pnl.cat]+=cur.byPnl[k].cost;});
+  h+='<table><tbody>';CATEGORIES.forEach(function(c){var pct=cur.total.cost>0?(catTot[c]/cur.total.cost*100):0;h+='<tr><td style="width:200px;font-weight:500">'+c+'</td><td><div style="background:var(--surface-2);border-radius:3px;height:8px;overflow:hidden"><div style="width:'+pct.toFixed(1)+'%;height:8px;background:var(--accent)"></div></div></td><td class="num" style="width:120px">'+fmtMoney(catTot[c])+'</td><td class="num" style="width:70px">'+pct.toFixed(1)+'%</td></tr>';});h+='</tbody></table></div>';
+  /* rollup table */
+  h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="cap">P&amp;L roll-up '+(cmpLabel?'\u00b7 '+cmpLabel:state.reportCompare==='budget'?'\u00b7 vs Budget (hours)':'')+'</div><div class="muted" style="font-size:12px">Click any row to drill into timesheets</div></div>';
+  h+='<table><thead><tr><th>P&amp;L center / project</th><th class="num">Hours</th><th class="num">Cost</th>';
+  if(state.reportCompare==='prev')h+='<th class="num">\u0394 Cost</th><th class="num">\u0394 %</th>';
+  if(state.reportCompare==='budget')h+='<th class="num">Budget h</th><th class="num">Var h</th>';
+  h+='</tr></thead><tbody>';
+  var anyRow=false;
+  CATEGORIES.forEach(function(cat){
+    var pnls=Object.keys(cur.byPnl).map(function(k){return cur.byPnl[k];}).filter(function(x){return x.pnl.cat===cat;});
+    pnls.sort(function(a,b){return state.reportSort==='cost'?(b.cost-a.cost):(a.pnl.name<b.pnl.name?-1:1);});
+    if(pnls.length===0)return;
+    anyRow=true;
+    h+='<tr style="background:var(--surface-2)"><td colspan="6" class="cap" style="padding:6px 12px">'+cat+'</td></tr>';
+    pnls.forEach(function(g){
+      h+='<tr class="clk" data-pnl="'+g.pnl.id+'"><td style="font-weight:500">'+esc(g.pnl.name)+'</td><td class="num">'+fmtH(g.hours)+'</td><td class="num">'+fmtMoney(g.cost)+'</td>';
+      if(state.reportCompare==='prev'){var pc=cmpData&&cmpData.byPnl[g.pnl.id]?cmpData.byPnl[g.pnl.id].cost:0;var dd=g.cost-pc;var dp=pc>0?(dd/pc*100):0;h+='<td class="num '+(dd>=0?'up':'down')+'">'+(dd>=0?'+':'\u2212')+fmtMoney(Math.abs(dd)).slice(1)+'</td><td class="num '+(dd>=0?'up':'down')+'">'+(dd>=0?'+':'\u2212')+Math.abs(dp).toFixed(1)+'%</td>';}
+      if(state.reportCompare==='budget'){var bud=0;Object.keys(g.projects).forEach(function(pk){bud+=projById(pk).budget;});var vh=g.hours-bud;h+='<td class="num">'+(bud>0?fmtH(bud):'\u2014')+'</td><td class="num '+(vh<=0?'up':'down')+'">'+(bud>0?(vh>=0?'+':'\u2212')+fmtH(Math.abs(vh)):'\u2014')+'</td>';}
+      h+='</tr>';
+      var prjs=Object.keys(g.projects).map(function(pk){return g.projects[pk];}).sort(function(a,b){return b.cost-a.cost;});
+      prjs.forEach(function(pj){
+        h+='<tr class="clk" data-proj="'+pj.proj.id+'"><td style="padding-left:32px" class="muted">'+esc(pj.proj.name)+'</td><td class="num">'+fmtH(pj.hours)+'</td><td class="num">'+fmtMoney(pj.cost)+'</td>';
+        if(state.reportCompare==='prev'){h+='<td></td><td></td>';}
+        if(state.reportCompare==='budget'){var b2=pj.proj.budget;var v2=pj.hours-b2;h+='<td class="num muted">'+(b2>0?fmtH(b2):'\u2014')+'</td><td class="num '+(v2<=0?'up':'down')+'">'+(b2>0?(v2>=0?'+':'\u2212')+fmtH(Math.abs(v2)):'\u2014')+'</td>';}
+        h+='</tr>';
+      });
+    });
+  });
+  h+='</tbody><tfoot><tr style="font-weight:600"><td>Total</td><td class="num">'+fmtH(cur.total.hours)+'</td><td class="num">'+fmtMoney(cur.total.cost)+'</td>'+(state.reportCompare==='prev'?'<td></td><td></td>':'')+(state.reportCompare==='budget'?'<td></td><td></td>':'')+'</tr></tfoot></table>';
+  if(!anyRow)h+='<div class="empty"><div style="font-weight:600">No time recorded in this period</div><div class="muted">Adjust the period or entity selection above.</div></div>';
+  h+='</div>';
+  $('#main').innerHTML=h;
+  $('#rpPeriod').addEventListener('change',function(){state.reportPeriod=this.value;renderReports();});
+  $('#rpCompare').addEventListener('change',function(){state.reportCompare=this.value;renderReports();});
+  $('#rpExport').addEventListener('click',function(){exportReportCSV(pr[0],pr[1]);});
+  $$('[data-pnl]').forEach(function(r){r.addEventListener('click',function(){drillPnl(r.dataset.pnl,pr[0],pr[1]);});});
+  $$('[data-proj]').forEach(function(r){r.addEventListener('click',function(ev){ev.stopPropagation();drillProject(r.dataset.proj,pr[0],pr[1]);});});
+}
+function kpi(v,l,d){return '<div class="card kpi"><div class="v">'+v+'</div><div class="l cap">'+l+'</div><div class="d muted">'+d+'</div></div>';}
+function lastFullWeekCompletion(){var ws=mondayOf(addDays(new Date(),-7));var wk=weekKey(ws);var ents=activeEntities();var exp=0,done=0;EMPLOYEES.forEach(function(emp){if(ents.indexOf(emp.entity)<0)return;exp++;var s=SUBMISSIONS[emp.id+'|'+wk];if(s&&(s.status==='submitted'||s.status==='approved'))done++;});return {exp:exp,done:done,rate:exp>0?(done/exp*100):0,wk:ws};}
+function drillProject(pid,start,end){
+  var p=projById(pid);var rows=ENTRIES.filter(function(e){if(e.projectId!==pid)return false;var d=new Date(e.date);return d>=start&&d<end;});
+  var byEmp={};rows.forEach(function(e){if(!byEmp[e.empId])byEmp[e.empId]={hours:0,cost:0};byEmp[e.empId].hours+=e.hours;byEmp[e.empId].cost+=e.hours*empById(e.empId).rate;});
+  var totH=0,totC=0;Object.keys(byEmp).forEach(function(k){totH+=byEmp[k].hours;totC+=byEmp[k].cost;});
+  var budPct=p.budget>0?(totH/p.budget*100):0;
+  var alert=budPct>=120?'badge-danger':budPct>=100?'badge-danger':budPct>=80?'badge-warning':'badge-success';
+  var h='<div class="slide"><div style="padding:20px">';
+  h+='<div class="row" style="justify-content:space-between"><div><div style="font-size:18px;font-weight:600">'+esc(p.name)+'</div><div class="cap">'+esc(breadcrumb(p))+'</div></div><button class="btn-ghost" id="closeSlide">\u2715</button></div>';
+  h+='<div class="grid-kpi" style="margin-top:16px;grid-template-columns:1fr 1fr">';
+  h+=kpi(fmtH(totH),'Hours consumed',(p.budget>0?'of '+fmtH(p.budget)+'h budget':'no budget set'));
+  h+=kpi(fmtMoney(totC),'Labor cost','loaded rates');
+  h+='</div>';
+  if(p.budget>0)h+='<div class="card" style="margin-bottom:14px"><div class="row" style="justify-content:space-between"><span class="cap">Budget burn</span><span class="badge '+alert+'">'+budPct.toFixed(0)+'%</span></div><div style="background:var(--surface-2);border-radius:3px;height:8px;margin-top:8px;overflow:hidden"><div style="width:'+Math.min(100,budPct).toFixed(1)+'%;height:8px;background:'+(budPct>=100?'var(--danger)':budPct>=80?'var(--warning)':'var(--accent)')+'"></div></div></div>';
+  h+='<div class="cap" style="margin-bottom:8px">Employee timesheets</div><table><thead><tr><th>Employee</th><th class="num">Hours</th><th class="num">Cost</th></tr></thead><tbody>';
+  var keys=Object.keys(byEmp).sort(function(a,b){return byEmp[b].cost-byEmp[a].cost;});
+  if(keys.length===0)h+='<tr><td colspan="3" class="muted">No timesheet entries in this period.</td></tr>';
+  keys.forEach(function(k){var emp=empById(k);h+='<tr><td>'+esc(emp.name)+'<div class="subtle" style="font-size:11px">'+esc(emp.title)+' \u00b7 '+emp.entity+'</div></td><td class="num">'+fmtH(byEmp[k].hours)+'</td><td class="num">'+fmtMoney(byEmp[k].cost)+'</td></tr>';});
+  h+='</tbody></table></div></div>';
+  openSlide(h);
+}
+function drillPnl(pid,start,end){
+  var pn=pnlById(pid);var rows=entriesIn(start,end).filter(function(e){return projById(e.projectId).pnlId===pid;});
+  var byProj={};rows.forEach(function(e){var p=projById(e.projectId);if(!byProj[p.id])byProj[p.id]={proj:p,hours:0,cost:0};byProj[p.id].hours+=e.hours;byProj[p.id].cost+=e.hours*empById(e.empId).rate;});
+  var h='<div class="slide"><div style="padding:20px">';
+  h+='<div class="row" style="justify-content:space-between"><div><div style="font-size:18px;font-weight:600">'+esc(pn.name)+'</div><div class="cap">'+pn.cat+' \u00b7 P&amp;L center</div></div><button class="btn-ghost" id="closeSlide">\u2715</button></div>';
+  h+='<table style="margin-top:16px"><thead><tr><th>Project</th><th class="num">Hours</th><th class="num">Cost</th><th class="num">Budget h</th></tr></thead><tbody>';
+  Object.keys(byProj).sort(function(a,b){return byProj[b].cost-byProj[a].cost;}).forEach(function(k){var g=byProj[k];h+='<tr class="clk" data-dp="'+k+'"><td>'+esc(g.proj.name)+'</td><td class="num">'+fmtH(g.hours)+'</td><td class="num">'+fmtMoney(g.cost)+'</td><td class="num muted">'+(g.proj.budget>0?fmtH(g.proj.budget):'\u2014')+'</td></tr>';});
+  h+='</tbody></table></div></div>';
+  openSlide(h);
+  $$('[data-dp]').forEach(function(r){r.addEventListener('click',function(){drillProject(r.dataset.dp,start,end);});});
+}
+function exportReportCSV(start,end){
+  var ents=entriesIn(start,end);
+  var lines=[['Date','Employee','Entity','Category','P&L Center','Project','Hours','Rate','Cost','Type'].join(',')];
+  ents.forEach(function(e){var emp=empById(e.empId);var p=projById(e.projectId);var pn=pnlById(p.pnlId);lines.push([e.date,csv(emp.name),emp.entity,csv(pn.cat),csv(pn.name),csv(p.name),e.hours,emp.rate,(e.hours*emp.rate).toFixed(2),e.type].join(','));});
+  lines.push('');
+  lines.push('# Report generated,'+new Date().toISOString());
+  lines.push('# User,'+csv(empById(state.currentEmp).name)+',Role,'+state.role);
+  lines.push('# Entities,'+activeEntities().join(' '));
+  lines.push('# Period,'+ymd(start)+' to '+ymd(addDays(end,-1)));
+  downloadCSV(lines.join('\
+'),'dn-report-'+ymd(start)+'.csv');
+  toast('Exported '+ents.length+' entries to CSV','success');
+}
+function csv(s){s=String(s==null?'':s);if(s.indexOf(',')>=0||s.indexOf('"')>=0)return '"'+s.replace(new RegExp('"','g'),'""')+'"';return s;}
+function downloadCSV(text,name){var blob=new Blob([text],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(function(){URL.revokeObjectURL(url);},1000);}
+
+/* =========================================================
+   RESOURCES
+========================================================= */
+function renderResources(){
+  var ents=activeEntities();var emps=EMPLOYEES.filter(function(e){return ents.indexOf(e.entity)>=0;});
+  var weeks=[];var base=mondayOf(new Date());for(var w=state.resWeeks-1;w>=0;w--)weeks.push(addDays(base,-7*w));
+  var h='';
+  h+='<div class="row wrap" style="justify-content:space-between;margin-bottom:14px"><div><div style="font-size:20px;font-weight:600">Resource Utilization</div><div class="cap">'+ents.join(' \u00b7 ')+' \u00b7 '+emps.length+' people \u00b7 last '+state.resWeeks+' weeks</div></div></div>';
+  /* KPIs */
+  var totBill=0,totCap=0;emps.forEach(function(emp){weeks.forEach(function(ws){totCap+=emp.cap;totBill+=empWeekBillable(emp.id,ws);});});
+  h+='<div class="grid-kpi">'+kpi(fmtPct(totCap>0?totBill/totCap*100:0),'Team Utilization',fmtH(totBill)+' / '+fmtH(totCap)+'h')+kpi(String(emps.length),'Active Resources','across '+ents.length+' entit'+(ents.length>1?'ies':'y'))+kpi(fmtH(totCap-totBill),'Available Capacity','unallocated hours')+'</div>';
+  /* heatmap */
+  h+='<div class="card sec"><div class="cap" style="margin-bottom:10px">Weekly utilization heatmap (billable hours / capacity)</div><div class="gridwrap"><table class="entry"><thead><tr><th class="frz">Employee</th>';
+  weeks.forEach(function(ws){h+='<th style="text-align:center">W'+isoWeek(ws)+'</th>';});h+='<th style="text-align:center">Avg</th></tr></thead><tbody>';
+  emps.forEach(function(emp){
+    h+='<tr><td class="frz"><div style="font-weight:500">'+esc(emp.name)+'</div><div class="subtle" style="font-size:11px">'+esc(emp.team)+' \u00b7 '+emp.entity+'</div></td>';
+    var sum=0;weeks.forEach(function(ws){var b=empWeekBillable(emp.id,ws);var u=emp.cap>0?b/emp.cap:0;sum+=u;var op=Math.min(1,u);var col='rgba(94,106,210,'+(0.12+op*0.7).toFixed(2)+')';var tcol=op>0.55?'#fff':'var(--text)';h+='<td style="text-align:center;padding:4px"><div class="heat" style="background:'+(u>0?col:'var(--surface-2)')+';color:'+(u>0?tcol:'var(--text-subtle)')+'">'+(u>0?(u*100).toFixed(0)+'%':'\u2013')+'</div></td>';});
+    var avg=weeks.length?sum/weeks.length*100:0;h+='<td class="num" style="font-weight:600">'+avg.toFixed(0)+'%</td></tr>';
+  });
+  h+='</tbody></table></div></div>';
+  /* capacity planning */
+  h+='<div class="card"><div class="cap" style="margin-bottom:10px">Capacity vs allocation (current week)</div><table><thead><tr><th>Employee</th><th>Title</th><th class="num">Capacity</th><th class="num">Allocated</th><th class="num">Available</th><th>Status</th></tr></thead><tbody>';
+  emps.forEach(function(emp){var alloc=empWeekTotal(emp.id,base);var avail=emp.cap-alloc;var bd=avail<0?'badge-danger':avail<8?'badge-warning':'badge-success';var lbl=avail<0?'Over-allocated':avail<8?'Near capacity':'Available';h+='<tr><td>'+esc(emp.name)+'</td><td class="muted">'+esc(emp.title)+'</td><td class="num">'+fmtH(emp.cap)+'</td><td class="num">'+fmtH(alloc)+'</td><td class="num">'+fmtH(avail)+'</td><td><span class="badge '+bd+'">'+lbl+'</span></td></tr>';});
+  h+='</tbody></table></div>';
+  $('#main').innerHTML=h;
+}
+function empWeekBillable(empId,ws){var wk=weekKey(ws);var t=0;ENTRIES.forEach(function(e){if(e.empId===empId&&weekKey(new Date(e.date))===wk){var p=projById(e.projectId);if(pnlBillable(pnlById(p.pnlId)))t+=e.hours;}});return t;}
+function empWeekTotal(empId,ws){var wk=weekKey(ws);var t=0;ENTRIES.forEach(function(e){if(e.empId===empId&&weekKey(new Date(e.date))===wk)t+=e.hours;});return t;}
+
+/* =========================================================
+   APPROVALS
+========================================================= */
+function renderApprovals(){
+  var mgr=state.currentEmp;var team=EMPLOYEES.filter(function(e){return e.manager===mgr||(state.role==='admin');});
+  if(state.role==='admin'||state.role==='finance')team=EMPLOYEES.slice();
+  var ws=mondayOf(addDays(new Date(),-7));var wk=weekKey(ws);
+  var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:600">Timesheet Approvals</div><div class="cap">Week '+isoWeek(ws)+' \u00b7 '+rangeLabel(ws)+'</div></div>';
+  var pend=[],other=[];
+  team.forEach(function(emp){var s=SUBMISSIONS[emp.id+'|'+wk]||{status:'draft',comments:[]};var tot=empWeekTotal(emp.id,ws);var rec={emp:emp,s:s,tot:tot};if(s.status==='submitted')pend.push(rec);else other.push(rec);});
+  h+='<div class="card sec"><div class="cap" style="margin-bottom:10px">Awaiting your review ('+pend.length+')</div>';
+  if(pend.length===0)h+='<div class="empty"><div style="font-weight:600">All caught up</div><div class="muted">No timesheets pending approval for this week.</div></div>';
+  else{h+='<table><thead><tr><th>Employee</th><th class="num">Hours</th><th>Entity</th><th></th></tr></thead><tbody>';pend.forEach(function(r){h+='<tr><td>'+esc(r.emp.name)+'<div class="subtle" style="font-size:11px">'+esc(r.emp.title)+'</div></td><td class="num">'+fmtH(r.tot)+'</td><td>'+r.emp.entity+'</td><td style="text-align:right"><button class="btn-secondary" data-rev="'+r.emp.id+'">Review</button></td></tr>';});h+='</tbody></table>';}
+  h+='</div>';
+  h+='<div class="card"><div class="cap" style="margin-bottom:10px">Other timesheets</div><table><thead><tr><th>Employee</th><th class="num">Hours</th><th>Status</th></tr></thead><tbody>';
+  other.forEach(function(r){var bd=r.s.status==='approved'?'badge-success':r.s.status==='rejected'?'badge-danger':'badge-neutral';h+='<tr><td>'+esc(r.emp.name)+'</td><td class="num">'+(r.tot>0?fmtH(r.tot):'\u2014')+'</td><td><span class="badge '+bd+'">'+r.s.status+'</span></td></tr>';});
+  h+='</tbody></table></div>';
+  $('#main').innerHTML=h;
+  $$('[data-rev]').forEach(function(b){b.addEventListener('click',function(){reviewSheet(b.dataset.rev,ws);});});
+}
+function reviewSheet(empId,ws){
+  var emp=empById(empId);var wk=weekKey(ws);var s=SUBMISSIONS[empId+'|'+wk];var days=[];for(var i=0;i<7;i++)days.push(ymd(addDays(ws,i)));
+  var rows=ENTRIES.filter(function(e){return e.empId===empId&&days.indexOf(e.date)>=0;});
+  var byProj={};rows.forEach(function(e){if(!byProj[e.projectId])byProj[e.projectId]=0;byProj[e.projectId]+=e.hours;});
+  var h='<div class="slide"><div style="padding:20px">';
+  h+='<div class="row" style="justify-content:space-between"><div><div style="font-size:18px;font-weight:600">'+esc(emp.name)+'</div><div class="cap">Week '+isoWeek(ws)+' \u00b7 '+rangeLabel(ws)+'</div></div><button class="btn-ghost" id="closeSlide">\u2715</button></div>';
+  h+='<table style="margin-top:16px"><thead><tr><th>Project</th><th class="num">Hours</th></tr></thead><tbody>';
+  var tot=0;Object.keys(byProj).forEach(function(k){tot+=byProj[k];h+='<tr><td>'+esc(projById(k).name)+'</td><td class="num">'+fmtH(byProj[k])+'</td></tr>';});
+  h+='<tr style="font-weight:600"><td>Total</td><td class="num">'+fmtH(tot)+'</td></tr></tbody></table>';
+  h+='<div class="field" style="margin-top:16px"><label class="lbl">Comment</label><textarea class="input" id="revComment" rows="2" style="width:100%" placeholder="Optional note to employee\u2026"></textarea></div>';
+  if(s.comments.length){h+='<div class="thread">'+s.comments.map(function(c){return '<div style="margin-bottom:6px"><span class="badge badge-neutral">'+esc(c.by)+'</span> '+esc(c.text)+'</div>';}).join('')+'</div>';}
+  h+='<div class="row" style="margin-top:14px"><button class="btn-primary" id="approveBtn">Approve</button><button class="btn-secondary" id="rejectBtn">Reject</button></div>';
+  h+='</div></div>';
+  openSlide(h);
+  $('#approveBtn').addEventListener('click',function(){var c=$('#revComment').value.trim();if(c)s.comments.push({by:'Manager',text:c});s.status='approved';toast('Approved '+emp.name+'\u2019s timesheet','success');closeSlide();renderApprovals();});
+  $('#rejectBtn').addEventListener('click',function(){var c=$('#revComment').value.trim();if(!c){toast('Add a comment explaining the rejection','error');return;}s.comments.push({by:'Manager',text:c});s.status='rejected';toast('Rejected \u2014 sent back to '+emp.name,'info');closeSlide();renderApprovals();});
+}
+
+/* =========================================================
+   ADMIN
+========================================================= */
+function renderAdmin(){
+  var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:600">Administration</div><div class="cap">Project hierarchy &amp; user management</div></div>';
+  /* Project hierarchy */
+  h+='<div class="card sec"><div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="cap">P&amp;L hierarchy &amp; projects</div><button class="btn-secondary" id="addPrjBtn">+ New project</button></div>';
+  CATEGORIES.forEach(function(cat){
+    h+='<div style="margin-bottom:14px"><div style="font-weight:600;margin-bottom:6px">'+cat+'</div>';
+    PNL.filter(function(p){return p.cat===cat&&p.id!=='leave';}).forEach(function(pn){
+      var prs=PROJECTS.filter(function(p){return p.pnlId===pn.id;});
+      h+='<div class="indent" style="margin-bottom:8px"><div class="cap" style="margin-bottom:4px">'+esc(pn.name)+'</div>';
+      if(prs.length===0)h+='<div class="subtle" style="font-size:12px">No projects</div>';
+      prs.forEach(function(p){h+='<div class="row" style="justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)"><div>'+esc(p.name)+' <span class="badge badge-neutral">'+(p.entity==='ALL'?'ALL':p.entity)+'</span> '+(p.status==='archived'?'<span class="badge badge-warning">archived</span>':'')+'</div><div class="row"><span class="muted" style="font-size:12px">'+(p.budget>0?fmtH(p.budget)+'h budget':'no budget')+'</span><button class="btn-ghost" data-arch="'+p.id+'">'+(p.status==='archived'?'Restore':'Archive')+'</button></div></div>';});
+      h+='</div>';
+    });
+    h+='</div>';
+  });
+  h+='</div>';
+  /* user management */
+  h+='<div class="card"><div class="row" style="justify-content:space-between;margin-bottom:10px"><div class="cap">User management ('+EMPLOYEES.length+')</div><button class="btn-secondary" id="addUserBtn">+ Onboard employee</button></div>';
+  h+='<table><thead><tr><th>Name</th><th>Title</th><th>Team</th><th>Entity</th><th class="num">Rate</th><th class="num">Cap</th></tr></thead><tbody>';
+  EMPLOYEES.forEach(function(e){h+='<tr><td>'+esc(e.name)+'</td><td class="muted">'+esc(e.title)+'</td><td>'+esc(e.team)+'</td><td>'+e.entity+'</td><td class="num">'+fmtMoney(e.rate)+'</td><td class="num">'+fmtH(e.cap)+'</td></tr>';});
+  h+='</tbody></table></div>';
+  $('#main').innerHTML=h;
+  $$('[data-arch]').forEach(function(b){b.addEventListener('click',function(){var p=projById(b.dataset.arch);p.status=p.status==='archived'?'active':'archived';toast(p.name+' '+(p.status==='archived'?'archived \u2014 entry locked':'restored'),'info');renderAdmin();});});
+  $('#addPrjBtn').addEventListener('click',openAddProjectAdmin);
+  $('#addUserBtn').addEventListener('click',openAddUser);
+}
+function openAddProjectAdmin(){
+  var ov=document.createElement('div');ov.className='ov';
+  var pnlOpts=PNL.filter(function(p){return p.id!=='leave';}).map(function(p){return '<option value="'+p.id+'">'+p.cat+' \u203a '+esc(p.name)+'</option>';}).join('');
+  var entOpts=ENTITIES.map(function(e){return '<option value="'+e+'">'+ENTITY_NAME[e]+'</option>';}).join('');
+  ov.innerHTML='<div class="modalc"><h2 style="font-size:16px;margin-bottom:14px">New project</h2><div class="field"><label class="lbl">Project name</label><input class="input" id="npName"></div><div class="field"><label class="lbl">P&amp;L center</label><select class="input" id="npPnl">'+pnlOpts+'</select></div><div class="field"><label class="lbl">Entity</label><select class="input" id="npEnt">'+entOpts+'</select></div><div class="field"><label class="lbl">Budget hours</label><input class="input" id="npBud" type="number" min="0" value="0"></div><div class="row" style="justify-content:flex-end"><button class="btn-secondary" id="npCancel">Cancel</button><button class="btn-primary" id="npSave">Create</button></div></div>';
+  $('#ovroot').appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  $('#npCancel').addEventListener('click',function(){ov.remove();});
+  $('#npSave').addEventListener('click',function(){var n=$('#npName').value.trim();if(!n){toast('Project name is required','error');return;}PROJECTS.push({id:'pr'+(PROJECTS.length+100),name:n,pnlId:$('#npPnl').value,entity:$('#npEnt').value,budget:parseFloat($('#npBud').value)||0,status:'active'});toast('Created project '+n,'success');ov.remove();renderAdmin();});
+  $('#npName').focus();
+}
+function openAddUser(){
+  var ov=document.createElement('div');ov.className='ov';
+  var entOpts=ENTITIES.map(function(e){return '<option value="'+e+'">'+ENTITY_NAME[e]+'</option>';}).join('');
+  var teamOpts=TEAMS.map(function(t){return '<option value="'+t+'">'+t+'</option>';}).join('');
+  ov.innerHTML='<div class="modalc"><h2 style="font-size:16px;margin-bottom:14px">Onboard employee</h2><div class="field"><label class="lbl">Full name</label><input class="input" id="nuName"></div><div class="field"><label class="lbl">Title</label><input class="input" id="nuTitle"></div><div class="field"><label class="lbl">Team</label><select class="input" id="nuTeam">'+teamOpts+'</select></div><div class="field"><label class="lbl">Entity</label><select class="input" id="nuEnt">'+entOpts+'</select></div><div class="field"><label class="lbl">Loaded rate ($/h)</label><input class="input" id="nuRate" type="number" min="0" value="50"></div><div class="row" style="justify-content:flex-end"><button class="btn-secondary" id="nuCancel">Cancel</button><button class="btn-primary" id="nuSave">Onboard</button></div></div>';
+  $('#ovroot').appendChild(ov);
+  ov.addEventListener('click',function(e){if(e.target===ov)ov.remove();});
+  $('#nuCancel').addEventListener('click',function(){ov.remove();});
+  $('#nuSave').addEventListener('click',function(){var n=$('#nuName').value.trim();if(!n){toast('Name is required','error');return;}EMPLOYEES.push({id:'e'+(EMPLOYEES.length+100),name:n,entity:$('#nuEnt').value,team:$('#nuTeam').value,title:$('#nuTitle').value.trim()||'Staff',rate:parseFloat($('#nuRate').value)||50,cap:40,manager:'e12'});toast('Onboarded '+n,'success');ov.remove();renderAdmin();});
+  $('#nuName').focus();
+}
+
+/* =========================================================
+   EXPORT VIEW
+========================================================= */
+function renderExport(){
+  var h='<div style="margin-bottom:14px"><div style="font-size:20px;font-weight:600">Export &amp; ERP Integration</div><div class="cap">Generate finance-ready extracts with filter context preserved</div></div>';
+  h+='<div class="card sec"><div class="cap" style="margin-bottom:12px">Export configuration</div>';
+  h+='<div class="field"><label class="lbl">Period</label><select class="input" id="exPeriod"><option value="week">This Week</option><option value="month" selected>This Month</option><option value="quarter">This Quarter</option></select></div>';
+  h+='<div class="field"><label class="lbl">Format</label><select class="input" id="exFmt"><option value="detail">Detailed time entries</option><option value="gl">GL summary by P&amp;L center</option><option value="proj">Project cost roll-up</option></select></div>';
+  h+='<div class="muted" style="font-size:12px;margin-bottom:12px">Active entities: '+activeEntities().join(', ')+'. Metadata footer (report date, user, filters) is appended automatically.</div>';
+  h+='<div id="exProg" class="muted" style="font-size:13px;margin-bottom:10px;display:none"></div>';
+  h+='<button class="btn-primary" id="exGo">Generate &amp; download</button></div>';
+  h+='<div class="card"><div class="cap" style="margin-bottom:10px">Saved report configurations</div><table><thead><tr><th>Name</th><th>Scope</th><th>Schedule</th></tr></thead><tbody><tr><td>Monthly P&amp;L by Company</td><td class="muted">All entities \u00b7 month</td><td><span class="badge badge-info">1st of month</span></td></tr><tr><td>Q-Development Costs</td><td class="muted">DNH+DNC \u00b7 quarter</td><td><span class="badge badge-neutral">manual</span></td></tr><tr><td>Weekly Utilization</td><td class="muted">All entities \u00b7 week</td><td><span class="badge badge-info">Mondays</span></td></tr></tbody></table></div>';
+  $('#main').innerHTML=h;
+  $('#exGo').addEventListener('click',function(){
+    var prog=$('#exProg');prog.style.display='block';prog.textContent='Collecting entries\u2026';
+    var pr=periodRange($('#exPeriod').value,0);var fmt=$('#exFmt').value;
+    setTimeout(function(){prog.textContent='Formatting rows\u2026';setTimeout(function(){
+      if(fmt==='detail'){exportReportCSV(pr[0],pr[1]);}
+      else if(fmt==='gl'){exportGL(pr[0],pr[1]);}
+      else{exportProjRoll(pr[0],pr[1]);}
+      prog.textContent='Done.';setTimeout(function(){prog.style.display='none';},1500);
+    },350);},300);
+  });
+}
+function exportGL(start,end){var ru=rollup(start,end);var lines=[['Category','P&L Center','Hours','Cost'].join(',')];Object.keys(ru.byPnl).forEach(function(k){var g=ru.byPnl[k];lines.push([csv(g.pnl.cat),csv(g.pnl.name),g.hours.toFixed(1),g.cost.toFixed(2)].join(','));});lines.push('');lines.push('# GL summary,'+new Date().toISOString()+',Entities,'+activeEntities().join(' '));downloadCSV(lines.join('\
+'),'dn-gl-summary.csv');toast('GL summary exported','success');}
+function exportProjRoll(start,end){var ents=entriesIn(start,end);var byP={};ents.forEach(function(e){var p=projById(e.projectId);if(!byP[p.id])byP[p.id]={p:p,h:0,c:0};byP[p.id].h+=e.hours;byP[p.id].c+=e.hours*empById(e.empId).rate;});var lines=[['Project','P&L Center','Entity','Hours','Cost','Budget h','Variance h'].join(',')];Object.keys(byP).forEach(function(k){var g=byP[k];lines.push([csv(g.p.name),csv(pnlById(g.p.pnlId).name),g.p.entity,g.h.toFixed(1),g.c.toFixed(2),g.p.budget,(g.h-g.p.budget).toFixed(1)].join(','));});lines.push('');lines.push('# Project roll-up,'+new Date().toISOString());downloadCSV(lines.join('\
+'),'dn-project-rollup.csv');toast('Project roll-up exported','success');}
+
+/* =========================================================
+   SLIDEOVER / CMDK
+========================================================= */
+function openSlide(html){var ov=document.createElement('div');ov.className='ov';ov.id='slideOv';ov.innerHTML=html;$('#ovroot').appendChild(ov);ov.addEventListener('click',function(e){if(e.target===ov)closeSlide();});var c=$('#closeSlide');if(c)c.addEventListener('click',closeSlide);}
+function closeSlide(){var o=$('#slideOv');if(o)o.remove();}
+function openCmdK(){
+  var ov=document.createElement('div');ov.className='ov';ov.id='cmdkOv';
+  ov.innerHTML='<div class="cmdk"><div style="padding:10px 14px;border-bottom:1px solid var(--border)"><input class="input" id="cmdInput" placeholder="Search projects, employees, P&amp;L centers\u2026" style="width:100%;border:none;background:transparent" autocomplete="off"></div><div class="cmdres" id="cmdRes"></div></div>';
+  $('#ovroot').appendChild(ov);
+  function paint(q){
+    q=(q||'').toLowerCase();var out=[];
+    if(!q){state.recents.map(projById).filter(Boolean).forEach(function(p){out.push({t:'Recent',n:p.name,s:breadcrumb(p),act:function(){addProjectToWeek(p.id);}});});}
+    PROJECTS.forEach(function(p){if(p.status!=='active')return;if(q&&(p.name+' '+breadcrumb(p)).toLowerCase().indexOf(q)<0)return;out.push({t:'Project',n:p.name,s:breadcrumb(p),act:function(){state.view='reports';renderNav();renderReports();}});});
+    EMPLOYEES.forEach(function(e){if(q&&(e.name+' '+e.title).toLowerCase().indexOf(q)<0)return;out.push({t:'Person',n:e.name,s:e.title+' \u00b7 '+e.entity,act:function(){state.view='resources';renderNav();renderResources();}});});
+    PNL.forEach(function(p){if(q&&(p.name+' '+p.cat).toLowerCase().indexOf(q)<0)return;out.push({t:'P&L',n:p.name,s:p.cat+' \u00b7 P&L center',act:function(){state.view='reports';renderNav();renderReports();}});});
+    out=out.slice(0,30);
+    $('#cmdRes').innerHTML=out.length?out.map(function(o,i){return '<div class="cmdrow" data-i="'+i+'"><span class="badge badge-neutral">'+o.t+'</span><div><div style="font-weight:500">'+esc(o.n)+'</div><div class="subtle" style="font-size:11px">'+esc(o.s)+'</div></div></div>';}).join(''):'<div class="muted" style="padding:16px">No results</div>';
+    $$('#cmdRes [data-i]').forEach(function(row){row.addEventListener('click',function(){var o=out[+row.dataset.i];closeCmdK();o.act();});});
+  }
+  paint('');
+  $('#cmdInput').addEventListener('input',function(){paint(this.value);});
+  $('#cmdInput').focus();
+  ov.addEventListener('click',function(e){if(e.target===ov)closeCmdK();});
+}
+function closeCmdK(){var o=$('#cmdkOv');if(o)o.remove();}
+
+/* =========================================================
+   ROOT RENDER
+========================================================= */
+function render(){
+  if(state.view==='entry')renderEntry();
+  else if(state.view==='reports')renderReports();
+  else if(state.view==='resources')renderResources();
+  else if(state.view==='approvals')renderApprovals();
+  else if(state.view==='admin')renderAdmin();
+  else if(state.view==='export')renderExport();
+}
+function fullRender(){renderEntities();renderNav();render();}
+
+/* header bindings */
+$('#themeBtn').addEventListener('click',function(){state.theme=state.theme==='dark'?'light':'dark';document.documentElement.dataset.theme=state.theme;});
+$('#roleSel').addEventListener('change',function(){state.role=this.value;if(this.value==='employee'||this.value==='manager'){state.currentEmp= this.value==='manager'?'e9':'e1';state.entities=[empById(state.currentEmp).entity];}else{state.entities=ENTITIES.slice();}fullRender();});
+$('#searchBtn').addEventListener('click',openCmdK);
+document.addEventListener('keydown',function(e){if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();openCmdK();}if(e.key==='Escape'){closeCmdK();closeSlide();}});
+
+fullRender();
+})();
+</script>
+</body>
+</html>
