@@ -1470,7 +1470,7 @@ body.workspace-panel-collapsed .main { padding-right: 0; }
   <img id="logo-img" alt="Digitata Networks" class="logo-img">
   <div class="topbar-divider"></div>
   <span class="topbar-app">Intent</span>
-  <span class="topbar-version" title="DN_Intent build">v1.4.16 #32</span>
+  <span class="topbar-version" title="DN_Intent build">v1.4.17 #33</span>
   <div class="topbar-right">
     <div class="db-status">
       <div class="db-dot" id="db-dot"></div>
@@ -3399,7 +3399,7 @@ async function sendMessage() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 1200,
         system: buildContextSection() + buildConversationHistorySection() + buildPendingQuestionsSection() + buildActivitySection(recentActivity) + SYSTEM_PROMPT + SYSTEM_PROMPT_BRIDGE_NOTE,
         messages: chatHistory
@@ -3713,7 +3713,7 @@ async function submitQuick() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514', max_tokens: 1000,
+        model: 'claude-sonnet-4-6', max_tokens: 1000,
         system: buildContextSection() + SYSTEM_PROMPT + '\n\nThe user has submitted a brief directly. Generate the epic immediately from the brief without asking questions. Start your response with EPIC_READY on its own line.',
         messages: [{ role: 'user', content: text }]
       })
@@ -4342,7 +4342,7 @@ async function runInitialBuild(epic) {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 16000,
         system: BUILD_SYSTEM_PROMPT,
         messages: [{ role: 'user', content: prompt }]
@@ -4437,7 +4437,7 @@ async function sendFeedback() {
         'anthropic-dangerous-direct-browser-access': 'true'
       },
       body: JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
+        model: 'claude-sonnet-4-6',
         max_tokens: 16000,
         system: BUILD_SYSTEM_PROMPT,
         messages: messages
