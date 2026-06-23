@@ -264,7 +264,7 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
 'use strict';
 (function(){
   var AIRCRAFT={
-    R22:{name:'R22 Beta II',maxGross:1370,minGross:920,defEmptyW:855,defEmptyArm:95.0,fuelDensity:6.0,burn:9,
+    R22:{name:'R22 Beta II',maxGross:1370,minGross:920,defEmptyW:855,defEmptyArm:101.0,fuelDensity:6.0,burn:9,
       stations:[
         {id:'pilot',name:'Pilot',arm:64.6,type:'occupant'},
         {id:'pax',name:'Passenger',arm:64.6,type:'occupant'},
@@ -272,21 +272,21 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
         {id:'auxfuel',name:'Auxiliary Fuel',arm:84.6,type:'fuel',maxGal:10.9},
         {id:'baggage',name:'Under-seat Baggage',arm:64.6,type:'baggage',max:53}
       ],
-      fwd:[{w:920,arm:92.4},{w:1100,arm:92.4},{w:1370,arm:96.0}],
-      aft:[{w:920,arm:99.6},{w:1370,arm:99.6}]
+      fwd:[{w:850,arm:85.5},{w:1100,arm:86.0},{w:1370,arm:89.0}],
+      aft:[{w:850,arm:102.5},{w:1370,arm:100.5}]
     },
-    R44:{name:'R44 Raven II',maxGross:2500,minGross:1500,defEmptyW:1500,defEmptyArm:106.0,fuelDensity:6.0,burn:15,
+    R44:{name:'R44 Raven II',maxGross:2500,minGross:1500,defEmptyW:1500,defEmptyArm:100.5,fuelDensity:6.0,burn:15,
       stations:[
         {id:'pilot',name:'Pilot (front L)',arm:49.5,type:'occupant'},
         {id:'copilot',name:'Front Passenger (R)',arm:49.5,type:'occupant'},
         {id:'rearL',name:'Rear Passenger (L)',arm:79.5,type:'occupant'},
         {id:'rearR',name:'Rear Passenger (R)',arm:79.5,type:'occupant'},
-        {id:'mainfuel',name:'Main Fuel',arm:106.0,type:'fuel',maxGal:30.6},
-        {id:'auxfuel',name:'Auxiliary Fuel',arm:106.0,type:'fuel',maxGal:18.3},
+        {id:'mainfuel',name:'Main Fuel',arm:106.5,type:'fuel',maxGal:30.6},
+        {id:'auxfuel',name:'Auxiliary Fuel',arm:106.5,type:'fuel',maxGal:18.3},
         {id:'baggage',name:'Baggage Area',arm:79.5,type:'baggage',max:300}
       ],
-      fwd:[{w:1500,arm:92.5},{w:2200,arm:92.5},{w:2500,arm:95.5}],
-      aft:[{w:1500,arm:99.0},{w:2500,arm:99.0}]
+      fwd:[{w:1450,arm:87.5},{w:2000,arm:88.0},{w:2500,arm:89.0}],
+      aft:[{w:1450,arm:102.0},{w:2500,arm:100.5}]
     }
   };
   var QUICK={
@@ -476,7 +476,6 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     var m=M();
     var html='';
 
-    // Master disclaimer — always shown at top
     html+="<div style='background:var(--warning-bg);border:1px solid var(--warning);border-radius:var(--radius-sm);padding:8px 10px;font-size:11px;color:var(--text);margin-bottom:12px'>";
     html+="<b style='color:var(--warning)'>ESTIMATES ONLY</b> &mdash; Always verify against the current "+m.name+" Pilot's Operating Handbook (POH). Not for operational use. No performance data is embedded in this application."; 
     html+="</div>";
@@ -484,7 +483,6 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
     if(!w){
       html+="<div class='alert'><span>&#9432;</span><span>Enter OAT, altimeter setting, and field elevation in the <b>Weather &amp; Density Altitude</b> section above to compute density altitude and hover performance advisory.</span></div>";
     } else {
-      // Inputs used — pilot sanity-check panel
       html+="<div class='da-inputs-box'>";
       html+="<div class='cap'>Inputs used for this estimate</div>";
       html+="<div class='da-inputs-grid'>";
@@ -493,7 +491,6 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
       html+="<div><div class='sub'>Field Elevation</div><div class='mono'>"+fmt0.format(w.elev)+" ft</div></div>";
       html+="</div></div>";
 
-      // Pressure Alt + Density Alt KPIs
       var daColor=w.da>8000?'var(--danger)':w.da>6000?'var(--warning)':'var(--text)';
       var isaDev=(w.oat-w.isa);
       html+="<div class='kpis'>";
@@ -503,7 +500,6 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
       html+="<div class='kpi'><div class='v'>"+fmt0.format(c.tw||0)+"</div><div class='l'>Current gross wt (lb)</div></div>";
       html+="</div>";
 
-      // HOGE advisory
       var pctMgw=m.maxGross>0?(c.tw/m.maxGross*100):0;
       var hogeStatus,hogeClass,hogeIcon,hogeDetail;
 
@@ -534,7 +530,6 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
 
       html+="<div class='alert "+(hogeClass?hogeClass:'')+"' style='margin-top:12px'><span style='flex-shrink:0'>"+hogeIcon+"</span><span><b>"+hogeStatus+"</b> &mdash; "+hogeDetail+"</span></div>";
 
-      // DA formula note
       html+="<div style='margin-top:10px;padding:8px 10px;background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:11px;color:var(--text-muted)'>";
       html+="<b>Formula:</b> PA = field elevation + (29.92 &minus; QNH) &times; 1000 ft/inHg. DA = PA + 120 &times; (OAT &minus; ISA temp). ISA = 15&deg;C &minus; 2&deg;C per 1000 ft PA.";
       html+="</div>";
@@ -644,11 +639,11 @@ button:disabled{opacity:0.5;cursor:not-allowed;}
   }
 
   // ---- export ----
-  function csvSafe(v){v=String(v);if(v.indexOf(',')!==-1||v.indexOf('"')!==-1||v.indexOf('\
-')!==-1){return '"'+v.split('"').join('""')+'"';}return v;}
+  function csvSafe(v){v=String(v);if(v.indexOf(',')!==-1||v.indexOf('"')!==-1||v.indexOf("\
+")!==-1){return '"'+v.split('"').join('""')+'"';}return v;}
   $('csvBtn').addEventListener('click',function(){var c=compute();var lines=[];lines.push(['Robinson W&B Sheet'].map(csvSafe).join(','));lines.push(['Aircraft',c.m.name].map(csvSafe).join(','));lines.push(['Tail',state.tail||''].map(csvSafe).join(','));lines.push(['Pilot',state.pilot||''].map(csvSafe).join(','));lines.push(['Generated',new Date().toLocaleString()].map(csvSafe).join(','));lines.push('');lines.push(['Station','Weight (lb)','Arm (in)','Moment'].map(csvSafe).join(','));c.rows.forEach(function(r){lines.push([r.name,fmt0.format(r.weight),fmt1.format(r.arm),fmt0.format(r.moment)].map(csvSafe).join(','));});lines.push(['TOTAL',fmt0.format(c.tw),fmt1.format(c.cg),fmt0.format(c.mom)].map(csvSafe).join(','));lines.push('');lines.push(['CG limits at weight',fmt1.format(c.fwd)+' - '+fmt1.format(c.aft)].map(csvSafe).join(','));lines.push(['Status',c.status.toUpperCase()].map(csvSafe).join(','));
-    var blob=new Blob([lines.join('\
-')],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='wb-'+(state.tail||state.model)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);toast('CSV exported','success');});
+    var blob=new Blob([lines.join("\
+")],{type:'text/csv'});var url=URL.createObjectURL(blob);var a=document.createElement('a');a.href=url;a.download='wb-'+(state.tail||state.model)+'.csv';document.body.appendChild(a);a.click();document.body.removeChild(a);setTimeout(function(){URL.revokeObjectURL(url);},1000);toast('CSV exported','success');});
 
   $('printBtn').addEventListener('click',function(){var c=compute();var wx=computeWx();var rows=c.rows.map(function(r){return '<tr><td style="padding:5px;border-bottom:1px solid #ccc">'+r.name+'</td><td style="padding:5px;border-bottom:1px solid #ccc;text-align:right">'+fmt0.format(r.weight)+'</td><td style="padding:5px;border-bottom:1px solid #ccc;text-align:right">'+fmt1.format(r.arm)+'</td><td style="padding:5px;border-bottom:1px solid #ccc;text-align:right">'+fmt0.format(r.moment)+'</td></tr>';}).join('');
     var html='<h2 style="margin:0 0 4px">Weight &amp; Balance Sheet</h2><div style="font-size:12px;color:#555;margin-bottom:12px">'+c.m.name+' &middot; Generated '+new Date().toLocaleString()+'</div>';
